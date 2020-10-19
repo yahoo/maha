@@ -1686,7 +1686,6 @@ object Filter extends Logging {
       (a, b) =>
         if(a.isPushDown == b.isPushDown) {
           compare(a, b) < 0
-//          Ordering.String.lt(a.field, b.field)
         } else {
           a.isPushDown > b.isPushDown
         }

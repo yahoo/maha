@@ -575,17 +575,13 @@ object RequestModel extends Logging {
                 allFilterAliases += filter.field
                 allOrFilters += filter
                 val attemptedReverseMappedFilter = tryCreateReverseMappedFilter(filter, publicFact)
-                val curFilters = filterMap.getOrElse(filter.field, mutable.TreeSet[Filter]())
-                val finalFilters: mutable.TreeSet[Filter] = curFilters + attemptedReverseMappedFilter
-                  filterMap.put(filter.field, finalFilters)
+                updateFilterMap(filterMap, attemptedReverseMappedFilter)
               }
             }
             else {
               allFilterAliases+=filter.field
               val attemptedReverseMappedFilter = tryCreateReverseMappedFilter(filter, publicFact)
-              val curFilters = filterMap.getOrElse(filter.field, mutable.TreeSet[Filter]())
-              val finalFilters: mutable.TreeSet[Filter] = curFilters + attemptedReverseMappedFilter
-              filterMap.put(filter.field, finalFilters)
+              updateFilterMap(filterMap, attemptedReverseMappedFilter)
             }
           }
 
@@ -607,9 +603,7 @@ object RequestModel extends Logging {
           publicFact.forcedFilters.foreach { filter =>
             if(!allFilterAliases(filter.field)) {
               allFilterAliases += filter.field
-              val curFilters = filterMap.getOrElse(filter.field, mutable.TreeSet[Filter]())
-              val finalFilters: mutable.TreeSet[Filter] = curFilters + filter
-              filterMap.put(filter.field, finalFilters)
+              updateFilterMap(filterMap, filter)
             }
           }
 
@@ -841,14 +835,11 @@ object RequestModel extends Logging {
                   val isDrivingDimension : Boolean = dimOrder == 1
 
                   val filters = new mutable.TreeSet[Filter]()
-//                  val filters: mutable.TreeSet[Filter] = mutable.TreeSet.empty(Filter.baseFilterOrdering)
                   //all non foreign key based filters
                   val hasNonFKFilters =  allNonFactFilterAliases.foldLeft(false) {
                     (b, filter) =>
                       val result = if (colAliases.contains(filter) || filter == publicDim.primaryKeyByAlias) {
                         filters ++= filterMap(filter)
-                        println(filterMap(filter))
-                        println(filters)
                         true
                       } else false
                       b || result
@@ -880,9 +871,7 @@ object RequestModel extends Logging {
                           } else {
                             for (f <- filterMap(filter)) {
                               val pushDownFilter = PushDownFilter(f)
-                              val curFilters = pushDownFilterMap.getOrElse(filter, mutable.TreeSet[PushDownFilter]())
-                              val finalFilters: mutable.TreeSet[PushDownFilter] = curFilters + pushDownFilter
-                              pushDownFilterMap.put(filter, finalFilters)
+                              updatePushDownFilterMap(pushDownFilterMap, pushDownFilter)
                               filters += pushDownFilter
                             }
                           }
@@ -1372,6 +1361,17 @@ object RequestModel extends Logging {
     } else filter
   }
 
+  def updateFilterMap(filterMap: mutable.HashMap[String, mutable.TreeSet[Filter]], filter: Filter): Unit = {
+    val curFilters = filterMap.getOrElse(filter.field, mutable.TreeSet[Filter]())
+    val finalFilters: mutable.TreeSet[Filter] = curFilters + filter
+    filterMap.put(filter.field, finalFilters)
+  }
+
+  def updatePushDownFilterMap(pushDownFilterMap: mutable.HashMap[String, mutable.TreeSet[PushDownFilter]], pushDownFilter: PushDownFilter): Unit = {
+    val curFilters = pushDownFilterMap.getOrElse(pushDownFilter.field, mutable.TreeSet[PushDownFilter]())
+    val finalFilters: mutable.TreeSet[PushDownFilter] = curFilters + pushDownFilter
+    pushDownFilterMap.put(pushDownFilter.field, finalFilters)
+  }
 }
 
 case class RequestModelResult(model: RequestModel, dryRunModelTry: Option[Try[RequestModel]])
