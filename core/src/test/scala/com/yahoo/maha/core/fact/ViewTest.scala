@@ -7,12 +7,13 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol, OracleDerDimCol}
 import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by jians on 10/20/15.
  */
-class ViewTest extends FunSuite with Matchers {
+class ViewTest extends AnyFunSuite with Matchers {
 
   CoreSchema.register()
 

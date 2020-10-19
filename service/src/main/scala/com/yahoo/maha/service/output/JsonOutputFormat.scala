@@ -6,10 +6,10 @@ import java.io.OutputStream
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.yahoo.maha.core.query.{InMemRowList, QueryPipelineResult, QueryRowList, RowList}
+import com.yahoo.maha.core.query.{InMemRowList, QueryAttribute, QueryAttributes, QueryPipelineResult, QueryRowList, QueryStatsAttribute, RowList}
 import com.yahoo.maha.core.request.{ReportingRequest, RowCountQuery}
 import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo, RequestModelResult}
-import com.yahoo.maha.service.RequestCoordinatorResult
+import com.yahoo.maha.service.{MahaRequestContext, RequestCoordinatorResult}
 import com.yahoo.maha.service.curators.{Curator, CuratorError, CuratorResult, DefaultCurator, RowCountCurator}
 import com.yahoo.maha.service.datasource.{IngestionTimeUpdater, NoopIngestionTimeUpdater}
 import org.json4s.JValue
@@ -25,8 +25,18 @@ object JsonOutputFormat {
   val defaultRenderSet: Set[String] = Set(DefaultCurator.name)
 }
 
-case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
-                            ingestionTimeUpdaterMap: Map[Engine, IngestionTimeUpdater] = Map.empty) {
+trait DebugRenderer {
+  def render(mahaRequestContext: MahaRequestContext, jsonGenerator: JsonGenerator): Unit
+}
+
+class NoopDebugRenderer extends DebugRenderer {
+  def render(mahaRequestContext: MahaRequestContext, jsonGenerator: JsonGenerator): Unit = {}
+}
+
+case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult
+                            , ingestionTimeUpdaterMap: Map[Engine, IngestionTimeUpdater] = Map.empty
+                            , debugRenderer: Option[DebugRenderer] = None
+                           ) {
 
 
   def writeStream(outputStream: OutputStream): Unit = {
@@ -65,6 +75,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       val dimCols: Set[String] = if (curatorResult.requestModelReference.model.bestCandidates.isDefined) {
         curatorResult.requestModelReference.model.bestCandidates.get.publicFact.dimCols.map(_.alias)
       } else Set.empty
+      val engineStats = qpr.queryAttributes.getAttributeOption(QueryAttributes.QueryStats)
       writeHeader(jsonGenerator
         , qpr.rowList.columns
         , curatorResult.requestModelReference.model.reportingRequest
@@ -73,6 +84,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         , dimCols
         , true
         , qpr.pagination
+        , engineStats
       )
       writeDataRows(jsonGenerator, qpr.rowList, rowCountOption, curatorResult.requestModelReference.model.reportingRequest)
     }
@@ -147,6 +159,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       jsonGenerator.writeFieldName("index")
       jsonGenerator.writeNumber(index.get)
     }
+    val engineStats = qpr.queryAttributes.getAttributeOption(QueryAttributes.QueryStats)
     writeHeader(jsonGenerator
       , qpr.rowList.columns
       , requestModelReference.model.reportingRequest
@@ -155,6 +168,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       , dimCols
       , false
       , qpr.pagination
+      , engineStats
     )
     writeDataRows(jsonGenerator, qpr.rowList, None, requestModelReference.model.reportingRequest)
     jsonGenerator.writeEndObject() //}
@@ -184,6 +198,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
                           , dimCols: Set[String]
                           , isDefault: Boolean
                           , pagination: Map[Engine, JValue]
+                          , engineStatsOption: Option[QueryAttribute]
                          ) {
     jsonGenerator.writeFieldName("header") // "header":
     jsonGenerator.writeStartObject() // {
@@ -246,6 +261,29 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
             jsonGenerator.writeString(label)
         }
         jsonGenerator.writeEndArray()
+      }
+      if (engineStatsOption.isDefined) {
+        val engineStats = engineStatsOption.get
+        engineStats match {
+          case QueryStatsAttribute(stats) =>
+            jsonGenerator.writeFieldName("engineStats")
+            jsonGenerator.writeStartArray()
+            stats.getStats.foreach {
+              s =>
+                jsonGenerator.writeStartObject()
+                jsonGenerator.writeFieldName("engine")
+                jsonGenerator.writeString(s.engine.toString)
+                jsonGenerator.writeFieldName("tableName")
+                jsonGenerator.writeString(s.tableName)
+                jsonGenerator.writeFieldName("queryTime")
+                jsonGenerator.writeObject(s.endTime - s.startTime)
+                jsonGenerator.writeEndObject()
+            }
+            jsonGenerator.writeEndArray()
+        }
+      }
+      if(debugRenderer.isDefined) {
+        debugRenderer.get.render(requestCoordinatorResult.mahaRequestContext, jsonGenerator)
       }
       jsonGenerator.writeEndObject()
     }

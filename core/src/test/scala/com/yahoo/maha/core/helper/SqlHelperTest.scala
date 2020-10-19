@@ -2,9 +2,10 @@ package com.yahoo.maha.core.helper
 
 import com.yahoo.maha.core.query.{InnerJoin, LeftOuterJoin, RightOuterJoin}
 import com.yahoo.maha.core.{DruidEngine, HiveEngine, OracleEngine, PrestoEngine}
-import org.scalatest.{FunSuiteLike, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class SqlHelperTest extends FunSuiteLike with Matchers{
+class SqlHelperTest extends AnyFunSuite with Matchers{
   test("Attempt to use each join-able engine") {
     assert(SqlHelper.getJoinString(InnerJoin, HiveEngine).contains("INNER JOIN"))
     assert(SqlHelper.getJoinString(LeftOuterJoin, OracleEngine).contains("LEFT OUTER JOIN"))

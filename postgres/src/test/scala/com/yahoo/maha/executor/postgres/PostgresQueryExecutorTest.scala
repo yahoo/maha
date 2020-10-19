@@ -22,12 +22,14 @@ import com.yahoo.maha.jdbc._
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.commons.lang3.StringUtils
 import org.apache.druid.common.config.NullHandling
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 
 /**
  * Created by hiral on 1/25/16.
  */
-class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
+class PostgresQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
 
   override protected def defaultFactEngine: Engine = PostgresEngine
 

@@ -34,14 +34,15 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
   final protected[this] val ADDITIONAL_PAGINATION_COLUMN: IndexedSeq[String] = IndexedSeq(OracleQueryGenerator.ROW_COUNT_ALIAS)
   final protected[this] val PAGINATION_ROW_COUNT: String = s"""Count(*) OVER() ${OracleQueryGenerator.ROW_COUNT_ALIAS}"""
   final protected[this] val supportingDimPostfix: String = "_indexed"
-  final protected[this] val PAGINATION_WRAPPER: String = "SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (%s) %s) D ) WHERE %s"
+  final protected[this] val ROW_NUMBER_ALIAS = "ROWNUM AS ROW_NUMBER"
+  final protected[this] val PAGINATION_WRAPPER: String = s"SELECT * FROM (SELECT D.*, $ROW_NUMBER_ALIAS FROM (SELECT * FROM (%s) %s) D ) WHERE %s"
   final protected[this] val OUTER_PAGINATION_WRAPPER: String = "%s WHERE %s"
   final protected[this] val OUTER_PAGINATION_WRAPPER_WITH_FILTERS: String = "%s AND %s"
-  final protected[this] val PAGINATION_WRAPPER_UNION: String = "SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (%s) D )"
+  final protected[this] val PAGINATION_WRAPPER_UNION: String = s"SELECT * FROM (SELECT D.*, $ROW_NUMBER_ALIAS FROM (%s) D ) %s"
+  final protected[this] val UNION_WITHOUT_PAGINATION: String = "SELECT * FROM (SELECT D.* FROM (%s) D )"
   final protected[this] val PAGINATION_ROW_COUNT_COL = ColumnContext.withColumnContext { implicit cc =>
     DimCol(OracleQueryGenerator.ROW_COUNT_ALIAS, IntType())
   }
-  final protected[this] val ROW_NUMBER_ALIAS = "ROWNUM as ROW_NUMBER"
 
   // Definition Prototypes
   def generateDimensionSql(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext, includePagination: Boolean): DimensionSql
@@ -149,20 +150,35 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
 
   protected[this] def addPaginationWrapper(queryString: String, mr: Int, si: Int, includePagination: Boolean): String = {
     if(includePagination) {
+      val (stopKeyPredicate, paginationPredicates) = createPaginationPredicates(mr, si, includePagination)
+      String.format(PAGINATION_WRAPPER, queryString, stopKeyPredicate, paginationPredicates.mkString(" AND "))
+    } else {
+      queryString
+    }
+  }
+
+  protected[this] def createPaginationPredicates(mr: Int, si: Int, includePagination: Boolean): (String, List[String]) = {
+    if(includePagination) {
       val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
       val minPosition: Int = if (si < 0) 1 else si + 1
       paginationPredicates += ("ROW_NUMBER >= " + minPosition)
-      val stopKeyPredicate: String =  {
+      val stopKeyPredicate: String = {
         if (mr > 0) {
           val maxPosition: Int = if (si <= 0) mr else minPosition - 1 + mr
           paginationPredicates += ("ROW_NUMBER <= " + maxPosition)
           s"WHERE ROWNUM <= $maxPosition"
-        } else  s""
+        } else s""
       }
-      String.format(PAGINATION_WRAPPER, queryString, stopKeyPredicate, paginationPredicates.toList.mkString(" AND "))
-    } else {
-      queryString
+
+      (stopKeyPredicate, paginationPredicates.toList)
+    } else{
+      ("", List.empty)
     }
+  }
+
+  protected[this] def paginationWhereClause(predicates: List[String]): String = {
+    if(predicates.isEmpty) ""
+    else predicates.mkString("WHERE ", " AND ", "")
   }
 
   def renderColumnName(column: Column): String = {

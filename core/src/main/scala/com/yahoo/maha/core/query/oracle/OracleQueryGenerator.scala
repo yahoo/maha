@@ -611,10 +611,10 @@ b. Dim Driven
   private[this] def addOuterPaginationWrapper(queryString: String, mr: Int, si: Int, includePagination: Boolean, outerFiltersPresent: Boolean): String = {
     val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
     val minPosition: Int = if (si < 0) 1 else si + 1
-    paginationPredicates += (if(includePagination) ("ROW_NUMBER >= " + minPosition) else ("ROWNUM >= " + minPosition))
+    paginationPredicates += ("ROW_NUMBER >= " + minPosition)
     if (mr > 0) {
       val maxPosition: Int = if (si <= 0) mr else minPosition - 1 + mr
-      paginationPredicates += (if(includePagination) ("ROW_NUMBER <= " + maxPosition) else ("ROWNUM <= " + maxPosition))
+      paginationPredicates += ("ROW_NUMBER <= " + maxPosition)
     }
     if (outerFiltersPresent)
       String.format(OUTER_PAGINATION_WRAPPER_WITH_FILTERS, queryString, paginationPredicates.toList.mkString(" AND "))
@@ -655,20 +655,26 @@ b. Dim Driven
     val queryStringTemplate = {
       if(!requestModel.isRequestingDistict) {
         s"""SELECT $dimDrivenFirstRowOptimization *
-      FROM (SELECT %s
-            FROM %s
-           )
-            %s"""
+      FROM (
+          SELECT %s
+              FROM(SELECT %s
+                  FROM %s
+                  ))
+                  %s"""
       } else {
         s"""SELECT *
-      FROM (SELECT DISTINCT %s
-            FROM %s
-           )
+      FROM (
+            SELECT %s
+                FROM (SELECT DISTINCT %s
+                    FROM %s
+                    ))
             %s"""
       }
     }
 
-    val includePagination = queryContext.requestModel.includeRowCount || queryContext.requestModel.reportingRequest.includeRowCount // Include pagination wrapper always
+    val outerAliases = new mutable.LinkedHashSet[String]
+
+    val includePagination = true // Include pagination wrapper always
 
     val aliasColumnMapOfRequestCols = new mutable.HashMap[String, Column]()
 
@@ -720,6 +726,7 @@ b. Dim Driven
         ci =>
           if (aliasColumnMap.contains(ci.alias)) {
             aliasColumnMapOfRequestCols += (ci.alias -> aliasColumnMap(ci.alias))
+            outerAliases += "\"" + ci.alias + "\""
             outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           } else if (ci.isInstanceOf[ConstantColumnInfo]) {
             outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
@@ -731,16 +738,22 @@ b. Dim Driven
         outerColumns += PAGINATION_ROW_COUNT
       }
 
+      val safeOuterAliases = joinColsSafely(outerAliases)
+      val safeOuterColumns = joinColsSafely(outerColumns)
+
       dimQueryNotInOption.fold {
-        addPaginationWrapper(String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryIn, outerWhereClause), maxRows, 0, includePagination)
+        addPaginationWrapper(String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns, dimQueryIn, outerWhereClause), maxRows, 0, includePagination)
       } {
         dimQueryNotIn =>
           val unionTemplate = s" (%s) UNION ALL (%s) "
           String.format(unionTemplate
-            , String.format(PAGINATION_WRAPPER_UNION
-              , String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryIn, outerWhereClause)
+            , String.format(
+              //if(includePagination)
+              PAGINATION_WRAPPER_UNION
+              , String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns, dimQueryIn, outerWhereClause),
+              paginationWhereClause(createPaginationPredicates(maxRows, 0, includePagination)._2)
             )
-            , addPaginationWrapper(String.format(queryStringTemplate,outerColumns.mkString(", "),dimQueryNotIn, outerWhereClause),maxRows, 0, includePagination)
+            , addPaginationWrapper(String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns,dimQueryNotIn, outerWhereClause),maxRows, 0, includePagination)
           )
       }
     }
@@ -767,8 +780,10 @@ b. Dim Driven
         ci =>
           if (aliasColumnMap.contains(ci.alias)) {
             aliasColumnMapOfRequestCols += (ci.alias -> aliasColumnMap(ci.alias))
+            outerAliases += "\"" + ci.alias + "\""
             outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           } else if (ci.isInstanceOf[ConstantColumnInfo]) {
+            outerAliases += "\"" + ci.alias + "\""
             outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           }
       }
@@ -778,6 +793,7 @@ b. Dim Driven
           if((!aliasColumnMapOfRequestCols.contains(alias)) && queryContext.indexAliasOption.contains(alias)) {
             val ci = DimColumnInfo(alias)
             aliasColumnMapOfRequestCols += (ci.alias -> aliasColumnMap(ci.alias))
+            outerAliases += "\"" + ci.alias + "\""
             outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           }
       }
@@ -790,13 +806,18 @@ b. Dim Driven
           outerColumns += PAGINATION_ROW_COUNT
         }
         aliasColumnMapOfRequestCols += (OracleQueryGenerator.ROW_COUNT_ALIAS -> PAGINATION_ROW_COUNT_COL)
+        outerAliases += "\"" + OracleQueryGenerator.ROW_COUNT_ALIAS + "\""
       }
 
       if(includePagination) {
-        outerColumns+=ROW_NUMBER_ALIAS
+        outerAliases += ROW_NUMBER_ALIAS
+        //outerColumns+=ROW_NUMBER_ALIAS
       }
 
-      val finalQueryString = String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryString, outerWhereClause)
+      val safeOuterAliases = joinColsSafely(outerAliases)
+      val safeOuterColumns = joinColsSafely(outerColumns)
+
+      val finalQueryString = String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns, dimQueryString, outerWhereClause)
       //there should be no pagination in the dimension sql since we disabled paginiation generation in above dimensionSql call
       val queryString = addOuterPaginationWrapper(finalQueryString
         , queryContext.requestModel.maxRows
@@ -812,6 +833,14 @@ b. Dim Driven
         additionalColumns(queryContext)
       )
     }
+  }
+
+  def joinColsSafely(names: mutable.LinkedHashSet[String]): String = {
+    if(names.isEmpty) {
+      logger.debug(s"Outer columns is empty.  State: $names")
+      "*"
+    }
+    else names.mkString(", ")
   }
 
   private[this] def applyDataTypeCleanup(alias: String, column: Column, queryContext: QueryContext): String = {

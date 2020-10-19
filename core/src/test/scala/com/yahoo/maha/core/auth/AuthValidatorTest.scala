@@ -1,9 +1,10 @@
 package com.yahoo.maha.core.auth
 
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 import play.api.mvc.Results
 
-class AuthValidatorTest extends FunSuite with Matchers {
+class AuthValidatorTest extends AnyFunSuite with Matchers {
 
   test("test DefaultAuthValidator") {
     val authValidator: AuthValidator = new DefaultAuthValidator

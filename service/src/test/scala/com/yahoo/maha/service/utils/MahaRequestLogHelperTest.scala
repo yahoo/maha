@@ -14,13 +14,14 @@ import com.yahoo.maha.service.curators.{DefaultCurator, DrilldownCurator}
 import com.yahoo.maha.service.{MahaRequestContext, MahaServiceConfig}
 import org.apache.druid.common.config.NullHandling
 import org.mockito.Mockito._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 import org.slf4j.MDC
 
 /**
  * Created by pranavbhole on 21/09/17.
  */
-class MahaRequestLogHelperTest extends FunSuite with Matchers {
+class MahaRequestLogHelperTest extends AnyFunSuite with Matchers {
 
   val jsonString =
     """

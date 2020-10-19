@@ -22,11 +22,13 @@ import org.json4s.JsonAST.JObject
 import org.mockito.Matchers._
 import org.mockito.Mockito
 import org.mockito.Mockito._
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 
 import scala.util.Try
 
-class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
+class PrestoQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
   
   private var dataSource: Option[HikariDataSource] = None
   private var jdbcConnection: Option[JdbcConnection] = None

@@ -1704,7 +1704,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 
-    val expectedJson = s"""{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}}"""
+    val expectedJson = s"""{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{"engineStats":[{"engine":"Oracle","tableName":"student_grade_sheet_again","queryTime":"""
     
 
     assert(result.contains(expectedJson))
@@ -1803,7 +1803,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
 
     // Revision 1 is druid + oracle case
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
@@ -1839,7 +1839,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
 
 
-    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Performance Factor","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,125,"ACTIVE",200,1.0]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[198,213,180],[199,213,175],[200,213,125]]}}}}"""
+    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Performance Factor","fieldType":"FACT"}],"maxRows":200},"rows":[[213,125,"ACTIVE",200,1.0]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000},"rows":[[198,213,180],[199,213,175],[200,213,125]]}}}}"""
 
     assert(result === expectedJson)
   }
@@ -1929,7 +1929,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
 
     // Revision 1 is druid + oracle case
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
@@ -1965,7 +1965,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
 
 
-    val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[null,0,305],[null,0,175]]}}}}"""
+    val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000},"rows":[[null,0,305],[null,0,175]]}}}}"""
 
     assert(result === expectedJson)
   }
@@ -2008,7 +2008,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
 
     // Revision 1 is druid + oracle case
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
@@ -2050,7 +2050,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
-    val expectedJson = """{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"results":[{"index":0,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Marks Obtained","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[null,0,305,305],[null,0,175,175]]},{"index":1,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Start Year","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Marks Obtained","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[0,0,305],[0,0,175]]}]}}}"""
+    val expectedJson = """{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"results":[{"index":0,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Marks Obtained","fieldType":"FACT"}],"maxRows":1000},"rows":[[null,0,305,305],[null,0,175,175]]},{"index":1,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Start Year","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Marks Obtained","fieldType":"FACT"}],"maxRows":1000},"rows":[[0,0,305],[0,0,175]]}]}}}"""
     assert(result === expectedJson)
   }
 
@@ -2088,7 +2088,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
 
     // Revision 1 is druid + oracle case
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
@@ -2124,7 +2124,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
 
 
-    val expectedJson = """{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"results":[{"index":0,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[null,0,305],[null,0,175]]}],"errors":[{"index":1,"message":"MahaServiceBadRequestException: requirement failed: Default revision not found for cube student_performance222 in the registry"}]}}}""".stripMargin
+    val expectedJson = """{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"results":[{"index":0,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000},"rows":[[null,0,305],[null,0,175]]}],"errors":[{"index":1,"message":"MahaServiceBadRequestException: requirement failed: Default revision not found for cube student_performance222 in the registry"}]}}}""".stripMargin
     assert(result === expectedJson)
   }
 
@@ -2155,7 +2155,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
 
     // Revision 1 is druid + oracle case
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
@@ -2185,7 +2185,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 
-    val expectedJson = """{"header":{"cube":"student_performance2","fields":[{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[480]],"curators":{"drilldown":{"error":{"message":"MahaServiceBadRequestException: No primary key alias found in request"}}}}""".stripMargin
+    val expectedJson = """{"header":{"cube":"student_performance2","fields":[{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[480]],"curators":{"drilldown":{"error":{"message":"MahaServiceBadRequestException: No primary key alias found in request"}}}}""".stripMargin
     assert(result === expectedJson)
   }
 
@@ -2218,7 +2218,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
 
     // Revision 1 is druid + oracle case
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
@@ -2254,7 +2254,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
 
 
-    val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[]}}}}"""
+    val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200},"rows":[],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000},"rows":[]}}}}"""
 
     assert(result === expectedJson)
   }
@@ -2289,7 +2289,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
 
     // Revision 1 is druid + oracle case
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
@@ -2325,7 +2325,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
 
 
-    val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[[213,175,200]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[null,0,175]]}}}}"""
+    val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200},"rows":[[213,175,200]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000},"rows":[[null,0,175]]}}}}"""
 
     assert(result === expectedJson)
   }

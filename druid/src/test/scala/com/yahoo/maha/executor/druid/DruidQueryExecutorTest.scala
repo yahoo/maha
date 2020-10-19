@@ -24,7 +24,9 @@ import org.apache.druid.query.Result
 import org.apache.druid.query.scan.ScanResultValue
 import org.http4s.server.blaze.BlazeBuilder
 import org.json4s.JsonAST._
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 import org.mockito.Mockito._
 import org.mockito.Matchers._
 
@@ -36,7 +38,7 @@ class TestAuthHeaderProvider extends AuthHeaderProvider {
   override def getAuthHeaders = Map("c" -> "d")
 }
 
-class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with TestWebService {
+class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with TestWebService {
 
   var server: org.http4s.server.Server[IO] = null
 
@@ -1837,8 +1839,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                             {"field": "Impressions", "order": "Asc"}
                           ],
                           "paginationStartIndex":0,
-                          "rowsPerPage":100,
-                          "includeRowCount" : true
+                          "rowsPerPage":100
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
@@ -1879,26 +1880,30 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         val expected =
           """
             | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-            |      FROM (SELECT t0.id "Keyword ID", t0.value "Keyword Value"
-            |            FROM
+            |      FROM (
+            |          SELECT "Keyword ID", "Keyword Value"
+            |              FROM(SELECT t0.id "Keyword ID", t0.value "Keyword Value"
+            |                  FROM
             |                (SELECT  value, id, advertiser_id
             |            FROM targetingattribute
             |            WHERE (advertiser_id = 213) AND (id IN (13,14))
             |             ) t0
             |
             |
-            |           )
-            |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-            |      FROM (SELECT t0.id "Keyword ID", t0.value "Keyword Value"
-            |            FROM
+            |                  ))
+            |                  ) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+            |      FROM (
+            |          SELECT "Keyword ID", "Keyword Value"
+            |              FROM(SELECT t0.id "Keyword ID", t0.value "Keyword Value"
+            |                  FROM
             |                (SELECT  value, id, advertiser_id
             |            FROM targetingattribute
             |            WHERE (advertiser_id = 213) AND (id NOT IN (13,14))
             |             ) t0
             |
             |
-            |           )
-            |            ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)
+            |                  ))
+            |                  ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)
             |  """.stripMargin
 
         oracleQuery.asString should equal(expected)(after being whiteSpaceNormalised)
@@ -1924,8 +1929,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                             {"field": "Keyword ID", "order": "Asc"}
                           ],
                           "paginationStartIndex":0,
-                          "rowsPerPage":100,
-                          "includeRowCount" : true
+                          "rowsPerPage":100
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
@@ -1965,26 +1969,30 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         val expected =
           s"""
              | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-             |      FROM (SELECT t0.id "Keyword ID", t0.value "Keyword Value"
-             |            FROM
+             |      FROM (
+             |          SELECT "Keyword ID", "Keyword Value"
+             |              FROM(SELECT t0.id "Keyword ID", t0.value "Keyword Value"
+             |                  FROM
              |                (SELECT  id, value, advertiser_id
              |            FROM targetingattribute
              |            WHERE (advertiser_id = 213) AND (id IN (13,14))
              |            ORDER BY 1 ASC  ) t0
              |
-                       |
-                       |           )
-             |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-             |      FROM (SELECT t0.id "Keyword ID", t0.value "Keyword Value"
-             |            FROM
+             |
+             |                  ))
+             |                  ) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+             |      FROM (
+             |          SELECT "Keyword ID", "Keyword Value"
+             |              FROM(SELECT t0.id "Keyword ID", t0.value "Keyword Value"
+             |                  FROM
              |                (SELECT  id, value, advertiser_id
              |            FROM targetingattribute
              |            WHERE (advertiser_id = 213) AND (id NOT IN (13,14))
              |            ORDER BY 1 ASC  ) t0
              |
-                       |
-                       |           )
-             |            ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)  """
+             |
+             |                  ))
+             |                  ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)"""
             .stripMargin
 
         oracleQuery.asString should equal(expected)(after being whiteSpaceNormalised)
@@ -2697,8 +2705,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           ],
                           "paginationStartIndex":0,
                           "rowsPerPage":100,
-                          "isDimDriven" : true,
-                          "includeRowCount" : true
+                          "isDimDriven" : true
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString, AdvertiserLowLatencySchema))
     val registry = defaultRegistry
@@ -2741,10 +2748,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
         val expected =
           """
-            |
-            | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-            |      FROM (SELECT ago1.id "Ad Group ID", co0.id "Campaign ID", co0.campaign_name "Campaign Name"
-            |            FROM
+            |(SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
+            |      FROM (
+            |          SELECT "Ad Group ID", "Campaign ID", "Campaign Name"
+            |              FROM(SELECT ago1.id "Ad Group ID", co0.id "Campaign ID", co0.campaign_name "Campaign Name"
+            |                  FROM
             |               ( (SELECT  campaign_id, id, advertiser_id
             |            FROM ad_group_oracle
             |            WHERE (advertiser_id = 213) AND (id IN (113,114)) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('DELETED'))
@@ -2757,10 +2765,12 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
             |              ON( ago1.advertiser_id = co0.advertiser_id AND ago1.campaign_id = co0.id )
             |               )
             |
-            |           )
-            |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-            |      FROM (SELECT ago1.id "Ad Group ID", co0.id "Campaign ID", co0.campaign_name "Campaign Name"
-            |            FROM
+            |                  ))
+            |                  ) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+            |      FROM (
+            |          SELECT "Ad Group ID", "Campaign ID", "Campaign Name"
+            |              FROM(SELECT ago1.id "Ad Group ID", co0.id "Campaign ID", co0.campaign_name "Campaign Name"
+            |                  FROM
             |               ( (SELECT  campaign_id, id, advertiser_id
             |            FROM ad_group_oracle
             |            WHERE (advertiser_id = 213) AND (id NOT IN (113,114)) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('DELETED'))
@@ -2773,8 +2783,8 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
             |              ON( ago1.advertiser_id = co0.advertiser_id AND ago1.campaign_id = co0.id )
             |               )
             |
-            |           )
-            |            ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)
+            |                  ))
+            |                  ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)
             |  """.stripMargin
 
         oracleQuery.asString should equal(expected)(after being whiteSpaceNormalised)
@@ -3152,6 +3162,73 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
             assert(row.getValue(key) != null)
           }
         }
+    }
+  }
+
+  test("test use of startIndex for multiEngineQuery") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Impressions"},
+                            {"field": "Keyword Value"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "213"}
+                          ],
+                          "paginationStartIndex":2,
+                          "rowsPerPage":100,
+                          "forceDimensionDriven":true
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    altQueryGeneratorRegistry.register(OracleEngine, new OracleQueryGenerator(DefaultPartitionColumnRenderer))
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+
+    withDruidQueryExecutor("http://localhost:6667/mock/druidPlusOraclegroupby") {
+      druidExecutor =>
+        val oracleExecutor = new MockOracleQueryExecutor(
+          { rl =>
+            val row = rl.newRow
+            row.addValue("Keyword ID", 14)
+            row.addValue("Keyword Value", "one")
+            rl.addRow(row)
+            val row2 = rl.newRow
+            row2.addValue("Keyword ID", 13)
+            row2.addValue("Keyword Value", "two")
+            rl.addRow(row2)
+          })
+        val queryExecContext: QueryExecutorContext = new QueryExecutorContext
+        queryExecContext.register(druidExecutor)
+        queryExecContext.register(oracleExecutor)
+
+        val result = queryPipelineTry.toOption.get.execute(queryExecContext)
+        assert(result.isSuccess)
+
+        //paginationStartIndex = 2 shouldn't drop any impression values
+        val expectedSet = Set(
+          "Row(Map(Keyword ID -> 0, Impressions -> 1, Keyword Value -> 2),ArrayBuffer(14, 10669, one))"
+          , "Row(Map(Keyword ID -> 0, Impressions -> 1, Keyword Value -> 2),ArrayBuffer(13, 106, two))"
+        )
+
+        var count = 0
+        result.get.rowList.foreach {
+          row =>
+            assert(expectedSet.contains(row.toString))
+            count += 1
+        }
+        assert(expectedSet.size == count)
     }
   }
 }

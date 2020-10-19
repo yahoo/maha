@@ -2067,8 +2067,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = """SELECT  *
-                     |      FROM (SELECT cp1.id "Campaign ID", adp2.ad_group_id "Ad Group ID", ap0."Advertiser Status" "Advertiser Status", cp1.campaign_name "Campaign Name", adp2.id "Ad ID", Count(*) OVER() "TOTALROWS", ROW_NUMBER() OVER() AS ROWNUM
-                     |            FROM
+                     |      FROM (
+                     |       SELECT "Campaign ID", "Ad Group ID", "Advertiser Status", "Campaign Name", "Ad ID", "TOTALROWS", ROW_NUMBER() OVER() AS ROWNUM
+                     |              FROM(SELECT cp1.id "Campaign ID", adp2.ad_group_id "Ad Group ID", ap0."Advertiser Status" "Advertiser Status", cp1.campaign_name "Campaign Name", adp2.id "Ad ID", Count(*) OVER() "TOTALROWS"
+                     |                  FROM
                      |               ( (SELECT  advertiser_id, campaign_id, ad_group_id, id
                      |            FROM ad_dim_postgres
                      |            WHERE (id = ad_group_id) AND (advertiser_id = 12345)
@@ -2087,8 +2089,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |              ON( cp1.advertiser_id = ap0.id )
                      |               )
                      |
-                     |           )
-                     |             sqalias1 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
+                     |                  ) sqalias1 ) sqalias2
+                     |                  WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
     testQuery(result)
@@ -2593,15 +2595,17 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val expected =
       """
         |SELECT *
-        |      FROM (SELECT DISTINCT ap0."Advertiser Status" "Advertiser Status", ROW_NUMBER() OVER() AS ROWNUM
-        |            FROM
+        |      FROM (
+        |          SELECT "Advertiser Status", ROW_NUMBER() OVER() AS ROWNUM
+        |              FROM (SELECT DISTINCT ap0."Advertiser Status" "Advertiser Status"
+        |                  FROM
         |                (SELECT  CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Advertiser Status", id
         |            FROM advertiser_postgres
         |            WHERE (id = 12345)
         |             ) ap0
         |
         |
-        |           ) sqalias1
+        |                  ) sqalias1 ) sqalias2
         |             WHERE ROWNUM >= 1 AND ROWNUM <= 100
       """.stripMargin
 
@@ -2658,8 +2662,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT agp2.campaign_id "Campaign ID", agp2.id "Ad Group ID", ap0."Advertiser Status" "Advertiser Status", cp1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() "TOTALROWS", ROW_NUMBER() OVER() AS ROWNUM
-                     |            FROM
+                     |      FROM (
+                     |          SELECT "Campaign ID", "Ad Group ID", "Advertiser Status", "Campaign Name", "Source", "TOTALROWS", ROW_NUMBER() OVER() AS ROWNUM
+                     |              FROM(SELECT agp2.campaign_id "Campaign ID", agp2.id "Ad Group ID", ap0."Advertiser Status" "Advertiser Status", cp1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() "TOTALROWS"
+                     |                  FROM
                      |               ( (SELECT  campaign_id, advertiser_id, id
                      |            FROM ad_group_postgres
                      |            WHERE (advertiser_id = 12345)
@@ -2678,7 +2684,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |              ON( cp1.advertiser_id = ap0.id )
                      |               )
                      |
-                     |           ) sqalias1
+                     |                  ) sqalias1 ) sqalias2
                      |             WHERE ROWNUM >= 1 AND ROWNUM <= 100
                      |""".stripMargin
 
@@ -3741,8 +3747,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT ap0.id "Advertiser ID", cp1.id "Campaign ID", cp1.campaign_name "Campaign Name", agp2.id "Ad Group ID", agp2."Ad Group Status" "Ad Group Status", '2' AS "Source", ROW_NUMBER() OVER() AS ROWNUM
-                     |            FROM
+                     |      FROM (
+                     |          SELECT "Advertiser ID", "Campaign ID", "Campaign Name", "Ad Group ID", "Ad Group Status", "Source", ROW_NUMBER() OVER() AS ROWNUM
+                     |              FROM(SELECT ap0.id "Advertiser ID", cp1.id "Campaign ID", cp1.campaign_name "Campaign Name", agp2.id "Ad Group ID", agp2."Ad Group Status" "Ad Group Status", '2' AS "Source"
+                     |                  FROM
                      |               ( (SELECT  campaign_id, advertiser_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
                      |            FROM ad_group_postgres
                      |            WHERE (advertiser_id = 12345)
@@ -3761,7 +3769,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |              ON( cp1.advertiser_id = ap0.id )
                      |               )
                      |
-                     |           ) sqalias1
+                     |                  ) sqalias1 ) sqalias2
                      |            WHERE ( "Ad Group ID"   IS NULL) AND ROWNUM >= 1 AND ROWNUM <= 100
                      |           """.stripMargin
 
@@ -3959,8 +3967,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = s"""
                       |SELECT  *
-                      |      FROM (SELECT cp1.id "Campaign ID", cp1.campaign_name "Campaign Name", agp2.id "Ad Group ID", ROW_NUMBER() OVER() AS ROWNUM
-                      |            FROM
+                      |      FROM (
+                      |          SELECT "Campaign ID", "Campaign Name", "Ad Group ID", ROW_NUMBER() OVER() AS ROWNUM
+                      |              FROM(SELECT cp1.id "Campaign ID", cp1.campaign_name "Campaign Name", agp2.id "Ad Group ID"
+                      |                  FROM
                       |               ( (SELECT  advertiser_id, campaign_id, id
                       |            FROM ad_group_postgres
                       |
@@ -3979,7 +3989,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |              ON( cp1.advertiser_id = ap0.id )
                       |               )
                       |
-                      |           ) sqalias1
+                      |                  ) sqalias1 ) sqalias2
                       |            WHERE ( "Ad Group ID"   IS NULL) AND ROWNUM >= 1 AND ROWNUM <= 200
                       |""".stripMargin
 
@@ -5460,8 +5470,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val expected =
       s"""
          | (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT  *
-         |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID", '2' AS "Country WOEID"
-         |            FROM
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID", '2' AS "Country WOEID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id IN (10))
@@ -5480,9 +5492,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
-         |           ) sqalias1 ) D ) sqalias2) UNION ALL (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID", '2' AS "Country WOEID"
-         |            FROM
+         |                  ) sqalias1 ) sqalias2
+         |            ) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 10) UNION ALL (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID", '2' AS "Country WOEID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id NOT IN (10))
@@ -5501,7 +5516,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
-         |           ) sqalias3 ) sqalias4 LIMIT 10) D ) sqalias5 WHERE ROWNUM >= 1 AND ROWNUM <= 10)
+         |                  ) sqalias4 ) sqalias5
+         |            ) sqalias6 LIMIT 10) D ) sqalias7 WHERE ROWNUM >= 1 AND ROWNUM <= 10)
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
     testQuery(resultSql)
@@ -5577,8 +5593,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val expected =
       s"""
          | SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
-         |            FROM
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id IN (12,19,15,11,13,16,17,14,20,18))
@@ -5597,7 +5615,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
-         |           ) sqalias1 ) sqalias2 LIMIT 10) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 10
+         |                  ) sqalias1 ) sqalias2
+         |            ) sqalias3 LIMIT 10) D ) sqalias4 WHERE ROWNUM >= 1 AND ROWNUM <= 10
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
     testQuery(resultSql)
@@ -5672,8 +5691,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val expected =
       s"""
          | SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
-         |            FROM
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id IN (45,34,12,51,19,23,40,15,11,44,33,22,55,26,50,37,13,46,24,35,16,48,21,54,43,32,49,36,39,17,25,14,47,31,53,42,20,27,38,18,30,29,41,52,28))
@@ -5692,7 +5713,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
-         |           ) sqalias1 ) sqalias2 LIMIT 45) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 45
+         |                  ) sqalias1 ) sqalias2
+         |            ) sqalias3 LIMIT 45) D ) sqalias4 WHERE ROWNUM >= 1 AND ROWNUM <= 45
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
     testQuery(resultSql)
@@ -5766,8 +5788,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val expected =
       s"""
          |(SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT  *
-         |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
-         |            FROM
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
@@ -5786,10 +5810,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
-         |           )
-         |            sqalias1 ) D ) sqalias2) UNION ALL (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
-         |            FROM
+         |                  ) sqalias1 ) sqalias2
+         |            ) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 20) UNION ALL (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id NOT IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
@@ -5808,7 +5834,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
-         |           ) sqalias3 ) sqalias4 LIMIT 20) D ) sqalias5 WHERE ROWNUM >= 1 AND ROWNUM <= 20)
+         |                  ) sqalias4 ) sqalias5
+         |            ) sqalias6 LIMIT 20) D ) sqalias7 WHERE ROWNUM >= 1 AND ROWNUM <= 20)
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
     testQuery(resultSql)
@@ -5978,8 +6005,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val expected =
       s"""
          |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
-         |            FROM
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id IN (10))
@@ -5998,7 +6027,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
-         |           ) sqalias1 ) sqalias2 LIMIT 10) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 10
+         |                  ) sqalias1 ) sqalias2
+         |            ) sqalias3 LIMIT 10) D ) sqalias4 WHERE ROWNUM >= 1 AND ROWNUM <= 10
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
     testQuery(resultSql)
@@ -6059,16 +6089,18 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val expected =
       s"""
          |SELECT  *
-         |      FROM (SELECT cp0.campaign_name "Campaign Name", cp0.id "Campaign ID", Count(*) OVER() "TOTALROWS", ROW_NUMBER() OVER() AS ROWNUM
-         |            FROM
+         |      FROM (
+         |          SELECT "Campaign Name", "Campaign ID", "TOTALROWS", ROW_NUMBER() OVER() AS ROWNUM
+         |              FROM(SELECT cp0.campaign_name "Campaign Name", cp0.id "Campaign ID", Count(*) OVER() "TOTALROWS"
+         |                  FROM
          |                (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
          |            FROM campaign_postgres
          |            WHERE (advertiser_id = 213) AND (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END NOT IN ('DELETED'))
          |            ORDER BY 1 DESC NULLS LAST, 2 DESC  ) cp0
          |
          |
-         |           )
-         |             sqalias1 WHERE ROWNUM >= 3 AND ROWNUM <= 42
+         |                  ) sqalias1 ) sqalias2
+         |             WHERE ROWNUM >= 3 AND ROWNUM <= 42
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
     testQuery(resultSql)
@@ -6515,5 +6547,63 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |   """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
     testQuery(result)
+  }
+
+  test("validate non-outer aliased cols in postgres") {
+    import DefaultQueryPipelineFactoryTest._
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Campaign ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Advertiser Currency", "operator": "=", "value": "TWD"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "includeRowCount" : false,
+                          "forceFactDriven": true,
+                          "additionalParameters": {
+                             "debug":true
+                          }
+                          }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry, revision = Some(1))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val resultPipeline = queryPipelineTry.get
+
+    val result = resultPipeline.queryChain.drivingQuery.asString
+
+    /**
+     * Demonstrate fix where outer Columns is empty, but outer Aliases is not. (line 4 of query)
+     * SELECT   FROM
+     * becomes
+     * SELECT * FROM
+     */
+
+    val expected =
+      s"""
+         | SELECT  *
+         |      FROM (
+         |          SELECT ROW_NUMBER() OVER() AS ROWNUM
+         |              FROM(SELECT *
+         |                  FROM
+         |                (SELECT  id
+         |            FROM advertiser_postgres
+         |            WHERE (id = 213) AND (currency = 'TWD')
+         |             ) ap0
+         |
+         |
+         |                  ) sqalias1 ) sqalias2
+         |             WHERE ROWNUM >= 1 AND ROWNUM <= 200
+       """.stripMargin
+    result should equal (expected)(after being whiteSpaceNormalised)
   }
 }

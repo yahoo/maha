@@ -3,12 +3,13 @@ package com.yahoo.maha.core.query.oracle
 import com.yahoo.maha.core.fact.Fact
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.{Column, ColumnInfo, Engine, OracleEngine}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by pranavbhole on 15/12/17.
  */
-class OracleQueryCommonTest extends FunSuite with Matchers {
+class OracleQueryCommonTest extends AnyFunSuite with Matchers {
 
   class TestQueryCommon extends OracleQueryCommon {
 

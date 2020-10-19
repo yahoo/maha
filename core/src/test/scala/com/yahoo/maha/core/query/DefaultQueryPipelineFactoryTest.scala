@@ -9,7 +9,9 @@ import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, EqualityFilter, RequestModel, _}
 import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor, MockPostgresQueryExecutor}
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 
 import scala.util.Try
 
@@ -48,7 +50,7 @@ object DefaultQueryPipelineFactoryTest {
   
 }
 
-class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with BaseQueryContextTest {
+class DefaultQueryPipelineFactoryTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with BaseQueryContextTest {
   val factRequestWithNoSort = s"""{
                           "cube": "k_stats",
                           "selectFields": [
@@ -699,14 +701,18 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     val drivingQuery = pipeline.queryChain.drivingQuery.asString
 //    println(drivingQuery)
     val expectedQuery = """SELECT  *
-                          |      FROM (SELECT ao0.id "Advertiser ID", ao0."Advertiser Status" "Advertiser Status", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
-                          |            FROM
-                          |                (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
-                          |            FROM advertiser_oracle
-                          |            WHERE (id = 213)
-                          |             ) ao0
-                          |           )
-                          |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+                          |      FROM (
+                          |       SELECT "Advertiser ID", "Advertiser Status", "TOTALROWS", ROWNUM AS ROW_NUMBER
+                          |                FROM(SELECT ao0.id "Advertiser ID", ao0."Advertiser Status" "Advertiser Status", Count(*) OVER() TOTALROWS
+                          |                    FROM
+                          |                  (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+                          |              FROM advertiser_oracle
+                          |              WHERE (id = 213)
+                          |               ) ao0
+                          |
+                          |
+                          |                    ))
+                          |                    WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
 
     drivingQuery should equal (expectedQuery) (after being whiteSpaceNormalised)
 

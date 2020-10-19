@@ -11,11 +11,12 @@ import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{Engine, OracleEngine, RequestModel}
 import com.yahoo.maha.report.FileRowCSVWriterProvider
 import org.apache.commons.io.FileUtils
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 /**
  * Created by hiral on 3/15/16.
  */
-class QueryExecutorTest extends FunSuite with Matchers with BaseOracleQueryGeneratorTest {
+class QueryExecutorTest extends AnyFunSuite with Matchers with BaseOracleQueryGeneratorTest {
 
   test("successfully execute dummy query on query executor") {
     val qe = new QueryExecutor {

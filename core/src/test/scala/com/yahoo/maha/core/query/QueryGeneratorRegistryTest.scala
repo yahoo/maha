@@ -5,9 +5,10 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core.query.hive.HiveQueryGenerator
 import com.yahoo.maha.core.{HiveEngine, PrestoEngine}
 import org.mockito.Mockito._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class QueryGeneratorRegistryTest extends FunSuite with Matchers {
+class QueryGeneratorRegistryTest extends AnyFunSuite with Matchers {
   test("Successfully register query generator without version") {
     val qgenRegistry = new QueryGeneratorRegistry()
     val hiveQueryGenerator = mock(classOf[HiveQueryGenerator])

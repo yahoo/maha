@@ -3,13 +3,13 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimCol
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
 
 /**
  * Created by vivekch on 2/23/16.
  */
-class OracleLiteralMapperTest extends FunSuite {
+class OracleLiteralMapperTest extends AnyFunSuite {
   val OracleLiteralMapper = new OracleLiteralMapper
 
   test("String with quotes") {

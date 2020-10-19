@@ -8,12 +8,14 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 
 /**
  * Created by shengyao on 3/10/16.
  */
-class BaseDDLGeneratorTest extends FunSuite with Matchers with BeforeAndAfterAll {
+class BaseDDLGeneratorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll {
   CoreSchema.register()
 
   protected[this] def getMaxDaysWindow: Map[(RequestType, Grain), Int] = {

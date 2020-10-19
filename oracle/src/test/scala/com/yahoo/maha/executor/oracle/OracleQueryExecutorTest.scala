@@ -20,12 +20,14 @@ import com.yahoo.maha.executor.MockDruidQueryExecutor
 import com.yahoo.maha.jdbc._
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.druid.common.config.NullHandling
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 
 /**
  * Created by hiral on 1/25/16.
  */
-class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
+class OracleQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
   
   private var dataSource: Option[HikariDataSource] = None
   private var jdbcConnection: Option[JdbcConnection] = None
@@ -917,8 +919,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                             {"field": "Impressions", "order": "Desc"}
                           ],
                           "paginationStartIndex":0,
-                          "rowsPerPage":100,
-                          "includeRowCount" : true
+                          "rowsPerPage":100
                         }"""
 
       val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
