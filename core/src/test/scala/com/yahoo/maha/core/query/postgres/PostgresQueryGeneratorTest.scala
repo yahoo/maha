@@ -753,7 +753,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, CASE WHEN network_type = 'TEST_PUBLISHER' THEN 'Test Publisher' WHEN network_type = 'CONTENT_SYNDICATION' THEN 'Content Syndication' WHEN network_type = 'EXTERNAL' THEN 'Yahoo Partners' WHEN network_type = 'INTERNAL' THEN 'Yahoo Properties' ELSE 'NONE' END network_type, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END pricing_type, campaign_id, keyword_id, SUM(impressions) AS "impressions"
          |            FROM fact2 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source IN (1,2)) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_source IN (1,2)) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END, CASE WHEN network_type = 'TEST_PUBLISHER' THEN 'Test Publisher' WHEN network_type = 'CONTENT_SYNDICATION' THEN 'Content Syndication' WHEN network_type = 'EXTERNAL' THEN 'Yahoo Partners' WHEN network_type = 'INTERNAL' THEN 'Yahoo Properties' ELSE 'NONE' END, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END, campaign_id, keyword_id
          |
          |           ) f0
@@ -2073,7 +2073,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |                  FROM
                      |               ( (SELECT  advertiser_id, campaign_id, ad_group_id, id
                      |            FROM ad_dim_postgres
-                     |            WHERE (id = ad_group_id) AND (advertiser_id = 12345)
+                     |            WHERE (advertiser_id = 12345) AND (id = ad_group_id)
                      |             ) adp2
                      |          INNER JOIN
                      |            (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
@@ -2216,7 +2216,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
                      |                   target_page_url, landing_page_url, ad_group_id, ad_id, campaign_id
                      |            FROM fact1 FactAlias
-                     |            WHERE (advertiser_id = 12345) AND (landing_page_url = lower(target_page_url)) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
+                     |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (landing_page_url = lower(target_page_url)) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
                      |            GROUP BY target_page_url, landing_page_url, ad_group_id, ad_id, campaign_id
                      |
                      |           ) f0
@@ -3143,7 +3143,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
          |                   stats_date, ad_group_id, keyword_id, DATE_TRUNC('month', stats_date)::DATE AS "Month", DATE_TRUNC('week', stats_date)::DATE AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
           |            FROM k_stats_fact1 FactAlias
-          |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
+          |            WHERE (advertiser_id = 12345) AND (stats_source = 1) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
           |            GROUP BY stats_date, ad_group_id, keyword_id, DATE_TRUNC('month', stats_date)::DATE, DATE_TRUNC('week', stats_date)::DATE
           |
           |           ) ksf0
@@ -3700,7 +3700,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |             )
                       |           agp3 ON ( af0.advertiser_id = agp3.advertiser_id AND af0.ad_group_id = agp3.id)
                       |
-                      |) sqalias1 WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
+                      |) sqalias1 WHERE ( "Ad Group Status"   = 'ON') AND ( "Ad Group ID"   IS NULL)
                       |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
                       |""".stripMargin
 
@@ -3854,7 +3854,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           pt4 ON ( f0.advertiser_id = pt4.advertiser_id AND f0.keyword_id = pt4.id)
          |
  |          GROUP BY f0.keyword_id, pt4.value, cp1.campaign_name, f0.ad_group_id, agp2."Ad Group Status", agp2.name, adp3.title
-         |) sqalias1 WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
+         |) sqalias1 WHERE ( "Ad Group Status"   = 'ON') AND ( "Ad Group ID"   IS NULL)
          |   ORDER BY "Campaign Name" ASC NULLS LAST
          |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -3914,7 +3914,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |             )
                       |           agp1 ON (f0.ad_group_id = agp1.id)
                       |
-                      |) sqalias1 WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
+                      |) sqalias1 WHERE ( "Ad Group Status"   = 'ON') AND ( "Ad Group ID"   IS NULL)
                       |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100
                       |""".stripMargin
 

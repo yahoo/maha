@@ -134,7 +134,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
       SELECT COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(impressions as bigint), 1) mang_impressions
         FROM(SELECT account_id, SUM(impressions) impressions
           FROM s_stats_fact_underlying
-          WHERE (ad_group_id = account_id) AND (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+          WHERE (account_id = 12345) AND (ad_group_id = account_id) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
     GROUP BY account_id
     HAVING (SUM(impressions) < 1608)
     )
