@@ -3700,9 +3700,18 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestFilterExpressions = Vector(EqualityFilter("Advertiser ID", "12345"), IsNotNullFilter("Campaign Name"), NotEqualToFilter("Campaign Name", "-3"))
+    assert(request.filterExpressions.equals(requestFilterExpressions))
+
     val requestModel = getRequestModel(request, getDefaultRegistry())
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val requestModelDimFilters = scala.collection.immutable.TreeSet(PushDownFilter(EqualityFilter("Advertiser ID", "12345")), NotEqualToFilter("Campaign Name", "-3"), IsNotNullFilter("Campaign Name"))
+    assert(requestModel.get.dimensionsCandidates.head.filters.equals(requestModelDimFilters))
+
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipelineDimFilters = scala.collection.immutable.TreeSet(PushDownFilter(EqualityFilter("Advertiser ID", "12345")), NotEqualToFilter("Campaign Name", "-3"), IsNotNullFilter("Campaign Name"))
+    assert(queryPipelineTry.get.bestDimCandidates.head.filters.equals(queryPipelineDimFilters))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     println(result)
