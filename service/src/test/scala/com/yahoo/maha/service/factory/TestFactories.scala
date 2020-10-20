@@ -27,12 +27,12 @@ class TestFactEstimator extends FactCostEstimator {
     } else RowsEstimate(1000, true, Long.MaxValue, false)
   }
 
-  override def getSchemaBasedGrainRows(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, Filter], defaultRowCount: Long): Option[Long] = Option(1000)
-  override def getAllBasedGrainRows(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, Filter]): Option[Long] = Option(1000)
+  override def getSchemaBasedGrainRows(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, mutable.TreeSet[Filter]], defaultRowCount: Long): Option[Long] = Option(1000)
+  override def getAllBasedGrainRows(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, mutable.TreeSet[Filter]]): Option[Long] = Option(1000)
 }
 
 class TestDimEstimator extends DimCostEstimator {
-  override def getCardinalityEstimate(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, Filter]): Option[Long] = {
+  override def getCardinalityEstimate(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, mutable.TreeSet[Filter]]): Option[Long] = {
     if(request.isDebugEnabled) {
       Some(10000)
     } else Some(1000)
