@@ -840,6 +840,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
 
   }
+
   test("Multiple filters on same ID column") {
     val jsonString =
       s"""{
