@@ -6606,4 +6606,73 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
        """.stripMargin
     result should equal (expected)(after being whiteSpaceNormalised)
   }
+
+  test("Not Like filter Postgres") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Campaign Name"},
+                              {"field": "Count"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Campaign Name", "operator": "Not Like", "value": "cmpgn1"},
+                              {"field": "Day", "operator": "datetimebetween", "from": "$fromDateTime", "to": "$toDateTime", "format": "$iso8601Format"}
+                          ],
+                          "sortBy": [
+                              {"field": "Campaign Name", "order": "ASC"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
+    val expected =
+      s"""SELECT *
+         |FROM (SELECT pt3.id "Keyword ID", agp2.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", agp2."Ad Group Status" "Ad Group Status", cp1.campaign_name "Campaign Name", f0."count_col" "Count"
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
+         |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", COUNT(*) AS "count_col"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= to_date('$fromDate', 'YYYY-MM-DD') AND stats_date <= to_date('$toDate', 'YYYY-MM-DD'))
+         |            GROUP BY ad_group_id, campaign_id, keyword_id
+         |
+         |           ) f0
+         |           RIGHT OUTER JOIN
+         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  parent_id, id, advertiser_id
+         |            FROM pg_targetingattribute
+         |            WHERE (advertiser_id = 12345)
+         |             ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) pt3
+         |          INNER JOIN
+         |            (SELECT  campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id, advertiser_id
+         |            FROM ad_group_postgres
+         |            WHERE (advertiser_id = 12345)
+         |             ) agp2
+         |              ON( pt3.advertiser_id = agp2.advertiser_id AND pt3.parent_id = agp2.id )
+         |               INNER JOIN
+         |            (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_postgres
+         |            WHERE (advertiser_id = 12345) AND (lower(campaign_name) NOT LIKE lower('%cmpgn1%'))
+         |             ) cp1
+         |              ON( agp2.advertiser_id = cp1.advertiser_id AND agp2.campaign_id = cp1.id )
+         |               )  ON (f0.keyword_id = pt3.id)
+         |
+         |) sqalias3
+         |   ORDER BY "Campaign Name" ASC NULLS LAST
+         |   """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
+  }
 }
