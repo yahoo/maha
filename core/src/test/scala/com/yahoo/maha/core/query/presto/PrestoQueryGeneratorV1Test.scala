@@ -134,7 +134,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
       SELECT COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(impressions as bigint), 1) mang_impressions
         FROM(SELECT account_id, SUM(impressions) impressions
           FROM s_stats_fact_underlying
-          WHERE (ad_group_id = account_id) AND (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+          WHERE (account_id = 12345) AND (ad_group_id = account_id) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
     GROUP BY account_id
     HAVING (SUM(impressions) < 1608)
     )
@@ -2353,5 +2353,69 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |        queryAlias LIMIT 200
          |        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("Multiple filters on same column") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Advertiser ID", "operator": "IsNotNull"},
+                              {"field": "Campaign Name", "operator": "=", "value": "cmpgn_1"},
+                              {"field": "Campaign Name", "operator": "<>", "value": "-3"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+
+    val expected =
+      s"""
+         |SELECT CAST(mang_spend as VARCHAR) AS mang_spend
+         |FROM(
+         |SELECT spend AS mang_spend
+         |FROM(
+         |SELECT SUM(spend) AS spend
+         |FROM(SELECT campaign_id, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (advertiser_id IS NOT NULL) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+         |       )
+         |af0
+         |JOIN (
+         |SELECT id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (advertiser_id IS NOT NULL) AND (campaign_name <> '-3') AND (lower(campaign_name) = lower('cmpgn_1'))
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+       """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 }

@@ -108,7 +108,7 @@ trait BaseOracleQueryGeneratorTest
           PubCol("ad_id", "Ad ID", InEquality),
           PubCol("ad_group_id", "Ad Group ID", InEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
-          PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("advertiser_id", "Advertiser ID", InNotInEqualityNotEqualsLikeNotLikeNullNotNull),
           PubCol("network_type", "Network Type", InEquality),
           PubCol("stats_source", "Source", EqualityFieldEquality, incompatibleColumns = Set("Source Name")),
           PubCol("source_name", "Source Name", InNotInBetweenEqualityNotEqualsGreaterLesser, incompatibleColumns = Set("Source")),

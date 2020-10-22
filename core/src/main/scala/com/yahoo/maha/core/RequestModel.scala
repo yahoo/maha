@@ -533,8 +533,8 @@ object RequestModel extends Logging {
           }
 
           //keep map from alias to filter for final map back to Set[Filter]
-          val filterMap = new mutable.HashMap[String, Filter]()
-          val pushDownFilterMap = new mutable.HashMap[String, PushDownFilter]()
+          val filterMap = new mutable.HashMap[String, mutable.TreeSet[Filter]]()
+          val pushDownFilterMap = new mutable.HashMap[String, mutable.TreeSet[PushDownFilter]]()
           val allFilterAliases = new mutable.TreeSet[String]()
           val allOrFilters = new mutable.TreeSet[Filter]()
           val allFactFilters = new mutable.TreeSet[Filter]()
@@ -575,13 +575,13 @@ object RequestModel extends Logging {
                 allFilterAliases += filter.field
                 allOrFilters += filter
                 val attemptedReverseMappedFilter = tryCreateReverseMappedFilter(filter, publicFact)
-                filterMap.put(filter.field, attemptedReverseMappedFilter)
+                updateFilterMap(filterMap, attemptedReverseMappedFilter)
               }
             }
             else {
               allFilterAliases+=filter.field
               val attemptedReverseMappedFilter = tryCreateReverseMappedFilter(filter, publicFact)
-              filterMap.put(filter.field, attemptedReverseMappedFilter)
+              updateFilterMap(filterMap, attemptedReverseMappedFilter)
             }
           }
 
@@ -603,7 +603,7 @@ object RequestModel extends Logging {
           publicFact.forcedFilters.foreach { filter =>
             if(!allFilterAliases(filter.field)) {
               allFilterAliases += filter.field
-              filterMap.put(filter.field, filter)
+              updateFilterMap(filterMap, filter)
             }
           }
 
@@ -616,7 +616,7 @@ object RequestModel extends Logging {
                 //we want to process these after all non foreign keys have been processed
                 filterPostProcess += filter
               }
-              allFactFilters += filterMap(filter)
+              allFactFilters ++= filterMap(filter)
             } else {
               allNonFactFilterAliases += filter
             }
@@ -839,7 +839,7 @@ object RequestModel extends Logging {
                   val hasNonFKFilters =  allNonFactFilterAliases.foldLeft(false) {
                     (b, filter) =>
                       val result = if (colAliases.contains(filter) || filter == publicDim.primaryKeyByAlias) {
-                        filters += filterMap(filter)
+                        filters ++= filterMap(filter)
                         true
                       } else false
                       b || result
@@ -867,11 +867,13 @@ object RequestModel extends Logging {
                       filter =>
                         if (colAliases(filter) || publicDim.primaryKeyByAlias == filter) {
                           if(pushDownFilterMap.contains(filter)) {
-                            filters += pushDownFilterMap(filter)
+                            filters ++= pushDownFilterMap(filter)
                           } else {
-                            val pushDownFilter = PushDownFilter(filterMap(filter))
-                            pushDownFilterMap.put(filter, pushDownFilter)
-                            filters += pushDownFilter
+                            for (f <- filterMap(filter)) {
+                              val pushDownFilter = PushDownFilter(f)
+                              updatePushDownFilterMap(pushDownFilterMap, pushDownFilter)
+                              filters += pushDownFilter
+                            }
                           }
                         }
                     }
@@ -955,8 +957,8 @@ object RequestModel extends Logging {
                         findDimensionPath.foreach {
                           injectDim =>
                             val injectFilters : SortedSet[Filter] = pushDownFilterMap.collect {
-                              case (alias, filter) if injectDim.columnsByAlias.contains(alias) => filter.asInstanceOf[Filter]
-                            }.to[SortedSet]
+                              case (alias, filter) if injectDim.columnsByAlias.contains(alias) => filter
+                            }.flatten.map(_.asInstanceOf[Filter]).to[SortedSet]
                             val injectFilteredUpper = upperJoinCandidates.filter(pd => pd.dimLevel != injectDim.dimLevel && pd.dimLevel >= aboveLevel)
                             val injectBestUpperCandidate = injectFilteredUpper
                               .filter(pd => pd.foreignKeyByAlias.contains(injectDim.primaryKeyByAlias)).takeRight(1)
@@ -1198,12 +1200,13 @@ object RequestModel extends Logging {
     }
   }
 
-  private[this] def validateRequiredFiltersForDimOnlyQuery(filterMap:mutable.HashMap[String, Filter],requiredAliasSet:Set[RequiredAlias], request:ReportingRequest): Unit = {
+  private[this] def validateRequiredFiltersForDimOnlyQuery(filterMap:mutable.HashMap[String, mutable.TreeSet[Filter]],requiredAliasSet:Set[RequiredAlias], request:ReportingRequest): Unit = {
     requiredAliasSet.foreach(
       reqAlias => {
         require(filterMap.contains(reqAlias.alias), s"Missing Dim Only query Schema(${request.schema}) required filter on '${reqAlias.alias}'")
-        val filter = filterMap.get(reqAlias.alias).get
-        require(FilterOperation.InEquality.contains(filter.operator), s"Invalid Schema Required Filter ${filter.field} operation, expected at least one of set(In,=), found ${filter.operator}")
+        val filter = filterMap(reqAlias.alias)
+        for (f <- filter)
+            require(FilterOperation.InEquality.contains(f.operator), s"Invalid Schema Required Filter ${f.field} operation, expected at least one of set(In,=), found ${f.operator}")
       }
     )
   }
@@ -1358,6 +1361,17 @@ object RequestModel extends Logging {
     } else filter
   }
 
+  def updateFilterMap(filterMap: mutable.HashMap[String, mutable.TreeSet[Filter]], filter: Filter): Unit = {
+    val curFilters = filterMap.getOrElse(filter.field, mutable.TreeSet[Filter]())
+    val finalFilters: mutable.TreeSet[Filter] = curFilters + filter
+    filterMap.put(filter.field, finalFilters)
+  }
+
+  def updatePushDownFilterMap(pushDownFilterMap: mutable.HashMap[String, mutable.TreeSet[PushDownFilter]], pushDownFilter: PushDownFilter): Unit = {
+    val curFilters = pushDownFilterMap.getOrElse(pushDownFilter.field, mutable.TreeSet[PushDownFilter]())
+    val finalFilters: mutable.TreeSet[PushDownFilter] = curFilters + pushDownFilter
+    pushDownFilterMap.put(pushDownFilter.field, finalFilters)
+  }
 }
 
 case class RequestModelResult(model: RequestModel, dryRunModelTry: Option[Try[RequestModel]])

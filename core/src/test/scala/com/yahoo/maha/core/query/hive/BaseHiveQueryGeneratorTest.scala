@@ -87,7 +87,7 @@ trait BaseHiveQueryGeneratorTest
           PubCol("ad_id", "Ad ID", EqualityFieldEquality),
           PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
-          PubCol("account_id", "Advertiser ID", InEquality),
+          PubCol("account_id", "Advertiser ID", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("keyword_id", "Keyword ID", InEquality),
           PubCol("Keyword Count", "Keyword Count", Set.empty),
           PubCol("Keyword Count Scaled", "Keyword Count Scaled", Set.empty),

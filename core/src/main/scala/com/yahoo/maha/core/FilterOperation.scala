@@ -1685,7 +1685,7 @@ object Filter extends Logging {
     Ordering.fromLessThan {
       (a, b) =>
         if(a.isPushDown == b.isPushDown) {
-          Ordering.String.lt(a.field, b.field)
+          compare(a, b) < 0
         } else {
           a.isPushDown > b.isPushDown
         }

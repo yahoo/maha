@@ -509,7 +509,7 @@ trait BasePrestoQueryGeneratorTest
           PubCol("ad_id", "Ad ID", InEquality),
           PubCol("ad_group_id", "Ad Group ID", InEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
-          PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("advertiser_id", "Advertiser ID", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("restaurant_id", "Restaurant ID", InEquality),
           PubCol("stats_source", "Source", Equality),
           PubCol("price_type", "Pricing Type", In),
