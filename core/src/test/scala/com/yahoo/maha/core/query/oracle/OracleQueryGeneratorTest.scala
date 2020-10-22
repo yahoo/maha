@@ -6718,4 +6718,55 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
        """.stripMargin
     result should equal (expected)(after being whiteSpaceNormalised)
   }
+
+  test("Not Like filter Oracle") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Campaign Name"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Campaign Name", "operator": "Not Like", "value": "cmpgn1"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+
+    val expected =
+      s"""
+         |SELECT *
+         |FROM (SELECT f0.campaign_id "Campaign ID", co1.campaign_name "Campaign Name", f0.advertiser_id "Advertiser ID", coalesce(f0."impressions", 1) "Impressions", coalesce(f0."clicks", 0) "Clicks"
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
+         |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('2020-10-15', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('2020-10-22', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id
+         |
+         |           ) f0
+         |           INNER JOIN
+         |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345) AND (lower(campaign_name) NOT LIKE lower('%cmpgn1%'))
+         |             )
+         |           co1 ON ( f0.advertiser_id = co1.advertiser_id AND f0.campaign_id = co1.id)
+         |
+         |)
+         |      """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
 }

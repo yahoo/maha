@@ -507,4 +507,57 @@ af0.campaign_id = c1.c1_id
         queryAlias LIMIT 200""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
+
+  test("Not Like filter Presto") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Campaign Name", "operator": "Not Like", "value": "cmpgn1"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val expected =
+      s"""
+         |SELECT CAST(campaign_id as VARCHAR) AS campaign_id, CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(mang_clicks as VARCHAR) AS mang_clicks
+         |FROM(
+         |SELECT COALESCE(CAST(ssfu0.campaign_id as VARCHAR), 'NA') campaign_id, COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(impressions as bigint), 1) mang_impressions, COALESCE(CAST(mang_clicks as bigint), 0) mang_clicks
+         |FROM(SELECT account_id, campaign_id, SUM(clicks) mang_clicks, SUM(impressions) impressions
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, campaign_id
+         |
+         |       )
+         |ssfu0
+         |JOIN (
+         |SELECT id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (lower(campaign_name) NOT LIKE lower('%cmpgn1%'))
+         |)
+         |c1
+         |ON
+         |CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
+         |
+         |) queryAlias LIMIT 200
+      """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
 }
