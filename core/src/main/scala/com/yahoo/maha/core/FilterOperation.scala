@@ -928,6 +928,78 @@ object SqlLikeFilterRenderer extends LikeFilterRenderer[SqlResult] {
   }
 }
 
+object SqlNotLikeFilterRenderer extends NotLikeFilterRenderer[SqlResult] {
+
+  private[this] val specialCharsR = """[%_\\]""".r
+
+  def escapeEscapeChars(value: String) : String = {
+    value.replaceAllLiterally("""\""", """\\""")
+  }
+
+  def escapeSpecialChars(value: String) : String = {
+    escapeEscapeChars(value).replaceAllLiterally("""%""","""\%""").replaceAllLiterally("""_""", """\_""")
+  }
+
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
+             filter: NotLikeFilter,
+             literalMapper: SqlLiteralMapper,
+             column: Column,
+             engine: Engine,
+             grainOption: Option[Grain]) : SqlResult = {
+    val name = aliasToRenderedSqlMap(filter.field)._2
+    val escaped = specialCharsR.findFirstIn(filter.value).isDefined
+    val escapeValue = {
+      if(escaped) {
+        escapeSpecialChars(filter.value)
+      } else {
+        filter.value
+      }
+    }
+    val renderedValue = literalMapper.toLiteral(column, s"%$escapeValue%", grainOption)
+    engine match {
+      case OracleEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            if(escaped) {
+              DefaultResult( s"""lower($name) NOT LIKE lower($renderedValue) ESCAPE '\\'""", escaped = escaped)
+            } else {
+              DefaultResult( s"""lower($name) NOT LIKE lower($renderedValue)""", escaped = escaped)
+            }
+          case _ =>
+            if(escaped) {
+              DefaultResult( s"""$name NOT LIKE $renderedValue ESCAPE '\\'""", escaped = escaped)
+            } else {
+              DefaultResult( s"""$name NOT LIKE $renderedValue""", escaped = escaped)
+            }
+        }
+      case PostgresEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            if(escaped) {
+              DefaultResult( s"""lower($name) NOT LIKE lower($renderedValue) ESCAPE '\\'""", escaped = escaped)
+            } else {
+              DefaultResult( s"""lower($name) NOT LIKE lower($renderedValue)""", escaped = escaped)
+            }
+          case _ =>
+            if(escaped) {
+              DefaultResult( s"""$name NOT LIKE $renderedValue ESCAPE '\\'""", escaped = escaped)
+            } else {
+              DefaultResult( s"""$name NOT LIKE $renderedValue""", escaped = escaped)
+            }
+        }
+      case HiveEngine | PrestoEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult( s"""lower($name) NOT LIKE lower($renderedValue)""", escaped = escaped)
+          case _ =>
+            DefaultResult(s"""$name NOT LIKE $renderedValue""")
+        }
+      case _ =>
+        throw new IllegalArgumentException(s"Unsupported engine for NotLikeFilterRenderer $engine")
+    }
+  }
+}
+
 object SqlNotEqualToFilterRenderer extends NotEqualToFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: NotEqualToFilter,
@@ -1605,6 +1677,15 @@ object FilterSql {
         )
       case f@LikeFilter(alias, value, _, _) =>
         SqlLikeFilterRenderer.render(
+          aliasToRenderedSqlMap,
+          f,
+          literalMapper,
+          column,
+          engine,
+          grainOption
+        )
+      case f@NotLikeFilter(alias, value, _, _) =>
+        SqlNotLikeFilterRenderer.render(
           aliasToRenderedSqlMap,
           f,
           literalMapper,

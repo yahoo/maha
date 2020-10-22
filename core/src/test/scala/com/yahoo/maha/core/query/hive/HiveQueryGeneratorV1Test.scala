@@ -1894,4 +1894,57 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
+
+  test("Not Like filter Hive") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Campaign Name", "operator": "Not Like", "value": "cmpgn1"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(",",NVL(CAST(campaign_id AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_clicks AS STRING), ''))
+         |FROM(
+         |SELECT COALESCE(ssf0.campaign_id, 0L) campaign_id, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 1L) mang_impressions, COALESCE(mang_clicks, 0L) mang_clicks
+         |FROM(SELECT account_id, campaign_id, SUM(clicks) mang_clicks, SUM(impressions) impressions
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, campaign_id
+         |
+         |       )
+         |ssf0
+         |JOIN (
+         |SELECT id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (lower(campaign_name) NOT LIKE lower('%cmpgn1%'))
+         |)
+         |c1
+         |ON
+         |ssf0.campaign_id = c1.c1_id
+         |
+         |) queryAlias LIMIT 200
+      """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
 }
