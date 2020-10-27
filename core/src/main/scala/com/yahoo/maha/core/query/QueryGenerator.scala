@@ -181,6 +181,21 @@ class QueryBuilderContext {
   
   def containsColByName(name: String) : Boolean = columnNames.contains(name)
 
+  def containsColByNameAndAlias(name: String) : Boolean = {
+    if(containsColByName(name)){
+      var aliasName : Option[String] = None
+      if(colAliasToFactColNameMap.contains(name) || colAliasToDimensionColNameMap.contains(name)){
+        aliasName = colAliasToFactColNameMap.get(name)
+      }else if (colAliasToDimensionColNameMap.contains(name)){
+        aliasName = colAliasToDimensionColNameMap.get(name)
+      }else{
+        true
+      }
+      if(aliasName.isDefined && containsColByName(aliasName.get)) true
+    }
+    false
+  }
+
   def aliasColumnMap : Map[String, Column] = dimensionAliasToColumnMap.toMap ++ factAliasToColumnMap.toMap
 
   def getColAliasToFactColNameMap : scala.collection.Map[String, String] = colAliasToFactColNameMap

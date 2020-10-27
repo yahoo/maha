@@ -98,6 +98,10 @@ trait BaseQueryGeneratorTest {
     queryPipelineFactory.from(requestModel, queryAttributes)
   }
 
+  protected[this] def generatePipeline(requestModel: RequestModel, version:Version) : Try[QueryPipeline] = {
+    queryPipelineFactory.fromQueryGenVersion(requestModel, QueryAttributes.empty, version)
+  }
+
   protected[this] def generatePipelineForQgenVersion(registry: Registry, requestModel: RequestModel, queryGenVersion: Version) : Try[QueryPipeline] = {
     val qgenBucketingConfig = new QueryGenBucketingConfigBuilder()
       .externalBucketPercentage(Map(queryGenVersion -> 100))
