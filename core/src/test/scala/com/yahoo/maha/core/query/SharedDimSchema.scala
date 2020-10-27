@@ -140,7 +140,7 @@ trait SharedDimSchema {
     builder.toPublicDimension(
       "keyword","keyword",
       Set(
-        PubCol("advertiser_id", "Advertiser ID", InEquality)
+        PubCol("advertiser_id", "Advertiser ID", InNotInEqualityNotEqualsLikeNotLikeNullNotNull)
         , PubCol("id", "Keyword ID", InEqualityFieldEquality)
         , PubCol("value", "Keyword Value", InEquality)
         , PubCol("match_type", "Keyword Match Type Full", InEquality)
@@ -461,8 +461,8 @@ trait SharedDimSchema {
       .toPublicDimension("campaign","campaign",
         Set(
           PubCol("id", "Campaign ID", InEquality)
-          , PubCol("advertiser_id", "Advertiser ID", InEquality)
-          , PubCol("campaign_name", "Campaign Name", InEqualityLikeNotLike)
+          , PubCol("advertiser_id", "Advertiser ID", InNotInEqualityNotEqualsLikeNotLikeNullNotNull)
+          , PubCol("campaign_name", "Campaign Name", InNotInEqualityNotEqualsLikeNotLikeNullNotNull)
           , PubCol("campaign_name_ext", "Campaign Name Ext", InEqualityLikeNotLike)
           , PubCol("Campaign Status", "Campaign Status", InNotInEquality)
           , PubCol("device_id", "Campaign Device ID", InEquality)

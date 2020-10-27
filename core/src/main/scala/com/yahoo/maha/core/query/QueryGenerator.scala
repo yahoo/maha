@@ -215,16 +215,15 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
     val queryContext = inputContext
 
     val fact = queryContext.factBestCandidate.fact
-    val returnedFilters = new mutable.LinkedHashMap[String, Filter]
+    val returnedFilters = new mutable.LinkedHashMap[String, mutable.TreeSet[Filter]]
     localFilters.foreach {
       filter =>
         val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(filter.field)
         val column = fact.columnsByNameMap(name)
         val real_name = column.alias.getOrElse(name)
-        if(returnedFilters.contains(real_name))
-          logger.info(s"Replacing the existing filter $real_name with new filter string ${filter.toString}")
-
-        returnedFilters(real_name) = filter
+        val curFilters = returnedFilters.getOrElse(real_name, mutable.TreeSet[Filter]())
+        val finalFilters: mutable.TreeSet[Filter] = curFilters + filter
+        returnedFilters.put(real_name, finalFilters)
     }
     forcedFilters.foreach {
       filter =>
@@ -232,10 +231,12 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
         val column = fact.columnsByNameMap(name)
         val real_name = column.alias.getOrElse(name)
         if (!filter.isOverridable || !returnedFilters.contains(real_name)) {
-          returnedFilters(real_name) = filter
+          val curFilters = returnedFilters.getOrElse(real_name, mutable.TreeSet[Filter]())
+          val finalFilters: mutable.TreeSet[Filter] = curFilters + filter
+          returnedFilters.put(real_name, finalFilters)
         }
     }
-    returnedFilters.values.toArray
+    returnedFilters.values.flatten.toArray
   }
 }
 
