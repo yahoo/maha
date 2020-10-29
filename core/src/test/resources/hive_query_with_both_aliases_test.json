@@ -6,19 +6,18 @@
     { "field" : "Campaign ID" },
     { "field" : "Ad Group ID" },
     { "field" : "Keyword ID" },
-    { "field" : "Keyword" },
     { "field" : "Ad Format Name" },
     { "field" : "Ad Format Sub Type"},
     { "field" : "Ad Format Type"},
+    { "field" : "Keyword" },
     { "field" : "Search Term" },
     { "field" : "Delivered Match Type" },
-    { "field" : "Impressions" },
-    { "field" : "Average CPC" }
+    { "field" : "Impressions" }
   ],
   "filterExpressions":[
+    { "field": "Ad Format Name", "operator": "=","value":"Single image"},
     { "field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}" },
-    { "field":"Advertiser ID", "operator":"=", "value":"12345" },
-    { "field":"Campaign Name", "operator":"like", "value":"yahoo"}
+    { "field":"Advertiser ID", "operator":"=", "value":"12345" }
   ],
   "sortBy": [
     { "field": "Impressions", "order": "Asc" }
@@ -26,4 +25,3 @@
   "paginationStartIndex":0,
   "rowsPerPage":100
 }
-

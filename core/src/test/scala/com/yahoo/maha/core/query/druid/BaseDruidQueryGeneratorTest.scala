@@ -8,6 +8,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.{PublicFactCol, _}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
+import com.yahoo.maha.core.query.presto.SharedDefinitions
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.RegistryBuilder
 import org.scalatest.funsuite.AnyFunSuite
@@ -70,6 +71,8 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           , DimCol("stats_date", DateType("yyyyMMdd"), Some("statsDate"))
           , DimCol("engagement_type", StrType(3))
           , DimCol("null_type", PassthroughType())
+          , DimCol("ad_format_id", IntType(3, (SharedDefinitions.adFormatIdToNameMap, "Other")))
+          , DimCol("ad_format_sub_type", IntType(8, (SharedDefinitions.adFormatIdtoSubTypeMap, "N/A")), alias = Option("ad_format_id"))
           , DruidPostResultFuncDimCol("Month", DateType(), postResultFunction = START_OF_THE_MONTH("{stats_date}"))
           , DruidPostResultFuncDimCol("Week", DateType(), postResultFunction = START_OF_THE_WEEK("{stats_date}"))
           , DruidFuncDimCol("Day of Week", DateType(), DAY_OF_WEEK("{stats_date}"))
@@ -335,7 +338,9 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           PubCol("segments", "Segments", InEquality),
           PubCol("internal_bucket_id", "Internal Bucket ID", InEquality),
           PubCol("click_exp_id", "Click Exp ID", InEquality),
-          PubCol("week_start", "Week Start", InEquality)
+          PubCol("week_start", "Week Start", InEquality),
+          PubCol("ad_format_id", "Ad Format Name", InNotInEqualityNotEqualsLikeNullNotNull),
+          PubCol("ad_format_sub_type", "Ad Format Sub Type", InNotInEqualityNotEqualsLikeNullNotNull),
           //PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
         ),
         Set(
@@ -407,8 +412,10 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           PubCol("price_type", "Pricing Type", In),
           PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
           PubCol("landing_page_url", "Destination URL", Set.empty),
-          PubCol("Week", "Week", InBetweenEquality)
+          PubCol("Week", "Week", InBetweenEquality),
           //PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
+          PubCol("ad_format_id", "Ad Format Name", InNotInEqualityNotEqualsLikeNullNotNull),
+          PubCol("ad_format_sub_type", "Ad Format Sub Type", InNotInEqualityNotEqualsLikeNullNotNull),
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InBetweenEquality),

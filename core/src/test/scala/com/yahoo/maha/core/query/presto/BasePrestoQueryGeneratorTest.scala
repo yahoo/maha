@@ -7,7 +7,7 @@ import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.PrestoDDLAnnotation
-import com.yahoo.maha.core.dimension._
+import com.yahoo.maha.core.dimension.{DimCol, _}
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
@@ -67,6 +67,7 @@ trait BasePrestoQueryGeneratorTest
           , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
           , DimCol("stats_date", DateType("YYYY-MM-dd"))
           , DimCol("ad_format_id", IntType(3, (SharedDefinitions.adFormatIdToNameMap, "Other")))
+          , DimCol("ad_format_type", IntType(8, (SharedDefinitions.adFormatIdtoTypeMap, "N/A")), alias = Option("ad_format_id"))
           , DimCol("ad_format_sub_type", IntType(8, (SharedDefinitions.adFormatIdtoSubTypeMap, "N/A")), alias = Option("ad_format_id"))
           , DimCol("device_id", IntType(8, (Map(5199520 -> "SmartPhone", 5199503 -> "Tablet", 5199421 -> "Desktop", -1 -> "UNKNOWN"), "UNKNOWN")))
           , DimCol("device_type", IntType(8, (Map(5199520 -> "SmartPhone", 5199503 -> "Tablet", 5199421 -> "Desktop", -1 -> "UNKNOWN"), "UNKNOWN")), alias = Option("device_id"))
@@ -108,6 +109,7 @@ trait BasePrestoQueryGeneratorTest
           PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality),
           PubCol("network_type", "Network ID", InEquality),
           PubCol("ad_format_id", "Ad Format Name", InNotInEqualityNotEqualsLikeNullNotNull),
+          PubCol("ad_format_type", "Ad Format Type", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("ad_format_sub_type", "Ad Format Sub Type", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("device_id", "Device ID", InNotInEqualityNotEqualsLikeNullNotNull, incompatibleColumns = Set("Device Type")),
           PubCol("device_type", "Device Type", InNotInEqualityNotEqualsLikeNullNotNull, incompatibleColumns = Set("Device ID"))
@@ -691,5 +693,8 @@ object SharedDefinitions {
 
 
   val adFormatIdtoSubTypeMap = Map(35 -> "Product Ad", 97 -> "DPA Collection Ad", 98 -> "DPA View More", 99 -> "DPA Extended Carousel",
+    100 -> "DPA Single Image Ad", 101 -> "DPA Carousel Ad")
+
+  val adFormatIdtoTypeMap = Map(35 -> "Product Ad", 97 -> "DPA Collection Ad", 98 -> "DPA View More", 99 -> "DPA Extended Carousel",
     100 -> "DPA Single Image Ad", 101 -> "DPA Carousel Ad")
 }

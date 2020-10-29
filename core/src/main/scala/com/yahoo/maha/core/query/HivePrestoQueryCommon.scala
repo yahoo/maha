@@ -393,7 +393,7 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
     val name = column.alias.getOrElse(column.name)
     val isOgbQuery = queryContext.isInstanceOf[DimFactOuterGroupByQueryQueryContext]
     val exp = column match {
-      case any if queryBuilderContext.containsColByNameAndAlias(name) =>
+      case any if queryBuilderContext.containsColByNameAndAlias(name, alias) =>
         //do nothing, we've already processed it
         ""
       case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping && !isOgbQuery =>

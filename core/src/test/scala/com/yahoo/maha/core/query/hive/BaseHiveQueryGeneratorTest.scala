@@ -11,6 +11,7 @@ import com.yahoo.maha.core.dimension.{PubCol, _}
 import com.yahoo.maha.core.fact.{PublicFactCol, _}
 import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.query._
+import com.yahoo.maha.core.query.presto.SharedDefinitions
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 import org.scalatest.funsuite.AnyFunSuite
@@ -60,6 +61,9 @@ trait BaseHiveQueryGeneratorTest
           , DimCol("start_time", IntType())
           , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
           , DimCol("stats_date", DateType("YYYY-MM-dd"))
+          , DimCol("ad_format_id", IntType(3, (SharedDefinitions.adFormatIdToNameMap, "Other")))
+          , DimCol("ad_format_type", IntType(8, (SharedDefinitions.adFormatIdtoTypeMap, "N/A")), alias = Option("ad_format_id"))
+          , DimCol("ad_format_sub_type", IntType(8, (SharedDefinitions.adFormatIdtoSubTypeMap, "N/A")), alias = Option("ad_format_id"))
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
           , HiveDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
@@ -98,6 +102,9 @@ trait BaseHiveQueryGeneratorTest
           PubCol("source_name", "Source Name", Equality, incompatibleColumns = Set("Source")),
           PubCol("price_type", "Pricing Type", In),
           PubCol("landing_page_url", "Destination URL", Set.empty),
+          PubCol("ad_format_id", "Ad Format Name", InNotInEqualityNotEqualsLikeNullNotNull),
+          PubCol("ad_format_type", "Ad Format Type", InNotInEqualityNotEqualsLikeNullNotNull),
+          PubCol("ad_format_sub_type", "Ad Format Sub Type", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("column_id", "Column ID", Equality),
           PubCol("column2_id", "Column2 ID", Equality),
           PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality),
@@ -473,6 +480,9 @@ trait BaseHiveQueryGeneratorTest
           , DimCol("start_time", IntType())
           , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
           , DimCol("stats_date", TimestampType())
+          , DimCol("ad_format_id", IntType(3, (SharedDefinitions.adFormatIdToNameMap, "Other")))
+          , DimCol("ad_format_type", IntType(8, (SharedDefinitions.adFormatIdtoTypeMap, "N/A")), alias = Option("ad_format_id"))
+          , DimCol("ad_format_sub_type", IntType(8, (SharedDefinitions.adFormatIdtoSubTypeMap, "N/A")), alias = Option("ad_format_id"))
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
           , HiveDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
@@ -514,6 +524,9 @@ trait BaseHiveQueryGeneratorTest
           PubCol("source_name", "Source Name", Equality, incompatibleColumns = Set("Source")),
           PubCol("price_type", "Pricing Type", In),
           PubCol("landing_page_url", "Destination URL", Set.empty),
+          PubCol("ad_format_id", "Ad Format Name", InNotInEqualityNotEqualsLikeNullNotNull),
+          PubCol("ad_format_type", "Ad Format Type", InNotInEqualityNotEqualsLikeNullNotNull),
+          PubCol("ad_format_sub_type", "Ad Format Sub Type", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("column_id", "Column ID", Equality),
           PubCol("column2_id", "Column2 ID", Equality),
           PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality),
