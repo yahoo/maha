@@ -8,7 +8,6 @@
     { "field" : "Keyword ID" },
     { "field" : "Ad Format Name" },
     { "field" : "Ad Format Sub Type"},
-    { "field" : "Ad Format Type"},
     { "field" : "Keyword" },
     { "field" : "Search Term" },
     { "field" : "Delivered Match Type" },
