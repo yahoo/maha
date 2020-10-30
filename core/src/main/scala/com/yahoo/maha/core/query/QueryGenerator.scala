@@ -34,7 +34,6 @@ class QueryBuilderContext {
   private[this] val publicDimensionAliasTupleToFinalAlias = new mutable.HashMap[(PublicDimension,String), String]()
 
   private[this] val columnNames = new mutable.TreeSet[String]
-  private[this] val columnToAliasNames =  new mutable.HashMap[String, mutable.TreeSet[String]]
 
   private[this] var paginationWrapperAliasCount : Int = 0
 
