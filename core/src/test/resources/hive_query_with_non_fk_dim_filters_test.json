@@ -7,6 +7,8 @@
     { "field" : "Ad Group ID" },
     { "field" : "Keyword ID" },
     { "field" : "Keyword" },
+    { "field" : "Ad Format Name" },
+    { "field" : "Ad Format Sub Type"},
     { "field" : "Search Term" },
     { "field" : "Delivered Match Type" },
     { "field" : "Impressions" },

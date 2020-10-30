@@ -543,7 +543,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
       publicFact.foreignKeyAliases.toList.foreach {
         fk =>
           val dimension = getPkDimensionUsingFactTable(fk, Some(publicFact.dimRevision), publicFact.dimToRevisionMap)
-          require(dimension.isDefined, s"Failed to find dimesion for $fk inside getFlattenCubeJsonByName")
+          require(dimension.isDefined, s"Failed to find dimension for $fk inside getFlattenCubeJsonByName")
           dimension.get.columnsByAliasMap.filter(_._1 != fk).toList.foreach {
             dimCol =>
               val filterList = dimCol._2.filters.map(_.toString.toUpperCase).toList

@@ -160,7 +160,6 @@ trait BasePostgresQueryGeneratorTest
           , DimCol("stats_date", DateType("YYYY-MM-dd"))
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
-
         )
         , Set(
           FactCol("impressions", IntType(3, 0))

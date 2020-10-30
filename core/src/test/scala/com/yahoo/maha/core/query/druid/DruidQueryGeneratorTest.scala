@@ -3718,5 +3718,41 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val expectedFilter = s""""filter":{"type":"and","fields":[{"type":"not","field":{"type":"selector","dimension":"Campaign Name","value":"-3"}},{"type":"not","field":{"type":"selector","dimension":"Campaign Name"}}]}"""
     assert(result.contains(expectedFilter))
   }
+
+  test("Query with both aliases") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Campaign ID"},
+                            {"field": "Campaign Name"},
+                            {"field": "Ad Format Name"},
+                            {"field": "Ad Format Sub Type"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Campaign Name", "operator": "<>", "value": "-3"}
+                          ],
+                          "sortBy": [
+                            {"field": "Campaign Name", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":0
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+
+    val requestModel = getRequestModel(request, getDefaultRegistry())
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val expectedQuery = """\{"queryType":"groupBy","dataSource":\{"type":"query","query":\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*",".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"campaign_id_alias","outputName":"Campaign ID","outputType":"STRING"\},\{"type":"extraction","dimension":"ad_format_id","outputName":"Ad Format Name","outputType":"STRING","extractionFn":\{"type":"lookup","lookup":\{"type":"map","map":\{"98":"DPA View More","8":"Video with HTML Endcard","100":"DPA Single Image Ad","4":"Single image","9":"Carousel","99":"DPA Extended Carousel","35":"Product Ad","5":"Single image","6":"Single image","2":"Single image","101":"DPA Carousel Ad","7":"Video","97":"DPA Collection Ad","3":"Single image"\},"isOneToOne":false\},"retainMissingValue":false,"replaceMissingValueWith":"Other","injective":false,"optimize":true\}\},\{"type":"extraction","dimension":"ad_format_id","outputName":"Ad Format Sub Type","outputType":"STRING","extractionFn":\{"type":"lookup","lookup":\{"type":"map","map":\{"98":"DPA View More","100":"DPA Single Image Ad","99":"DPA Extended Carousel","35":"Product Ad","101":"DPA Carousel Ad","97":"DPA Collection Ad"\},"isOneToOne":false\},"retainMissingValue":false,"replaceMissingValueWith":"N/A","injective":false,"optimize":true\}\},\{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign Name","outputType":"STRING","extractionFn":\{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"MAHA_LOOKUP_EMPTY","injective":false,"optimize":true,"valueColumn":"name","dimensionOverrideMap":\{\},"useQueryLevelCache":false\}\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"NoopLimitSpec"\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}\},"intervals":\{"type":"intervals","intervals":\[".*",".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"not","field":\{"type":"selector","dimension":"Campaign Name","value":"-3"\}\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"Campaign ID","outputName":"Campaign ID","outputType":"STRING"\},\{"type":"default","dimension":"Ad Format Name","outputName":"Ad Format Name","outputType":"STRING"\},\{"type":"default","dimension":"Ad Format Sub Type","outputName":"Ad Format Sub Type","outputType":"STRING"\},\{"type":"default","dimension":"Campaign Name","outputName":"Campaign Name","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"Impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Campaign Name","direction":"ascending","dimensionOrder":\{"type":"lexicographic"\}\}\],"limit":2020\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
+    result should fullyMatch regex expectedQuery
+  }
 }
 

@@ -34,6 +34,7 @@ class QueryBuilderContext {
   private[this] val publicDimensionAliasTupleToFinalAlias = new mutable.HashMap[(PublicDimension,String), String]()
 
   private[this] val columnNames = new mutable.TreeSet[String]
+  private[this] val columnToAliasNames =  new mutable.HashMap[String, mutable.TreeSet[String]]
 
   private[this] var paginationWrapperAliasCount : Int = 0
 
@@ -180,6 +181,10 @@ class QueryBuilderContext {
   }
   
   def containsColByName(name: String) : Boolean = columnNames.contains(name)
+
+  def containsColByNameAndAlias(name: String, alias:String) : Boolean = {
+    containsColByName(name) && (colAliasToFactColNameMap.contains(alias) || colAliasToDimensionColNameMap.contains(alias))
+  }
 
   def aliasColumnMap : Map[String, Column] = dimensionAliasToColumnMap.toMap ++ factAliasToColumnMap.toMap
 

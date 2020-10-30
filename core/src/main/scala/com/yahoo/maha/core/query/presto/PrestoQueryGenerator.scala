@@ -224,7 +224,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
       def renderColumnWithAlias(fact: Fact, column: Column, alias: String, requiredInnerCols: Set[String]): Unit = {
         val name = column.alias.getOrElse(column.name)
         val exp = column match {
-          case any if queryBuilderContext.containsColByName(name) =>
+          case any if queryBuilderContext.containsColByNameAndAlias(name,alias) =>
             //do nothing, we've already processed it
             ""
           case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping =>
