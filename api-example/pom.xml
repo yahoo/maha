@@ -20,7 +20,7 @@
 
     <properties>
         <jersey.version>2.27</jersey.version>
-        <jetty.version>9.4.18.v20190429</jetty.version>
+        <jetty.version>9.4.34.v20201102</jetty.version>
     </properties>
 
     <dependencies>
