@@ -211,7 +211,26 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
         val column = fact.columnsByNameMap(name)
         val real_name = column.alias.getOrElse(name)
         val curFilters = returnedFilters.getOrElse(real_name, mutable.TreeSet[Filter]())
-        val finalFilters: mutable.TreeSet[Filter] = curFilters + filter
+        var finalFilters: mutable.TreeSet[Filter] = curFilters + filter
+        finalFilters.foreach {
+          filter =>
+            if (finalFilters.size > 1) {
+              try {
+                if (filter.asInstanceOf[ForcedFilter].isForceFilter) {
+                  if (!filter.asInstanceOf[ForcedFilter].isOverridable) {
+                    logger.info("Force filter is not overridable, all other filters should be overridden with this one.")
+                    finalFilters = finalFilters.filter(_.equals(filter))
+                  }
+                  else {
+                    logger.info("Force filter should be overridden by the other filters in the set.")
+                    finalFilters -= filter
+                  }
+                }
+              } catch {
+                case _: ClassCastException => logger.info("Not a force filter, doing nothing.")
+              }
+            }
+        }
         returnedFilters.put(real_name, finalFilters)
     }
     forcedFilters.foreach {
@@ -220,9 +239,7 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
         val column = fact.columnsByNameMap(name)
         val real_name = column.alias.getOrElse(name)
         if (!filter.isOverridable || !returnedFilters.contains(real_name)) {
-          val curFilters = returnedFilters.getOrElse(real_name, mutable.TreeSet[Filter]())
-          val finalFilters: mutable.TreeSet[Filter] = curFilters + filter
-          returnedFilters.put(real_name, finalFilters)
+          returnedFilters(real_name) = mutable.TreeSet[Filter](filter)
         }
     }
     returnedFilters.values.flatten.toArray
