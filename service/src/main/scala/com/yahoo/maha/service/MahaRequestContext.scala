@@ -17,10 +17,11 @@ case class MahaRequestContext(registryName: String
                               , requestId: String
                               , userId: String
                               , requestStartTime: Long = System.currentTimeMillis()
+                              , reportFormat: String = "json"
                              ) {
   lazy val mutableState = new TrieMap[String, Any]()
   lazy val requestHashOption: Option[String] = if(rawJson!=null) {
-      Some(DigestUtils.md5Hex(rawJson))
+      Some(DigestUtils.md5Hex(rawJson ++ reportFormat.getBytes()))
     } else {
       None
     }
