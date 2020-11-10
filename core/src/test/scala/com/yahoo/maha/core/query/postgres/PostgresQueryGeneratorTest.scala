@@ -36,7 +36,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     System.setProperty("java.io.tmpdir", userDir+"/target")
   }
   private val pg = EmbeddedPostgres.start()
-  val ddlOutFile = new java.io.File(userDir + "/src/test/resources/pg-dim-ddl.sql")
+  val ddlOutFile = new java.io.File("src/test/resources/pg-dim-ddl.sql")
   val ddlOutputStream = new BufferedOutputStream(new FileOutputStream(ddlOutFile))
   val ddlWriter = new PrintWriter(ddlOutputStream)
   val factDDLOutFile = new java.io.File("src/test/resources/pg-fact-ddl.sql")
