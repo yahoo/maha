@@ -1427,7 +1427,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
           , newForceFilters
           , fromTable.defaultCardinality
           , fromTable.defaultRowCount
-          , fromTable.viewBaseTable
+          , if (viewBaseTable.isDefined) viewBaseTable else fromTable.viewBaseTable
           , if (maxDaysWindow.isDefined) maxDaysWindow else fromTable.maxDaysWindow
           , if (maxDaysLookBack.isDefined) maxDaysLookBack else fromTable.maxDaysLookBack
           , availableOnwardsDate
