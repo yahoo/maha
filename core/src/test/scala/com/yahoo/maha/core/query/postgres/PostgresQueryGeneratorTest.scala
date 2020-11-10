@@ -220,7 +220,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val select = """SELECT agp1.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", agp1."Ad Group Status" "Ad Group Status""""
     assert(result.contains(select), result)
     assert(result.contains("campaign_id IN (SELECT id FROM campaign_postgres WHERE (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END IN ('ON'))"),result)
-    //result should equal (expected) (after being whiteSpaceNormalised)
+    result should equal (expected) (after being whiteSpaceNormalised)
     testQuery(result)
   }
 
