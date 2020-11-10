@@ -9,6 +9,7 @@ import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, SyncDruidQueryOptimizer}
+import com.yahoo.maha.core.query.presto.SharedDefinitions
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
@@ -70,6 +71,8 @@ trait BasePostgresQueryGeneratorTest
           , PostgresDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
           , PostgresDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
           , PostgresDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "W"))
+          , DimCol("ad_format_id", IntType(3, (SharedDefinitions.adFormatIdToNameMap, "Other")))
+          , DimCol("ad_format_sub_type", IntType(8, (SharedDefinitions.adFormatIdtoSubTypeMap, "N/A")), alias = Option("ad_format_id"))
         ),
         Set(
           FactCol("impressions", IntType(3, 1))
@@ -121,7 +124,9 @@ trait BasePostgresQueryGeneratorTest
           PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality),
           PubCol("Month", "Month", Equality),
           PubCol("Week", "Week", Equality),
-          PubCol("device_id", "Device ID", InEquality)
+          PubCol("device_id", "Device ID", InEquality),
+          PubCol("ad_format_id", "Ad Format Name", InNotInEqualityNotEqualsLikeNullNotNull),
+          PubCol("ad_format_sub_type", "Ad Format Sub Type", InNotInEqualityNotEqualsLikeNullNotNull)
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
@@ -160,6 +165,8 @@ trait BasePostgresQueryGeneratorTest
           , DimCol("stats_date", DateType("YYYY-MM-dd"))
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
+          , DimCol("ad_format_id", IntType(3, (SharedDefinitions.adFormatIdToNameMap, "Other")))
+          , DimCol("ad_format_sub_type", IntType(8, (SharedDefinitions.adFormatIdtoSubTypeMap, "N/A")), alias = Option("ad_format_id"))
         )
         , Set(
           FactCol("impressions", IntType(3, 0))
@@ -221,8 +228,10 @@ trait BasePostgresQueryGeneratorTest
         PubCol("price_type", "Pricing Type", In),
         PubCol("landing_page_url", "Destination URL", Set.empty),
         PubCol("column_id", "Column ID", Equality),
-        PubCol("column2_id", "Column2 ID", Equality)
+        PubCol("column2_id", "Column2 ID", Equality),
         //PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
+//        PubCol("ad_format_id", "Ad Format Name", InNotInEqualityNotEqualsLikeNullNotNull),
+//        PubCol("ad_format_sub_type", "Ad Format Sub Type", InNotInEqualityNotEqualsLikeNullNotNull)
       ),
       Set(
         PublicFactCol("impressions", "Impressions", InBetweenEquality),
@@ -738,6 +747,8 @@ trait BasePostgresQueryGeneratorTest
           , DimCol("stats_date", DateType("YYYY-MM-DD"))
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
+          , DimCol("ad_format_id", IntType(3, (SharedDefinitions.adFormatIdToNameMap, "Other")))
+          , DimCol("ad_format_sub_type", IntType(8, (SharedDefinitions.adFormatIdtoSubTypeMap, "N/A")), alias = Option("ad_format_id"))
           , PostgresDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
           , PostgresDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
           , PostgresDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "W"))
@@ -777,7 +788,9 @@ trait BasePostgresQueryGeneratorTest
           PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality),
           PubCol("Month", "Month", Equality),
           PubCol("Week", "Week", Equality),
-          PubCol("device_id", "Device ID", InEquality)
+          PubCol("device_id", "Device ID", InEquality),
+          PubCol("ad_format_id", "Ad Format Name", InNotInEqualityNotEqualsLikeNullNotNull),
+          PubCol("ad_format_sub_type", "Ad Format Sub Type", InNotInEqualityNotEqualsLikeNullNotNull)
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InBetweenEquality),
@@ -881,6 +894,8 @@ trait BasePostgresQueryGeneratorTest
           , DimCol("stats_date", TimestampType())
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
+          , DimCol("ad_format_id", IntType(3, (SharedDefinitions.adFormatIdToNameMap, "Other")))
+          , DimCol("ad_format_sub_type", IntType(8, (SharedDefinitions.adFormatIdtoSubTypeMap, "N/A")), alias = Option("ad_format_id"))
           , PostgresDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
           , PostgresDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
           , PostgresDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "W"))
@@ -935,7 +950,9 @@ trait BasePostgresQueryGeneratorTest
         PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality),
         PubCol("Month", "Month", Equality),
         PubCol("Week", "Week", Equality),
-        PubCol("device_id", "Device ID", InEquality)
+        PubCol("device_id", "Device ID", InEquality),
+        PubCol("ad_format_id", "Ad Format Name", InNotInEqualityNotEqualsLikeNullNotNull),
+        PubCol("ad_format_sub_type", "Ad Format Sub Type", InNotInEqualityNotEqualsLikeNullNotNull)
       ),
       Set(
         PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),

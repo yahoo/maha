@@ -899,8 +899,8 @@ b. Dim Driven
         //do nothing, we've already processed it
         ""
       case DimCol(_, dt, cc, _, annotations, _) if dt.hasStaticMapping =>
-        queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
-        s"${renderStaticMappedDimension(column)} $name"
+        queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.${column.name}""", column)
+        s"${renderStaticMappedDimension(column)} ${column.name}"
       case DimCol(_, dt, cc, _, annotations, _) =>
         queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
         renderColumnName(column)

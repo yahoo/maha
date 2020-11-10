@@ -349,60 +349,6 @@ FROM s_stats_fact_underlying
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
-  test("generating presto query incompatible columns") {
-    val jsonString =
-      s"""{
-                          "cube": "s_stats",
-                          "selectFields": [
-                              {"field": "Advertiser ID"},
-                              {"field": "Ad Format Name"},
-                              {"field": "Ad Format Sub Type"},
-                              {"field": "Impressions"}
-                          ],
-                          "filterExpressions": [
-                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
-                              {"field": "Impressions", "operator": ">", "value": "1608"}
-                          ],
-                         "sortBy": [
-                           { "field": "Impressions", "order": "Desc" },
-                           { "field": "Advertiser ID", "order": "Asc"}
-                         ]
-          }"""
-    val request: ReportingRequest = getReportingRequestAsync(jsonString)
-
-    val registry = getDefaultRegistry()
-    val requestModel = getRequestModel(request, registry)
-
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
-
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
-
-    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-
-    val expected =
-      s"""
-         SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_ad_format_name as VARCHAR) AS mang_ad_format_name, CAST(mang_ad_format_sub_type as VARCHAR) AS mang_ad_format_sub_type, CAST(mang_impressions as VARCHAR) AS mang_impressions
-         |FROM(
-         |SELECT COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(ad_format_id as varchar), 'NA') mang_ad_format_name, COALESCE(CAST(ad_format_id as varchar), 'NA') mang_ad_format_sub_type, COALESCE(CAST(impressions as bigint), 1) mang_impressions
-         |FROM(SELECT account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END ad_format_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END ad_format_id, SUM(impressions) impressions
-         |FROM s_stats_fact_underlying
-         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-         |GROUP BY account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END
-         |HAVING (SUM(impressions) > 1608)
-         |       )
-         |ssfu0
-         |
-         |ORDER BY mang_impressions DESC, advertiser_id ASC
-         |          )
-         |        queryAlias LIMIT 200
-       """.stripMargin
-
-    result should equal (expected) (after being whiteSpaceNormalised)
-  }
-
   test("Query with constant requested fields should have constant columns") {
     val jsonString =
       s"""{
@@ -740,4 +686,419 @@ af0.campaign_id = c1.c1_id
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
+
+  test("generating presto query incompatible columns") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Format Name"},
+                              {"field": "Ad Format Sub Type"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" },
+                           { "field": "Advertiser ID", "order": "Asc"}
+                         ]
+          }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val expected =
+      s"""
+         SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_ad_format_name as VARCHAR) AS mang_ad_format_name, CAST(mang_ad_format_sub_type as VARCHAR) AS mang_ad_format_sub_type, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(ad_format_id as varchar), 'NA') mang_ad_format_name, COALESCE(CAST(ad_format_sub_type as varchar), 'NA') mang_ad_format_sub_type, COALESCE(CAST(impressions as bigint), 1) mang_impressions
+         |FROM(SELECT account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END ad_format_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END ad_format_sub_type, SUM(impressions) impressions
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssfu0
+         |
+         |ORDER BY mang_impressions DESC, advertiser_id ASC
+         |          )
+         |        queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating presto query alias foreign key columns") {
+    val jsonString =
+      s"""{
+                          "cube": "performance_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Restaurant ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" },
+                           { "field": "Advertiser ID", "order": "Asc"}
+                         ]
+          }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val expected =
+      s"""
+         |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(restaurant_id as VARCHAR) AS restaurant_id, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(CAST(advertiser_id as bigint), 0) advertiser_id, COALESCE(CAST(advertiser_id as bigint), 0) restaurant_id, COALESCE(CAST(impressions as bigint), 1) mang_impressions
+         |FROM(SELECT advertiser_id, SUM(impressions) impressions
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY advertiser_id
+         |
+ |       )
+         |af0
+         |
+ |ORDER BY mang_impressions DESC, advertiser_id ASC
+         |          )
+         |        queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating presto query with both aliases for static mapping columns") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Format Name"},
+                              {"field": "Ad Format Sub Type"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" },
+                           { "field": "Advertiser ID", "order": "Asc"}
+                         ]
+          }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val expected =
+      s"""
+         SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_ad_format_name as VARCHAR) AS mang_ad_format_name, CAST(mang_ad_format_sub_type as VARCHAR) AS mang_ad_format_sub_type, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(ad_format_id as varchar), 'NA') mang_ad_format_name, COALESCE(CAST(ad_format_sub_type as varchar), 'NA') mang_ad_format_sub_type, COALESCE(CAST(impressions as bigint), 1) mang_impressions
+         |FROM(SELECT account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END ad_format_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END ad_format_sub_type, SUM(impressions) impressions
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssfu0
+         |
+         |ORDER BY mang_impressions DESC, advertiser_id ASC
+         |          )
+         |        queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating presto query with both aliases for static mapping columns in reverse order") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Format Sub Type"},
+                              {"field": "Ad Format Name"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" },
+                           { "field": "Advertiser ID", "order": "Asc"},
+                           { "field": "Ad Format Name", "order": "Asc"}
+                         ]
+          }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val expected =
+      s"""
+         SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_ad_format_sub_type as VARCHAR) AS mang_ad_format_sub_type, CAST(mang_ad_format_name as VARCHAR) AS mang_ad_format_name, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(ad_format_sub_type as varchar), 'NA') mang_ad_format_sub_type, COALESCE(CAST(ad_format_id as varchar), 'NA') mang_ad_format_name, COALESCE(CAST(impressions as bigint), 1) mang_impressions
+         |FROM(SELECT account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END ad_format_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END ad_format_sub_type, SUM(impressions) impressions
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssfu0
+         |
+         |ORDER BY mang_impressions DESC, advertiser_id ASC, mang_ad_format_name ASC
+         |          )
+         |        queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+
+
+  test("generating presto query with both aliases for static mapping columns with filter") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Format Name"},
+                              {"field": "Ad Format Sub Type"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Ad Format Name", "operator": "=","value":"Single image"},
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" },
+                           { "field": "Advertiser ID", "order": "Asc"}
+                         ]
+          }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val expected =
+      s"""
+         SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_ad_format_name as VARCHAR) AS mang_ad_format_name, CAST(mang_ad_format_sub_type as VARCHAR) AS mang_ad_format_sub_type, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(ad_format_id as varchar), 'NA') mang_ad_format_name, COALESCE(CAST(ad_format_sub_type as varchar), 'NA') mang_ad_format_sub_type, COALESCE(CAST(impressions as bigint), 1) mang_impressions
+         |FROM(SELECT account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END ad_format_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END ad_format_sub_type, SUM(impressions) impressions
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (ad_format_id IN (4,5,6,2,3)) AND  (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssfu0
+         |
+         |ORDER BY mang_impressions DESC, advertiser_id ASC
+         |          )
+         |        queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating presto query with both aliases for static mapping columns with filter for second column") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Format Name"},
+                              {"field": "Ad Format Sub Type"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Ad Format Sub Type", "operator": "=","value":"Product Ad"},
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" },
+                           { "field": "Advertiser ID", "order": "Asc"}
+                         ]
+          }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val expected =
+      s"""
+         SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_ad_format_name as VARCHAR) AS mang_ad_format_name, CAST(mang_ad_format_sub_type as VARCHAR) AS mang_ad_format_sub_type, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(ad_format_id as varchar), 'NA') mang_ad_format_name, COALESCE(CAST(ad_format_sub_type as varchar), 'NA') mang_ad_format_sub_type, COALESCE(CAST(impressions as bigint), 1) mang_impressions
+         |FROM(SELECT account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END ad_format_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END ad_format_sub_type, SUM(impressions) impressions
+         |FROM s_stats_fact_underlying
+         |WHERE (ad_format_id = 35) AND (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssfu0
+         |
+         |ORDER BY mang_impressions DESC, advertiser_id ASC
+         |          )
+         |        queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating presto query with both aliases for static mapping columns with both filters and not like filter") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Format Name"},
+                              {"field": "Ad Format Sub Type"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Ad Format Name", "operator": "=","value":"Single image"},
+                              {"field": "Ad Format Sub Type", "operator": "<>","value":"Product Ad"},
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" },
+                           { "field": "Advertiser ID", "order": "Asc"}
+                         ]
+          }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    // when both queries in alias query, both are added to the filter, user needs to make sure to query correctly.
+    val expected =
+      s"""
+         SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_ad_format_name as VARCHAR) AS mang_ad_format_name, CAST(mang_ad_format_sub_type as VARCHAR) AS mang_ad_format_sub_type, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(ad_format_id as varchar), 'NA') mang_ad_format_name, COALESCE(CAST(ad_format_sub_type as varchar), 'NA') mang_ad_format_sub_type, COALESCE(CAST(impressions as bigint), 1) mang_impressions
+         |FROM(SELECT account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END ad_format_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END ad_format_sub_type, SUM(impressions) impressions
+         |FROM s_stats_fact_underlying
+         |WHERE (ad_format_id <> 35) AND (account_id = 12345) AND (ad_format_id IN (4,5,6,2,3))  AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (5)) THEN 'Single image' WHEN (ad_format_id IN (6)) THEN 'Single image' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (9)) THEN 'Carousel' WHEN (ad_format_id IN (2)) THEN 'Single image' WHEN (ad_format_id IN (7)) THEN 'Video' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (3)) THEN 'Single image' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (8)) THEN 'Video with HTML Endcard' WHEN (ad_format_id IN (4)) THEN 'Single image' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'Other' END, CASE WHEN (ad_format_id IN (101)) THEN 'DPA Carousel Ad' WHEN (ad_format_id IN (97)) THEN 'DPA Collection Ad' WHEN (ad_format_id IN (98)) THEN 'DPA View More' WHEN (ad_format_id IN (35)) THEN 'Product Ad' WHEN (ad_format_id IN (99)) THEN 'DPA Extended Carousel' WHEN (ad_format_id IN (100)) THEN 'DPA Single Image Ad' ELSE 'N/A' END
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssfu0
+         |
+         |ORDER BY mang_impressions DESC, advertiser_id ASC
+         |          )
+         |        queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating presto query with incompatible columns") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Device Type"},
+                              {"field": "Device ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" },
+                           { "field": "Advertiser ID", "order": "Asc"}
+                         ]
+          }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isFailure, requestModel.errorMessage("Building request model should have failed"))
+    requestModel.failed.get.getMessage should startWith ("requirement failed: ERROR_CODE:10008 Incompatible columns found in request, Device Type is not compatible with Set(Device ID)")
+
+  }
+
 }
