@@ -98,6 +98,8 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           , FactCol("avg_pos_times_impressions", DecType(0, "0.0"), MaxRollup)
           , FactCol("avg_pos_times_impressions_trim", DecType(0, "0.0", "0", "1000"), MaxRollup)
           , FactCol("unique_ad_ids", IntType(), DruidHyperUniqueRollup("ad_id"))
+          , FactCol("daily_unique_ad_ids", IntType(), DruidHyperUniqueTimeBucketedRollup("ad_id"))
+          , DruidDerFactCol("spend_per_daily_unique", DecType(), "{spend}" /- "{daily_unique_ad_ids}")
           , DruidDerFactCol("unique_ad_ids_count", DecType(), HyperUniqueCardinalityWrapper("{unique_ad_ids}"))
           , FactCol("engagement_count", IntType(0, 0))
           , ConstFactCol("const_a", IntType(0, 0), "0")
@@ -363,6 +365,7 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           PublicFactCol("CTR", "CTR", InBetweenEquality),
           PublicFactCol("unique_ad_ids", "Unique Ad IDs", InBetweenEquality),
           PublicFactCol("unique_ad_ids_count", "Unique Ad IDs Count", InBetweenEquality),
+          PublicFactCol("spend_per_daily_unique", "Spend Per Daily Unique", InBetweenEquality),
           PublicFactCol("uniqueUserCount", "Unique User Count", InBetweenEquality),
           PublicFactCol("ageBucket_unique_users", "ageBucket_unique_users", InBetweenEquality),
           PublicFactCol("woeids_unique_users", "woeids_unique_users", InBetweenEquality),
