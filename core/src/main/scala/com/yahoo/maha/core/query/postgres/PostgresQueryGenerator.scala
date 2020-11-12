@@ -893,12 +893,12 @@ b. Dim Driven
     val name = column.alias.getOrElse(column.name)
     val isOgbQuery = queryContext.isInstanceOf[DimFactOuterGroupByQueryQueryContext]
     val exp = column match {
-      case any if queryBuilderContext.containsColByName(name) =>
+      case any if queryBuilderContext.containsColByNameAndAlias(name, alias) =>
         //do nothing, we've already processed it
         ""
       case DimCol(_, dt, cc, _, annotations, _) if dt.hasStaticMapping =>
-        queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
-        s"${renderStaticMappedDimension(column)} $name"
+        queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.${column.name}""", column)
+        s"${renderStaticMappedDimension(column)} ${column.name}"
       case DimCol(_, dt, cc, _, annotations, _) =>
         queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
         renderColumnName(column)

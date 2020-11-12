@@ -229,8 +229,8 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
             ""
           case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping =>
             val renderedAlias = renderColumnAlias(alias)
-            queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
-            s"${renderStaticMappedDimension(column)} $name"
+            queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(column.name))
+            s"${renderStaticMappedDimension(column)} ${column.name}"
           case DimCol(_, dt, _, _, _, _) =>
             val renderedAlias = renderColumnAlias(alias)
             queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
