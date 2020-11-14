@@ -640,7 +640,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
 
     val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, "Querypipeline containing fields with MAX rollup should generate successfully")
-    println(queryPipelineTry.get.queryChain.drivingQuery.asString)
+    //println(queryPipelineTry.get.queryChain.drivingQuery.asString)
   }
 /*
   test("where clause: ensure duplicate filter mappings are not propagated into the where clause") {
@@ -1681,7 +1681,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.failed.errorMessage(s"Fail to get the query pipeline $queryPipelineTry"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(s"got json $requestJson")
+    //println(s"got json $requestJson")
 
     result
   }

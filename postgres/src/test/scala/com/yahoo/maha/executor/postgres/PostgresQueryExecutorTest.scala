@@ -1083,7 +1083,7 @@ class PostgresQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAnd
       }).build()
 
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
-    println(sqlQuery)
+    //println(sqlQuery)
     val result = queryPipeline.execute(queryExecutorContext)
     assert(result.isFailure)
     assert(result.failed.get.getMessage.contains("""column "impressions_invalid" does not exist"""))
@@ -1177,7 +1177,7 @@ class PostgresQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAnd
 
     val queryPipeline = queryPipelineTry.toOption.get
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
-    println(sqlQuery)
+    //println(sqlQuery)
 
     val result = queryPipeline.execute(queryExecutorContext)
     result match {

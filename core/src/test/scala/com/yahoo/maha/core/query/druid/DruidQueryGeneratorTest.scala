@@ -2660,7 +2660,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val expectedJson = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"account_stats"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\},\{"type":"selector","dimension":"\{test_flag\}","value":"0"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"default","dimension":"stats_date","outputName":"Day","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"roundingDoubleSum","name":"Spend","fieldName":"spend","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\},\{"type":"longSum","name":"clicks","fieldName":"clicks"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Const Der Fact Col A","fn":"/","fields":\[\{"type":"fieldAccess","name":"clicks","fieldName":"clicks"\},\{"type":"fieldAccess","name":"impressions","fieldName":"Impressions"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Spend","direction":"descending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Const Der Fact Col A","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":200\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
 
-    println(expectedJson)
+    //println(expectedJson)
     result should fullyMatch regex expectedJson
 
     val subSequentQuery = queryPipelineTry.toOption.get.queryChain.subsequentQueryList.head.asString
@@ -3574,7 +3574,6 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    println(result)
     assert(result.contains(""""filter":{"type":"and","fields":[{"type":"not","field":{"type":"search","dimension":"Campaign Name","query":{"type":"insensitive_contains","value":"test","caseSensitive":false}}}]}"""))
   }
 
@@ -3609,7 +3608,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    println(result)
+    //println(result)
   }
 
   test("Druid query should retain missing value if LOOKUP_WITH_EMPTY_VALUE_OVERRIDE is used") {
@@ -3672,7 +3671,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    println(result)
+    //println(result)
     val expected = s""""limitSpec":{"type":"default","columns":[{"dimension":"Campaign Name","direction":"ascending","dimensionOrder":{"type":"lexicographic"}}],"limit":1020}""".stripMargin
     assert(result.contains(expected))
   }
@@ -3714,7 +3713,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.get.bestDimCandidates.head.filters.equals(queryPipelineDimFilters))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    println(result)
+    //println(result)
     val expectedFilter = s""""filter":{"type":"and","fields":[{"type":"not","field":{"type":"selector","dimension":"Campaign Name","value":"-3"}},{"type":"not","field":{"type":"selector","dimension":"Campaign Name"}}]}"""
     assert(result.contains(expectedFilter))
   }

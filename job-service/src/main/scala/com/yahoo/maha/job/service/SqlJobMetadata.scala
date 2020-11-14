@@ -114,7 +114,7 @@ case class SqlJobMetadata(jdbcConnection: JdbcConnection, tableName :String) ext
       resultSet =>
         if(resultSet.next()) {
           val intValue = resultSet.getLong("jobCount")
-          println("Int Value "+intValue)
+          //println("Int Value "+intValue)
           intValue.toInt
         } else 0
     }

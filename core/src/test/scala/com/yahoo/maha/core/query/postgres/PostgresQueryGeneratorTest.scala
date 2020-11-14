@@ -118,7 +118,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
   private def testQuery(sql: String): Unit = {
     val sqlTry = jdbcConnection.get.execute(sql)
     if(sqlTry.isFailure) {
-      println(sql)
+      //println(sql)
       throw sqlTry.failed.get
     }
   }

@@ -44,7 +44,7 @@ public class RocksDBExtractionNamespaceTest {
         objectMapper.registerModule(module);
 
         Period period = Period.seconds(30);
-        System.out.println(period);
+        //System.out.println(period);
     }
 
     @Test

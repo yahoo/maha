@@ -942,7 +942,7 @@ class PrestoQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAf
     val fkTableNames = fkTables.map(table => table.name)
     val fkCols = fkTables.flatMap(dim => dim.columnsByAliasMap.map(_._2))
     val allJSONs: Set[JObject] = (pubFactCols ++ pubDimCols ++ fkCols).map(col => col.asJSON)
-    println(s"""All tables with fact ${pubFact.get.name}: ${fkTableNames.mkString(",")}""")
+    //println(s"""All tables with fact ${pubFact.get.name}: ${fkTableNames.mkString(",")}""")
 
     val expectAliases: List[String] = List(
       "Ad Date Modified Timestamp","Spend","Max Bid","Ad Group ID","Ad Group Date Modified","Day","Impressions",

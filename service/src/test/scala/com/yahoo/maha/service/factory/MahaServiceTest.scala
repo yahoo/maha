@@ -612,7 +612,7 @@ class MahaServiceTest extends BaseFactoryTest {
 
     val json = parse(dynamicConfigJson)
     val dynamicObjects = DynamicMahaServiceConfig.findDynamicProperties(json, Map("bucketingConfigMap" -> new Object))
-    println(dynamicObjects)
+    //println(dynamicObjects)
     assert(dynamicObjects.size == 2)
 
     val result = DynamicMahaServiceConfig.fromJson(dynamicConfigJson.getBytes(StandardCharsets.UTF_8), dynamicConfigurations)

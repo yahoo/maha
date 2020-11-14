@@ -24,7 +24,7 @@ class KryoStringEventBatchTest {
     val recordList = builder.build.asInstanceOf[StringEventBatch]
     val output = new Output(new Array[Byte](1024 * 1024 + 1))
     kryo.writeObject(output, recordList)
-    System.out.println("output.position=" + output.position)
+    //System.out.println("output.position=" + output.position)
     val input = new Input(output.getBuffer, 0, output.total.toInt)
     val resultRecordList = kryo.readObject(input, classOf[StringEventBatch])
     Assert.assertEquals(resultRecordList.getEvents.get(0), "one")

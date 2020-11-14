@@ -164,7 +164,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     var defaultCount = 0
     defaultCuratorRequestResult.queryPipelineResult.rowList.foreach( row => {
 
-      println(row.toString)
+      //println(row.toString)
       defaultCount+=1
     })
 

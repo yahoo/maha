@@ -58,7 +58,7 @@ public class TestCompressors {
                 "A;FJSL;FASJ;JSD;JS;JFAW3RJ0V VURU -0EUR4-UR0-9RU09IR[Rwu023 3eiq29ei30-    ure2[U90RU90 RAU90[2093RU2";
         StringEncoder encoder = new StringEncoder(codec);
         byte[] encodedBytes = encoder.encode(input);
-        System.out.println(String.format("codec=%s encodedBytes.length=%s", codec, encodedBytes.length));
+        //System.out.println(String.format("codec=%s encodedBytes.length=%s", codec, encodedBytes.length));
         StringDecoder decoder = new StringDecoder(codec);
         String output = decoder.decode(encodedBytes);
         Assert.assertEquals(input, output);
@@ -76,7 +76,7 @@ public class TestCompressors {
         StringEventBatch input = (StringEventBatch) builder.build();
         StringEventBatchEncoder encoder = new StringEventBatchEncoder(codec);
         byte[] encodedBytes = encoder.encode(input);
-        System.out.println(String.format("codec=%s encodedBytes.length=%s", codec, encodedBytes.length));
+        //System.out.println(String.format("codec=%s encodedBytes.length=%s", codec, encodedBytes.length));
         StringEventBatchDecoder decoder = new StringEventBatchDecoder(codec);
         StringEventBatch output = decoder.decode(encodedBytes);
         Assert.assertEquals(input.getEvents().size(), output.getEvents().size());
