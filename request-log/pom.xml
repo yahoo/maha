@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>6.30-SNAPSHOT</version>
+        <version>6.31-SNAPSHOT</version>
     </parent>
 
     <name>maha request log</name>
