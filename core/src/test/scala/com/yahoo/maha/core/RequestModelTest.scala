@@ -5906,7 +5906,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     val res = getRequestModel(request, registry)
     assert(res.isFailure, "Request from Restricted Schema should fail on filter, even without filter requested.")
 
-    println(res.failed.get.getMessage)
+    //println(res.failed.get.getMessage)
     res.failed.get.getMessage should startWith (s"requirement failed: ERROR_CODE:10007 (Ad Format Name) can't be used with advertiser schema in publicFact cube")
   }
 

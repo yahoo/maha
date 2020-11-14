@@ -52,7 +52,7 @@ class PostgresDDLGeneratorTest extends BaseDDLGeneratorTest {
 
     ddlMap.foreach {
       case(fact, ddl) =>
-        println(ddl)
+        //println(ddl)
         val result = jdbcConnection.execute(ddl)
         assert(result.isSuccess && result.toOption.get === false, result.failed.toString)
     }
@@ -68,7 +68,7 @@ class PostgresDDLGeneratorTest extends BaseDDLGeneratorTest {
 
     ddlMap.foreach {
       case(dim, ddl) =>
-        println(ddl)
+        //println(ddl)
         val result = jdbcConnection.execute(ddl)
         assert(result.isSuccess && result.toOption.get === false, result.failed.toString)
     }

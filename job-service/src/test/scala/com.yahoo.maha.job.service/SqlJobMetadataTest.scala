@@ -44,7 +44,7 @@ class SqlJobMetadataTest extends BaseJobServiceTest {
       rs =>
         while (rs.next()) {
 
-          println("JobID= " + rs.getString("jobId"))
+          //println("JobID= " + rs.getString("jobId"))
           count += 1
         }
     }

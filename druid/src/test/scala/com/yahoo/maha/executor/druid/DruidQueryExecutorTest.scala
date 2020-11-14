@@ -2822,7 +2822,7 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
-    println(query.asString)
+    //println(query.asString)
 
     withDruidQueryExecutor("http://localhost:6667/mock/select") {
       executor =>
@@ -2930,7 +2930,7 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
-    println(query.asString)
+    //println(query.asString)
 
     withDruidQueryExecutor("http://localhost:6667/mock/select") {
       executor =>
@@ -3070,7 +3070,7 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
-    println(query.asString)
+    //println(query.asString)
 
     withDruidQueryExecutor("http://localhost:6667/mock/groupby_rowcount"){
       executor =>

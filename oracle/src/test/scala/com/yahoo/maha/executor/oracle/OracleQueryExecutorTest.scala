@@ -1072,7 +1072,6 @@ class OracleQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAf
       }).build()
 
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(sqlQuery)
     val result = queryPipeline.execute(queryExecutorContext)
     assert(result.isFailure)
     assert(result.failed.get.getMessage.contains("""Column "IMPRESSIONS_INVALID" not found"""))
