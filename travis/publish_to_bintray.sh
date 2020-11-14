@@ -4,7 +4,7 @@ set -ev
 
 mvn deploy -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Darguments="-DskipTests -Dscoverage.skip=true" --projects com.yahoo.maha:maha-parent --settings travis/settings-maha-parent.xml
 mvn deploy -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Darguments="-DskipTests -Dscoverage.skip=true" --projects com.yahoo.maha:maha-druid-lookups --settings travis/settings-maha-druid-lookups.xml
-mvn deploy -Dscoverage.skip=true -Darguments="-DskipTests -Dscoverage.skip=true" --projects com.yahoo.maha:maha-core --settings travis/settings-maha-core.xml
+mvn deploy -Dscoverage.skip=true -Darguments="-Dscoverage.skip=true" --projects com.yahoo.maha:maha-core --settings travis/settings-maha-core.xml
 mvn deploy -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Darguments="-DskipTests -Dscoverage.skip=true" --projects com.yahoo.maha:maha-druid-executor --settings travis/settings-maha-druid-executor.xml
 mvn deploy -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Darguments="-DskipTests -Dscoverage.skip=true" --projects com.yahoo.maha:maha-oracle-executor --settings travis/settings-maha-oracle-executor.xml
 mvn deploy -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Darguments="-DskipTests -Dscoverage.skip=true" --projects com.yahoo.maha:maha-service --settings travis/settings-maha-service.xml
