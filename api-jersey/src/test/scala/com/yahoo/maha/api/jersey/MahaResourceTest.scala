@@ -21,6 +21,17 @@ import org.junit._
 class MahaResourceTest {
 
   @Test
+  def successfulCubesEndpoint(){
+    assertNotNull("jetty must be initialised", MahaResourceTest.server)
+    val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
+    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/academic/cubes")
+    val httpResponse: HttpResponse = httpClient.execute(httpGet)
+    assertEquals("should return status 200", 200, httpResponse.getStatusLine.getStatusCode)
+    val cubesJson: String = EntityUtils.toString(httpResponse.getEntity)
+    assert(cubesJson.equals("""["student_performance"]"""))
+  }
+
+  @Test
   def successfulDomainEndpoint(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
