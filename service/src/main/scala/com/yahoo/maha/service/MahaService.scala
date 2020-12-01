@@ -190,6 +190,7 @@ trait MahaService {
                                 requestModelResult: RequestModelResult,
                                 mahaRequestLogBuilder: BaseMahaRequestLogBuilder): ParRequestResult
 
+  def getCubes(registryName: String) : Option[String]
   def getDomain(registryName: String) : Option[String]
   def getDomainForCube(registryName: String, cube : String) : Option[String]
   def getFlattenDomain(registryName: String) : Option[String]
@@ -410,6 +411,11 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     }
   }
 
+  override def getCubes(registryName: String) : Option[String] = {
+    if (config.registry.contains(registryName)) {
+      Some(config.registry(registryName).registry.cubesJson)
+    } else None
+  }
   override def getDomain(registryName: String): Option[String] = {
     if (config.registry.contains(registryName)) {
       Some(config.registry(registryName).registry.domainJsonAsString)

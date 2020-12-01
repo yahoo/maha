@@ -639,7 +639,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     }.toList
   }
 
-  val (domainJsonAsString : String, cubesJsonStringByName: Map[String, String]) = {
+  val (domainJsonAsString : String, cubesJsonStringByName: Map[String, String], cubesJson: String) = {
     val cubeJsonByName : Map[String, JObject] = getCubeJsonByName
     val cubesJsonArray: JArray = JArray(cubeJsonByName.toList.sortBy(_._1).map(_._2))
 
@@ -675,7 +675,9 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
       :: ("cubes" -> cubesJsonArray)
       :: Nil
     )
-    (compact(render(finalJson)), cubeJsonByName.mapValues(j => compact(render(j))))
+
+    val cubesJson = JArray(cubeJsonByName.keys.toList.sorted.map(JString(_)))
+    (compact(render(finalJson)), cubeJsonByName.mapValues(j => compact(render(j))), compact(render(cubesJson)))
   }
 
   def getCubeJsonAsStringForCube(name: String): String = {

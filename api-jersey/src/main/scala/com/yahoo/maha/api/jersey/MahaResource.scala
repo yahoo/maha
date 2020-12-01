@@ -43,6 +43,18 @@ class MahaResource(mahaService: MahaService
 
 
   @GET
+  @Path("/{registryName}/cubes")
+  @Produces(Array(MediaType.APPLICATION_JSON))
+  def getCubes(@PathParam("registryName") registryName: String): String = {
+    val domainjson: Option[String] = mahaService.getCubes(registryName)
+    if(domainjson.isDefined) {
+      domainjson.get
+    } else {
+      throw NotFoundException(Error(s"registry $registryName not found"))
+    }
+  }
+
+  @GET
   @Path("/{registryName}/domain")
   @Produces(Array(MediaType.APPLICATION_JSON))
   def getDomain(@PathParam("registryName") registryName: String): String = {
