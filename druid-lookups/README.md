@@ -20,6 +20,9 @@ An extension to druid which provides for MongoDB, JDBC and RocksDB (for high car
 * Configure maha druid lookup extension on your historicals.
 * Register your lookup via the API
 
+## Guide for Protobuf/FlatBuffer based RocksDB lookups as example project
+* https://github.com/pranavbhole/maha-druid-lookups-example
+ 
 ## Getting Started
 Here is tutorial of how to set up maha-druid-lookups as an extensions of Druid in your local box.  
 For convenience, we use `/druid` as our druid root path for the following document.
