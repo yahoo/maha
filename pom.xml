@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>6.32-SNAPSHOT</version>
+    <version>6.33-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -34,7 +34,7 @@
         <httpclient.version>4.5.12</httpclient.version>
         <guava.version>29.0-jre</guava.version>
         <jodatime.version>2.10.6</jodatime.version>
-        <druid.version>0.17.1</druid.version>
+        <druid.version>0.20.0</druid.version>
         <scala.arm.version>2.0</scala.arm.version>
         <opencsv.version>3.8</opencsv.version>
         <esapi.version>2.2.1.1</esapi.version>
