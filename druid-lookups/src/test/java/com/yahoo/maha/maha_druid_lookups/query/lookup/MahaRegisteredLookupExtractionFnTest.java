@@ -51,9 +51,10 @@ public class MahaRegisteredLookupExtractionFnTest {
         when(lef.get()).thenReturn(jdbcLookupExtractor);
 
         LookupExtractorFactoryContainer lefc = mock(LookupExtractorFactoryContainer.class);
+        Optional<LookupExtractorFactoryContainer> lefcOptional = Optional.of(lefc);
         when(lefc.getLookupExtractorFactory()).thenReturn(lef);
         LookupReferencesManager lrm = mock(LookupReferencesManager.class);
-        when(lrm.get(anyString())).thenReturn(lefc);
+        when(lrm.get(anyString())).thenReturn(lefcOptional);
 
         MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, true));
         Assert.assertNull(fn.cache);
@@ -77,9 +78,10 @@ public class MahaRegisteredLookupExtractionFnTest {
         when(lef.get()).thenReturn(jdbcLookupExtractor);
 
         LookupExtractorFactoryContainer lefc = mock(LookupExtractorFactoryContainer.class);
+        Optional<LookupExtractorFactoryContainer> lefcOptional = Optional.of(lefc);
         when(lefc.getLookupExtractorFactory()).thenReturn(lef);
         LookupReferencesManager lrm = mock(LookupReferencesManager.class);
-        when(lrm.get(anyString())).thenReturn(lefc);
+        when(lrm.get(anyString())).thenReturn(lefcOptional);
 
         MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, true));
 
@@ -105,9 +107,10 @@ public class MahaRegisteredLookupExtractionFnTest {
         when(lef.get()).thenReturn(jdbcLookupExtractor);
 
         LookupExtractorFactoryContainer lefc = mock(LookupExtractorFactoryContainer.class);
+        Optional<LookupExtractorFactoryContainer> lefcOptional = Optional.of(lefc);
         when(lefc.getLookupExtractorFactory()).thenReturn(lef);
         LookupReferencesManager lrm = mock(LookupReferencesManager.class);
-        when(lrm.get(anyString())).thenReturn(lefc);
+        when(lrm.get(anyString())).thenReturn(lefcOptional);
 
         MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, false));
 
@@ -132,9 +135,10 @@ public class MahaRegisteredLookupExtractionFnTest {
         when(lef.get()).thenReturn(jdbcLookupExtractor);
 
         LookupExtractorFactoryContainer lefc = mock(LookupExtractorFactoryContainer.class);
+        Optional<LookupExtractorFactoryContainer> lefcOptional = Optional.of(lefc);
         when(lefc.getLookupExtractorFactory()).thenReturn(lef);
         LookupReferencesManager lrm = mock(LookupReferencesManager.class);
-        when(lrm.get(anyString())).thenReturn(lefc);
+        when(lrm.get(anyString())).thenReturn(lefcOptional);
 
         MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, true));
 

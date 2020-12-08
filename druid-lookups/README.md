@@ -27,7 +27,7 @@ An extension to druid which provides for MongoDB, JDBC and RocksDB (for high car
 Here is tutorial of how to set up maha-druid-lookups as an extensions of Druid in your local box.  
 For convenience, we use `/druid` as our druid root path for the following document.
 ### Requirement
-* [druid-0.17.1](http://druid.io/docs/0.17.1/tutorials/quickstart.html)
+* [druid-0.20.0](http://druid.io/docs/0.20.0/tutorials/quickstart.html)
 * zookeeper
 * your local datasource (mysql, oracle, etc.)
 
@@ -141,7 +141,7 @@ This is caused by lack of Hadoop dependency.
 
 **Solution:** 
 
-For Druid-0.17.1, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.8.5/*`.  Just make sure you have included the path in `bin/run-druid`
+For Druid-0.20.0, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.8.5/*`.  Just make sure you have included the path in `bin/run-druid`
 
 ### Registering Druid Lookups
 Druid lookups are managed using APIs on coordinators.  Refer [here](http://druid.io/docs/latest/querying/lookups.html).
@@ -184,7 +184,7 @@ Example Lookup JSON:
 }
 ```
 
-_NOTE1: for the details of parameters, please check [here](http://druid.io/docs/0.17.1/development/extensions-core/lookups-cached-global.html)._
+_NOTE1: for the details of parameters, please check [here](http://druid.io/docs/0.20.0/development/extensions-core/lookups-cached-global.html)._
 
 _NOTE2: set "cacheEnabled" to true for building cache(hasmap) in the node._
 

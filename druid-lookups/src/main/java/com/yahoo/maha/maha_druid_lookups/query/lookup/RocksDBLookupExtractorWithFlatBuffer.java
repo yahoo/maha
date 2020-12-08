@@ -33,4 +33,14 @@ public class RocksDBLookupExtractorWithFlatBuffer<U> extends BaseRocksDBLookupEx
     public byte[] getCacheByteValue(String key, String valueColumn, Optional<DecodeConfig> decodeConfigOptional, RocksDB db) {
         return cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, schemaFactory, lookupService, serviceEmitter, extractionNamespace);
     }
+
+    @Override
+    public boolean canIterate() {
+        return false;
+    }
+
+    @Override
+    public Iterable<Map.Entry<String, String>> iterable() {
+        return null;
+    }
 }

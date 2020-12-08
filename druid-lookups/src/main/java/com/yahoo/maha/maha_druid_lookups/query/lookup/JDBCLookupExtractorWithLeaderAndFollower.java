@@ -21,4 +21,14 @@ public class JDBCLookupExtractorWithLeaderAndFollower<U extends List<String>> ex
     protected Logger LOGGER() {
         return LOG;
     }
+
+    @Override
+    public boolean canIterate() {
+        return false;
+    }
+
+    @Override
+    public Iterable<Map.Entry<String, String>> iterable() {
+        return null;
+    }
 }
