@@ -152,4 +152,24 @@ class QueryGeneratorFactoryTest extends BaseFactoryTest {
     assert(generatorResult.isSuccess, generatorResult)
     assert("PrestoQueryGeneratorV1".equals(generatorResult.toOption.get.getClass.getSimpleName), generatorResult)
   }
+
+  test("successfully construct Bigquery query generator from json") {
+    val jsonString =   """
+                         |{
+                         |"partitionColumnRendererClass" : "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+                         |"partitionColumnRendererConfig" : [{"key": "value"}],
+                         |"udfRegistrationFactoryName" : "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
+                         |"udfRegistrationFactoryConfig" : [{"key": "value"}]
+                         |}
+                       """.stripMargin
+
+    val factoryResult = getFactory[BigqueryQueryGeneratorFactory]("com.yahoo.maha.service.factory.BigqueryQueryGeneratorFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    val json = parse(jsonString)
+    val generatorResult = factory.fromJson(json)
+    assert(generatorResult.isSuccess, generatorResult)
+    assert("BigqueryQueryGenerator".equals(generatorResult.toOption.get.getClass.getSimpleName), generatorResult)
+  }
+
 }

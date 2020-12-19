@@ -11,7 +11,7 @@ import scala.collection.mutable
 /*
     Created by ritvikj on 10/2/19
 */
-abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends PrestoQueryGeneratorCommon(partitionColumnRenderer, udfStatements) with HivePrestoQueryCommon with Logging {
+abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends PrestoQueryGeneratorCommon(partitionColumnRenderer, udfStatements) with BigqueryHivePrestoQueryCommon with Logging {
 
   protected def generateOuterGroupByQuery(queryContext: DimFactOuterGroupByQueryQueryContext): Query = {
 

@@ -5,6 +5,7 @@ package com.yahoo.maha.service.factory
 import javax.sql.DataSource
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
+import com.yahoo.maha.executor.bigquery.{BigqueryQueryExecutor, BigqueryQueryExecutorConfig}
 import com.yahoo.maha.executor.druid.{AuthHeaderProvider, DruidQueryExecutor, DruidQueryExecutorConfig}
 import com.yahoo.maha.executor.oracle.OracleQueryExecutor
 import com.yahoo.maha.executor.postgres.PostgresQueryExecutor
@@ -275,6 +276,57 @@ class PostgresQueryExecutoryFactory extends QueryExecutoryFactory {
     (jdbcConnetionResult |@| lifecycleListener) {
       (a, b) =>
         new PostgresQueryExecutor(a, b)
+    }
+  }
+
+  override def supportedProperties: List[(String, Boolean)] = ???
+}
+
+class BigqueryQueryExecutoryFactory extends QueryExecutoryFactory {
+  """
+    |{
+    |"bigqueryQueryExecutorConfigFactoryClassName": ""
+    |"bigqueryQueryExecutorConfigJson": {
+    |  "gcpCredentialsFilePath": "",
+    |  "gcpProjectId": "",
+    |  "enableProxy": false,
+    |  "proxyCredentialsFilePath": "", (optional)
+    |  "proxyHost": "", (optional)
+    |  "proxyPort": "", (optional)
+    |  "retries": 0
+    |},
+    |"lifecycleListenerFactoryClass": "",
+    |"lifecycleListenerFactoryConfig" : []
+    |}
+  """.stripMargin
+  override def fromJson(configJson: JValue)(implicit context:MahaServiceConfigContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
+    import org.json4s.scalaz.JsonScalaz._
+
+    import scalaz.Validation.FlatMap._
+    import scalaz.syntax.applicative._
+
+    val bigqueryQueryExecutorConfigFactoryClassNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("bigqueryQueryExecutorConfigFactoryClassName")(configJson)
+    val bigqueryQueryExecutorConfigJsonResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("bigqueryQueryExecutorConfigJson")(configJson)
+    val lifecycleListenerFactoryClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("lifecycleListenerFactoryClass")(configJson)
+    val lifecycleListenerFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("lifecycleListenerFactoryConfig")(configJson)
+
+    val bigqueryQueryExecutorConfig:  MahaServiceConfig.MahaConfigResult[BigqueryQueryExecutorConfig] = for {
+      bigqueryQueryExecutorConfigFactoryClassName <- bigqueryQueryExecutorConfigFactoryClassNameResult
+      bigqueryQueryExecutorConfigJson <- bigqueryQueryExecutorConfigJsonResult
+      bigqueryQueryExecutorConfigFactory <- getFactory[BigqueryQueryExecutorConfigFactory](bigqueryQueryExecutorConfigFactoryClassName, this.closer)
+      bigqueryQueryExecutorConfig <- bigqueryQueryExecutorConfigFactory.fromJson(bigqueryQueryExecutorConfigJson)
+    } yield  bigqueryQueryExecutorConfig
+
+    val lifecycleListener : MahaServiceConfig.MahaConfigResult[ExecutionLifecycleListener] = for {
+      lifecycleListenerFactoryClass <- lifecycleListenerFactoryClassResult
+      lifecycleListenerFactoryConfig <- lifecycleListenerFactoryConfigResult
+      lifecycleListenerFactory <- getFactory[ExecutionLifecycleListenerFactory](lifecycleListenerFactoryClass, this.closer)
+      lifecycleListener <- lifecycleListenerFactory.fromJson(lifecycleListenerFactoryConfig)
+    } yield lifecycleListener
+
+    (bigqueryQueryExecutorConfig |@| lifecycleListener) {
+      (a, b) =>
+        new BigqueryQueryExecutor(a, b)
     }
   }
 

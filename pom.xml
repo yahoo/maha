@@ -67,10 +67,13 @@
         <twitter.chill.version>0.9.5</twitter.chill.version>
         <pg.embedded.version>0.13.1</pg.embedded.version>
         <postgres.jdbc.version>42.2.18</postgres.jdbc.version>
+        <bigquery.version>1.124.1</bigquery.version>
+        <scala.sql.formatter.version>1.0.1</scala.sql.formatter.version>
     </properties>
 
 
     <modules>
+        <module>bigquery</module>
         <module>par-request-2</module>
         <!--module>par-request</module-->
         <module>db</module>
@@ -259,6 +262,16 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.dataformat</groupId>
                 <artifactId>jackson-dataformat-smile</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-yaml</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-scala_${scala.major.version}</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
             <dependency>
@@ -506,6 +519,11 @@
                 <groupId>com.typesafe.akka</groupId>
                 <artifactId>akka-actor_${scala.major.version}</artifactId>
                 <version>${akka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.vertical-blank</groupId>
+                <artifactId>scala-sql-formatter_${scala.major.version}</artifactId>
+                <version>${scala.sql.formatter.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

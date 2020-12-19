@@ -4,7 +4,8 @@ package com.yahoo.maha.service.factory
 
 
 import cats.instances.uuid
-import com.yahoo.maha.core.{DruidEngine, OracleEngine, PrestoEngine}
+import com.yahoo.maha.core.{BigqueryEngine, DruidEngine, OracleEngine, PrestoEngine}
+import com.yahoo.maha.executor.bigquery.BigqueryQueryExecutor
 import com.yahoo.maha.executor.druid.DruidQueryExecutor
 import com.yahoo.maha.executor.oracle.OracleQueryExecutor
 import com.yahoo.maha.executor.presto.PrestoQueryExecutor
@@ -195,6 +196,35 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
     val generatorResult = factory.fromJson(json)
     assert(generatorResult.isFailure, generatorResult)
     assert(generatorResult.toString.contains("Failed to find presto dataSourceName unknowndatasource in dataSourceMap"))
+  }
+
+  test("Test Bigquery Query Executor Instantiation") {
+    val jsonString =
+      """
+        |{
+        |"bigqueryQueryExecutorConfigFactoryClassName": "com.yahoo.maha.service.factory.DefaultBigqueryQueryExecutorConfigFactory",
+        |"bigqueryQueryExecutorConfigJson": {
+        |  "gcpCredentialsFilePath": "/path/to/credentials/file",
+        |  "gcpProjectId": "testProjectId",
+        |  "enableProxy": false,
+        |  "retries": 5
+        |},
+        |"lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
+        |"lifecycleListenerFactoryConfig": [{"key": "value"}]
+        |}
+      """.stripMargin
+
+    val factoryResult = getFactory[QueryExecutoryFactory]("com.yahoo.maha.service.factory.BigqueryQueryExecutoryFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    val json = parse(jsonString)
+    val generatorResult = factory.fromJson(json)
+    assert(generatorResult.isSuccess, generatorResult)
+    assert(generatorResult.toList.head.isInstanceOf[BigqueryQueryExecutor])
+    generatorResult.foreach {
+      executor =>
+        assert(executor.engine == BigqueryEngine)
+    }
   }
 
 }

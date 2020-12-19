@@ -810,7 +810,7 @@ OuterGroupBy operation has to be applied only in the following cases
 
     val allSubQueryCandidates = bestDimCandidates.forall(_.isSubQueryCandidate)
 
-    val ogbSupportedEngines:Set[Engine] = Set(OracleEngine, HiveEngine, PrestoEngine, PostgresEngine)
+    val ogbSupportedEngines:Set[Engine] = Set(OracleEngine, HiveEngine, PrestoEngine, PostgresEngine, BigqueryEngine)
 
     val hasOuterGroupBy = (//nonKeyRequestedDimCols.isEmpty
       ((!isRequestedHigherDimLevelKey && !isHighestDimPkIDRequested)

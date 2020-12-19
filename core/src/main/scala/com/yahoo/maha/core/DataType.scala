@@ -312,6 +312,11 @@ case object DateType extends Logging {
   private[this] val ORACLE_HOUR_FORMAT = "hh"
   private[this] val HIVE_HOUR = "YYYYMMDDHH"
   private[this] val UTC_TIME_HOUR = "yyyyMMddHH"
+  private[this] val BIGQUERY_DATE_SHORT_FORMAT = "%F"
+  private[this] val BIGQUERY_DATE_TIME_STRING_FORMAT = "%c"
+  private[this] val BIGQUERY_DATE_FORMAT = "%Y-%m-%d"
+  private[this] val BIGQUERY_DATE_HOUR_FORMAT = "%Y-%m-%d %H"
+  private[this] val BIGQUERY_DATE_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
   private[this] val formatterMap: LoadingCache[String, DateTimeFormatter] = {
     val loader: CacheLoader[String, DateTimeFormatter] = new CacheLoader[String, DateTimeFormatter] {
       override def load(k: String): DateTimeFormatter = {
@@ -342,8 +347,27 @@ case object DateType extends Logging {
 
   def apply(format: String) : DateType = {
     require(format != null && format.nonEmpty, "DateType(format) : invalid argument : format cannot be null or empty")
-    val validFormats = Set(ORACLE_DATE_FORMAT, HIVE_DATE_FORMAT, DATE_FORMAT, DRUID_DATE_FORMAT, DRUID_HOUR_FORMAT, DRUID_MINUTE_FORMAT, UTC_TIME_FORMAT, HOUR_FORMAT, ORACLE_HOUR_FORMAT, HIVE_HOUR
-    ,HIVE_DATE_STRING_FORMAT, HIVE_DATE_HOUR_STRING_FORMAT,DRUID_DATE_HOUR_FORMAT,UTC_TIME_HOUR)
+    val validFormats = Set(
+      ORACLE_DATE_FORMAT,
+      HIVE_DATE_FORMAT,
+      DATE_FORMAT,
+      DRUID_DATE_FORMAT,
+      DRUID_HOUR_FORMAT,
+      DRUID_MINUTE_FORMAT,
+      UTC_TIME_FORMAT,
+      HOUR_FORMAT,
+      ORACLE_HOUR_FORMAT,
+      HIVE_HOUR,
+      HIVE_DATE_STRING_FORMAT,
+      HIVE_DATE_HOUR_STRING_FORMAT,
+      DRUID_DATE_HOUR_FORMAT,
+      UTC_TIME_HOUR,
+      BIGQUERY_DATE_SHORT_FORMAT,
+      BIGQUERY_DATE_TIME_STRING_FORMAT,
+      BIGQUERY_DATE_FORMAT,
+      BIGQUERY_DATE_HOUR_FORMAT,
+      BIGQUERY_DATE_TIME_FORMAT
+    )
     require(validFormats.contains(format), s"Invalid format for DateType($format)")
     new DateType(Option(format))
   }

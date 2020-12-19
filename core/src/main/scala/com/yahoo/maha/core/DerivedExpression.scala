@@ -1341,3 +1341,287 @@ object ThetaSketchSetOp extends Enumeration {
   type ThetaSketchSetOp = Value
   val INTERSECT, UNION, NOT = Value
 }
+
+sealed trait BigqueryExpression extends Expression[String] {
+  def render(insideDerived: Boolean) = insideDerived match {
+    case true if hasNumericOperation =>
+      s"($asString)"
+    case _ =>
+      asString
+  }
+}
+
+object BigqueryExpression {
+  type BigqueryExp = Expression[String]
+
+  trait BaseBigqueryExpression extends BigqueryExpression {
+    def *(that: BigqueryExp): BigqueryExp = {
+      val expression = if (that.hasNumericOperation) {
+        s"$asString * (${that.asString})"
+      } else {
+        s"$asString * ${that.asString}"
+      }
+      COL(expression, hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def /(that: BigqueryExp): BigqueryExp = {
+      val expression = if (that.hasNumericOperation) {
+        s"$asString / (${that.asString})"
+      } else {
+        s"$asString / ${that.asString}"
+      }
+      COL(expression, hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def ++(that: BigqueryExp): BigqueryExp = {
+      COL(s"$asString + ${that.asString}", hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def -(that: BigqueryExp): BigqueryExp = {
+      COL(s"$asString - ${that.asString}", hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def /-(that: BigqueryExp): BigqueryExp = {
+      val safeExpression = if (that.hasNumericOperation) {
+        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE $asString / (${that.asString}) END"
+      } else {
+        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE $asString / ${that.asString} END"
+      }
+      COL(safeExpression, hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def isUDF: Boolean = false
+  }
+
+  abstract class UDFBigqueryExpression(val udfRegistration: UDFRegistration)(implicit uDFRegistrationFactory: UDFRegistrationFactory) extends BaseBigqueryExpression {
+    override def isUDF: Boolean = true
+    require(uDFRegistrationFactory.defaultUDFStatements.contains(udfRegistration), s"UDFBigqueryExpression ${getClass} is not registered in the UDFRegistrationFactory")
+  }
+
+  case class COL(s: String, hasRollupExpression: Boolean = false, hasNumericOperation: Boolean = false) extends BaseBigqueryExpression {
+    def asString: String = s
+  }
+
+  case class SUM(s: BigqueryExp) extends BaseBigqueryExpression {
+    val hasRollupExpression = true
+    val hasNumericOperation = true
+    def asString: String = s"SUM(${s.asString})"
+  }
+
+  case class ROUND(s: BigqueryExp, format: Int) extends BaseBigqueryExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString: String = s"ROUND(${s.asString}, $format)"
+  }
+
+  case class MAX(s: BigqueryExp) extends BaseBigqueryExpression {
+    val hasRollupExpression = true
+    val hasNumericOperation = true
+    def asString: String = s"MAX(${s.asString})"
+  }
+
+  case class MIN(s: BigqueryExp) extends BaseBigqueryExpression {
+    val hasRollupExpression = true
+    val hasNumericOperation = true
+    def asString: String = s"MIN(${s.asString})"
+  }
+
+  case class TIMESTAMP_TO_FORMATTED_DATE(s: BigqueryExp, fmt: String) extends BaseBigqueryExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString: String = s"FORMAT_TIMESTAMP('$fmt', ${s.asString})"
+  }
+
+  case class FORMAT_DATE(s: BigqueryExp, fmt: String) extends BaseBigqueryExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString: String = s"FORMAT_DATE('$fmt', ${s.asString})"
+  }
+
+  case class NVL(s: BigqueryExp, default: String) extends BaseBigqueryExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString: String = s"COALESCE(${s.asString}, ${default.asString})"
+  }
+
+  case class TRUNC(s: BigqueryExp) extends BaseBigqueryExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString: String = s"TRUNC(${s.asString})"
+  }
+
+  object GET_INTERVAL_DATE {
+    val regex = """[dwmDWM]|[dD][aA][yY]|[yY][rR]""".r
+
+    def checkFormat(fmt: String): Unit = {
+      regex.findFirstIn(fmt) match {
+        case Some(f) =>
+        case _ => throw new IllegalArgumentException(s"Format for get_interval_date must be d|w|m|day|yr not $fmt")
+      }
+    }
+
+    def getIntervalDate(exp: String, fmt: String):  String = {
+      fmt.toLowerCase match {
+        case "d" =>
+          s"DATE_TRUNC($exp, DAY)"
+        case "w" =>
+          s"DATE_TRUNC($exp, WEEK)"
+        case "m" =>
+          s"DATE_TRUNC($exp, MONTH)"
+        case "day" =>
+          s"EXTRACT(DAY FROM $exp)"
+        case "yr" =>
+          s"EXTRACT(YEAR FROM $exp)"
+        case s => throw new IllegalArgumentException(s"Format for GET_INTERVAL_DATE must be d|w|m|day|yr not $fmt")
+      }
+    }
+  }
+
+  case class GET_INTERVAL_DATE(s: BigqueryExp, fmt: String) extends BaseBigqueryExpression {
+    GET_INTERVAL_DATE.checkFormat(fmt)
+
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString: String = GET_INTERVAL_DATE.getIntervalDate(s.asString, fmt)
+  }
+
+  case class DECODE_DIM(args: BigqueryExp*) extends BaseBigqueryExpression {
+    if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE_DIM( expression , search , result [, search , result]... [, default] )")
+    require(!args.exists(_.hasRollupExpression), s"DECODE_DIM cannot rely on expression with rollup ${args.mkString(", ")}")
+
+    def buildExp(): String = {
+      val exp = args(0).asString
+      val default = if (args.length % 2 == 0) {
+        s"ELSE ${args.last.asString} "
+      } else {
+        ""
+      }
+      var i = 1
+      val end = if (args.length % 2 == 0) {
+        args.length - 1
+      } else {
+        args.length
+      }
+
+      val builder = new StringBuilder
+      builder.append("CASE ")
+      while (i < end) {
+        val search = args(i).asString
+        val result = args(i+1).asString
+        builder.append(s"WHEN $exp = $search THEN $result ")
+        i += 2
+      }
+      builder.append(default)
+      builder.append("END")
+      builder.mkString
+    }
+
+    val caseExpression = buildExp()
+    val hasRollupExpression = false
+    val hasNumericOperation = args.exists(_.hasNumericOperation)
+    def asString: String = caseExpression
+  }
+
+  case class DECODE(args: BigqueryExp*) extends BaseBigqueryExpression {
+    if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE( expression , search , result [, search , result]... [, default] )")
+
+    def buildExp(): String = {
+      val exp = args(0).asString
+      val default = if (args.length % 2 == 0) {
+        s"ELSE ${args.last.asString} "
+      } else {
+        ""
+      }
+      var i = 1
+      val end = if (args.length % 2 == 0) {
+        args.length - 1
+      } else {
+        args.length
+      }
+
+      val builder = new StringBuilder
+      builder.append("CASE ")
+      while (i < end) {
+        val search = args(i).asString
+        val result = args(i+1).asString
+        builder.append(s"WHEN $exp = $search THEN $result ")
+        i += 2
+      }
+      builder.append(default)
+      builder.append("END")
+      builder.mkString
+    }
+
+    val caseExpression = buildExp()
+    val hasRollupExpression = true
+    val hasNumericOperation = args.exists(_.hasNumericOperation)
+    def asString: String = caseExpression
+  }
+
+  case class COMPARE_PERCENTAGE(arg1: BigqueryExp, arg2: BigqueryExp, percentage: Int, value: String, nextExp: BigqueryExpression) extends BaseBigqueryExpression {
+    val hasRollupExpression = false
+    val hasNumericOperation = false
+    def asString: String = {
+      val ELSE_END = if (nextExp.isInstanceOf[BigqueryExpression.COL]) ("ELSE", "END") else ("", "")
+
+      s"CASE WHEN ${arg1.asString} < ${percentage/100.0} * ${arg2.asString} THEN '${value}' ${ELSE_END._1} ${nextExp.render(false)} ${ELSE_END._2}"
+        .replaceAll(" CASE", "")
+    }
+  }
+
+  case class COALESCE(s: BigqueryExp, default: BigqueryExp) extends BaseBigqueryExpression {
+    def hasRollupExpression = s.hasRollupExpression || default.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation || default.hasNumericOperation
+    def asString: String = s"COALESCE(${s.asString}, ${default.asString})"
+  }
+
+  implicit def from(s: String): BigqueryExpression = {
+    COL(s, false)
+  }
+
+  implicit def fromExpression(e: BigqueryExp): BigqueryExpression = {
+    e.asInstanceOf[BigqueryExpression]
+  }
+
+  implicit class StringHelper(s: String) {
+    def *(s2: String): BigqueryExpression = {
+      COL(s, false) * COL(s2, false)
+    }
+    def ++(s2: String): BigqueryExpression = {
+      COL(s, false) ++ COL(s2, false)
+    }
+    def -(s2: String): BigqueryExpression = {
+      COL(s, false) - COL(s2, false)
+    }
+    def /(s2: String): BigqueryExpression = {
+      COL(s, false) / COL(s2, false)
+    }
+  }
+}
+
+case class BigqueryDerivedExpression (columnContext: ColumnContext, expression: BigqueryExpression) extends DerivedExpression[String] with WithBigqueryEngine {
+  type ConcreteType = BigqueryDerivedExpression
+  def copyWith(columnContext: ColumnContext): BigqueryDerivedExpression = {
+    this.copy(columnContext = columnContext)
+  }
+}
+
+object BigqueryDerivedExpression {
+  import BigqueryExpression.BigqueryExp
+
+  def apply(expression: BigqueryExpression)(implicit cc: ColumnContext): BigqueryDerivedExpression = {
+    BigqueryDerivedExpression(cc, expression)
+  }
+
+  implicit def fromBigqueryExpression(expression: BigqueryExpression)(implicit  cc: ColumnContext): BigqueryDerivedExpression = {
+    apply(expression)
+  }
+
+  implicit def fromExpression(expression: BigqueryExp)(implicit  cc: ColumnContext): BigqueryDerivedExpression = {
+    apply(expression)
+  }
+
+  implicit def fromString(s: String)(implicit  cc: ColumnContext): BigqueryDerivedExpression = {
+    apply(s)
+  }
+}

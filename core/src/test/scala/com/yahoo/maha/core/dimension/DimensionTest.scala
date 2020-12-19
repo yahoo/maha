@@ -136,6 +136,31 @@ class DimensionTest extends AnyFunSuite with Matchers {
     }
   }
 
+  test("Copy a Bigquery dimension without resetAliasIfNotPresent") {
+    val dim : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc =>
+        import BigqueryExpression._
+
+        Dimension.newDimension("dim1", BigqueryEngine, LevelOne, Set(AdvertiserSchema),
+          Set(
+            DimCol("stats_date", DateType("YYYY-MM-dd"), annotations = Set(PrimaryKey))
+            , DimCol("decodable", IntType(), annotations = Set(EscapingRequired))
+            , DimCol("discard", IntType())
+            , BigqueryDerDimCol("clicks", StrType(), DECODE_DIM("{decodable}", "7", "6"))
+            , BigqueryPartDimCol("test_col", IntType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        dim.createSubset("dim1_subset", "dim1", Set("discard"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = false)
+      }
+    }
+  }
+
   test("Copy a Presto dimension without resetAliasIfNotPresent") {
     val dim : DimensionBuilder = {
       ColumnContext.withColumnContext { implicit cc =>
@@ -276,6 +301,31 @@ class DimensionTest extends AnyFunSuite with Matchers {
             , DimCol("discard", IntType())
             , PostgresDerDimCol("clicks", StrType(), DECODE_DIM("{decodable}", "7", "6"))
             , PostgresPartDimCol("test_col", IntType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        dim.createSubset("dim1_subset", "dim1", Set("discard"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = true)
+      }
+    }
+  }
+
+  test("Copy a Bigquery dimension with resetAliasIfNotPresent") {
+    val dim : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc =>
+        import BigqueryExpression._
+
+        Dimension.newDimension("dim1", BigqueryEngine, LevelOne, Set(AdvertiserSchema),
+          Set(
+            DimCol("stats_date", DateType("YYYY-MM-dd"), annotations = Set(PrimaryKey))
+            , DimCol("decodable", IntType(), annotations = Set(EscapingRequired))
+            , DimCol("discard", IntType())
+            , BigqueryDerDimCol("clicks", StrType(), DECODE_DIM("{decodable}", "7", "6"))
+            , BigqueryPartDimCol("test_col", IntType())
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
         )

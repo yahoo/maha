@@ -289,4 +289,82 @@ class ExpressionTest extends AnyFunSuite with Matchers {
     val exp : DruidExp = (("{one}" * "{two}") ++ "{three}") /- "{four}"
     objectMapper.writeValueAsString(exp.render(false)("complex_math",Map.empty)) shouldBe """{"type":"arithmetic","name":"complex_math","fn":"/","fields":[{"type":"arithmetic","name":"_placeHolder_3","fn":"+","fields":[{"type":"arithmetic","name":"_placeHolder_2","fn":"*","fields":[{"type":"fieldAccess","name":"one","fieldName":"one"},{"type":"fieldAccess","name":"two","fieldName":"two"}],"ordering":null},{"type":"fieldAccess","name":"three","fieldName":"three"}],"ordering":null},{"type":"fieldAccess","name":"four","fieldName":"four"}],"ordering":null}"""
   }
+
+  test("generate Bigquery expression with +") {
+    import BigqueryExpression._
+    val exp : BigqueryExp = "{clicks}" ++ "1"
+    exp.asString should equal ("{clicks} + 1")
+  }
+
+  test("generate Bigquery expression with -") {
+    import BigqueryExpression._
+    val exp : BigqueryExp = "{clicks}" - "1"
+    exp.asString should equal("{clicks} - 1")
+  }
+
+  test("generate Bigquery expression with *") {
+    import BigqueryExpression._
+    val exp : BigqueryExp = "{clicks}" * "1"
+    exp.asString should equal("{clicks} * 1")
+  }
+
+  test("generate Bigquery expression with /") {
+    import BigqueryExpression._
+    val exp : BigqueryExp = "{clicks}" / "1"
+    exp.asString should equal("{clicks} / 1")
+  }
+
+  test("generate Bigquery expression with /-") {
+    import BigqueryExpression._
+    val exp : BigqueryExp = "{clicks}" /- "{impressions}"
+    exp.asString should equal("CASE WHEN {impressions} = 0 THEN 0.0 ELSE {clicks} / {impressions} END")
+  }
+
+  test("generate Bigquery expression with SUM") {
+    import BigqueryExpression._
+    val exp : BigqueryExp = SUM(COL("{avg_pos}") * "{impressions}") /- SUM("{impressions}")
+    exp.asString should equal("CASE WHEN SUM({impressions}) = 0 THEN 0.0 ELSE SUM({avg_pos} * {impressions}) / (SUM({impressions})) END")
+  }
+
+  test("generate Bigquery expression with nested derivation") {
+    import BigqueryExpression._
+    val exp0 : BigqueryExp = "{clicks}" ++ "1"
+    val exp1 : BigqueryExp = "{impressions}" /- exp0
+    exp1.asString should equal("CASE WHEN {clicks} + 1 = 0 THEN 0.0 ELSE {impressions} / ({clicks} + 1) END")
+    exp1.render(true) should equal("(CASE WHEN {clicks} + 1 = 0 THEN 0.0 ELSE {impressions} / ({clicks} + 1) END)")
+  }
+
+  test("generate Bigquery expression with MAX") {
+    import BigqueryExpression._
+    val exp : BigqueryExp = MAX("{max_bid}")
+    exp.asString should equal("MAX({max_bid})")
+  }
+
+  test("generate Bigquery expression with TIMESTAMP_TO_FORMATTED_DATE") {
+    import BigqueryExpression._
+    val exp: BigqueryExp = TIMESTAMP_TO_FORMATTED_DATE("{created_date}","YYYY-MM-dd")
+    exp.asString should equal("FORMAT_TIMESTAMP('YYYY-MM-dd', {created_date})")
+  }
+
+  test("generate Bigquery expression with GET_INTERVAL_DATE") {
+    import BigqueryExpression._
+    val exp1: BigqueryExp = GET_INTERVAL_DATE("{stats_date}", "d")
+    exp1.asString should equal("DATE_TRUNC({stats_date}, DAY)")
+    val exp2: BigqueryExp = GET_INTERVAL_DATE("{stats_date}", "w")
+    exp2.asString should equal("DATE_TRUNC({stats_date}, WEEK)")
+    val exp3: BigqueryExp = GET_INTERVAL_DATE("{stats_date}", "m")
+    exp3.asString should equal("DATE_TRUNC({stats_date}, MONTH)")
+  }
+
+  test("generate Bigquery expression with DECODE") {
+    import BigqueryExpression._
+    val exp: BigqueryExp = DECODE("{engagement_type}", "1", "{engagement_count}", "0")
+    exp.asString should equal("CASE WHEN {engagement_type} = 1 THEN {engagement_count} ELSE 0 END")
+  }
+
+  test("generate Bigquery expression with COALESCE") {
+    import BigqueryExpression._
+    val exp: BigqueryExp = COALESCE("{conversions}", "0")
+    exp.asString should equal("COALESCE({conversions}, 0)")
+  }
 }

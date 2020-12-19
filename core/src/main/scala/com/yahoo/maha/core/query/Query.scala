@@ -37,9 +37,9 @@ case class PostgresQuery(queryContext: QueryContext,
                        queryGenVersion: Option[Version] = None) extends Query with WithPostgresEngine
 
 case class HiveQuery(queryContext: QueryContext,
-                     asString: String, 
+                     asString: String,
                      udfStatements: Option[Set[UDFRegistration]],
-                     parameters: QueryParameters, 
+                     parameters: QueryParameters,
                      columnHeaders: IndexedSeq[String],
                      aliasColumnMap: Map[String, Column],
                      additionalColumns: IndexedSeq[String],
@@ -53,6 +53,15 @@ case class PrestoQuery(queryContext: QueryContext,
                      aliasColumnMap: Map[String, Column],
                      additionalColumns: IndexedSeq[String],
                      queryGenVersion: Option[Version] = None) extends Query with WithPrestoEngine
+
+case class BigqueryQuery(queryContext: QueryContext,
+                         asString: String,
+                         udfStatements: Option[Set[UDFRegistration]],
+                         parameters: QueryParameters,
+                         columnHeaders: IndexedSeq[String],
+                         aliasColumnMap: Map[String, Column],
+                         additionalColumns: IndexedSeq[String],
+                         queryGenVersion: Option[Version] = None) extends Query with WithBigqueryEngine
 
 object NoopQuery extends Query {
   override def queryContext: QueryContext = throw new UnsupportedOperationException("NoopQuery")

@@ -18,3 +18,4 @@ mvn -q deploy -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Dargumen
 mvn -q deploy -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Darguments="-DskipTests -Dscoverage.skip=true" --projects com.yahoo.maha:maha-request-log --settings travis/settings-maha-request-log.xml
 
 mvn -q deploy -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Darguments="-DskipTests -Dscoverage.skip=true" --projects com.yahoo.maha:maha-postgres-executor --settings travis/settings-maha-postgres-executor.xml
+mvn -q deploy -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Darguments="-DskipTests -Dscoverage.skip=true" --projects com.yahoo.maha:maha-bigquery-executor --settings travis/settings-maha-bigquery-executor.xml

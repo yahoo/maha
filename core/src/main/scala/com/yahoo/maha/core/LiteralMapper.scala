@@ -181,3 +181,28 @@ class DruidLiteralMapper extends LiteralMapper {
     }
   }
 }
+
+class BigqueryLiteralMapper extends SqlLiteralMapper {
+  def getDateFormatFromGrain(grain: Grain): String = {
+    grain match {
+      case DailyGrain => "YYYY-MM-DD"
+      case HourlyGrain => "YYYY-MM-DD-HH"
+      case _ => "YYYY-MM-DD"
+    }
+  }
+
+  def toLiteral(column: Column, value: String, grainOption: Option[Grain] = None): String = {
+    val grain = grainOption.getOrElse(DailyGrain)
+    val escapedValue = getEscapedSqlString(value)
+    column.dataType match {
+      case StrType(_, _, _) =>
+        s"'$escapedValue'"
+      case DateType(fmt) =>
+        s"DATE('$escapedValue')"
+      case TimestampType(fmt) =>
+        s"TIMESTAMP('$escapedValue')"
+      case IntType(_, _, _, _, _) => BigInt(value).toString
+      case DecType(_, _, _, _, _, _) => BigDecimal(value).toString
+    }
+  }
+}

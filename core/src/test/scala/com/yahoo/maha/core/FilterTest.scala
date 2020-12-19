@@ -25,6 +25,7 @@ class FilterTest extends AnyFunSuite with Matchers {
   val oracleLiteralMapper = new OracleLiteralMapper
   val postgresLiteralMapper = new PostgresLiteralMapper
   val hiveLiteralMapper = new HiveLiteralMapper
+  val bigqueryLiteralMapper = new BigqueryLiteralMapper
 
   def render[T, O](renderer: FilterRenderer[T, O], filter: T, literalMapper: SqlLiteralMapper, engine: Engine, column: Column, aliasToRenderedSqlMap: Map[String, (String, String)]) : O = {
     renderer.render(aliasToRenderedSqlMap, filter, literalMapper, column, engine, None)
@@ -150,6 +151,22 @@ class FilterTest extends AnyFunSuite with Matchers {
     hourlyResult shouldBe "timestamp_date >= TO_UTC_TIMESTAMP_TZ('2017-12-31T17:10:50.000Z') AND timestamp_date <= TO_UTC_TIMESTAMP_TZ('2018-01-06T02:20:30.000Z')"
   }
 
+  test("successfully render DateTimeBetweenFilter with daily and hourly grain and date type on Bigquery engine") {
+    val filter = DateTimeBetweenFilter(dateCol.name, "2018-01-01T01:10:50", "2018-01-06T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    val dailyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, dateCol, DailyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    dailyResult shouldBe "stats_date >= DATE('2018-01-01') AND stats_date <= DATE('2018-01-06')"
+    val hourlyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, dateCol, HourlyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    hourlyResult shouldBe "stats_date >= DATE('2018-01-01') AND stats_date <= DATE('2018-01-06')"
+  }
+
+  test("successfully render DateTimeBetweenFilter with daily and hourly grain and timestamp type on Bigquery engine") {
+    val filter = DateTimeBetweenFilter(timestampCol.name, "2018-01-01T01:10:50", "2018-01-06T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    val dailyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, timestampCol, DailyGrain, Map("timestamp_date" -> ("timestamp_date", "timestamp_date"))).filter
+    dailyResult shouldBe "timestamp_date >= TIMESTAMP('2018-01-01T01:10:50.000') AND timestamp_date <= TIMESTAMP('2018-01-06T10:20:30.000')"
+    val hourlyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, timestampCol, HourlyGrain, Map("timestamp_date" -> ("timestamp_date", "timestamp_date"))).filter
+    hourlyResult shouldBe "timestamp_date >= TIMESTAMP('2018-01-01T01:10:50.000') AND timestamp_date <= TIMESTAMP('2018-01-06T10:20:30.000')"
+  }
+
   test("Filter Types in Druid should return valid MaxDate") {
     val filter = BetweenFilter("stats_date", "2018-01-01", "2018-01-07")
     val eqFilter = EqualityFilter("stats_date", "2018-01-01")
@@ -264,6 +281,53 @@ class FilterTest extends AnyFunSuite with Matchers {
   test("IsNotNullFilter should render correct string for Hive") {
     val filter = IsNotNullFilter("field1")
     render(SqlIsNotNullFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 IS NOT NULL")
+  }
+
+  test("InFilter should render correct string for Bigquery") {
+    val filter = InFilter("field1", List("abc", "def", "ghi"))
+    render(SqlInFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 IN ('abc','def','ghi')")
+    val insensitiveFilter = InFilter("insensitive", List("abc", "def", "ghi"))
+    render(SqlInFilterRenderer, insensitiveFilter, bigqueryLiteralMapper, BigqueryEngine, insensitiveCol,  Map("insensitive" -> ("insensitive", "insensitive"))) shouldBe DefaultResult("lower(insensitive) IN (lower('abc'),lower('def'),lower('ghi'))")
+  }
+
+  test("NotInFilter should render correct string for Bigquery") {
+    val filter = NotInFilter("field1", List("abc", "def", "ghi"))
+    render(SqlNotInFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 NOT IN ('abc','def','ghi')")
+  }
+
+  test("BetweenFilter should render correct string for Bigquery") {
+    val filter = BetweenFilter("field1", "abc", "def")
+    render(SqlBetweenFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 >= 'abc' AND field1 <= 'def'")
+  }
+
+  test("EqualityFilter should render correct string for Bigquery") {
+    val filter = EqualityFilter("field1", "ghi")
+    render(SqlEqualityFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 = \'ghi\'")
+  }
+
+  test("LikeFilter should render correct string for Bigquery") {
+    val filter = LikeFilter("field1", "ghi")
+    render(SqlLikeFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 LIKE \'%ghi%\'")
+  }
+
+  test("NotLikeFilter should render correct string for Bigquery") {
+    val filter = NotLikeFilter("field1", "ghi")
+    render(SqlNotLikeFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 NOT LIKE \'%ghi%\'")
+  }
+
+  test("NotEqualToFilter should render correct string for Bigquery") {
+    val filter = NotEqualToFilter("field1", "ghi")
+    render(SqlNotEqualToFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 <> \'ghi\'")
+  }
+
+  test("IsNullFilter should render correct string for Bigquery") {
+    val filter = IsNullFilter("field1")
+    render(SqlIsNullFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 IS NULL")
+  }
+
+  test("IsNotNullFilter should render correct string for Bigquery") {
+    val filter = IsNotNullFilter("field1")
+    render(SqlIsNotNullFilterRenderer, filter, bigqueryLiteralMapper, BigqueryEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 IS NOT NULL")
   }
 
   test("AndFilter should render combined filters with AND") {
