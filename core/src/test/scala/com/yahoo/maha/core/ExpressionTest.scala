@@ -342,8 +342,14 @@ class ExpressionTest extends AnyFunSuite with Matchers {
 
   test("generate Bigquery expression with TIMESTAMP_TO_FORMATTED_DATE") {
     import BigqueryExpression._
-    val exp: BigqueryExp = TIMESTAMP_TO_FORMATTED_DATE("{created_date}","YYYY-MM-dd")
+    val exp: BigqueryExp = TIMESTAMP_TO_FORMATTED_DATE("{created_date}", "YYYY-MM-dd")
     exp.asString should equal("FORMAT_TIMESTAMP('YYYY-MM-dd', {created_date})")
+  }
+
+  test("generate Bigquery expression with FORMAT_DATE") {
+    import BigqueryExpression._
+    val exp: BigqueryExp = FORMAT_DATE("{created_date}", "YYYY-MM-dd")
+    exp.asString should equal("FORMAT_DATE('YYYY-MM-dd', {created_date})")
   }
 
   test("generate Bigquery expression with GET_INTERVAL_DATE") {

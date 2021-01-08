@@ -6,6 +6,7 @@ import com.google.cloud.bigquery.{BigQuery, BigQueryError, Field, FieldList, Fie
 import com.google.cloud.bigquery.FieldValue.Attribute
 import com.google.common.collect.ImmutableList
 import com.google.cloud.PageImpl
+import com.google.common.io.Resources
 import org.json4s.JObject
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
@@ -276,6 +277,35 @@ class BigqueryQueryExecutorTest
         Set(EqualityFilter("Source", "2", isForceFilter = true)),
         getMaxDaysWindow, getMaxDaysLookBack
       )
+  }
+
+  test("Successfully create a Bigquery Query Executor instance with Proxy enabled") {
+    val gcpCredentials = Resources.getResource("gcpCredentials.json").getPath
+    val proxyCredentials = Resources.getResource("proxyCredentials.yml").getPath
+    val testBigqueryQueryExecutorConfig = new BigqueryQueryExecutorConfig(
+      gcpCredentialsFilePath = gcpCredentials,
+      gcpProjectId = "testProjectId",
+      enableProxy = true,
+      proxyCredentialsFilePath = Some(proxyCredentials),
+      proxyHost = Some("test.proxy.host.com"),
+      proxyPort = Some("8080"),
+      retries = 2
+    )
+    new BigqueryQueryExecutor(testBigqueryQueryExecutorConfig, new NoopExecutionLifecycleListener)
+  }
+
+  test("Successfully create a Bigquery Query Executor instance with Proxy disabled") {
+    val gcpCredentials = Resources.getResource("gcpCredentials.json").getPath
+    val testBigqueryQueryExecutorConfig = new BigqueryQueryExecutorConfig(
+      gcpCredentialsFilePath = gcpCredentials,
+      gcpProjectId = "testProjectId",
+      enableProxy = false,
+      proxyCredentialsFilePath = None,
+      proxyHost = None,
+      proxyPort = None,
+      retries = 2
+    )
+    new BigqueryQueryExecutor(testBigqueryQueryExecutorConfig, new NoopExecutionLifecycleListener)
   }
 
   def validMockTableResultData(): TableResult = {

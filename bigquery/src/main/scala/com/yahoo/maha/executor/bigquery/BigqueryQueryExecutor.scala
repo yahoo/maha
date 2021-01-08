@@ -23,7 +23,7 @@ import java.util.UUID
 import scala.util.Try
 
 private case class ProxyCredentials(
-  @JsonProperty("proxy_user") username: String,
+  @JsonProperty("proxy_user") userName: String,
   @JsonProperty("proxy_pass") password: String
 )
 
@@ -49,17 +49,13 @@ case class BigqueryQueryExecutorConfig(
   }
 
   def buildBigqueryClient(): BigQuery = {
-    val credentials = ServiceAccountCredentials.fromStream(new FileInputStream(gcpCredentialsFilePath))
-
-    val bigqueryClient: BigQuery = BigQueryOptions
+    BigQueryOptions
       .newBuilder()
-      .setCredentials(credentials)
+      .setCredentials(ServiceAccountCredentials.fromStream(new FileInputStream(gcpCredentialsFilePath)))
       .setProjectId(gcpProjectId)
       .setRetrySettings(ServiceOptions.getDefaultRetrySettings().toBuilder().setMaxAttempts(retries).build())
       .build()
       .getService
-
-    bigqueryClient
   }
 
   def configureProxy(): Unit = {
@@ -74,7 +70,7 @@ case class BigqueryQueryExecutorConfig(
 
       Authenticator.setDefault(new Authenticator() {
         override protected def getPasswordAuthentication =
-          new PasswordAuthentication(proxyCredentials.username, proxyCredentials.password.toCharArray)
+          new PasswordAuthentication(proxyCredentials.userName, proxyCredentials.password.toCharArray)
       })
     } else {
       info("Not using proxy for BigQuery Query Execution")
@@ -153,17 +149,17 @@ class BigqueryQueryExecutor(
             val resultRow = queryRowList.newRow
             for ((alias, column) <- aliasColumnMap) {
               val index = resultColumns.getIndex(alias)
-              val result = row.get(index)
+              val columnValue = row.get(index)
               val columnAlias = queryColumns(index)
               val processedResult = column.dataType match {
                 case DateType(_) | TimestampType(_) =>
-                  result.getStringValue
+                  columnValue.getStringValue
                 case IntType(_, _, _, _, _) =>
-                  result.getNumericValue
+                  columnValue.getNumericValue
                 case DecType(_, _, _, _, _, _) =>
-                  result.getDoubleValue
+                  columnValue.getDoubleValue
                 case StrType(_, _, _) =>
-                  result.getStringValue
+                  columnValue.getStringValue
                 case any => throw new UnsupportedOperationException(s"Unhandled data type for column value extraction : $any")
               }
               resultRow.addValue(columnAlias, processedResult)

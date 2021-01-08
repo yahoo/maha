@@ -312,8 +312,8 @@ case object DateType extends Logging {
   private[this] val ORACLE_HOUR_FORMAT = "hh"
   private[this] val HIVE_HOUR = "YYYYMMDDHH"
   private[this] val UTC_TIME_HOUR = "yyyyMMddHH"
-  private[this] val BIGQUERY_DATE_SHORT_FORMAT = "%F"
-  private[this] val BIGQUERY_DATE_TIME_STRING_FORMAT = "%c"
+  private[this] val BIGQUERY_DATE_SHORT_FORMAT = "%F" // short for %Y-%m-%d (e.g. 2020-08-20)
+  private[this] val BIGQUERY_DATE_TIME_STRING_FORMAT = "%c" // short for %Y-%m-%d %H:%M:%S (e.g. 2020-08-20 18:30:00)
   private[this] val BIGQUERY_DATE_FORMAT = "%Y-%m-%d"
   private[this] val BIGQUERY_DATE_HOUR_FORMAT = "%Y-%m-%d %H"
   private[this] val BIGQUERY_DATE_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"

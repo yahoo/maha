@@ -1441,7 +1441,7 @@ object BigqueryExpression {
   case class NVL(s: BigqueryExp, default: String) extends BaseBigqueryExpression {
     def hasRollupExpression = s.hasRollupExpression
     def hasNumericOperation = s.hasNumericOperation
-    def asString: String = s"COALESCE(${s.asString}, ${default.asString})"
+    def asString: String = s"IFNULL(${s.asString}, ${default.asString})"
   }
 
   case class TRUNC(s: BigqueryExp) extends BaseBigqueryExpression {

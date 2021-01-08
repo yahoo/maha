@@ -52,6 +52,18 @@ class DerivedExpressionTest extends AnyFunSuite with Matchers {
     }
   }
 
+  test("successfully derive dependent columns from BigqueryShardingExpression") {
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+      BigqueryPartDimCol("shard", StrType(), annotations = Set())
+
+      val col = BigqueryShardingExpression("{shard} = PMOD({advertiser_id}, 31)")
+      col.expression.sourceColumns.contains("shard") should equal(true)
+      col.expression.sourceColumns.contains("advertiser_id") should equal(true)
+      col.expression.render(col.expression.toString) should equal("shard = PMOD(advertiser_id, 31)")
+    }
+  }
+
   test("successfully derive dependent columns from OracleDerivedExpression") {
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>

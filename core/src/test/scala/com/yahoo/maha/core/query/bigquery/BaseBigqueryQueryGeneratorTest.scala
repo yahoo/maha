@@ -497,7 +497,7 @@ trait BaseBigqueryQueryGeneratorTest
           , FactCol("CTR", DecType(), BigqueryCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("weighted_position", DecType(0, "0.0"))
           , BigqueryDerFactCol("Engagement Rate", DecType(), "100" * TEST_MATH_UDF("{engagement_count}", "{impressions}"), rollupExpression = NoopRollup)
-          , BigqueryDerFactCol("Paid Engagement Rate", DecType(), "100" * TEST_MATH_UDAF("{engagement_count}", "0", "0", "{clicks}", "{impressions}"), rollupExpression = NoopRollup)
+          , BigqueryDerFactCol("Engagement Rate 2", DecType(), "100" * TEST_MATH_JS_UDF("{engagement_count}", "{impressions}"), rollupExpression = NoopRollup)
           , BigqueryDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}")
           , BigqueryDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100")
           , BigqueryDerFactCol("N Spend", DecType(), DECODE("{stats_source}", "1", "{spend}", "0.0"))
@@ -533,7 +533,7 @@ trait BaseBigqueryQueryGeneratorTest
           PublicFactCol("avg_pos", "Average Position", Set.empty),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
           PublicFactCol("Engagement Rate", "Engagement Rate", InBetweenEquality),
-          PublicFactCol("Paid Engagement Rate", "Paid Engagement Rate", InBetweenEquality),
+          PublicFactCol("Engagement Rate 2", "Engagement Rate 2", InBetweenEquality),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality),
@@ -625,19 +625,15 @@ trait BaseBigqueryQueryGeneratorTest
   }
 
   case object TestDateUDFRegistration extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION dateUDF as 'com.yahoo.maha.query.bigquery.udf.TestDateUDF';"
-  }
-
-  case object TestDecodeUDFRegistration extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION decodeUDF as 'com.yahoo.maha.query.bigquery.udf.TestDecodeUDF';"
+    val statement: String = "CREATE TEMPORARY FUNCTION dateUDF(d DATE, f STRING) AS (FORMAT_DATE(f, d));"
   }
 
   case object TestMathUDFRegistration extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION mathUDF as 'com.yahoo.maha.query.bigquery.udf.TestMathUDF';"
+    val statement: String = "CREATE TEMPORARY FUNCTION mathUDF(x INT64, y INT64) AS (x / y);"
   }
 
-  case object TestMathUDAFRegistration extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION mathUDAF as 'com.yahoo.maha.query.bigquery.udf.TestMathUDAF';"
+  case object TestMathJsUDFRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION mathJsUDF(x INT64, y INT64) RETURNS INT64 LANGUAGE js AS 'return x / y';"
   }
 
   object UDFBigqueryExpression {
@@ -646,30 +642,27 @@ trait BaseBigqueryQueryGeneratorTest
     implicit val uDFRegistrationFactory = DefaultUDFRegistrationFactory
 
     uDFRegistrationFactory.register(TestDateUDFRegistration)
-    uDFRegistrationFactory.register(TestDecodeUDFRegistration)
     uDFRegistrationFactory.register(TestMathUDFRegistration)
-    uDFRegistrationFactory.register(TestMathUDAFRegistration)
+    uDFRegistrationFactory.register(TestMathJsUDFRegistration)
 
     case class TEST_DATE_UDF(s: BigqueryExp, fmt: String) extends UDFBigqueryExpression(TestDateUDFRegistration) {
       def hasRollupExpression = s.hasRollupExpression
-
       def hasNumericOperation = s.hasNumericOperation
-
       def asString: String = s"dateUDF(${s.asString}, '$fmt')"
     }
 
-    case class TEST_MATH_UDF(args: BigqueryExp*) extends UDFBigqueryExpression(TestDecodeUDFRegistration) {
+    case class TEST_MATH_UDF(args: BigqueryExp*) extends UDFBigqueryExpression(TestMathUDFRegistration) {
       val hasRollupExpression = args.exists(_.hasRollupExpression)
       val hasNumericOperation = args.exists(_.hasNumericOperation)
       val argStrs = args.map(_.asString).mkString(", ")
       def asString: String = s"mathUDF($argStrs)"
     }
 
-    case class TEST_MATH_UDAF(args: BigqueryExp*) extends UDFBigqueryExpression(TestDecodeUDFRegistration) {
+    case class TEST_MATH_JS_UDF(args: BigqueryExp*) extends UDFBigqueryExpression(TestMathJsUDFRegistration) {
       val hasRollupExpression = args.exists(_.hasRollupExpression)
       val hasNumericOperation = args.exists(_.hasNumericOperation)
       val argStrs = args.map(_.asString).mkString(", ")
-      def asString: String = s"mathUDAF($argStrs)"
+      def asString: String = s"mathJsUDF($argStrs)"
     }
   }
 }

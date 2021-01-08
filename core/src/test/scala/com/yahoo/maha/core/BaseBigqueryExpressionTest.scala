@@ -7,10 +7,7 @@ import com.yahoo.maha.core.BigqueryExpression.{BigqueryExp, UDFBigqueryExpressio
 
 object TestBigqueryUDFRegistrationFactory extends UDFRegistrationFactory {
   register(TestUDF)
-  register(DECODE_REG)
   register(GET_A_BY_B_REG)
-  register(GET_A_BY_B_PLUS_C_REG)
-  register(GET_CONDITIONAL_A_BY_B_REG)
   register(GET_UTC_TIME_FROM_EPOCH_REG)
 }
 
@@ -18,7 +15,7 @@ object BaseBigqueryExpressionTest {
   implicit val uDFRegistrationFactory = TestBigqueryUDFRegistrationFactory
 
   case object TestUDF extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION doSomething as 'com.yahoo.maha.test.udf.TestUDF';"
+    val statement: String = "CREATE TEMPORARY FUNCTION doSomething() AS ('Test SQL UDF');"
   }
 
   case class DO_SOMETHING(args: BigqueryExp*) extends UDFBigqueryExpression(TestUDF)(uDFRegistrationFactory) {
@@ -33,7 +30,7 @@ object BaseBigqueryExpressionTest {
   }
 
   case object FACT_BIGQUERY_EXPRESSION_REG extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION fact_bigquery_expression as 'com.yahoo.maha.test.udf.TestUDF';"
+    val statement: String = "CREATE TEMPORARY FUNCTION fact_bigquery_expression(a INT64, b INT64, c INT64) AS (a + b + c);"
   }
 
   case class FACT_BIGQUERY_EXPRESSION(args: BigqueryExp*) extends UDFBigqueryExpression(FACT_BIGQUERY_EXPRESSION_REG)(uDFRegistrationFactory) {
@@ -48,7 +45,7 @@ object BaseBigqueryExpressionTest {
   }
 
   case object DIM_BIGQUERY_EXPRESSION_REG extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION dim_bigquery_expression as 'com.yahoo.maha.test.udf.TestUDF';"
+    val statement: String = "CREATE TEMPORARY FUNCTION dim_bigquery_expression(a STRING, b STRING) AS (CONCAT(a, b));"
   }
 
   case class DIM_BIGQUERY_EXPRESSION(args: BigqueryExp*) extends UDFBigqueryExpression(DIM_BIGQUERY_EXPRESSION_REG)(uDFRegistrationFactory) {
@@ -62,12 +59,8 @@ object BaseBigqueryExpressionTest {
     def asString: String = s"dim_bigquery_expression($argStrs)"
   }
 
-  case object DECODE_REG extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION decodeUDF as 'com.yahoo.maha.test.udf.TestUDF';"
-  }
-
   case object GET_A_BY_B_REG extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getAbyB as 'com.yahoo.maha.test.udf.TestUDF';"
+    val statement: String = "CREATE TEMPORARY FUNCTION getAbyB(a INT64, b INT64) AS (a / b);"
   }
 
   case class GET_A_BY_B(args: BigqueryExp*) extends UDFBigqueryExpression(GET_A_BY_B_REG)(uDFRegistrationFactory) {
@@ -81,38 +74,8 @@ object BaseBigqueryExpressionTest {
     def asString: String = s"getAbyB($argStrs)"
   }
 
-  case object GET_A_BY_B_PLUS_C_REG extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getAbyBplusC as 'com.yahoo.maha.test.udf.TestUDF';"
-  }
-
-  case class GET_A_BY_B_PLUS_C(args: BigqueryExp*) extends UDFBigqueryExpression(GET_A_BY_B_PLUS_C_REG)(uDFRegistrationFactory) {
-    val hasRollupExpression = true
-    val hasNumericOperation = true
-    val argStrs = args.map {
-      arg=>
-        arg.render(false)
-    }.mkString(", ")
-
-    def asString: String = s"getAbyBplusC($argStrs)"
-  }
-
-  case object GET_CONDITIONAL_A_BY_B_REG extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getConditionalAbyB as 'com.yahoo.maha.test.udf.TestUDF';"
-  }
-
-  case class GET_CONDITIONAL_A_BY_B(args: BigqueryExp*) extends UDFBigqueryExpression(GET_CONDITIONAL_A_BY_B_REG)(uDFRegistrationFactory) {
-    val hasRollupExpression = true
-    val hasNumericOperation = true
-    val argStrs = args.map {
-      arg=>
-        arg.render(false)
-    }.mkString(", ")
-
-    def asString: String = s"getConditionalAbyB($argStrs)"
-  }
-
   case object GET_UTC_TIME_FROM_EPOCH_REG extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getDateTimeFromEpoch as 'com.yahoo.maha.test.udf.TestUDF';"
+    val statement: String = "CREATE TEMPORARY FUNCTION getDateTimeFromEpoch(epoch INT64, fmt STRING) AS (FORMAT_DATE(fmt, DATE(TIMESTAMP_SECONDS(epoch))));"
   }
 
   case class GET_UTC_TIME_FROM_EPOCH(args: BigqueryExp*) extends UDFBigqueryExpression(GET_UTC_TIME_FROM_EPOCH_REG)(uDFRegistrationFactory) {

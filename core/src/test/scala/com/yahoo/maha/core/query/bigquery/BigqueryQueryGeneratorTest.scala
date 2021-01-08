@@ -1388,6 +1388,65 @@ class BigqueryQueryGeneratorTest extends BaseBigqueryQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
+  test("Test Outer Group By Query with dim non id field and derived fact field having dim source col") {
+    val jsonString =
+      s"""
+         |{
+         |  "cube": "performance_stats",
+         |  "selectFields": [
+         |    { "field": "Campaign Name" } ,
+         |    { "field": "Source" },
+         |    { "field": "N Spend" }
+         |  ],
+         |  "filterExpressions": [
+         |    { "field": "Advertiser ID", "operator": "=", "value": "12345" },
+         |    { "field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate" }
+         |  ]
+         |}
+       """.stripMargin
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Failed to get the query pipeline"))
+
+    val queryChain = queryPipelineTry.toOption.get.queryChain
+
+    val result =  queryChain.drivingQuery.asInstanceOf[BigqueryQuery].asString
+
+    val expected =
+      s"""
+         |SELECT IFNULL(CAST(mang_campaign_name AS STRING), '') AS mang_campaign_name, IFNULL(CAST(mang_source AS STRING), '') AS mang_source, IFNULL(CAST(mang_n_spend AS STRING), '') AS mang_n_spend
+         |FROM (
+         |SELECT mang_campaign_name AS mang_campaign_name, mang_source AS mang_source, CASE WHEN stats_source = 1 THEN spend ELSE 0.0 END AS mang_n_spend
+         |FROM (
+         |SELECT getCsvEscapedString(IFNULL(CAST(c1.mang_campaign_name AS STRING), '')) mang_campaign_name, COALESCE(stats_source, 0) mang_source, SUM(spend) AS spend, stats_source AS stats_source
+         |FROM ( SELECT campaign_id, stats_source, SUM(spend) spend
+         |FROM `ad_fact1`
+         |WHERE (advertiser_id = 12345) AND (stats_date >= DATE('$fromDate') AND stats_date <= DATE('$toDate'))
+         |GROUP BY campaign_id, stats_source
+         |)
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM `campaign_bigquery`
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |GROUP BY mang_campaign_name, mang_source, stats_source
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
   test("Generating Bigquery query with dim non id field as filter") {
     val jsonString =
       s"""
