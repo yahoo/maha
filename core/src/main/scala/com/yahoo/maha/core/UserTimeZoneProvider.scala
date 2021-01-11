@@ -1,12 +1,11 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.request.ReportingRequest
-import grizzled.slf4j.Logging
 
 trait UserTimeZoneProvider {
   def getTimeZone(request: ReportingRequest): Option[String]
 }
 
-object NoopUserTimeZoneProvider extends UserTimeZoneProvider with Logging{
+object NoopUserTimeZoneProvider extends UserTimeZoneProvider{
   def getTimeZone(request: ReportingRequest): Option[String] = None
 }
