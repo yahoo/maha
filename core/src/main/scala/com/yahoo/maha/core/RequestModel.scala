@@ -355,7 +355,7 @@ object RequestModel extends Logging {
           val isDebugEnabled = request.isDebugEnabled
           //the zone should come from request or user time zone provider, not UTC time provider
           val timezone = request.getTimezone orElse userTimeZoneProvider.getTimeZone(request)
-          info(s"timezone is " +  timezone)
+          info(s"timezone is $timezone and userTimeZoneProvider is ${userTimeZoneProvider.getClass.getSimpleName}")
           val (localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter) = if(timezone.isDefined) {
             //we assume all dates are in the users local time
             if (request.dayFilter.isInstanceOf[DateTimeFilter]) {

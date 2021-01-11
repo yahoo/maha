@@ -53,8 +53,9 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
     var utcHourFilter = localTimeHourFilter
     var utcMinuteFilter = localTimeMinuteFilter
     info(s"Timezone: $timezone")
-    if (!validateFilters(localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter) || !timezone.isDefined) {
-      info(s"validateFilters is "+ validateFilters(localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter) + "timezone is defined " + timezone.isDefined)
+    val validFilters = validateFilters(localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter)
+    if (!validFilters || !timezone.isDefined) {
+      info(s"validateFilters is  $validFilters timezone is defined ${timezone.isDefined}")
       if (utcHourFilter.isEmpty) {
         warn(s"Failed to validate day/hour filters, or timezone cannot be fetched. Extending day filter by one day")
         utcDayFilter = extendDaysBackwardsByOneDay(utcDayFilter)
@@ -288,13 +289,18 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
 
   def validateFilters(dayFilter: Filter, hourFilter: Option[Filter], minuteFilter: Option[Filter]): Boolean = {
     if (!hourFilter.isDefined && !minuteFilter.isDefined) return true
-    info(s"Hour or minute filter is not defined")
-    if (!hourFilter.isDefined && minuteFilter.isDefined) return false
-    info(s"validated minuteFilter is not defined without hourFilter")
-    if (hourFilter.isDefined && dayFilter.operator != hourFilter.get.operator) return false
-    info(s"hourFilter is defined both day and hour filter operator are the same")
-    if (hourFilter.isDefined && minuteFilter.isDefined && hourFilter.get.operator != minuteFilter.get.operator) return false
-    info(s"minute filter operator is same as hour filter operator")
+    if (!hourFilter.isDefined && minuteFilter.isDefined) {
+      info(s"hourFilter.isDefined: ${hourFilter.isDefined} and minuteFilter.isDefined: ${minuteFilter.isDefined}")
+      return false
+    }
+    if (hourFilter.isDefined && dayFilter.operator != hourFilter.get.operator){
+      info(s"hourFilter is defined both day and hour filter operator are not the same:  ${hourFilter.get.operator} and ${dayFilter.operator}")
+      return false
+    }
+    if (hourFilter.isDefined && minuteFilter.isDefined && hourFilter.get.operator != minuteFilter.get.operator) {
+      info(s"minute filter operator is not same as hour filter operator : ${minuteFilter.get.operator} and ${hourFilter.get.operator}")
+      return false
+    }
     true
   }
 
