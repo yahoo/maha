@@ -52,7 +52,6 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
     var utcDayFilter = localTimeDayFilter
     var utcHourFilter = localTimeHourFilter
     var utcMinuteFilter = localTimeMinuteFilter
-    info(s"Timezone: $timezone")
     val validFilters = validateFilters(localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter)
     if (!validFilters || !timezone.isDefined) {
       info(s"validateFilters is  $validFilters timezone is defined ${timezone.isDefined}")
@@ -63,7 +62,7 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
       }
     } else {
       //if timezone is UTC, pass through
-      info(s"Filters are valid and time zone is defined")
+      info(s"Filters are valid and time zone is defined and timezone is $timezone")
       if (timezone.contains(DateTimeZone.UTC.toString)) return (localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter)
 
       val dateTimeZone = DateTimeZone.forID(timezone.get)
