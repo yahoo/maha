@@ -6074,10 +6074,36 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     val jsonString = s"""{
                           "cube": "publicFact",
                           "selectFields": [
-                              {"field": "Advertiser Name"},
-                              {"field": "Campaign Name"}
+                               {"field": "Advertiser Name"},
+                               {"field": "Campaign Name"}
                           ],
                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDateTimeZone", "to": "$toDateTimeZone"}
+                          ],
+                          "forceDimDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, AdvertiserSchema)
+    val registry = defaultRegistry
+    //val res = getRequestModel(request,registry)
+    val res = getRequestModelWithAuckLandTimeZone(request, registry)
+    assert(res.isSuccess, "should succeed Dim Only query Schema timeZone validation")
+  }
+
+  test ("query timeZone ahead conversion for fact+dim queries") {
+    val toDateTimeZone = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).plusHours(12))
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Campaign Name"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
                               {"field": "Day", "operator": "between", "from": "$toDateTimeZone", "to": "$toDateTimeZone"}
                           ],
                           "forceDimDriven": true,
@@ -6088,8 +6114,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     val request: ReportingRequest = getReportingRequestSync(jsonString, AdvertiserSchema)
     val registry = defaultRegistry
     val res = getRequestModelWithAuckLandTimeZone(request, registry)
-    assert(res.isFailure, "should fail on not having filter on Advertiser iD")
-    res.failed.get.getMessage should startWith (s"requirement failed: Missing Dim Only query Schema(advertiser) required filter on 'Advertiser ID'")
+    assert(res.isSuccess, "should succeed query timeZone ahead conversion for fact+dim queries")
   }
 
   object AucklandUserTimeZoneProvider extends UserTimeZoneProvider {
