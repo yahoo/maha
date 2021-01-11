@@ -18,6 +18,8 @@ import org.joda.time.{DateTime, DateTimeZone}
 import org.json4s.JObject
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import org.mockito.Mockito.{spy, times, verify}
+import org.mockito.Matchers.any
 
 import scala.util.{Random, Try}
 
@@ -6071,6 +6073,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
 
   test ("Dim Only query Schema timeZone validation") {
     val toDateTimeZone = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).plusHours(12))
+    val baseUTCTimeProvider  =  spy (new  BaseUTCTimeProvider)
     val jsonString = s"""{
                           "cube": "publicFact",
                           "selectFields": [
@@ -6088,13 +6091,14 @@ class RequestModelTest extends AnyFunSuite with Matchers {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString, AdvertiserSchema)
     val registry = defaultRegistry
-    //val res = getRequestModel(request,registry)
-    val res = getRequestModelWithAuckLandTimeZone(request, registry)
+    val res = getRequestModel(request,registry,AucklandUserTimeZoneProvider,baseUTCTimeProvider)
     assert(res.isSuccess, "should succeed Dim Only query Schema timeZone validation")
+    verify(baseUTCTimeProvider, times(1)).getUTCDayHourMinuteFilter(any[Filter],any[Option[Filter]],any[Option[Filter]],any[Option[String]],any[Boolean])
   }
 
   test ("query timeZone ahead conversion for fact+dim queries") {
     val toDateTimeZone = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).plusHours(12))
+    val baseUTCTimeProvider  =  spy (new  BaseUTCTimeProvider)
     val jsonString = s"""{
                           "cube": "publicFact",
                           "selectFields": [
@@ -6113,8 +6117,9 @@ class RequestModelTest extends AnyFunSuite with Matchers {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString, AdvertiserSchema)
     val registry = defaultRegistry
-    val res = getRequestModelWithAuckLandTimeZone(request, registry)
+    val res = getRequestModel(request, registry,AucklandUserTimeZoneProvider,baseUTCTimeProvider)
     assert(res.isSuccess, "should succeed query timeZone ahead conversion for fact+dim queries")
+    verify(baseUTCTimeProvider, times(1)).getUTCDayHourMinuteFilter(any[Filter],any[Option[Filter]],any[Option[Filter]],any[Option[String]],any[Boolean])
   }
 
   object AucklandUserTimeZoneProvider extends UserTimeZoneProvider {
@@ -6125,12 +6130,6 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     }
   }
 
-  def getRequestModelWithAuckLandTimeZone(request: ReportingRequest
-                      , registry: Registry
-                      , userTimeZoneProvider: UserTimeZoneProvider = AucklandUserTimeZoneProvider
-                      , utcTimeProvider: UTCTimeProvider = new  BaseUTCTimeProvider
-                      , revision: Option[Int] = None): Try[RequestModel] = {
-    RequestModel.from(request, registry, userTimeZoneProvider, utcTimeProvider, revision)
-  }
+
 }
 
