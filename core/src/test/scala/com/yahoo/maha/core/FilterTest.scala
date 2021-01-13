@@ -167,6 +167,23 @@ class FilterTest extends AnyFunSuite with Matchers {
     hourlyResult shouldBe "timestamp_date >= TIMESTAMP('2018-01-01T01:10:50.000') AND timestamp_date <= TIMESTAMP('2018-01-06T10:20:30.000')"
   }
 
+  test("fail to render DateTimeBetweenFilter with invalid dates on Bigquery engine") {
+    val thrown = intercept[IllegalArgumentException] {
+      val filter = DateTimeBetweenFilter(timestampCol.name, "2018-01-06T01:10:50", "2018-01-01T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    }
+    thrown.getMessage should startWith ("requirement failed: From datetime must be before or equal to To datetime")
+
+    val invalidFromDateThrown = intercept[IllegalArgumentException] {
+      val filter = DateTimeBetweenFilter(timestampCol.name, "20-18-01-06T01:10:50", "2018-01-01T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    }
+    invalidFromDateThrown.getMessage should startWith ("Invalid format")
+
+    val invalidToDateThrown = intercept[IllegalArgumentException] {
+      val filter = DateTimeBetweenFilter(timestampCol.name, "2018-01-06T01:10:50", "20-18-01-01T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    }
+    invalidToDateThrown.getMessage should startWith ("Invalid format")
+  }
+
   test("Filter Types in Druid should return valid MaxDate") {
     val filter = BetweenFilter("stats_date", "2018-01-01", "2018-01-07")
     val eqFilter = EqualityFilter("stats_date", "2018-01-01")

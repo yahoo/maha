@@ -279,7 +279,7 @@ class BigqueryQueryExecutorTest
       )
   }
 
-  test("Successfully create a Bigquery Query Executor instance with Proxy enabled") {
+  test("Fail to create a Bigquery Query Executor instance without valid credentials file") {
     val gcpCredentials = Resources.getResource("gcpCredentials.json").getPath
     val proxyCredentials = Resources.getResource("proxyCredentials.yml").getPath
     val testBigqueryQueryExecutorConfig = new BigqueryQueryExecutorConfig(
@@ -291,21 +291,10 @@ class BigqueryQueryExecutorTest
       proxyPort = Some("8080"),
       retries = 2
     )
-    new BigqueryQueryExecutor(testBigqueryQueryExecutorConfig, new NoopExecutionLifecycleListener)
-  }
-
-  test("Successfully create a Bigquery Query Executor instance with Proxy disabled") {
-    val gcpCredentials = Resources.getResource("gcpCredentials.json").getPath
-    val testBigqueryQueryExecutorConfig = new BigqueryQueryExecutorConfig(
-      gcpCredentialsFilePath = gcpCredentials,
-      gcpProjectId = "testProjectId",
-      enableProxy = false,
-      proxyCredentialsFilePath = None,
-      proxyHost = None,
-      proxyPort = None,
-      retries = 2
+    assertThrows[java.io.IOException](
+      new BigqueryQueryExecutor(testBigqueryQueryExecutorConfig, new NoopExecutionLifecycleListener),
+      "Expected Exception while creating BigQuery Executor with invalid data in credentials file"
     )
-    new BigqueryQueryExecutor(testBigqueryQueryExecutorConfig, new NoopExecutionLifecycleListener)
   }
 
   def validMockTableResultData(): TableResult = {

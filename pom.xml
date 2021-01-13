@@ -67,7 +67,8 @@
         <twitter.chill.version>0.9.5</twitter.chill.version>
         <pg.embedded.version>0.13.1</pg.embedded.version>
         <postgres.jdbc.version>42.2.18</postgres.jdbc.version>
-        <bigquery.version>1.124.1</bigquery.version>
+        <bigquery.version>1.126.3</bigquery.version>
+        <google.http.client.version>1.38.0</google.http.client.version>
         <scala.sql.formatter.version>1.0.1</scala.sql.formatter.version>
     </properties>
 

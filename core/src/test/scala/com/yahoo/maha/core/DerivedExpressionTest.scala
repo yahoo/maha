@@ -88,6 +88,17 @@ class DerivedExpressionTest extends AnyFunSuite with Matchers {
     }
   }
 
+  test("successfully derive dependent columns from BigqueryDerivedExpression FORMAT_DATE") {
+    import BigqueryExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      DimCol("created_date", IntType())
+
+      val col = BigqueryDerDimCol("Keyword Date Created", StrType(), FORMAT_DATE("{created_date}", "YYYY-MM-DD"))
+      col.derivedExpression.sourceColumns.contains("created_date") should equal(true)
+      col.derivedExpression.render(col.name) should equal("FORMAT_DATE('YYYY-MM-DD', created_date)")
+    }
+  }
+
   test("successfully derive dependent columns from OracleDerivedExpression NVL") {
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>

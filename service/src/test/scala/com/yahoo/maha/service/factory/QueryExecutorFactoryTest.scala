@@ -204,7 +204,7 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
         |{
         |"bigqueryQueryExecutorConfigFactoryClassName": "com.yahoo.maha.service.factory.DefaultBigqueryQueryExecutorConfigFactory",
         |"bigqueryQueryExecutorConfigJson": {
-        |  "gcpCredentialsFilePath": "/path/to/credentials/file",
+        |  "gcpCredentialsFilePath": "",
         |  "gcpProjectId": "testProjectId",
         |  "enableProxy": false,
         |  "retries": 5

@@ -10,7 +10,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>6.32-SNAPSHOT</version>
+        <version>6.35-SNAPSHOT</version>
     </parent>
 
     <name>maha bigquery executor</name>
@@ -115,6 +115,11 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-bigquery</artifactId>
             <version>${bigquery.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client</artifactId>
+            <version>${google.http.client.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>

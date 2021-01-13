@@ -147,6 +147,7 @@ class DimensionTest extends AnyFunSuite with Matchers {
             , DimCol("decodable", IntType(), annotations = Set(EscapingRequired))
             , DimCol("discard", IntType())
             , BigqueryDerDimCol("clicks", StrType(), DECODE_DIM("{decodable}", "7", "6"))
+            , BigqueryDimCol("new_clicks", DecType())
             , BigqueryPartDimCol("test_col", IntType())
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
@@ -325,6 +326,7 @@ class DimensionTest extends AnyFunSuite with Matchers {
             , DimCol("decodable", IntType(), annotations = Set(EscapingRequired))
             , DimCol("discard", IntType())
             , BigqueryDerDimCol("clicks", StrType(), DECODE_DIM("{decodable}", "7", "6"))
+            , BigqueryDimCol("new_clicks", DecType())
             , BigqueryPartDimCol("test_col", IntType())
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
@@ -787,6 +789,24 @@ class DimensionTest extends AnyFunSuite with Matchers {
               ,HiveDerDimCol("derived_col", StrType(), null)
             )
             , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          )
+        }
+
+      }
+    }
+    thrown.getMessage should startWith ("requirement failed: Derived expression should be defined for a derived column")
+  }
+
+  test("newDimension should fail for Bigquery if derived expression is not defined for derived columns") {
+    val thrown = intercept[IllegalArgumentException] {
+      {
+        ColumnContext.withColumnContext { implicit cc =>
+          Dimension.newDimension("dim1", BigqueryEngine, LevelOne, Set(AdvertiserSchema),
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey)),
+              BigqueryDerDimCol("derived_col", StrType(), null)
+            ),
+            Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           )
         }
 

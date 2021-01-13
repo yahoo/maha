@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.scala.{DefaultScalaModule, ScalaObjectMapper}
 import com.github.vertical_blank.sqlformatter.scala.{FormatConfig, SqlDialect, SqlFormatter}
+import com.google.api.client.http.apache.v2.ApacheHttpTransport
+import com.google.auth.http.HttpTransportFactory
 import com.google.auth.oauth2.ServiceAccountCredentials
 import com.google.cloud.ServiceOptions
 import com.google.cloud.bigquery.BigQuery
@@ -14,12 +16,21 @@ import com.google.cloud.bigquery.BigQueryOptions
 import com.google.cloud.bigquery.JobId
 import com.google.cloud.bigquery.JobInfo
 import com.google.cloud.bigquery.QueryJobConfiguration
+import com.google.cloud.http.HttpTransportOptions
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
+import com.yahoo.maha.core.request.{Parameter, RequestIdValue}
 import grizzled.slf4j.Logging
 import java.io.FileInputStream
-import java.net.{Authenticator, PasswordAuthentication}
 import java.util.UUID
+import org.apache.http.HttpHost
+import org.apache.http.auth.{AuthScope, UsernamePasswordCredentials}
+import org.apache.http.impl.client.{
+  BasicCredentialsProvider,
+  DefaultHttpRequestRetryHandler,
+  ProxyAuthenticationStrategy
+}
+import org.apache.http.impl.conn.DefaultProxyRoutePlanner
 import scala.util.Try
 
 private case class ProxyCredentials(
@@ -37,10 +48,6 @@ case class BigqueryQueryExecutorConfig(
   retries: Int
 ) extends Logging {
 
-  private final val HttpsProxyHost = "https.proxyHost"
-  private final val HttpsProxyPort = "https.proxyPort"
-  private final val DisabledAuthSchemes = "jdk.http.auth.tunneling.disabledSchemes"
-
   private val mapper = {
     val om = new ObjectMapper(new YAMLFactory()) with ScalaObjectMapper
     om.registerModule(DefaultScalaModule)
@@ -49,31 +56,71 @@ case class BigqueryQueryExecutorConfig(
   }
 
   def buildBigqueryClient(): BigQuery = {
-    BigQueryOptions
+    val builder = BigQueryOptions
       .newBuilder()
-      .setCredentials(ServiceAccountCredentials.fromStream(new FileInputStream(gcpCredentialsFilePath)))
       .setProjectId(gcpProjectId)
-      .setRetrySettings(ServiceOptions.getDefaultRetrySettings().toBuilder().setMaxAttempts(retries).build())
+      .setRetrySettings(
+        ServiceOptions
+          .getDefaultRetrySettings()
+          .toBuilder()
+          .setMaxAttempts(retries)
+          .build()
+      )
+
+    val builderWithCredentials = if (!gcpCredentialsFilePath.isEmpty) {
+      val fileInputStream = new FileInputStream(gcpCredentialsFilePath)
+      try {
+        if (enableProxy && proxyCredentialsFilePath.isDefined && proxyHost.isDefined && proxyHost.isDefined) {
+          val proxyTransport = googleApiHttpTransportFactory()
+          builder
+            .setCredentials(ServiceAccountCredentials.fromStream(fileInputStream, proxyTransport))
+            .setTransportOptions(
+              HttpTransportOptions
+                .newBuilder()
+                .setHttpTransportFactory(proxyTransport)
+                .build()
+            )
+        } else {
+          builder.setCredentials(ServiceAccountCredentials.fromStream(fileInputStream))
+        }
+      } finally {
+        fileInputStream.close()
+      }
+    } else {
+      builder
+    }
+
+    builderWithCredentials
       .build()
       .getService
   }
 
-  def configureProxy(): Unit = {
-    if (enableProxy && proxyCredentialsFilePath.isDefined && proxyHost.isDefined && proxyHost.isDefined) {
-      val proxyCredentials = mapper.readValue[ProxyCredentials](
-        new FileInputStream(proxyCredentialsFilePath.get)
+  private[this] def googleApiHttpTransportFactory(): HttpTransportFactory = {
+    info(s"Setting up proxied Google API Http Transport")
+    val fileInputStream = new FileInputStream(proxyCredentialsFilePath.get)
+    try {
+      val proxyCredentials = mapper.readValue[ProxyCredentials](fileInputStream)
+      val proxyHostDetails = new HttpHost(proxyHost.get, proxyPort.get.toInt)
+      val proxyRoutePlanner = new DefaultProxyRoutePlanner(proxyHostDetails);
+      val credentialsProvider = new BasicCredentialsProvider
+      credentialsProvider.setCredentials(
+        new AuthScope(proxyHostDetails.getHostName, proxyHostDetails.getPort),
+        new UsernamePasswordCredentials(
+          proxyCredentials.userName,
+          proxyCredentials.password
+        )
       )
+      val mHttpClient = ApacheHttpTransport.newDefaultHttpClientBuilder
+        .setRoutePlanner(proxyRoutePlanner)
+        .setRetryHandler(new DefaultHttpRequestRetryHandler)
+        .setProxyAuthenticationStrategy(ProxyAuthenticationStrategy.INSTANCE)
+        .setDefaultCredentialsProvider(credentialsProvider)
+        .build()
 
-      System.setProperty(HttpsProxyHost, proxyHost.get)
-      System.setProperty(HttpsProxyPort, proxyPort.get)
-      System.setProperty(DisabledAuthSchemes, "")
-
-      Authenticator.setDefault(new Authenticator() {
-        override protected def getPasswordAuthentication =
-          new PasswordAuthentication(proxyCredentials.userName, proxyCredentials.password.toCharArray)
-      })
-    } else {
-      info("Not using proxy for BigQuery Query Execution")
+      val mHttpTransport = new ApacheHttpTransport(mHttpClient)
+      () => mHttpTransport
+    } finally {
+      fileInputStream.close()
     }
   }
 }
@@ -85,8 +132,7 @@ class BigqueryQueryExecutor(
   with Logging {
 
   val engine: Engine = BigqueryEngine
-  config.configureProxy()
-  lazy val bigqueryClient = config.buildBigqueryClient()
+  val bigqueryClient = config.buildBigqueryClient()
 
   def execute[T <: RowList](
     query: Query,
@@ -94,7 +140,8 @@ class BigqueryQueryExecutor(
     queryAttributes: QueryAttributes
   ): QueryResult[T] = {
     val acquiredQueryAttributes = lifecycleListener.acquired(query, queryAttributes)
-    val debugEnabled = query.queryContext.requestModel.isDebugEnabled
+    val requestModel = query.queryContext.requestModel
+    val debugEnabled = requestModel.isDebugEnabled
 
     if (!acceptEngine(query.engine)) {
       throw new UnsupportedOperationException(
@@ -116,7 +163,13 @@ class BigqueryQueryExecutor(
       .setUseLegacySql(false)
       .build()
 
-    val jobId = JobId.of(UUID.randomUUID.toString)
+    val requestId = requestModel
+      .additionalParameters
+      .getOrElse(Parameter.RequestId, RequestIdValue(UUID.randomUUID().toString))
+      .asInstanceOf[RequestIdValue]
+      .value
+
+    val jobId = JobId.of(requestId)
     val jobInfo = JobInfo.newBuilder(queryJobConfig).setJobId(jobId).build
     val queryJob = bigqueryClient.create(jobInfo).waitFor()
     val aliasColumnMap = query.aliasColumnMap
