@@ -18,6 +18,9 @@ class DefaultBigqueryQueryExecutorConfigFactory extends BigqueryQueryExecutorCon
     |"proxyCredentialsFilePath": "/path/to/proxy/file",
     |"proxyHost": "test.proxy.host.com",
     |"proxyPort": "3128",
+    |"disableRpc": false,
+    |"connectionTimeoutMs": 30000,
+    |"readTimeoutMs": 60000,
     |"retries": 5
     |}
   """.stripMargin
@@ -31,11 +34,26 @@ class DefaultBigqueryQueryExecutorConfigFactory extends BigqueryQueryExecutorCon
     val proxyCredentialsFilePathResult: MahaServiceConfig.MahaConfigResult[Option[String]] = fieldExtended[Option[String]]("proxyCredentialsFilePath")(configJson)
     val proxyHostResult: MahaServiceConfig.MahaConfigResult[Option[String]] = fieldExtended[Option[String]]("proxyHost")(configJson)
     val proxyPortResult: MahaServiceConfig.MahaConfigResult[Option[String]] = fieldExtended[Option[String]]("proxyPort")(configJson)
+    val disableRpcResult: MahaServiceConfig.MahaConfigResult[Option[Boolean]] = fieldExtended[Option[Boolean]]("disableRpc")(configJson)
+    val connectionTimeoutMsResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("connectionTimeoutMs")(configJson)
+    val readTimeoutMsResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("readTimeoutMs")(configJson)
     val retriesResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("retries")(configJson)
 
     (gcpCredentialsFilePathResult |@| gcpProjectIdResult |@| enableProxyResult |@|
-      proxyCredentialsFilePathResult |@| proxyHostResult |@| proxyPortResult |@| retriesResult) {
-      case (gcpCredentialsFilePath, gcpProjectId, enableProxy, proxyCredentialsFilePath, proxyHost, proxyPort, retries) =>
+      proxyCredentialsFilePathResult |@| proxyHostResult |@| proxyPortResult |@|
+      disableRpcResult |@| connectionTimeoutMsResult |@| readTimeoutMsResult |@| retriesResult) {
+      case (
+        gcpCredentialsFilePath,
+        gcpProjectId,
+        enableProxy,
+        proxyCredentialsFilePath,
+        proxyHost,
+        proxyPort,
+        disableRpc,
+        connectionTimeoutMs,
+        readTimeoutMs,
+        retries
+      ) =>
         BigqueryQueryExecutorConfig(
           gcpCredentialsFilePath,
           gcpProjectId,
@@ -43,6 +61,9 @@ class DefaultBigqueryQueryExecutorConfigFactory extends BigqueryQueryExecutorCon
           proxyCredentialsFilePath,
           proxyHost,
           proxyPort,
+          disableRpc,
+          connectionTimeoutMs,
+          readTimeoutMs,
           retries
         )
     }

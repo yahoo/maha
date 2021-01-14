@@ -17,6 +17,9 @@ class BigqueryQueryExecutorConfigFactoryTest extends BaseFactoryTest {
                        |"enableProxy": false,
                        |"proxyCredentialsFilePath": "/path/to/proxy/file",
                        |"proxyHost": "test.proxy.host.com",
+                       |"disableRpc": false,
+                       |"connectionTimeoutMs": 30000,
+                       |"readTimeoutMs": 60000,
                        |"retries": 5
                        |}
                      """.stripMargin
@@ -38,6 +41,9 @@ class BigqueryQueryExecutorConfigFactoryTest extends BaseFactoryTest {
         assert(bigqueryExecutorConfig.proxyCredentialsFilePath == Some("/path/to/proxy/file"))
         assert(bigqueryExecutorConfig.proxyHost == Some("test.proxy.host.com"))
         assert(bigqueryExecutorConfig.proxyPort == None)
+        assert(bigqueryExecutorConfig.disableRpc == Some(false))
+        assert(bigqueryExecutorConfig.connectionTimeoutMs == 30000)
+        assert(bigqueryExecutorConfig.readTimeoutMs == 60000)
         assert(bigqueryExecutorConfig.retries == 5)
     }
   }

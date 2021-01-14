@@ -204,9 +204,12 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
         |{
         |"bigqueryQueryExecutorConfigFactoryClassName": "com.yahoo.maha.service.factory.DefaultBigqueryQueryExecutorConfigFactory",
         |"bigqueryQueryExecutorConfigJson": {
-        |  "gcpCredentialsFilePath": "",
+        |  "gcpCredentialsFilePath": "/path/to/credentials/file",
         |  "gcpProjectId": "testProjectId",
         |  "enableProxy": false,
+        |  "disableRpc": true,
+        |  "connectionTimeoutMs": 30000,
+        |  "readTimeoutMs": 60000,
         |  "retries": 5
         |},
         |"lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",

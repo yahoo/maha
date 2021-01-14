@@ -44,7 +44,7 @@ class BigqueryQueryExecutorTest
 
   override protected def beforeAll(): Unit = {
     BigqueryQueryGenerator.register(queryGeneratorRegistry, BigqueryPartitionColumnRenderer, Set.empty)
-    doReturn(bigqueryClientMock).when(bigqueryQueryExecutorConfigMock).buildBigqueryClient()
+    doReturn(Some(bigqueryClientMock)).when(bigqueryQueryExecutorConfigMock).buildBigqueryClient()
     val bigqueryExecutor = new BigqueryQueryExecutor(bigqueryQueryExecutorConfigMock, new NoopExecutionLifecycleListener)
     bigqueryQueryExecutor = Some(bigqueryExecutor)
     bigqueryQueryExecutor.foreach(queryExecutorContext.register(_))
@@ -289,6 +289,9 @@ class BigqueryQueryExecutorTest
       proxyCredentialsFilePath = Some(proxyCredentials),
       proxyHost = Some("test.proxy.host.com"),
       proxyPort = Some("8080"),
+      disableRpc = Some(false),
+      connectionTimeoutMs = 30000,
+      readTimeoutMs = 60000,
       retries = 2
     )
     assertThrows[java.io.IOException](

@@ -293,6 +293,9 @@ class BigqueryQueryExecutoryFactory extends QueryExecutoryFactory {
     |  "proxyCredentialsFilePath": "", (optional)
     |  "proxyHost": "", (optional)
     |  "proxyPort": "", (optional)
+    |  "disableRpc": false, (optional)
+    |  "connectionTimeoutMs": 30000,
+    |  "readTimeoutMs": 60000,
     |  "retries": 0
     |},
     |"lifecycleListenerFactoryClass": "",

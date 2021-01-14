@@ -8,6 +8,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.scala.{DefaultScalaModule, ScalaObjectMapper}
 import com.github.vertical_blank.sqlformatter.scala.{FormatConfig, SqlDialect, SqlFormatter}
 import com.google.api.client.http.apache.v2.ApacheHttpTransport
+import com.google.api.services.bigquery.Bigquery
 import com.google.auth.http.HttpTransportFactory
 import com.google.auth.oauth2.ServiceAccountCredentials
 import com.google.cloud.ServiceOptions
@@ -25,11 +26,7 @@ import java.io.FileInputStream
 import java.util.UUID
 import org.apache.http.HttpHost
 import org.apache.http.auth.{AuthScope, UsernamePasswordCredentials}
-import org.apache.http.impl.client.{
-  BasicCredentialsProvider,
-  DefaultHttpRequestRetryHandler,
-  ProxyAuthenticationStrategy
-}
+import org.apache.http.impl.client.{BasicCredentialsProvider, DefaultHttpRequestRetryHandler, ProxyAuthenticationStrategy}
 import org.apache.http.impl.conn.DefaultProxyRoutePlanner
 import scala.util.Try
 
@@ -45,6 +42,9 @@ case class BigqueryQueryExecutorConfig(
   proxyCredentialsFilePath: Option[String],
   proxyHost: Option[String],
   proxyPort: Option[String],
+  disableRpc: Option[Boolean],
+  connectionTimeoutMs: Int,
+  readTimeoutMs: Int,
   retries: Int
 ) extends Logging {
 
@@ -55,73 +55,72 @@ case class BigqueryQueryExecutorConfig(
     om
   }
 
-  def buildBigqueryClient(): BigQuery = {
-    val builder = BigQueryOptions
-      .newBuilder()
-      .setProjectId(gcpProjectId)
-      .setRetrySettings(
-        ServiceOptions
-          .getDefaultRetrySettings()
-          .toBuilder()
-          .setMaxAttempts(retries)
-          .build()
-      )
+  def buildBigqueryClient(): Option[BigQuery] = {
+    if (!disableRpc.getOrElse(false)) {
+      val builder = BigQueryOptions
+        .newBuilder()
+        .setProjectId(gcpProjectId)
+        .setRetrySettings(
+          ServiceOptions
+            .getDefaultRetrySettings()
+            .toBuilder()
+            .setMaxAttempts(retries)
+            .build()
+        )
 
-    val builderWithCredentials = if (!gcpCredentialsFilePath.isEmpty) {
       val fileInputStream = new FileInputStream(gcpCredentialsFilePath)
-      try {
-        if (enableProxy && proxyCredentialsFilePath.isDefined && proxyHost.isDefined && proxyHost.isDefined) {
-          val proxyTransport = googleApiHttpTransportFactory()
-          builder
-            .setCredentials(ServiceAccountCredentials.fromStream(fileInputStream, proxyTransport))
-            .setTransportOptions(
-              HttpTransportOptions
-                .newBuilder()
-                .setHttpTransportFactory(proxyTransport)
-                .build()
-            )
-        } else {
-          builder.setCredentials(ServiceAccountCredentials.fromStream(fileInputStream))
+      val bigqueryClient =
+        try {
+          googleApiHttpTransportFactory()
+            .fold(builder.setCredentials(ServiceAccountCredentials.fromStream(fileInputStream))) {
+              proxyTransport =>
+                builder
+                  .setTransportOptions(
+                    HttpTransportOptions
+                      .newBuilder()
+                      .setHttpTransportFactory(proxyTransport)
+                      .setConnectTimeout(connectionTimeoutMs)
+                      .setReadTimeout(readTimeoutMs)
+                      .build()
+                  )
+                  .setCredentials(ServiceAccountCredentials.fromStream(fileInputStream, proxyTransport))
+            }.build().getService
+        } finally {
+          fileInputStream.close()
         }
+      Some(bigqueryClient)
+    } else None
+  }
+
+  private[this] def googleApiHttpTransportFactory(): Option[HttpTransportFactory] = {
+    if (enableProxy && proxyCredentialsFilePath.isDefined && proxyHost.isDefined && proxyHost.isDefined) {
+      info(s"Setting up proxied Google API Http Transport")
+      val fileInputStream = new FileInputStream(proxyCredentialsFilePath.get)
+      try {
+        val proxyCredentials = mapper.readValue[ProxyCredentials](fileInputStream)
+        val proxyHostDetails = new HttpHost(proxyHost.get, proxyPort.get.toInt)
+        val proxyRoutePlanner = new DefaultProxyRoutePlanner(proxyHostDetails);
+        val credentialsProvider = new BasicCredentialsProvider
+        credentialsProvider.setCredentials(
+          new AuthScope(proxyHostDetails.getHostName, proxyHostDetails.getPort),
+          new UsernamePasswordCredentials(
+            proxyCredentials.userName,
+            proxyCredentials.password
+          )
+        )
+        val mHttpClient = ApacheHttpTransport.newDefaultHttpClientBuilder
+          .setRoutePlanner(proxyRoutePlanner)
+          .setRetryHandler(new DefaultHttpRequestRetryHandler)
+          .setProxyAuthenticationStrategy(ProxyAuthenticationStrategy.INSTANCE)
+          .setDefaultCredentialsProvider(credentialsProvider)
+          .build()
+
+        val mHttpTransport = new ApacheHttpTransport(mHttpClient)
+        Some(() => mHttpTransport)
       } finally {
         fileInputStream.close()
       }
-    } else {
-      builder
-    }
-
-    builderWithCredentials
-      .build()
-      .getService
-  }
-
-  private[this] def googleApiHttpTransportFactory(): HttpTransportFactory = {
-    info(s"Setting up proxied Google API Http Transport")
-    val fileInputStream = new FileInputStream(proxyCredentialsFilePath.get)
-    try {
-      val proxyCredentials = mapper.readValue[ProxyCredentials](fileInputStream)
-      val proxyHostDetails = new HttpHost(proxyHost.get, proxyPort.get.toInt)
-      val proxyRoutePlanner = new DefaultProxyRoutePlanner(proxyHostDetails);
-      val credentialsProvider = new BasicCredentialsProvider
-      credentialsProvider.setCredentials(
-        new AuthScope(proxyHostDetails.getHostName, proxyHostDetails.getPort),
-        new UsernamePasswordCredentials(
-          proxyCredentials.userName,
-          proxyCredentials.password
-        )
-      )
-      val mHttpClient = ApacheHttpTransport.newDefaultHttpClientBuilder
-        .setRoutePlanner(proxyRoutePlanner)
-        .setRetryHandler(new DefaultHttpRequestRetryHandler)
-        .setProxyAuthenticationStrategy(ProxyAuthenticationStrategy.INSTANCE)
-        .setDefaultCredentialsProvider(credentialsProvider)
-        .build()
-
-      val mHttpTransport = new ApacheHttpTransport(mHttpClient)
-      () => mHttpTransport
-    } finally {
-      fileInputStream.close()
-    }
+    } else None
   }
 }
 
@@ -132,7 +131,7 @@ class BigqueryQueryExecutor(
   with Logging {
 
   val engine: Engine = BigqueryEngine
-  val bigqueryClient = config.buildBigqueryClient()
+  val bigqueryClient: Option[BigQuery] = config.buildBigqueryClient()
 
   def execute[T <: RowList](
     query: Query,
@@ -146,6 +145,12 @@ class BigqueryQueryExecutor(
     if (!acceptEngine(query.engine)) {
       throw new UnsupportedOperationException(
         s"BigqueryQueryExecutor does not support query with engine=${query.engine}"
+      )
+    }
+
+    if (!bigqueryClient.isDefined) {
+      throw new UnsupportedOperationException(
+        s"BigqueryQueryExecutor cannot execute queries when RPC calls are disabled"
       )
     }
 
@@ -171,7 +176,7 @@ class BigqueryQueryExecutor(
 
     val jobId = JobId.of(requestId)
     val jobInfo = JobInfo.newBuilder(queryJobConfig).setJobId(jobId).build
-    val queryJob = bigqueryClient.create(jobInfo).waitFor()
+    val queryJob = bigqueryClient.get.create(jobInfo).waitFor()
     val aliasColumnMap = query.aliasColumnMap
     val queryColumns = query.asInstanceOf[BigqueryQuery].columnHeaders
 
@@ -195,8 +200,7 @@ class BigqueryQueryExecutor(
           if (resultColumns.size != queryColumns.size)
             throw new RuntimeException("Mismatch in number of query and result columns")
 
-          val rowCount = result.getTotalRows()
-          if (debugEnabled) info(s"rowCount = $rowCount")
+          if (debugEnabled) info(s"rowCount = ${result.getTotalRows()}")
 
           result.iterateAll().forEach { row =>
             val resultRow = queryRowList.newRow
