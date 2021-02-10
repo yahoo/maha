@@ -16,6 +16,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.yahoo.maha</groupId>
+            <artifactId>maha-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.typesafe.play</groupId>
             <artifactId>play_2.12</artifactId>
             <version>2.6.15</version>
@@ -240,6 +245,19 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_${scala.major.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.yahoo.maha</groupId>
+            <artifactId>maha-service</artifactId>
+            <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.druid</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
     </dependencies>
