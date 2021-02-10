@@ -834,23 +834,7 @@ object RequestModel extends Logging {
               }
               dimIdx += 1
             }
-//
-//            val sameLevelOrderedSeq = IndexedSeq[PublicDimension]
-//
-//            var prevDim = indexedSeqVar(dimIdx - 1)
-//            while(dimIdx <= indexedSeqVar.size - 1){
-//              val currentDim = indexedSeqVar(dimIdx)
-//              if(currentDim.dimLevel == prevDim.dimLevel && currentDim.foreignKeyByAlias.contains(prevDim.primaryKeyByAlias)){
-//               sameLevelOrderedSeq.up
-//              }
-//              else{
-//                sameLevelOrderedSeq +: List(prevDim)
-//                prevDim = currentDim
-//              }
-//              if(dimIdx == indexedSeqVar.size - 1)
-//                sameLevelOrderedSeq +: List(prevDim)
-//              dimIdx += 1
-//            }
+
 
             indexedSeqVar
               .foreach {
