@@ -216,7 +216,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |            ORDER BY 1 ASC NULLS LAST ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) agp1
                       |            ON (f0.ad_group_id = agp1.id)
                       |
-                      |) sqalias3""".stripMargin
+                      |) sqalias3 ORDER BY "Ad Group Status" ASC NULLS LAST""".stripMargin
     val select = """SELECT agp1.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", agp1."Ad Group Status" "Ad Group Status""""
     assert(result.contains(select), result)
     assert(result.contains("campaign_id IN (SELECT id FROM campaign_postgres WHERE (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END IN ('ON'))"),result)
@@ -1016,7 +1016,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |            ORDER BY 1 ASC NULLS LAST ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) agp1
                       |            ON (f0.ad_group_id = agp1.id)
                       |
-                      |) sqalias3""".stripMargin
+                      |) sqalias3 ORDER BY "Ad Group Status" ASC NULLS LAST""".stripMargin
     assert(result.contains("IN (SELECT"), "Query should contain in subquery")
     result should equal (expected) (after being whiteSpaceNormalised)
     testQuery(result)
@@ -1889,7 +1889,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |
          |
          |
-         |) sqalias3
+         |) sqalias3 ORDER BY "Ad Group Name" ASC NULLS LAST, "Keyword Value" ASC NULLS LAST, "Campaign Name" ASC NULLS LAST, "Advertiser Name" ASC NULLS LAST, "Ad Group ID" DESC, "Keyword ID" DESC, "Campaign ID" DESC, "Advertiser ID" DESC
          |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
     testQuery(result)
@@ -3299,7 +3299,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |            ON (af0.ad_id = adp1.id)
          |
          |
-         |) sqalias3
+         |) sqalias3 ORDER BY "Ad ID" DESC, "Ad Title" DESC NULLS LAST
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
     testQuery(result)

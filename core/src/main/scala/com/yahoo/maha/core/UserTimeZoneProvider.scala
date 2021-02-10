@@ -6,6 +6,6 @@ trait UserTimeZoneProvider {
   def getTimeZone(request: ReportingRequest): Option[String]
 }
 
-object NoopUserTimeZoneProvider extends UserTimeZoneProvider {
+object NoopUserTimeZoneProvider extends UserTimeZoneProvider{
   def getTimeZone(request: ReportingRequest): Option[String] = None
 }

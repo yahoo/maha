@@ -1051,13 +1051,9 @@ b. Dim Driven
     }
 
     def generateOrderBy(): Unit = {
-      if(requestModel.isDimDriven && requestModel.hasDrivingDimNonFKNonPKSortBy) {
-        // In Dim driven case, if driving dimension has orderBy then we do not want to orderBy again in the outer as it mess up the order
-      } else {
-        requestModel.requestSortByCols.foreach {
-          ci =>
-            queryBuilder.addOrderBy(renderSortByColumn(ci, queryBuilderContext))
-        }
+      requestModel.requestSortByCols.foreach {
+        ci =>
+          queryBuilder.addOrderBy(renderSortByColumn(ci, queryBuilderContext))
       }
     }
 

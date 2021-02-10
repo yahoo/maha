@@ -1165,7 +1165,7 @@ class OracleQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAf
 
     val queryPipeline = queryPipelineTry.toOption.get
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(sqlQuery)
+    //println(sqlQuery)
 
     val result = queryPipeline.execute(queryExecutorContext)
     result match {

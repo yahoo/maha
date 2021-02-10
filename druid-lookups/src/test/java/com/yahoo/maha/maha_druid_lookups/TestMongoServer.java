@@ -40,7 +40,7 @@ public class TestMongoServer {
             collection.insertOne(d);
         }
         for (Document d : collection.find()) {
-            System.out.println(d.toJson());
+            //System.out.println(d.toJson());
         }
         localMongoClient.close();
     }
@@ -65,7 +65,7 @@ public class TestMongoServer {
             }
         }
         for (Document d : collection.find()) {
-            System.out.println(d.toJson());
+            //System.out.println(d.toJson());
         }
         localMongoClient.close();
     }

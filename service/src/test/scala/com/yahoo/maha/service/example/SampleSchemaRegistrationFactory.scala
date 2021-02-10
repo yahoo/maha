@@ -42,6 +42,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           Set(
             DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+            , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
             , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
@@ -67,6 +68,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           Set(
             PubCol("class_id", "Class ID", InEquality),
             PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
+            PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality),
             PubCol("section_id", "Section ID", InEquality),
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
@@ -193,6 +195,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
             , DimCol("admitted_year", IntType())
             , DimCol("status", StrType())
             , DimCol("profile_url", StrType())
+            , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , schemaColMap = Map(StudentSchema -> "id")
@@ -200,11 +203,38 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
         ).toPublicDimension("student","student",
           Set(
             PubCol("id", "Student ID", InBetweenEqualityFieldEquality)
+            , PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality)
             , PubCol("name", "Student Name", EqualityFieldEquality)
             , PubCol("admitted_year", "Admitted Year", InEquality, hiddenFromJson = true)
             , PubCol("status", "Student Status", InEqualityFieldEquality)
             , PubCol("profile_url", "Profile URL", InEqualityLike, isImageColumn = true)
           ), highCardinalityFilters = Set(NotInFilter("Student Status", List("DELETED")))
+        )
+      }
+    }
+
+    val researcher_dim: PublicDimension = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        Dimension.newDimension("researcher", OracleEngine, LevelTwo, Set(StudentSchema),
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("department_id", IntType())
+            , DimCol("admitted_year", IntType())
+            , DimCol("status", StrType())
+            , DimCol("profile_url", StrType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          //          , schemaColMap = Map(StudentSchema -> "id")
+          , annotations = Set(OracleHashPartitioning)
+        ).toPublicDimension("researcher","researcher",
+          Set(
+            PubCol("id", "Researcher ID", InBetweenEqualityFieldEquality)
+            , PubCol("name", "Researcher Name", EqualityFieldEquality)
+            , PubCol("admitted_year", "Researcher Admitted Year", InEquality, hiddenFromJson = true)
+            , PubCol("status", "Researcher Status", InEqualityFieldEquality)
+            , PubCol("profile_url", "Researcher Profile URL", InEqualityLike, isImageColumn = true)
+          ), highCardinalityFilters = Set(NotInFilter("Researcher Status", List("DELETED")))
         )
       }
     }
@@ -270,6 +300,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("name", StrType())
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+            , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
             , DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("start_year", IntType())
             , DimCol("status", StrType())
@@ -284,6 +315,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
             , PubCol("name", "Section Name", Equality)
             , PubCol("start_year", "Section Start Year", InEquality, hiddenFromJson = true)
             , PubCol("status", "Section Status", InEquality)
+            , PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality)
           ), highCardinalityFilters = Set(NotInFilter("Section Status", List("DELETED")))
         )
       }
@@ -292,6 +324,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
     registry.register(section_dim)
     registry.register(class_dim)
     registry.register(student_dim)
+    registry.register(researcher_dim)
     registry.register(remarks_dim)
   }
 }
