@@ -16,9 +16,6 @@ import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.core.OracleEngine
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
-import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
-import com.yahoo.maha.service.example.SampleFactSchemaRegistrationFactory
-import com.yahoo.maha.service.example.SampleDimensionSchemaRegistrationFactory
 import org.joda.time.{DateTime, DateTimeZone}
 import org.json4s.JObject
 import org.scalatest.funsuite.AnyFunSuite
@@ -848,30 +845,30 @@ class RequestModelTest extends AnyFunSuite with Matchers {
   }
 
   //Not sure how to simulate this at this time since all the error handling takes care of it
-  ignore("Create model should fail if no candidates is found") {
-    val jsonString = s"""{
-                          "cube": "publicFact",
-                          "selectFields": [
-                              {"field": "Advertiser ID"},
-                              {"field": "Impressions"},
-                              {"field": "Pricing Type"}
-                          ],
-                          "filterExpressions": [
-                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-                          ],
-                          "sortBy": [
-                          ],
-                          "paginationStartIndex":20,
-                          "rowsPerPage":100
-                          }"""
-
-    val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = defaultRegistry
-    val res = getRequestModel(request, registry)
-    res.isFailure shouldBe true
-    res.failed.get.getMessage should startWith ("requirement failed: No candidates found for request!")
-  }
+//  ignore("Create model should fail if no candidates is found") {
+//    val jsonString = s"""{
+//                          "cube": "publicFact",
+//                          "selectFields": [
+//                              {"field": "Advertiser ID"},
+//                              {"field": "Impressions"},
+//                              {"field": "Pricing Type"}
+//                          ],
+//                          "filterExpressions": [
+//                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+//                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+//                          ],
+//                          "sortBy": [
+//                          ],
+//                          "paginationStartIndex":20,
+//                          "rowsPerPage":100
+//                          }"""
+//
+//    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+//    val registry = defaultRegistry
+//    val res = getRequestModel(request, registry)
+//    res.isFailure shouldBe true
+//    res.failed.get.getMessage should startWith ("requirement failed: No candidates found for request!")
+//  }
 
   test("create model should succeed when cube columns requested with dim filter") {
     val jsonString = s"""{
@@ -6127,50 +6124,6 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     verify(baseUTCTimeProvider, times(1)).getUTCDayHourMinuteFilter(any[Filter],any[Option[Filter]],any[Option[Filter]],any[Option[String]],any[Boolean])
   }
 
-  test("Test student, researcher, class, section cubes") {
-    val jsonString : String =
-      s"""
-         {
-         |    "cube": "student_performance",
-         |    "isDimDriven": true,
-         |    "selectFields": [
-         |        {
-         |            "field": "Student Name"
-         |        },
-         |        {
-         |            "field": "Researcher Name"
-         |        },
-         |        {
-         |            "field": "Class Name"
-         |        },
-         |        {
-         |            "field": "Section Name"
-         |        }
-         |    ],
-         |    "filterExpressions": [
-         |        {
-         |            "field": "Day",
-         |            "operator": "between",
-         |            "from": "$fromDate",
-         |            "to": "$toDate"
-         |        },
-         |        {
-         |            "field": "Student ID",
-         |            "operator": "=",
-         |            "value": "213"
-         |        }
-         |    ]
-         |}
-         |""".stripMargin
-    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
-    val registryBuilder = new RegistryBuilder
-    new SampleFactSchemaRegistrationFactory().register(registryBuilder)
-    new SampleDimensionSchemaRegistrationFactory().register(registryBuilder)
-    val registry = registryBuilder.build()
-    val res = getRequestModel(request, registry)
-    assert(res.isSuccess, res.errorMessage("Building request model failed"))
-  }
-
   object AucklandUserTimeZoneProvider extends UserTimeZoneProvider {
 
     override
@@ -6180,51 +6133,5 @@ class RequestModelTest extends AnyFunSuite with Matchers {
   }
 
 
-}
-class ExampleRequestModelTest extends AnyFunSuite with Matchers with BaseOracleQueryGeneratorTest {
-  def getExampleRegistry(): Registry = {
-    val registryBuilder = new RegistryBuilder
-    new SampleDimensionSchemaRegistrationFactory().register(registryBuilder)
-    new SampleFactSchemaRegistrationFactory().register(registryBuilder)
-    val registry = registryBuilder.build()
-    registry
-  }
-  lazy val exampleRegistry: Registry = getExampleRegistry()
-  test("Testing same level join") {
-    val jsonString = s"""{
-    "cube": "student_performance",
-    "isDimDriven": true,
-    "selectFields": [
-        {
-            "field": "Student Name"
-        },
-        {
-            "field": "Researcher Name"
-        }
-    ],
-    "filterExpressions": [
-        {
-            "field": "Day",
-            "operator": "between",
-            "from": "$fromDate",
-            "to": "$toDate"
-        },
-        {
-            "field": "Student ID",
-            "operator": "=",
-            "value": "213"
-        }
-    ]
-}"""
-    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
-    val registry = exampleRegistry
-    val res = getRequestModel(request, registry)
-    assert(res.isSuccess, s"Building request model failed.")
-    val queryPipelineTry = generatePipeline(res.toOption.get)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-    val queryPipeline = queryPipelineTry.toOption.get
-    val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result + " is the result")
-  }
 }
 

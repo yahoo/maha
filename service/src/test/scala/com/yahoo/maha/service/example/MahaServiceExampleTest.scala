@@ -3,7 +3,9 @@
 package com.yahoo.maha.service.example
 
 import com.yahoo.maha.core.bucketing._
+import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.query.{QueryRowList, Version}
+import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.log.MultiColoMahaRequestLogWriter
 import com.yahoo.maha.parrequest2.GeneralError
@@ -321,3 +323,94 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
   }
 
 }
+
+class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
+  def getExampleRegistry(): Registry = {
+    val registryBuilder = new RegistryBuilder
+    new SampleDimensionSchemaRegistrationFactory().register(registryBuilder)
+    new SampleFactSchemaRegistrationFactory().register(registryBuilder)
+    val registry = registryBuilder.build()
+    registry
+  }
+  lazy val exampleRegistry: Registry = getExampleRegistry()
+  test("Testing same level join") {
+    val jsonString = s"""{
+                        "cube": "student_performance",
+                        "isDimDriven": true,
+                        "selectFields": [
+                            {
+                                "field": "Student Name"
+                            },
+                            {
+                                "field": "Researcher Name"
+                            }
+                        ],
+                        "filterExpressions": [
+                            {
+                                "field": "Day",
+                                "operator": "between",
+                                "from": "$fromDate",
+                                "to": "$toDate"
+                            },
+                            {
+                                "field": "Student ID",
+                                "operator": "=",
+                                "value": "213"
+                            }
+                        ]
+                    }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result + " is the result")
+  }
+
+  test("Testing same level join with four dims") {
+    val jsonString = s"""{
+                        "cube": "student_performance",
+                        "isDimDriven": true,
+                        "selectFields": [
+                            {
+                                "field": "Student Name"
+                            },
+                            {
+                                "field": "Research Lab Name"
+                            },
+                            {
+                                "field": "Researcher Name"
+                            },
+                            {
+                                "field": "Section Name"
+                            }
+                        ],
+                        "filterExpressions": [
+                            {
+                                "field": "Day",
+                                "operator": "between",
+                                "from": "$fromDate",
+                                "to": "$toDate"
+                            },
+                            {
+                                "field": "Student ID",
+                                "operator": "=",
+                                "value": "213"
+                            }
+                        ]
+                    }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, res.errorMessage(s"Building request model failed." + res))
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result + " is the result")
+  }
+}
+
