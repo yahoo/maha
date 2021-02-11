@@ -843,30 +843,30 @@ class RequestModelTest extends AnyFunSuite with Matchers {
   }
 
   //Not sure how to simulate this at this time since all the error handling takes care of it
-  ignore("Create model should fail if no candidates is found") {
-    val jsonString = s"""{
-                          "cube": "publicFact",
-                          "selectFields": [
-                              {"field": "Advertiser ID"},
-                              {"field": "Impressions"},
-                              {"field": "Pricing Type"}
-                          ],
-                          "filterExpressions": [
-                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-                          ],
-                          "sortBy": [
-                          ],
-                          "paginationStartIndex":20,
-                          "rowsPerPage":100
-                          }"""
-
-    val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = defaultRegistry
-    val res = getRequestModel(request, registry)
-    res.isFailure shouldBe true
-    res.failed.get.getMessage should startWith ("requirement failed: No candidates found for request!")
-  }
+//  ignore("Create model should fail if no candidates is found") {
+//    val jsonString = s"""{
+//                          "cube": "publicFact",
+//                          "selectFields": [
+//                              {"field": "Advertiser ID"},
+//                              {"field": "Impressions"},
+//                              {"field": "Pricing Type"}
+//                          ],
+//                          "filterExpressions": [
+//                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+//                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+//                          ],
+//                          "sortBy": [
+//                          ],
+//                          "paginationStartIndex":20,
+//                          "rowsPerPage":100
+//                          }"""
+//
+//    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+//    val registry = defaultRegistry
+//    val res = getRequestModel(request, registry)
+//    res.isFailure shouldBe true
+//    res.failed.get.getMessage should startWith ("requirement failed: No candidates found for request!")
+//  }
 
   test("create model should succeed when cube columns requested with dim filter") {
     val jsonString = s"""{
@@ -6131,3 +6131,4 @@ class RequestModelTest extends AnyFunSuite with Matchers {
 
 
 }
+

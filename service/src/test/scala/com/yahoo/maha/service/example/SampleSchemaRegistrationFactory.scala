@@ -42,6 +42,8 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           Set(
             DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+            , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+            , DimCol("research_lab_id", IntType(), annotations = Set(ForeignKey("research_lab")))
             , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
@@ -64,24 +66,26 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
 
 
       builder.toPublicFact("student_performance",
-        Set(
-          PubCol("class_id", "Class ID", InEquality),
-          PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
-          PubCol("section_id", "Section ID", InEquality),
-          PubCol("date", "Day", Equality),
-          PubCol("month", "Month", InEquality),
-          PubCol("year", "Year", Equality),
-          PubCol("comment", "Remarks", InEqualityLike),
-          PubCol("top_student_id", "Top Student ID", FieldEquality)
-        ),
-        Set(
-          PublicFactCol("total_marks", "Total Marks", InBetweenEqualityFieldEquality),
-          PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEqualityFieldEquality),
-          PublicFactCol("Performance Factor", "Performance Factor", InBetweenEquality)
-        ),
-        Set.empty,
-        getMaxDaysWindow, getMaxDaysLookBack
-      )
+          Set(
+            PubCol("class_id", "Class ID", InEquality),
+            PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
+            PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality),
+            PubCol("research_lab_id", "Research Lab ID", InBetweenEqualityFieldEquality),
+            PubCol("section_id", "Section ID", InEquality),
+            PubCol("date", "Day", Equality),
+            PubCol("month", "Month", InEquality),
+            PubCol("year", "Year", Equality),
+            PubCol("comment", "Remarks", InEqualityLike),
+            PubCol("top_student_id", "Top Student ID", FieldEquality)
+          ),
+          Set(
+            PublicFactCol("total_marks", "Total Marks", InBetweenEqualityFieldEquality),
+            PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEqualityFieldEquality),
+            PublicFactCol("Performance Factor", "Performance Factor", InBetweenEquality)
+          ),
+          Set.empty,
+          getMaxDaysWindow, getMaxDaysLookBack
+        )
     }
     registry.register(pubfactOracle)
 
@@ -97,6 +101,8 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           Set(
             DimCol("class_id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+            , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+            , DimCol("research_lab_id", IntType(), annotations = Set(ForeignKey("research_lab")))
             , DimCol("section_id", IntType(3))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired, ForeignKey("remarks")))
@@ -116,6 +122,8 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           Set(
             PubCol("class_id", "Class ID", InEquality),
             PubCol("student_id", "Student ID", InEqualityFieldEquality),
+            PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality),
+            PubCol("research_lab_id", "Research Lab ID", InBetweenEqualityFieldEquality),
             PubCol("section_id", "Section ID", InEquality),
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
@@ -144,6 +152,8 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("section_id", IntType(3), annotations = Set(ForeignKey("section")))
+            , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+            , DimCol("research_lab_id", IntType(), annotations = Set(ForeignKey("research_lab")))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
             , DimCol("date", DateType())
@@ -161,6 +171,8 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           Set(
             PubCol("class_id", "Class ID", InEquality),
             PubCol("student_id", "Student ID", InEqualityFieldEquality),
+            PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality),
+            PubCol("research_lab_id", "Research Lab ID", InBetweenEqualityFieldEquality),
             PubCol("section_id", "Section ID", InNotInEquality),
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
@@ -265,12 +277,13 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
      */
     val section_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("section", OracleEngine, LevelThree, Set(StudentSchema),
+        Dimension.newDimension("section", OracleEngine, LevelFour, Set(StudentSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("name", StrType())
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+            , DimCol("research_lab_id", IntType(), annotations = Set(ForeignKey("research_lab")))
             , DimCol("start_year", IntType())
             , DimCol("status", StrType())
           )
@@ -281,6 +294,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
             PubCol("id", "Section ID", InNotInEquality)
             , PubCol("student_id", "Student ID", Equality)
             , PubCol("class_id", "Class ID", Equality)
+            , PubCol("research_lab_id", "Research Lab ID", Equality)
             , PubCol("name", "Section Name", Equality)
             , PubCol("start_year", "Section Start Year", InEquality, hiddenFromJson = true)
             , PubCol("status", "Section Status", InEquality)
@@ -289,9 +303,35 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
       }
     }
 
+    val research_lab_dim: PublicDimension = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        Dimension.newDimension("research_lab", OracleEngine, LevelThree, Set(StudentSchema),
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+            , DimCol("name", StrType())
+            , DimCol("start_year", IntType())
+            , DimCol("status", StrType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(OracleHashPartitioning)
+        ).toPublicDimension("research_lab","research_lab",
+          Set(
+            PubCol("id", "Research Lab ID", InNotInEquality)
+            , PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality)
+            , PubCol("name", "Research Lab Name", Equality)
+            , PubCol("start_year", "Research Lab Start Year", InEquality, hiddenFromJson = true)
+            , PubCol("status", "Research Status", InEquality)
+          )
+        )
+      }
+    }
+
     registry.register(section_dim)
     registry.register(class_dim)
     registry.register(student_dim)
+    registry.register(researcher_dim)
+    registry.register(research_lab_dim)
     registry.register(remarks_dim)
   }
 }
