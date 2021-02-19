@@ -84,7 +84,7 @@ public class JDBCExtractionNamespaceCacheFactory
                                                     secondaryTsWhereCondition);
                         } catch (Throwable t) {
                             LOG.error(t, "Failed to populate RowList From JDBC [s%]", id);
-                            throw Throwables.propagate(t);
+                            throw t;
                         }
                         return null;
                     }
@@ -247,8 +247,8 @@ public class JDBCExtractionNamespaceCacheFactory
                 (Timestamp) getMaxValFromColumn(id, namespace, CustomizedTimestampMapper.getInstance(namespace), tsColumn, table,
                                                 namespace.hasSecondaryTsColumn() ? formatSecondTsWhereClause(namespace, maxTsCache[0], SECONDARY_TS_COL_ONLY_WHERE_CLAUSE) : "");
             return lastUpdatedTimeStamp;
-        } catch (Throwable t) {
-            LOG.error(t, "Exception caught while getting last updated timestamp. Using previous timestamp [%s] instead.", namespace.getPreviousLastUpdateTimestamp());
+        } catch (Exception e) {
+            LOG.error(e, "Exception caught while getting last updated timestamp. Using previous timestamp [%s] instead.", namespace.getPreviousLastUpdateTimestamp());
             return namespace.getPreviousLastUpdateTimestamp();
         }
 
