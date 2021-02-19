@@ -16,6 +16,7 @@ import com.yahoo.maha.utils.DaysUtils
 import grizzled.slf4j.Logging
 import org.joda.time.DateTimeZone
 import org.slf4j.LoggerFactory
+import java.util
 
 import scala.collection.{SortedSet, mutable}
 import scala.util.{Failure, Success, Try}
@@ -36,6 +37,7 @@ case class DimensionCandidate(dim: PublicDimension
                               , hasLowCardinalityFilter: Boolean
                               , hasPKRequested : Boolean
                               , hasNonPushDownFilters : Boolean
+                              , subDimLevel : Int = 0
                              ) {
 
   def debugString : String = {
@@ -60,7 +62,7 @@ case class DimensionRelations(relations: Map[(String, String), Boolean]) {
 }
 
 object DimensionCandidate {
-  implicit val ordering: Ordering[DimensionCandidate] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.name}")
+  implicit val ordering: Ordering[DimensionCandidate] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.subDimLevel}-${dc.dim.name}")
 }
 
 sealed trait ColumnInfo {
@@ -781,12 +783,18 @@ object RequestModel extends Logging {
           }
 
           //if we are dim driven, add primary key of highest level dim
-          if(dimDrivenRequestedDimensionPrimaryKeyAliases.nonEmpty && !isFactDriven) {
-            val dimDrivenHighestLevelDim =
-              dimDrivenRequestedDimensionPrimaryKeyAliases
+//          if(dimDrivenRequestedDimensionPrimaryKeyAliases.nonEmpty && !isFactDriven) {
+//            val dimDrivenHighestLevelDim =
+//              dimDrivenRequestedDimensionPrimaryKeyAliases
+//                .map(pk => registry.getPkDimensionUsingFactTable(pk, Some(publicFact.dimRevision), publicFact.dimToRevisionMap).get) //we can do .get since we already checked above
+//                .to[IndexedSeq]
+//                .last
+            if(dimDrivenRequestedDimensionPrimaryKeyAliases.nonEmpty && !isFactDriven) {
+              val dimDrivenDimensionPrimaryKeyIndSeq = dimDrivenRequestedDimensionPrimaryKeyAliases
                 .map(pk => registry.getPkDimensionUsingFactTable(pk, Some(publicFact.dimRevision), publicFact.dimToRevisionMap).get) //we can do .get since we already checked above
-                .to[SortedSet]
-                .lastKey
+                .to[IndexedSeq]
+              val dimDrivenDimensionPrimaryKeySorted = sortOnForeignKey(dimDrivenDimensionPrimaryKeyIndSeq, 0)
+              val dimDrivenHighestLevelDim = dimDrivenDimensionPrimaryKeySorted.last
 
             val addDim = {
               if(allRequestedDimensionPrimaryKeyAliases.nonEmpty) {
@@ -823,10 +831,18 @@ object RequestModel extends Logging {
           val dimensionCandidatesPreValidation: SortedSet[DimensionCandidate] = {
             val intermediateCandidates = new mutable.TreeSet[DimensionCandidate]()
             val upperJoinCandidates = new mutable.TreeSet[PublicDimension]()
-            finalAllRequestedDimensionPrimaryKeyAliases
+//            finalAllRequestedDimensionPrimaryKeyAliases
+//              .flatMap(f => registry.getPkDimensionUsingFactTable(f, Some(publicFact.dimRevision), publicFact.dimToRevisionMap))
+//              .toIndexedSeq
+//              .sortWith((a, b) => b.dimLevel < a.dimLevel)
+
+            val indexedSeqVar = finalAllRequestedDimensionPrimaryKeyAliases
               .flatMap(f => registry.getPkDimensionUsingFactTable(f, Some(publicFact.dimRevision), publicFact.dimToRevisionMap))
               .toIndexedSeq
               .sortWith((a, b) => b.dimLevel < a.dimLevel)
+            val indexedSeqVarSorted = sortOnForeignKey(indexedSeqVar, 1)
+            var subDimLevel : Int = indexedSeqVarSorted.size
+            indexedSeqVarSorted
               .foreach {
                 publicDimOption =>
                   //used to identify the highest level dimension
@@ -924,7 +940,7 @@ object RequestModel extends Logging {
                               foreignkeyAlias += alias
                               val pd = finalAllRequestedDimsMap(alias)
                               //only keep lower join candidates
-                              if(pd.dimLevel != publicDim.dimLevel && pd.dimLevel <= prevLevel) {
+                              if(pd.dimLevel <= publicDim.dimLevel) {
                                 lowerJoinCandidates += finalAllRequestedDimsMap(alias)
                               }
                             }
@@ -935,10 +951,9 @@ object RequestModel extends Logging {
                       }
                     }
 
-
                     // always include primary key in dimension table for join
                     val requestedDimAliases = foreignkeyAlias ++ fields + publicDim.primaryKeyByAlias
-                    val filteredUpper = upperJoinCandidates.filter(pd => pd.dimLevel != publicDim.dimLevel && pd.dimLevel >= aboveLevel)
+                    val filteredUpper = upperJoinCandidates.filter(pd => pd.dimLevel >= publicDim.dimLevel)
 
                     // attempting to find the better upper candidate if exist
                     // ads->adgroup->campaign hierarchy, better upper candidate for campaign is ad
@@ -970,6 +985,7 @@ object RequestModel extends Logging {
                                   !publicFact.columnsByAlias(filter.field) &&
                                   !(publicDim.containsHighCardinalityFilter(filter) || injectDim.containsHighCardinalityFilter(filter))
                             }
+                            subDimLevel = subDimLevel - 1
                             intermediateCandidates += new DimensionCandidate(
                               injectDim
                               , Set(injectDim.primaryKeyByAlias, publicDim.primaryKeyByAlias)
@@ -984,6 +1000,7 @@ object RequestModel extends Logging {
                               , hasLowCardinalityFilter
                               , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
                               , hasNonPushDownFilters = injectFilters.exists(filter => !filter.isPushDown)
+                              , subDimLevel
                             )
 
                         }
@@ -998,7 +1015,7 @@ object RequestModel extends Logging {
                     val hasLowCardinalityFilter = filters.view.filter(!_.isPushDown).exists {
                       filter => colAliases(filter.field) && !publicFact.columnsByAlias(filter.field) && !publicDim.containsHighCardinalityFilter(filter)
                     }
-
+                    subDimLevel = subDimLevel - 1
                     intermediateCandidates += new DimensionCandidate(
                       publicDim
                       , foreignkeyAlias ++ fields + publicDim.primaryKeyByAlias
@@ -1013,6 +1030,7 @@ object RequestModel extends Logging {
                       , hasLowCardinalityFilter
                       , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
                       , hasNonPushDownFilters = filters.exists(filter => !filter.isPushDown)
+                      , subDimLevel
                     )
                     allRequestedDimAliases ++= requestedDimAliases
                     // Adding current dimension to uppper dimension candidates
@@ -1202,6 +1220,103 @@ object RequestModel extends Logging {
     }
   }
 
+  def topologicalSortUtil(graph:util.ArrayList[util.ArrayList[Int]], dim:Int, visited: util.ArrayList[Boolean], stack: List[Int]): List[Int] = {
+    var stck = stack
+    visited.set(dim, true)
+    var idx: Int = 0
+    //What if graph.get(dim) is null or empty ???
+    val iter: util.Iterator[Int] = graph.get(dim).iterator()
+    while (iter.hasNext()) {
+      idx = iter.next()
+      if (!visited.get(idx)) {
+        stck = topologicalSortUtil(graph, idx, visited, stck)
+      }
+    }
+    stck = dim +: stck
+    stck
+  }
+
+  def topologicalSort(graph:util.ArrayList[util.ArrayList[Int]]): List[Int] = {
+    val visited = new util.ArrayList[Boolean](graph.size())
+    var idx = 0
+    while(idx < graph.size()){
+      visited.add(false)
+      idx += 1
+    }
+    var stack = List[Int]()
+    idx = 0
+    while(idx < visited.size()) {
+      if(visited.get(idx) == false){
+        stack = topologicalSortUtil(graph, idx, visited, stack)
+      }
+      idx += 1
+    }
+    stack
+  }
+
+  def sortOnForeignKey(indexedSeqVar: IndexedSeq[PublicDimension], order: Int):IndexedSeq[PublicDimension] = {
+    //      var dimIdx = 0
+    //      var indexedSeqVarSorted = indexedSeqVar
+    //    while(dimIdx < indexedSeqVar.size - 1){
+    //          var currentDim = indexedSeqVar(dimIdx)
+    //          var nextDim = indexedSeqVar(dimIdx + 1)
+    //          if(currentDim.dimLevel == nextDim.dimLevel && nextDim.foreignKeyByAlias.contains(currentDim.primaryKeyByAlias)){
+    //            indexedSeqVarSorted = indexedSeqVarSorted.updated(dimIdx + 1, currentDim)
+    //            indexedSeqVarSorted = indexedSeqVarSorted.updated(dimIdx, nextDim)
+    //          }
+    //          dimIdx += 1
+    //      }
+    //    indexedSeqVarSorted
+    var indexedSeqVarSorted = indexedSeqVar
+    var dimIdx = 0
+    while(dimIdx < indexedSeqVar.size - 1){
+      var currentDimLevel = indexedSeqVar(dimIdx).dimLevel.level
+      var startIdx = dimIdx
+      var stopIdx = dimIdx + 1
+      while(stopIdx < indexedSeqVar.size && indexedSeqVar(stopIdx).dimLevel.level == currentDimLevel){
+        stopIdx += 1
+      }
+      var arrLen = stopIdx - startIdx
+      if(arrLen > 1) {
+        var arr = new Array[PublicDimension](arrLen)
+        var n = 0
+        //indexedSeqVar.copyToArray(arr, startIdx)
+        while(n < arrLen){
+          arr(n) = indexedSeqVar(startIdx + n)
+          n += 1
+        }
+        var graph = new util.ArrayList[util.ArrayList[Int]]()
+        var idx = 0
+        while (idx < arrLen) {
+          graph.add(new util.ArrayList[Int]())
+          arr(idx).foreignKeyByAlias.foreach {
+            fk => {
+              var newIdx = 0
+              while (newIdx < arrLen) {
+                if (newIdx != idx && fk.equals(arr(newIdx).primaryKeyByAlias)) {
+                  graph.get(idx).add(newIdx)
+                }
+                newIdx += 1
+              }
+            }
+          }
+          idx += 1
+        }
+        var stack = topologicalSort(graph)
+        var i = 0
+        while(i < arrLen){
+          var updatedValue = arr(stack(i))
+          if(order == 0){
+            updatedValue = arr(stack(stack.size - 1 - i))
+          }
+          indexedSeqVarSorted = indexedSeqVarSorted.updated(startIdx + i, updatedValue)
+          i += 1
+        }
+      }
+      dimIdx = stopIdx
+    }
+    indexedSeqVarSorted
+  }
   private[this] def validateRequiredFiltersForDimOnlyQuery(filterMap:mutable.HashMap[String, mutable.TreeSet[Filter]],requiredAliasSet:Set[RequiredAlias], request:ReportingRequest): Unit = {
     requiredAliasSet.foreach(
       reqAlias => {

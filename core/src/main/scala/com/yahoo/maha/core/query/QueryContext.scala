@@ -112,6 +112,7 @@ case class DimensionBundle(dim: Dimension
                            , hasPKRequested: Boolean
                            , hasNonFKNonForceFilters: Boolean
                            , hasLowCardinalityFilter: Boolean
+                           , subDimLevel : Int = 0
                             ) {
   //only filtering on primary key alias then subquery candidate
   lazy val filterFields: SortedSet[String] = for (filter <- filters) yield {
@@ -143,7 +144,7 @@ case class DimensionBundle(dim: Dimension
 }
 
 object DimensionBundle {
-  implicit val ordering: Ordering[DimensionBundle] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.name}")
+  implicit val ordering: Ordering[DimensionBundle] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.subDimLevel}-${dc.dim.name}")
 }
 
 class QueryContextBuilder(queryType: QueryType, requestModel: RequestModel) {
