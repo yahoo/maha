@@ -235,10 +235,16 @@ public class JDBCExtractionNamespaceCacheFactory
         if (!namespace.isFirstTimeCaching() && isFollower)
             return namespace.getPreviousLastUpdateTimestamp();
 
-        final Timestamp lastUpdatedTimeStamp =
+        try {
+            final Timestamp lastUpdatedTimeStamp =
                 (Timestamp) getMaxValFromColumn(id, namespace, CustomizedTimestampMapper.getInstance(namespace), tsColumn, table,
-                        namespace.hasSecondaryTsColumn() ? formatSecondTsWhereClause(namespace, maxTsCache[0], SECONDARY_TS_COL_ONLY_WHERE_CLAUSE) : "");
-        return lastUpdatedTimeStamp;
+                                                namespace.hasSecondaryTsColumn() ? formatSecondTsWhereClause(namespace, maxTsCache[0], SECONDARY_TS_COL_ONLY_WHERE_CLAUSE) : "");
+            return lastUpdatedTimeStamp;
+        } catch (Exception e) {
+            LOG.error(e, "Exception caught while getting last updated timestamp. Using previous timestamp [%s] instead.", namespace.getPreviousLastUpdateTimestamp());
+            return namespace.getPreviousLastUpdateTimestamp();
+        }
+
 
     }
 
