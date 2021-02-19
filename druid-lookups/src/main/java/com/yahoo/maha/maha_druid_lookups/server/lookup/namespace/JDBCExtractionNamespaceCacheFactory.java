@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
+import com.google.common.base.Throwables;
 import com.google.inject.Inject;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
@@ -70,15 +71,21 @@ public class JDBCExtractionNamespaceCacheFactory
         return () -> {
             final DBI dbi = ensureDBI(id, extractionNamespace);
 
-            LOG.debug("Updating [%s]", id);
+            LOG.info("Updating [%s]", id);
             dbi.withHandle(
                     (HandleCallback<Void>) handle -> {
                         String query = String.format("SELECT %s FROM %s",
                                 String.join(COMMA_SEPARATOR, extractionNamespace.getColumnList()),
                                 extractionNamespace.getTable()
                         );
-
-                        populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, new RowMapper(extractionNamespace, cache), secondaryTsWhereCondition);
+                        try {
+                            populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle,
+                                                    new RowMapper(extractionNamespace, cache),
+                                                    secondaryTsWhereCondition);
+                        } catch (Throwable t) {
+                            LOG.error(t, "Failed to populate RowList From JDBC [s%]", id);
+                            throw Throwables.propagate(t);
+                        }
                         return null;
                     }
             );
@@ -240,8 +247,8 @@ public class JDBCExtractionNamespaceCacheFactory
                 (Timestamp) getMaxValFromColumn(id, namespace, CustomizedTimestampMapper.getInstance(namespace), tsColumn, table,
                                                 namespace.hasSecondaryTsColumn() ? formatSecondTsWhereClause(namespace, maxTsCache[0], SECONDARY_TS_COL_ONLY_WHERE_CLAUSE) : "");
             return lastUpdatedTimeStamp;
-        } catch (Exception e) {
-            LOG.error(e, "Exception caught while getting last updated timestamp. Using previous timestamp [%s] instead.", namespace.getPreviousLastUpdateTimestamp());
+        } catch (Throwable t) {
+            LOG.error(t, "Exception caught while getting last updated timestamp. Using previous timestamp [%s] instead.", namespace.getPreviousLastUpdateTimestamp());
             return namespace.getPreviousLastUpdateTimestamp();
         }
 
