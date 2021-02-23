@@ -1161,7 +1161,7 @@ object RequestModel extends Logging {
 
             validateRequiredFiltersForDimOnlyQuery(filterMap, (requiredAliasSetFromRelatedDims ++ selfDimSchemaRequiredAlias).toSet , request)
           }
-          
+
           // All Dim only queries are by default dim driven
           val forceDimensionDriven:Boolean = if(isDimOnlyQuery) {
             true
