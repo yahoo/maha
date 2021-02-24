@@ -50,9 +50,12 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("date", DateType())
             , DimCol("month", DateType())
             , DimCol("top_student_id", IntType())
-            , DimCol("volunteer_id", IntType(), annotations = Set(ForeignKey("volunteers")))
+//            , DimCol("volunteer_id", IntType(), annotations = Set(ForeignKey("volunteers")))
+            , DimCol("class_volunteer_id", IntType(), annotations = Set(ForeignKey("class_volunteers")))
+            , DimCol("science_lab_volunteer_id", IntType(), annotations = Set(ForeignKey("science_lab_volunteers")))
+            , DimCol("tutor_id", IntType(), annotations = Set(ForeignKey("tutors")))
 //            , DimCol("volunteer_event_id", IntType(), annotations = Set(ForeignKey("volunteer_events")))
-            , DimCol("event_id", IntType(), annotations = Set(ForeignKey("events")))
+//            , DimCol("event_id", IntType(), annotations = Set(ForeignKey("events")))
           ),
           Set(
             FactCol("total_marks", IntType())
@@ -80,9 +83,12 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("year", "Year", Equality),
             PubCol("comment", "Remarks", InEqualityLike),
             PubCol("top_student_id", "Top Student ID", FieldEquality),
-            PubCol("volunteer_id", "Volunteer ID", InBetweenEqualityFieldEquality),
+//            PubCol("volunteer_id", "Volunteer ID", InBetweenEqualityFieldEquality),
+            PubCol("class_volunteer_id", "Class Volunteer ID", InBetweenEqualityFieldEquality),
+            PubCol("science_lab_volunteer_id", "Science Lab Volunteer ID", InBetweenEqualityFieldEquality),
+            PubCol("tutor_id", "Tutor ID", InBetweenEqualityFieldEquality),
 //            PubCol("volunteer_event_id", "Volunteer Event ID", InBetweenEqualityFieldEquality),
-            PubCol("event_id", "Event ID", InBetweenEqualityFieldEquality)
+//            PubCol("event_id", "Event ID", InBetweenEqualityFieldEquality)
           ),
           Set(
             PublicFactCol("total_marks", "Total Marks", InBetweenEqualityFieldEquality),
@@ -116,9 +122,9 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("date", DateType())
             , DimCol("month", DateType())
             , DimCol("top_student_id", IntType())
-            , DimCol("volunteer_id", IntType(), annotations = Set(ForeignKey("volunteers")))
+//            , DimCol("volunteer_id", IntType(), annotations = Set(ForeignKey("volunteers")))
             //            , DimCol("volunteer_event_id", IntType(), annotations = Set(ForeignKey("volunteer_events")))
-            , DimCol("event_id", IntType(), annotations = Set(ForeignKey("events")))
+//            , DimCol("event_id", IntType(), annotations = Set(ForeignKey("events")))
           ),
           Set(
             FactCol("total_marks", IntType())
@@ -140,9 +146,9 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("comment", "Remarks", InEqualityLike),
             PubCol("comment2", "Remarks2", InEqualityLike),
             PubCol("top_student_id", "Top Student ID", FieldEquality),
-            PubCol("volunteer_id", "Volunteer ID", InBetweenEqualityFieldEquality),
+//            PubCol("volunteer_id", "Volunteer ID", InBetweenEqualityFieldEquality),
             //            PubCol("volunteer_event_id", "Volunteer Event ID", InBetweenEqualityFieldEquality),
-            PubCol("event_id", "Event ID", InBetweenEqualityFieldEquality)
+//            PubCol("event_id", "Event ID", InBetweenEqualityFieldEquality)
           ),
           Set(
             PublicFactCol("total_marks", "Total Marks", InBetweenEquality),
@@ -171,9 +177,9 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("date", DateType())
             , DimCol("month", DateType())
             , DimCol("top_student_id", IntType())
-            , DimCol("volunteer_id", IntType(), annotations = Set(ForeignKey("volunteers")))
+//            , DimCol("volunteer_id", IntType(), annotations = Set(ForeignKey("volunteers")))
             //            , DimCol("volunteer_event_id", IntType(), annotations = Set(ForeignKey("volunteer_events")))
-            , DimCol("event_id", IntType(), annotations = Set(ForeignKey("events")))
+//            , DimCol("event_id", IntType(), annotations = Set(ForeignKey("events")))
           ),
           Set(
             FactCol("total_marks", IntType())
@@ -193,9 +199,9 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("month", "Month", InEquality),
             PubCol("year", "Year", Equality),
             PubCol("top_student_id", "Top Student ID", FieldEquality),
-            PubCol("volunteer_id", "Volunteer ID", InBetweenEqualityFieldEquality),
+//            PubCol("volunteer_id", "Volunteer ID", InBetweenEqualityFieldEquality),
             //            PubCol("volunteer_event_id", "Volunteer Event ID", InBetweenEqualityFieldEquality),
-            PubCol("event_id", "Event ID", InBetweenEqualityFieldEquality)
+//            PubCol("event_id", "Event ID", InBetweenEqualityFieldEquality)
           ),
           Set(
             PublicFactCol("total_marks", "Total Marks", InBetweenEquality),
@@ -219,7 +225,8 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
-            , DimCol("volunteer_id", IntType(), annotations = Set(ForeignKey("volunteers")))
+//            , DimCol("volunteer_id", IntType(), annotations = Set(ForeignKey("volunteers")))
+            , DimCol("class_volunteer_id", IntType(), annotations = Set(ForeignKey("class_volunteers")))
             , DimCol("name", StrType())
             , DimCol("department_id", IntType())
             , DimCol("admitted_year", IntType())
@@ -233,7 +240,8 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
           Set(
             PubCol("id", "Student ID", InBetweenEqualityFieldEquality)
             , PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality)
-            , PubCol("volunteer_id", "Volunteer ID", InBetweenEqualityFieldEquality)
+//            , PubCol("volunteer_id", "Volunteer ID", InBetweenEqualityFieldEquality)
+            , PubCol("class_volunteer_id", "Class Volunteer ID", InBetweenEqualityFieldEquality)
             , PubCol("name", "Student Name", EqualityFieldEquality)
             , PubCol("admitted_year", "Admitted Year", InEquality, hiddenFromJson = true)
             , PubCol("status", "Student Status", InEqualityFieldEquality)
@@ -249,7 +257,9 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("name", StrType())
-            , DimCol("volunteer_id", IntType(), annotations = Set(ForeignKey("volunteers")))
+//            , DimCol("volunteer_id", IntType(), annotations = Set(ForeignKey("volunteers")))
+            , DimCol("science_lab_volunteer_id", IntType(), annotations = Set(ForeignKey("science_lab_volunteers")))
+            , DimCol("tutor_id", IntType(), annotations = Set(ForeignKey("tutors")))
             , DimCol("department_id", IntType())
             , DimCol("admitted_year", IntType())
             , DimCol("status", StrType())
@@ -260,7 +270,9 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
         ).toPublicDimension("researcher","researcher",
           Set(
             PubCol("id", "Researcher ID", InBetweenEqualityFieldEquality)
-            , PubCol("volunteer_id", "Volunteer ID", InBetweenEqualityFieldEquality)
+//            , PubCol("volunteer_id", "Volunteer ID", InBetweenEqualityFieldEquality)
+            , PubCol("science_lab_volunteer_id", "Science Lab Volunteer ID", InBetweenEqualityFieldEquality)
+            , PubCol("tutor_id", "Tutor ID", InBetweenEqualityFieldEquality)
             , PubCol("name", "Researcher Name", EqualityFieldEquality)
             , PubCol("admitted_year", "Researcher Admitted Year", InEquality, hiddenFromJson = true)
             , PubCol("status", "Researcher Status", InEqualityFieldEquality)
@@ -333,7 +345,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
-            , DimCol("event_id", IntType(), annotations = Set(ForeignKey("events")))
+//            , DimCol("event_id", IntType(), annotations = Set(ForeignKey("events")))
             , DimCol("start_year", IntType())
             , DimCol("status", StrType())
           )
@@ -345,7 +357,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
             , PubCol("student_id", "Student ID", Equality)
             , PubCol("class_id", "Class ID", Equality)
             , PubCol("lab_id", "Lab ID", InBetweenEqualityFieldEquality)
-            , PubCol("event_id", "Event ID", Equality)
+//            , PubCol("event_id", "Event ID", Equality)
             , PubCol("name", "Section Name", Equality)
             , PubCol("start_year", "Section Start Year", InEquality, hiddenFromJson = true)
             , PubCol("status", "Section Status", InEquality)
@@ -356,11 +368,11 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
 
     val lab_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("lab", OracleEngine, LevelThree, Set(StudentSchema),
+        Dimension.newDimension("lab", OracleEngine, LevelFour, Set(StudentSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
-            , DimCol("event_id", IntType(), annotations = Set(ForeignKey("events")))
+//            , DimCol("event_id", IntType(), annotations = Set(ForeignKey("events")))
             , DimCol("name", StrType())
             , DimCol("start_year", IntType())
             , DimCol("status", StrType())
@@ -371,7 +383,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
           Set(
             PubCol("id", "Lab ID", InNotInEquality)
             , PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality)
-            , PubCol("event_id", "Event ID", InBetweenEqualityFieldEquality)
+//            , PubCol("event_id", "Event ID", InBetweenEqualityFieldEquality)
             , PubCol("name", "Lab Name", Equality)
             , PubCol("start_year", "Lab Start Year", InEquality, hiddenFromJson = true)
             , PubCol("status", "Lab Status", InEquality)
@@ -380,26 +392,95 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
       }
     }
 
-    val volunteer_dim: PublicDimension = {
+//    val volunteer_dim: PublicDimension = {
+//      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+//        Dimension.newDimension("volunteer", OracleEngine, LevelTwo, Set(StudentSchema),
+//          Set(
+//            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+//            , DimCol("name", StrType())
+//            , DimCol("department_id", IntType())
+//            , DimCol("admitted_year", IntType())
+//            , DimCol("status", StrType())
+//            , DimCol("profile_url", StrType())
+//          )
+//          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+//          , annotations = Set(OracleHashPartitioning)
+//        ).toPublicDimension("volunteers","volunteer",
+//          Set(
+//            PubCol("id", "Volunteer ID", InBetweenEqualityFieldEquality)
+//            , PubCol("name", "Volunteer Name", EqualityFieldEquality)
+//            , PubCol("admitted_year", "Volunteer Admitted Year", InEquality, hiddenFromJson = true)
+//            , PubCol("status", "Volunteer Status", InEqualityFieldEquality)
+//          ), highCardinalityFilters = Set(NotInFilter("Volunteer Status", List("DELETED")))
+//        )
+//      }
+//    }
+
+    val class_volunteer_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("volunteer", OracleEngine, LevelTwo, Set(StudentSchema),
+        Dimension.newDimension("class_volunteer", OracleEngine, LevelTwo, Set(StudentSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("name", StrType())
             , DimCol("department_id", IntType())
             , DimCol("admitted_year", IntType())
             , DimCol("status", StrType())
-            , DimCol("profile_url", StrType())
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , annotations = Set(OracleHashPartitioning)
-        ).toPublicDimension("volunteers","volunteer",
+        ).toPublicDimension("class_volunteers","class_volunteer",
           Set(
-            PubCol("id", "Volunteer ID", InBetweenEqualityFieldEquality)
-            , PubCol("name", "Volunteer Name", EqualityFieldEquality)
-            , PubCol("admitted_year", "Volunteer Admitted Year", InEquality, hiddenFromJson = true)
-            , PubCol("status", "Volunteer Status", InEqualityFieldEquality)
-          ), highCardinalityFilters = Set(NotInFilter("Volunteer Status", List("DELETED")))
+            PubCol("id", "Class Volunteer ID", InBetweenEqualityFieldEquality)
+            , PubCol("name", "Class Volunteer Name", EqualityFieldEquality)
+            , PubCol("admitted_year", "Class Volunteer Admitted Year", InEquality, hiddenFromJson = true)
+            , PubCol("status", "Class Volunteer Status", InEqualityFieldEquality)
+          ), highCardinalityFilters = Set(NotInFilter("Class Volunteer Status", List("DELETED")))
+        )
+      }
+    }
+
+    val science_lab_volunteer_dim: PublicDimension = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        Dimension.newDimension("science_lab_volunteer", OracleEngine, LevelTwo, Set(StudentSchema),
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("department_id", IntType())
+            , DimCol("admitted_year", IntType())
+            , DimCol("status", StrType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(OracleHashPartitioning)
+        ).toPublicDimension("science_lab_volunteers","science_lab_volunteer",
+          Set(
+            PubCol("id", "Science Lab Volunteer ID", InBetweenEqualityFieldEquality)
+            , PubCol("name", "Science Lab Volunteer Name", EqualityFieldEquality)
+            , PubCol("admitted_year", "Science Lab Volunteer Admitted Year", InEquality, hiddenFromJson = true)
+            , PubCol("status", "Science Lab Volunteer Status", InEqualityFieldEquality)
+          ), highCardinalityFilters = Set(NotInFilter("Science Lab Volunteer Status", List("DELETED")))
+        )
+      }
+    }
+
+    val tutor_dim: PublicDimension = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        Dimension.newDimension("tutor", OracleEngine, LevelTwo, Set(StudentSchema),
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("department_id", IntType())
+            , DimCol("admitted_year", IntType())
+            , DimCol("status", StrType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(OracleHashPartitioning)
+        ).toPublicDimension("tutors","tutor",
+          Set(
+            PubCol("id", "Tutor ID", InBetweenEqualityFieldEquality)
+            , PubCol("name", "Tutor Name", EqualityFieldEquality)
+            , PubCol("admitted_year", "Tutor Admitted Year", InEquality, hiddenFromJson = true)
+            , PubCol("status", "Tutor Status", InEqualityFieldEquality)
+          ), highCardinalityFilters = Set(NotInFilter("Tutor Status", List("DELETED")))
         )
       }
     }
@@ -430,31 +511,35 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
 //      }
 //    }
 
-    val volunteer_event_dim: PublicDimension = {
-      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("event", OracleEngine, LevelThree, Set(StudentSchema),
-          Set(
-            DimCol("id", IntType(), annotations = Set(PrimaryKey))
-            , DimCol("name", StrType())
-            , DimCol("volunteer_id", IntType(), annotations = Set(ForeignKey("volunteers")))
-//            , DimCol("volunteer_event_id", IntType(), annotations = Set(ForeignKey("volunteer_events")))
-            , DimCol("start_semester", StrType())
-            , DimCol("status", StrType())
-          )
-          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleHashPartitioning)
-        ).toPublicDimension("events","event",
-          Set(
-            PubCol("id", "Event ID", InBetweenEqualityFieldEquality)
-            , PubCol("name", "Event Name", EqualityFieldEquality)
-            , PubCol("volunteer_id", "Volunteer ID", InBetweenEqualityFieldEquality)
-//            , PubCol("volunteer_event_id", "Volunteer Event ID", InBetweenEqualityFieldEquality)
-            , PubCol("start_semester", "Event Start Semester", InEquality, hiddenFromJson = true)
-            , PubCol("status", "Event Status", InEqualityFieldEquality)
-          ), highCardinalityFilters = Set(NotInFilter("Event Status", List("DELETED")))
-        )
-      }
-    }
+//    val volunteer_event_dim: PublicDimension = {
+//      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+//        Dimension.newDimension("event", OracleEngine, LevelFour, Set(StudentSchema),
+//          Set(
+//            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+//            , DimCol("name", StrType())
+//            , DimCol("volunteer_id", IntType(), annotations = Set(ForeignKey("volunteers")))
+//            , DimCol("class_volunteer_id", IntType(), annotations = Set(ForeignKey("class_volunteers")))
+//            , DimCol("lab_volunteer_id", IntType(), annotations = Set(ForeignKey("lab_volunteers")))
+////            , DimCol("volunteer_event_id", IntType(), annotations = Set(ForeignKey("volunteer_events")))
+//            , DimCol("start_semester", StrType())
+//            , DimCol("status", StrType())
+//          )
+//          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+//          , annotations = Set(OracleHashPartitioning)
+//        ).toPublicDimension("events","event",
+//          Set(
+//            PubCol("id", "Event ID", InBetweenEqualityFieldEquality)
+//            , PubCol("name", "Event Name", EqualityFieldEquality)
+//            , PubCol("volunteer_id", "Volunteer ID", InBetweenEqualityFieldEquality)
+//            , PubCol("class_volunteer_id", "Class Volunteer ID", InBetweenEqualityFieldEquality)
+//            , PubCol("lab_volunteer_id", "Lab Volunteer ID", InBetweenEqualityFieldEquality)
+////            , PubCol("volunteer_event_id", "Volunteer Event ID", InBetweenEqualityFieldEquality)
+//            , PubCol("start_semester", "Event Start Semester", InEquality, hiddenFromJson = true)
+//            , PubCol("status", "Event Status", InEqualityFieldEquality)
+//          ), highCardinalityFilters = Set(NotInFilter("Event Status", List("DELETED")))
+//        )
+//      }
+//    }
 
     registry.register(section_dim)
     registry.register(class_dim)
@@ -462,8 +547,11 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
     registry.register(researcher_dim)
     registry.register(lab_dim)
     registry.register(remarks_dim)
-    registry.register(volunteer_dim)
+//    registry.register(volunteer_dim)
+    registry.register(class_volunteer_dim)
+    registry.register(science_lab_volunteer_dim)
+    registry.register(tutor_dim)
 //    registry.register(volunteer_event_dim)
-    registry.register(volunteer_event_dim)
+//    registry.register(volunteer_event_dim)
   }
 }

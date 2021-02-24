@@ -16,6 +16,10 @@ import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
 import org.scalatest.BeforeAndAfterAll
+//import org.scalatest.funsuite.AnyFunSuite
+//import org.scalatest.matchers.should.Matchers
+import org.scalatest.matchers.should
+import com.yahoo.maha.core.whiteSpaceNormalised
 
 /**
  * Created by pranavbhole on 09/06/17.
@@ -332,8 +336,10 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = registryBuilder.build()
     registry
   }
+
   lazy val exampleRegistry: Registry = getExampleRegistry()
-  test("Testing same level join") {
+
+  test("Test: 2 same dim level tables join should succeed") {
     val jsonString = s"""{
                         "cube": "student_performance",
                         "isDimDriven": true,
@@ -367,7 +373,546 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result + " is the result")
+    println(result)
+
+    val expected =
+      s"""SELECT  *
+         |      FROM (
+         |          SELECT "Student Name", "Researcher Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s1.name "Student Name", r0.name "Researcher Name"
+         |                  FROM
+         |               ( (SELECT  researcher_id, name, id
+         |            FROM student
+         |            WHERE (id = 213)
+         |             ) s1
+         |          INNER JOIN
+         |            (SELECT  name, id
+         |            FROM researcher
+         |
+         |             ) r0
+         |              ON( s1.researcher_id = r0.id )
+         |               )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Test: 2 same dim level tables join, with Student Name as filter, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Student Name",
+         |            "operator": "=",
+         |            "value": "testName1"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Student Name", "Researcher Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s1.name "Student Name", r0.name "Researcher Name"
+         |                  FROM
+         |               ( (SELECT  researcher_id, name, id
+         |            FROM student
+         |            WHERE (id = 213) AND (name = 'testName1')
+         |             ) s1
+         |          INNER JOIN
+         |            (SELECT  name, id
+         |            FROM researcher
+         |
+         |             ) r0
+         |              ON( s1.researcher_id = r0.id )
+         |               )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Test: 2 same dim level tables join, with Researcher Name as filter, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Researcher Name",
+         |            "operator": "=",
+         |            "value": "testName1"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Student Name", "Researcher Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s1.name "Student Name", r0.name "Researcher Name"
+         |                  FROM
+         |               ( (SELECT  researcher_id, name, id
+         |            FROM student
+         |            WHERE (id = 213)
+         |             ) s1
+         |          INNER JOIN
+         |            (SELECT  name, id
+         |            FROM researcher
+         |            WHERE (name = 'testName1')
+         |             ) r0
+         |              ON( s1.researcher_id = r0.id )
+         |               )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  /*
+   * This test case will be failed with the following error: (need to fix)
+   * queryPipelineTry.isSuccess was false Fail to get the query pipeline - requirement failed: level of primary dimension must be greater than subquery dimension, dim=student, subquery dim=researcher
+   */
+  ignore("Test: 2 same dim level tables join, with Researcher Name as filter but not in requested field, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Researcher Name",
+         |            "operator": "=",
+         |            "value": "testName1"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+//    val expected =
+//      s"""
+//         |
+//         |""".stripMargin
+
+//    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Test: 2 same dim level tables join, with Student Status as filter, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Student Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Student Name", "Researcher Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s1.name "Student Name", r0.name "Researcher Name"
+         |                  FROM
+         |               ( (SELECT  researcher_id, name, id
+         |            FROM student
+         |            WHERE (id = 213) AND (status = 'admitted')
+         |             ) s1
+         |          INNER JOIN
+         |            (SELECT  name, id
+         |            FROM researcher
+         |
+         |             ) r0
+         |              ON( s1.researcher_id = r0.id )
+         |               )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Test: 2 same dim level tables join, with Researcher Status as filter, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Researcher Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Student Name", "Researcher Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s1.name "Student Name", r0.name "Researcher Name"
+         |                  FROM
+         |               ( (SELECT  researcher_id, name, id
+         |            FROM student
+         |            WHERE (id = 213)
+         |             ) s1
+         |          INNER JOIN
+         |            (SELECT  name, id
+         |            FROM researcher
+         |            WHERE (status = 'admitted')
+         |             ) r0
+         |              ON( s1.researcher_id = r0.id )
+         |               )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Test: 2 same dim level tables join, order by Student Name, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ],
+         |    "sortBy": [
+         |        {
+         |            "field": "Student Name",
+         |            "order": "Asc"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Student Name", "Researcher Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s1.name "Student Name", r0.name "Researcher Name"
+         |                  FROM
+         |               ( (SELECT  name, researcher_id, id
+         |            FROM student
+         |            WHERE (id = 213)
+         |            ORDER BY 1 ASC NULLS LAST ) s1
+         |          INNER JOIN
+         |            (SELECT  name, id
+         |            FROM researcher
+         |
+         |             ) r0
+         |              ON( s1.researcher_id = r0.id )
+         |               )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  // generated query does not contain order by Researcher Name, need to fix
+  ignore("Test: 2 same dim level tables join, order by Researcher Name, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ],
+         |    "sortBy": [
+         |        {
+         |            "field": "Researcher Name",
+         |            "order": "Asc"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  // generated query does not contain order by Reseacher Name, need to fix
+  ignore("Test: 2 same dim level tables join, order by Student Name and Researcher Name, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ],
+         |    "sortBy": [
+         |        {
+         |            "field": "Student Name",
+         |            "order": "Asc"
+         |        },
+         |        {
+         |            "field": "Researcher Name",
+         |            "order": "Asc"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Testing same level join with four dims") {
@@ -410,10 +955,47 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result + " is the result")
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Student Name", "Lab Name", "Researcher Name", "Section Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s1.name "Student Name", l3.name "Lab Name", r0.name "Researcher Name", s2.name "Section Name"
+         |                  FROM
+         |               ( (SELECT  lab_id, student_id, name, id
+         |            FROM section
+         |            WHERE (student_id = 213)
+         |             ) s2
+         |          INNER JOIN
+         |            (SELECT  researcher_id, name, id
+         |            FROM lab
+         |
+         |             ) l3
+         |              ON( s2.lab_id = l3.id )
+         |               INNER JOIN
+         |            (SELECT  researcher_id, name, id
+         |            FROM student
+         |
+         |             ) s1
+         |              ON( s2.student_id = s1.id )
+         |               INNER JOIN
+         |            (SELECT  name, id
+         |            FROM researcher
+         |
+         |             ) r0
+         |              ON( s1.researcher_id = r0.id )
+         |               )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
-  test("Testing 3 same level dim tables join") {
+  test("Test: 3 same level dim tables join should be succeed (student, researchers, class_volunteers)") {
     val jsonString : String =
       s"""
          |{
@@ -427,7 +1009,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |            "field": "Researcher Name"
          |        },
          |        {
-         |            "field": "Volunteer Name"
+         |            "field": "Class Volunteer Name"
          |        }
          |    ],
          |    "filterExpressions": [
@@ -462,10 +1044,10 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
       s"""
          |SELECT  *
          |      FROM (
-         |          SELECT "Student Name", "Researcher Name", "Volunteer Name", ROWNUM AS ROW_NUMBER
-         |              FROM(SELECT s1.name "Student Name", r2.name "Researcher Name", v0.name "Volunteer Name"
+         |          SELECT "Student Name", "Researcher Name", "Class Volunteer Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s1.name "Student Name", r2.name "Researcher Name", cv0.name "Class Volunteer Name"
          |                  FROM
-         |               ( (SELECT  researcher_id, volunteer_id, name, id
+         |               ( (SELECT  class_volunteer_id, researcher_id, name, id
          |            FROM student
          |            WHERE (id = 213)
          |             ) s1
@@ -477,16 +1059,273 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |              ON( s1.researcher_id = r2.id )
          |               INNER JOIN
          |            (SELECT  name, id
-         |            FROM volunteer
+         |            FROM class_volunteer
          |
-         |             ) v0
-         |              ON( s1.volunteer_id = v0.id )
+         |             ) cv0
+         |              ON( s1.class_volunteer_id = cv0.id )
          |               )
          |
          |                  ))
          |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
          |""".stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
+
+  test("Test: 3 same level dim tables join should be succeed (student, researchers, science_lab_volunteers)") {
+    val jsonString : String =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"should not fail on same level join")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Student Name", "Researcher Name", "Science Lab Volunteer Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s2.name "Student Name", r1.name "Researcher Name", slv0.name "Science Lab Volunteer Name"
+         |                  FROM
+         |               ( (SELECT  researcher_id, name, id
+         |            FROM student
+         |            WHERE (id = 213)
+         |             ) s2
+         |          INNER JOIN
+         |            (SELECT  science_lab_volunteer_id, name, id
+         |            FROM researcher
+         |
+         |             ) r1
+         |              ON( s2.researcher_id = r1.id )
+         |               INNER JOIN
+         |            (SELECT  name, id
+         |            FROM science_lab_volunteer
+         |
+         |             ) slv0
+         |              ON( r1.science_lab_volunteer_id = slv0.id )
+         |               )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Test: 4 same level dim tables join should be succeed (student, researchers, class_volunteers, science_lab_volunteers)") {
+    val jsonString : String =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Class Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"should not fail on same level join")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Student Name", "Class Volunteer Name", "Researcher Name", "Science Lab Volunteer Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s1.name "Student Name", cv0.name "Class Volunteer Name", r3.name "Researcher Name", slv2.name "Science Lab Volunteer Name"
+         |                  FROM
+         |               ( (SELECT  class_volunteer_id, researcher_id, name, id
+         |            FROM student
+         |            WHERE (id = 213)
+         |             ) s1
+         |          INNER JOIN
+         |            (SELECT  science_lab_volunteer_id, name, id
+         |            FROM researcher
+         |
+         |             ) r3
+         |              ON( s1.researcher_id = r3.id )
+         |               INNER JOIN
+         |            (SELECT  name, id
+         |            FROM science_lab_volunteer
+         |
+         |             ) slv2
+         |              ON( r3.science_lab_volunteer_id = slv2.id )
+         |               INNER JOIN
+         |            (SELECT  name, id
+         |            FROM class_volunteer
+         |
+         |             ) cv0
+         |              ON( s1.class_volunteer_id = cv0.id )
+         |               )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  // sometimes failed, because of random order between science lab volunteer and class volunteer
+  test("Testing 5 same level dim tables join") {
+    val jsonString : String =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Class Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Tutor Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"should not fail on same level join")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Student Name", "Researcher Name", "Class Volunteer Name", "Science Lab Volunteer Name", "Tutor Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s3.name "Student Name", r1.name "Researcher Name", cv2.name "Class Volunteer Name", slv0.name "Science Lab Volunteer Name", t4.name "Tutor Name"
+         |                  FROM
+         |               ( (SELECT  class_volunteer_id, researcher_id, name, id
+         |            FROM student
+         |            WHERE (id = 213)
+         |             ) s3
+         |          INNER JOIN
+         |            (SELECT  science_lab_volunteer_id, tutor_id, name, id
+         |            FROM researcher
+         |
+         |             ) r1
+         |              ON( s3.researcher_id = r1.id )
+         |               INNER JOIN
+         |            (SELECT  name, id
+         |            FROM tutor
+         |
+         |             ) t4
+         |              ON( r1.tutor_id = t4.id )
+         |               INNER JOIN
+         |            (SELECT  name, id
+         |            FROM class_volunteer
+         |
+         |             ) cv2
+         |              ON( s3.class_volunteer_id = cv2.id )
+         |               INNER JOIN
+         |            (SELECT  name, id
+         |            FROM science_lab_volunteer
+         |
+         |             ) slv0
+         |              ON( r1.science_lab_volunteer_id = slv0.id )
+         |               )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
 }
 
