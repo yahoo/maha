@@ -128,7 +128,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
           FactCol("impressions", IntType())
           , FactCol("clicks", IntType())
         ), Set.empty, None, Map.empty, Set.empty, 0, 0, None, None,
-        maxDaysWindow = Option(Map(SyncRequest -> 31, AsyncRequest -> 400)),
+       maxDaysWindow = Option(Map(SyncRequest -> 31, AsyncRequest -> 400)),
         Option(Map(SyncRequest -> 10, AsyncRequest -> 10))
       )
 
@@ -299,14 +299,14 @@ class RequestModelTest extends AnyFunSuite with Matchers {
         , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
       ).toPublicDimension("keyword",
         "keyword",
-        Set(
-          PubCol("id", "Keyword ID", InEquality)
-          , PubCol("advertiser_id", "Advertiser ID", InEquality)
-          , PubCol("ad_group_id", "Ad Group ID", InEquality)
-          , PubCol("ad_id", "Ad ID", InEquality)
-          , PubCol("status", "Keyword Status", InNotInEquality)
-        ), highCardinalityFilters = Set(NotInFilter("Keyword Status", List("DELETED")), InFilter("Keyword Status", List("ON")))
-      )
+          Set(
+            PubCol("id", "Keyword ID", InEquality)
+            , PubCol("advertiser_id", "Advertiser ID", InEquality)
+            , PubCol("ad_group_id", "Ad Group ID", InEquality)
+            , PubCol("ad_id", "Ad ID", InEquality)
+            , PubCol("status", "Keyword Status", InNotInEquality)
+          ), highCardinalityFilters = Set(NotInFilter("Keyword Status", List("DELETED")), InFilter("Keyword Status", List("ON")))
+        )
     }
   }
 
@@ -320,11 +320,11 @@ class RequestModelTest extends AnyFunSuite with Matchers {
         , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
       ).toPublicDimension("site",
         "site",
-        Set(
-          PubCol("id", "Site ID", Equality)
-          , PubCol("status", "Site Status", Equality)
-        ), highCardinalityFilters = Set(NotInFilter("Site Status", List("DELETED")))
-      )
+          Set(
+            PubCol("id", "Site ID", Equality)
+            , PubCol("status", "Site Status", Equality)
+          ), highCardinalityFilters = Set(NotInFilter("Site Status", List("DELETED")))
+        )
     }
   }
 
@@ -388,14 +388,14 @@ class RequestModelTest extends AnyFunSuite with Matchers {
         , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
       ).toPublicDimension("ad_group",
         "ad_group",
-        Set(
-          PubCol("id", "Ad Group ID", InEquality)
-          , PubCol("advertiser_id", "Advertiser ID", InEquality)
-          , PubCol("campaign_id", "Campaign ID", InEquality)
-          , PubCol("status", "Ad Group Status", InEquality)
-          , PubCol("name", "Ad Group Name", InEquality)
-        ), highCardinalityFilters = Set(NotInFilter("Ad Group Status", List("DELETED")))
-      )
+          Set(
+            PubCol("id", "Ad Group ID", InEquality)
+            , PubCol("advertiser_id", "Advertiser ID", InEquality)
+            , PubCol("campaign_id", "Campaign ID", InEquality)
+            , PubCol("status", "Ad Group Status", InEquality)
+            , PubCol("name", "Ad Group Name", InEquality)
+          ), highCardinalityFilters = Set(NotInFilter("Ad Group Status", List("DELETED")))
+        )
     }
   }
 
@@ -843,30 +843,30 @@ class RequestModelTest extends AnyFunSuite with Matchers {
   }
 
   //Not sure how to simulate this at this time since all the error handling takes care of it
-//  ignore("Create model should fail if no candidates is found") {
-//    val jsonString = s"""{
-//                          "cube": "publicFact",
-//                          "selectFields": [
-//                              {"field": "Advertiser ID"},
-//                              {"field": "Impressions"},
-//                              {"field": "Pricing Type"}
-//                          ],
-//                          "filterExpressions": [
-//                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-//                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-//                          ],
-//                          "sortBy": [
-//                          ],
-//                          "paginationStartIndex":20,
-//                          "rowsPerPage":100
-//                          }"""
-//
-//    val request: ReportingRequest = getReportingRequestAsync(jsonString)
-//    val registry = defaultRegistry
-//    val res = getRequestModel(request, registry)
-//    res.isFailure shouldBe true
-//    res.failed.get.getMessage should startWith ("requirement failed: No candidates found for request!")
-//  }
+  ignore("Create model should fail if no candidates is found") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"},
+                              {"field": "Pricing Type"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = defaultRegistry
+    val res = getRequestModel(request, registry)
+    res.isFailure shouldBe true
+    res.failed.get.getMessage should startWith ("requirement failed: No candidates found for request!")
+  }
 
   test("create model should succeed when cube columns requested with dim filter") {
     val jsonString = s"""{
@@ -1949,11 +1949,11 @@ class RequestModelTest extends AnyFunSuite with Matchers {
                           "rowsPerPage":100
                           }"""
 
-    val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = defaultRegistry
-    val res = getRequestModel(request, registry)
-    assert(res.isFailure, res.errorMessage("Create model failed "))
-  }
+     val request: ReportingRequest = getReportingRequestSync(jsonString)
+     val registry = defaultRegistry
+     val res = getRequestModel(request, registry)
+     assert(res.isFailure, res.errorMessage("Create model failed "))
+   }
 
   test("create model should pass when any date is in past and other dates are in future") {
     val jsonString = s"""{
@@ -2671,7 +2671,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     assert(productAdDimCandidate.lowerCandidates.head.name.equals("advertiser"), s"Missing join candidate for productAd ${productAdDimCandidate.lowerCandidates} ")
 
 
-    // Checking the size of upper and lower candidates, shouldnt be more than 1
+// Checking the size of upper and lower candidates, shouldnt be more than 1
     assert(adGroupDimCandidate.lowerCandidates.size==1, s" Number of lower candiadates overflow for ad_group ${adGroupDimCandidate.lowerCandidates} ")
 
     assert(campaignDimCandidate.upperCandidates.size==1, s" Number of lower candiadates overflow for campaign ${campaignDimCandidate.upperCandidates} ")
@@ -2800,7 +2800,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     assert(model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields.exists(_ === "Ad Group ID") === true,
       s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields}")
     //assert(model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields.exists(_ === "Campaign ID") === true,
-    //s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields}")
+      //s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields}")
     assert(model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields.exists(_ === "Advertiser ID") === true,
       s"${model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields}")
     assert(model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields.exists(_ === "Advertiser Status") === true,
@@ -3304,7 +3304,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     assert(model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields.exists(_ === "Ad Group ID") === true,
       s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields}")
     //assert(model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields.exists(_ === "Campaign ID") === true,
-    //s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields}")
+      //s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields}")
     assert(model.dimensionsCandidates.find(_.dim.name == "ad_group").get.filters.exists(_.field === "Ad Group Status") === true,
       s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.filters}")
 
@@ -3419,7 +3419,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     assert(model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields.exists(_ === "Ad Group ID") === true,
       s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields}")
     //assert(model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields.exists(_ === "Campaign ID") === true,
-    //s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields}")
+      //s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields}")
     assert(model.dimensionsCandidates.find(_.dim.name == "ad_group").get.filters.exists(_.field === "Ad Group Status") === true,
       s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.filters}")
 
@@ -4166,7 +4166,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
   }
 
   test("generate valid model for dim driven query with dim filters") {
-    val jsonString = s"""{
+   val jsonString = s"""{
                           "cube": "publicFact",
                           "selectFields": [
                               {"field": "Campaign ID"},
@@ -4547,8 +4547,8 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     assert(requestModelResult.get.dryRunModelTry.get.isSuccess)
   }
 
-  test("Multiple requestModels are returned from factory for DryRun with HiveEngine") {
-    val jsonString = s"""{
+    test("Multiple requestModels are returned from factory for DryRun with HiveEngine") {
+      val jsonString = s"""{
                           "cube": "publicFact",
                           "selectFields": [
                               {"field": "Campaign ID"},
@@ -4568,16 +4568,16 @@ class RequestModelTest extends AnyFunSuite with Matchers {
                           "rowsPerPage":100
                           }"""
 
-    object TestBucketingConfig extends BucketingConfig {
-      override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
-        Some(CubeBucketingConfig.builder()
-          .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
-          .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
-          .dryRunPercentage(Map(1 -> (25, None), 2 -> (100, Some(HiveEngine))))
-          .build())
+      object TestBucketingConfig extends BucketingConfig {
+        override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
+          Some(CubeBucketingConfig.builder()
+            .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
+            .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
+            .dryRunPercentage(Map(1 -> (25, None), 2 -> (100, Some(HiveEngine))))
+            .build())
+        }
+        override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
       }
-      override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
-    }
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
@@ -5038,6 +5038,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
                           "paginationStartIndex":20,
                           "rowsPerPage":100
                           }"""
+
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
     val res = getRequestModel(request, registry)
@@ -6000,7 +6001,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     assert(res.failed.get.getMessage.contains("requirement failed: Missing Dim Only query Schema(advertiser) required filter on 'Advertiser ID'"))
   }
 
-  test ("Dim Only query Schema required filter: Self Dim check: Success") {
+    test ("Dim Only query Schema required filter: Self Dim check: Success") {
     val jsonString = s"""{
                           "cube": "publicFact",
                           "selectFields": [

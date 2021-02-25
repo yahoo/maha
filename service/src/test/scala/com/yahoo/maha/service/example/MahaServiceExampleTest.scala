@@ -16,9 +16,6 @@ import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
 import org.scalatest.BeforeAndAfterAll
-//import org.scalatest.funsuite.AnyFunSuite
-//import org.scalatest.matchers.should.Matchers
-import org.scalatest.matchers.should
 import com.yahoo.maha.core.whiteSpaceNormalised
 
 /**
