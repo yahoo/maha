@@ -339,12 +339,12 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
   /* failed with error: (need fix)
      queryPipelineTry.isSuccess was false Fail to get the query pipeline - requirement failed: Cannot generate dim only query with no best dim candidates!
    */
-  ignore("Test: query only FK in a dim table should succeed") {
+  test("Test: query only FK in a dim table should succeed") {
     val jsonString =
       s"""
          |{
          |    "cube": "student_performance2",
-         |    "isDimDriven": true,
+         |    "forceDimensionDriven": true,
          |    "selectFields": [
          |        {
          |            "field": "Student ID"
@@ -382,8 +382,19 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     println(result)
 
     val expected =
-      s"""
+      s"""SELECT  *
+         |      FROM (
+         |          SELECT "Student ID", "Researcher ID", "Class Volunteer ID", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s0.id "Student ID", s0.researcher_id "Researcher ID", s0.class_volunteer_id "Class Volunteer ID"
+         |                  FROM
+         |                (SELECT  class_volunteer_id, researcher_id, id
+         |            FROM student
+         |            WHERE (id = 213)
+         |             ) s0
          |
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
          |""".stripMargin
 
     result should equal(expected)(after being whiteSpaceNormalised)
