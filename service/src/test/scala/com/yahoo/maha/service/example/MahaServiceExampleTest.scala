@@ -336,6 +336,59 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
 
   lazy val exampleRegistry: Registry = getExampleRegistry()
 
+  /* failed with error: (need fix)
+     queryPipelineTry.isSuccess was false Fail to get the query pipeline - requirement failed: Cannot generate dim only query with no best dim candidates!
+   */
+  ignore("Test: query only FK in a dim table should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance2",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student ID"
+         |        },
+         |        {
+         |            "field": "Researcher ID"
+         |        },
+         |        {
+         |            "field": "Class Volunteer ID"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
   test("Test: 2 same dim level tables join should succeed") {
     val jsonString = s"""{
                         "cube": "student_performance",
@@ -1134,6 +1187,103 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |            (SELECT  name, id
          |            FROM science_lab_volunteer
          |
+         |             ) slv0
+         |              ON( r1.science_lab_volunteer_id = slv0.id )
+         |               )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Test: 3 same level dim tables join should be succeed, with more fields, filters") {
+    val jsonString : String =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Student Status"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Status"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Researcher Name",
+         |            "operator": "=",
+         |            "value": "testName"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        },
+         |        {
+         |            "field": "Researcher Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"should not fail on same level join")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Student Name", "Researcher Name", "Science Lab Volunteer Name", "Student Status", "Science Lab Volunteer Status", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s2.name "Student Name", r1.name "Researcher Name", slv0.name "Science Lab Volunteer Name", s2.status "Student Status", slv0.status "Science Lab Volunteer Status"
+         |                  FROM
+         |               ( (SELECT  researcher_id, name, status, id
+         |            FROM student
+         |            WHERE (id = 213)
+         |             ) s2
+         |          INNER JOIN
+         |            (SELECT  science_lab_volunteer_id, name, id
+         |            FROM researcher
+         |            WHERE (name = 'testName') AND (status = 'admitted')
+         |             ) r1
+         |              ON( s2.researcher_id = r1.id )
+         |               INNER JOIN
+         |            (SELECT  name, status, id
+         |            FROM science_lab_volunteer
+         |            WHERE (status = 'admitted')
          |             ) slv0
          |              ON( r1.science_lab_volunteer_id = slv0.id )
          |               )
