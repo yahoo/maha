@@ -328,7 +328,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
      */
     val section_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("section", OracleEngine, LevelFour, Set(StudentSchema),
+        Dimension.newDimension("section", OracleEngine, LevelThree, Set(StudentSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("name", StrType())
@@ -356,7 +356,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
 
     val lab_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("lab", OracleEngine, LevelFour, Set(StudentSchema),
+        Dimension.newDimension("lab", OracleEngine, LevelThree, Set(StudentSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
