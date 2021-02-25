@@ -543,7 +543,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
    * This test case will be failed with the following error: (need to fix)
    * queryPipelineTry.isSuccess was false Fail to get the query pipeline - requirement failed: level of primary dimension must be greater than subquery dimension, dim=student, subquery dim=researcher
    */
-  ignore("Test: 2 same dim level tables join, with Researcher Name as filter but not in requested field, should succeed") {
+  test("Test: 2 same dim level tables join, with Researcher Name as filter but not in requested field, should succeed") {
     val jsonString =
       s"""
          |{
@@ -584,12 +584,22 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipeline.queryChain.drivingQuery.asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |
-//         |""".stripMargin
+    val expected =
+      s"""SELECT  *
+         |      FROM (
+         |          SELECT "Student Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s0.name "Student Name"
+         |                  FROM
+         |               ( (SELECT  researcher_id, name, id
+         |            FROM student
+         |            WHERE (researcher_id IN (SELECT id FROM researcher WHERE (name = 'testName1'))) AND (id = 213)
+         |             ) s0
+         |          )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200""".stripMargin
 
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Test: 2 same dim level tables join, with Student Status as filter, should succeed") {
@@ -803,7 +813,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
-  // generated query does not contain order by Researcher Name, need to fix
+  // generated query does not contain order by Researcher Name, but similar issues exist in maha-cdw too.
   ignore("Test: 2 same dim level tables join, order by Researcher Name, should succeed") {
     val jsonString =
       s"""
