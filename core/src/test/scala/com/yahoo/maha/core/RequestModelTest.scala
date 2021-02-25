@@ -27,7 +27,7 @@ import scala.util.{Random, Try}
  * Created by jians on 10/23/15.
  */
 class RequestModelTest extends AnyFunSuite with Matchers {
-
+  
   CoreSchema.register()
 
   private[this] val iso8601Format = DateTimeBetweenFilterHelper.iso8601FormatString
@@ -65,13 +65,13 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     require(result.isSuccess, result)
     result.toOption.get
   }
-
+  
   def getReportingRequestSync(jsonString: String, schema: Schema = AdvertiserSchema) = {
     val result = ReportingRequest.deserializeSync(jsonString.getBytes(StandardCharsets.UTF_8), schema)
     require(result.isSuccess, result)
     result.toOption.get
   }
-
+  
   def getFactBuilder : FactBuilder = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       import com.yahoo.maha.core.BaseExpressionTest._
@@ -3088,8 +3088,8 @@ class RequestModelTest extends AnyFunSuite with Matchers {
   }
 
   test(
-    """generate valid model for sync query with fields having
-      |one dim attribute with ordering and one without ordering,
+    """generate valid model for sync query with fields having 
+      |one dim attribute with ordering and one without ordering, 
       |filter on fact dim col""".stripMargin) {
     val jsonString = s"""{
                           "cube": "publicFact",
@@ -3146,7 +3146,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
 
   test(
     """generate valid model for async query with forceDimensionDriven and fields having
-      |one dim attribute with ordering and one without ordering,
+      |one dim attribute with ordering and one without ordering, 
       |filter on fact dim col""".stripMargin) {
     val jsonString = s"""{
                           "cube": "publicFact",
@@ -3633,7 +3633,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
 
     assert(model.dimensionsCandidates.find(_.dim.name == "campaign").get.filters.exists(_.field === "Advertiser ID") === true,
       s"${model.dimensionsCandidates.find(_.dim.name == "campaign").get.filters}")
-
+    
     assert(model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields.exists(_ === "Advertiser ID") === true,
       s"${model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields}")
     assert(model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields.exists(_ === "Advertiser Status") === true,
@@ -4349,7 +4349,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
     assert(model.bestCandidates.isEmpty)
 
   }
-
+  
   test("generate valid model for fact driven query with only fact fields, and filters") {
     val jsonString = s"""{
                           "cube": "publicFact",
@@ -5790,7 +5790,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
       ,"""{"name":"spend","alias":"Spend","schemas":"List(reseller, advertiser)","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, Between, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false,"isReplacement":false}"""
       ,"""{"name":"impressions","alias":"Impressions","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, Between, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false,"isReplacement":false}"""
     )
-
+    
     val allBaseCols: List[String] = List(
       """{"DimCol":{"DimensionColumn":{"name":"campaign_id","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set(ForeignKey(campaign))","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":true},"name":"campaign_id","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"aliasOrName":"","annotations":"Set(ForeignKey(campaign))","filterOperationOverrides":"Set()"}"""
       ,"""{"FactCol":{"FactColumn":{"name":"spend","alias":"","dataType":{"DecType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"scale":0,"default":"0.0","min":"-1.0","max":"-1.0","dummy":0},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"hasRollupWithEngineRequirement":false},"name":"spend","dataType":{"DecType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"scale":0,"default":"0.0","min":"-1.0","max":"-1.0","dummy":0},"rollupExpression":{"expressionName":"SumRollup$","hasDerivedExpression":false,"sourcePrimitiveColumns":"Set()"},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
@@ -5811,7 +5811,7 @@ class RequestModelTest extends AnyFunSuite with Matchers {
       ,"""{"DimCol":{"DimensionColumn":{"name":"stats_date","alias":"","dataType":{"DateType":{"jsonDataType":"Date","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"format":"None"},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":false},"name":"stats_date","dataType":{"DateType":{"jsonDataType":"Date","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"format":"None"},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
       ,"""{"DimCol":{"DimensionColumn":{"name":"start_time","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":false},"name":"start_time","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
     )
-
+    
     import org.json4s._
     import org.json4s.jackson.JsonMethods._
     implicit val formats = DefaultFormats
