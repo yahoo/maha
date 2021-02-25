@@ -53,9 +53,9 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("date", DateType())
             , DimCol("month", DateType())
             , DimCol("top_student_id", IntType())
-          ),
+            ),
           Set(
-            FactCol("total_marks", IntType())
+             FactCol("total_marks", IntType())
             ,FactCol("obtained_marks", IntType())
             ,OracleDerFactCol("Performance Factor", DecType(10,2), "{obtained_marks}" /- "{total_marks}")
           )
