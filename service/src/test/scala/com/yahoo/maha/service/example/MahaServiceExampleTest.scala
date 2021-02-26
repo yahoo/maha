@@ -375,6 +375,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -409,6 +410,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -451,6 +453,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -493,6 +496,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -536,6 +540,47 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: 2 same dim level tables join, with Student Name as filter but not in requested field, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Student Name",
+         |            "operator": "=",
+         |            "value": "testName1"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -578,6 +623,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -620,6 +666,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -663,6 +710,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -707,6 +755,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -755,6 +804,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -795,6 +845,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -836,6 +887,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -877,8 +929,51 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: 3 same level dim tables join should be succeed (researchers, science_lab_volunteers, tutor)") {
+    val jsonString : String =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Tutor Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"should not fail on same level join")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
   }
 
   test("Test: 3 same level dim tables join should be succeed, with more fields, filters") {
@@ -939,6 +1034,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -983,6 +1079,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
@@ -1031,6 +1128,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
