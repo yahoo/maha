@@ -336,15 +336,12 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
 
   lazy val exampleRegistry: Registry = getExampleRegistry()
 
-  /* failed with error: (need fix)
-     queryPipelineTry.isSuccess was false Fail to get the query pipeline - requirement failed: Cannot generate dim only query with no best dim candidates!
-   */
   test("Test: query only FK in a dim table should succeed") {
     val jsonString =
       s"""
          |{
          |    "cube": "student_performance2",
-         |    "isDimDriven": true,
+         |    "forceDimensionDriven": true,
          |    "selectFields": [
          |        {
          |            "field": "Student ID"
@@ -377,7 +374,29 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     assert(res.isSuccess, s"Building request model failed.")
 
     val queryPipelineTry = generatePipeline(res.toOption.get)
-    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Student ID", "Researcher ID", "Class Volunteer ID", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT s0.id "Student ID", s0.researcher_id "Researcher ID", s0.class_volunteer_id "Class Volunteer ID"
+         |                  FROM
+         |                (SELECT  class_volunteer_id, researcher_id, id
+         |            FROM student
+         |            WHERE (id = 213)
+         |             ) s0
+         |
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Test: 2 same dim level tables join should succeed") {
@@ -715,7 +734,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
 
-  // generated query does not contain order by Researcher Name, need to fix
+  // generated query does not contain order by Researcher Name, but similar issues exist in maha-cdw too.
   test("Test: 2 same dim level tables join, order by Researcher Name, should succeed") {
     val jsonString =
       s"""
@@ -760,7 +779,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
 
-  // generated query does not contain order by Reseacher Name, need to fix
+  // generated query does not contain order by Reseacher Name, but similar issues exist in maha-cdw too.
   test("Test: 2 same dim level tables join, order by Student Name and Researcher Name, should succeed") {
     val jsonString =
       s"""
@@ -1124,6 +1143,97 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |}
          |""".stripMargin
 
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: fact table join with 2 same dim level tables should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Researcher Status"
+         |        },
+         |        {
+         |            "field": "Total Marks"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry)
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: fact table join with 2 same dim level tables, with filter from the 3rd same dim level table should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Researcher Status"
+         |        },
+         |        {
+         |            "field": "Total Marks"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Tutor Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry)
