@@ -4,12 +4,14 @@
       "factRegistrationClass": "com.yahoo.maha.api.example.student.SampleFactSchemaRegistrationFactory",
       "dimensionRegistrationClass": "com.yahoo.maha.api.example.student.SampleDimensionSchemaRegistrationFactory",
       "executors": [
+        "bigqueryExec",
         "postgresExec",
         "oracleExec",
         "druidExec",
         "prestoExec"
       ],
       "generators": [
+        "bigquery",
         "postgres",
         "oracle",
         "druid",
@@ -60,6 +62,23 @@
 
   },
   "executorMap": {
+    "bigqueryExec": {
+      "factoryClass": "com.yahoo.maha.service.factory.BigqueryQueryExecutoryFactory",
+      "config": {
+        "bigqueryQueryExecutorConfigFactoryClassName": "com.yahoo.maha.service.factory.DefaultBigqueryQueryExecutorConfigFactory",
+        "bigqueryQueryExecutorConfigJson": {
+          "gcpCredentialsFilePath": "/path/to/credentials/file",
+          "gcpProjectId": "testProjectId",
+          "enableProxy": false,
+          "disableRpc": true,
+          "connectionTimeoutMs": 30000,
+          "readTimeoutMs": 60000,
+          "retries": 5
+        },
+        "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
+        "lifecycleListenerFactoryConfig": [{"key": "value"}]
+      }
+    },
     "postgresExec": {
       "factoryClass": "com.yahoo.maha.service.factory.PostgresQueryExecutoryFactory",
       "config": {
@@ -148,6 +167,23 @@
     }
   },
   "generatorMap": {
+    "bigquery": {
+      "factoryClass": "com.yahoo.maha.service.factory.BigqueryQueryGeneratorFactory",
+      "config": {
+        "partitionColumnRendererClass": "com.yahoo.maha.service.factory.BigqueryPartitionColumnRendererFactory",
+        "partitionColumnRendererConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "udfRegistrationFactoryName": "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
+        "udfRegistrationFactoryConfig": [
+          {
+            "key": "value"
+          }
+        ]
+      }
+    },
     "postgres": {
       "factoryClass": "com.yahoo.maha.service.factory.PostgresQueryGeneratorFactory",
       "config": {

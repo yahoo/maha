@@ -3,8 +3,7 @@
 package com.yahoo.maha.executor
 
 import com.yahoo.maha.core.query._
-import com.yahoo.maha.core.{DruidEngine, Engine, HiveEngine, OracleEngine, PostgresEngine}
-
+import com.yahoo.maha.core.{BigqueryEngine, DruidEngine, Engine, HiveEngine, OracleEngine, PostgresEngine}
 import scala.util.Try
 
 /**
@@ -55,6 +54,19 @@ class MockPostgresQueryExecutor(callback: QueryRowList => Unit) extends QueryExe
   override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
     val result = Try(callback(rowList.asInstanceOf[QueryRowList]))
     if(result.isSuccess) {
+      QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
+    } else {
+      QueryResult(rowList, queryAttributes, QueryResultStatus.FAILURE)
+    }
+  }
+}
+
+class MockBigqueryQueryExecutor(callback: QueryRowList => Unit) extends QueryExecutor {
+  override def engine: Engine = BigqueryEngine
+
+  override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
+    val result = Try(callback(rowList.asInstanceOf[QueryRowList]))
+    if (result.isSuccess) {
       QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
     } else {
       QueryResult(rowList, queryAttributes, QueryResultStatus.FAILURE)

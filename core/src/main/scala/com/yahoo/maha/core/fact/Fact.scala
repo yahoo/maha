@@ -88,6 +88,8 @@ case class FactCol(name: String,
         de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case PostgresCustomRollup(de) =>
         de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
+      case BigqueryCustomRollup(de) =>
+        de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case DruidCustomRollup(de) =>
         de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case DruidFilteredRollup(filter, de, delegateAggregatorRollupExpression) =>
@@ -286,6 +288,36 @@ object PostgresDerFactCol {
             rollupExpression: RollupExpression = SumRollup,
             filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : PostgresDerFactCol = {
     PostgresDerFactCol(name, alias, dataType, cc, derivedExpression, annotations, rollupExpression, filterOperationOverrides)
+  }
+}
+
+case class BigqueryDerFactCol(name: String,
+                              alias: Option[String],
+                              dataType: DataType,
+                              columnContext: ColumnContext,
+                              derivedExpression: BigqueryDerivedExpression,
+                              annotations: Set[ColumnAnnotation],
+                              rollupExpression: RollupExpression,
+                              filterOperationOverrides: Set[FilterOperation]
+                             ) extends BaseDerivedFactCol with WithBigqueryEngine {
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean): FactColumn = {
+    if (resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name), derivedExpression = derivedExpression.copyWith(columnContext))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias), derivedExpression = derivedExpression.copyWith(columnContext))
+    }
+  }
+}
+
+object BigqueryDerFactCol {
+  def apply(name: String,
+            dataType: DataType,
+            derivedExpression: BigqueryDerivedExpression,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            rollupExpression: RollupExpression = SumRollup,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext): BigqueryDerFactCol = {
+    BigqueryDerFactCol(name, alias, dataType, cc, derivedExpression, annotations, rollupExpression, filterOperationOverrides)
   }
 }
 
@@ -1989,7 +2021,7 @@ case class PublicFactTable private[fact](name: String
               val forceFilterColumnNames: Set[String] = fact.forceFilters.map(f => aliasToNameColumnMap(f.filter.field))
               FactCandidate(fact, this, filterColumnNames ++ forceFilterColumnNames)
             }
-              
+
             Some(
               BestCandidates(
                 fkCols,
