@@ -62,6 +62,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           discarding = Set("total_marks", "Performance Factor"))
       }
 
+
       builder.toPublicFact("student_performance",
           Set(
             PubCol("class_id", "Class ID", InEquality),

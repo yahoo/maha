@@ -328,7 +328,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
 
 }
 
-class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
+class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
   override protected def beforeAll(): Unit = {
     OracleQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
