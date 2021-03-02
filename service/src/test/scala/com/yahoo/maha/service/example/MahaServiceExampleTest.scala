@@ -347,9 +347,6 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
 
   lazy val exampleRegistry: Registry = getExampleRegistry()
 
-  /* failed with error: (need fix)
-     queryPipelineTry.isSuccess was false Fail to get the query pipeline - requirement failed: Cannot generate dim only query with no best dim candidates!
-   */
   test("Test: query only FK in a dim table should succeed") {
     val jsonString =
       s"""
@@ -382,12 +379,15 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
     println(result)
@@ -438,12 +438,15 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
                             }
                         ]
                     }"""
+
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
     println(result)
@@ -508,12 +511,15 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
     println(result)
@@ -578,12 +584,15 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
     println(result)
@@ -649,12 +658,15 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
     println(result)
@@ -671,6 +683,76 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |            WHERE (researcher_id IN (SELECT id FROM researcher WHERE (name = 'testName1'))) AND (id = 213)
          |             ) sv0
          |          )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Test: 2 same dim level tables join, with Student Name as filter but not in requested field, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Student Name",
+         |            "operator": "=",
+         |            "value": "testName1"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Researcher Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT r0.name "Researcher Name"
+         |                  FROM
+         |               ( (SELECT  researcher_id, id
+         |            FROM student_v1
+         |            WHERE (id = 213) AND (name = 'testName1')
+         |             ) sv1
+         |          INNER JOIN
+         |            (SELECT  name, id
+         |            FROM researcher
+         |
+         |             ) r0
+         |              ON( sv1.researcher_id = r0.id )
+         |               )
          |
          |                  ))
          |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
@@ -713,12 +795,15 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
     println(result)
@@ -783,12 +868,15 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
     println(result)
@@ -854,12 +942,15 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
     println(result)
@@ -930,8 +1021,10 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
     println(result)
@@ -984,12 +1077,15 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
     assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
     println(result)
@@ -1034,12 +1130,15 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
                             }
                         ]
                     }"""
+
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
-    assert(res.isSuccess, res.errorMessage(s"Building request model failed." + res))
+    assert(res.isSuccess, s"Building request model failed.")
+
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
     println(result)
@@ -1118,7 +1217,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
-    assert(res.isSuccess, s"should not fail on same level join")
+    assert(res.isSuccess, s"Building request model failed.")
 
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
@@ -1194,7 +1293,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
-    assert(res.isSuccess, s"should not fail on same level join")
+    assert(res.isSuccess, s"Building request model failed.")
 
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
@@ -1220,6 +1319,82 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |
          |             ) r1
          |              ON( sv2.researcher_id = r1.id )
+         |               INNER JOIN
+         |            (SELECT  name, id
+         |            FROM science_lab_volunteer
+         |
+         |             ) slv0
+         |              ON( r1.science_lab_volunteer_id = slv0.id )
+         |               )
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Test: 3 same level dim tables join should be succeed (researchers, science_lab_volunteers, tutor)") {
+    val jsonString : String =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Tutor Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"should not fail on same level join")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Researcher Name", "Science Lab Volunteer Name", "Tutor Name", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT r1.name "Researcher Name", slv0.name "Science Lab Volunteer Name", t2.name "Tutor Name"
+         |                  FROM
+         |               ( (SELECT  science_lab_volunteer_id, tutor_id, name, id
+         |            FROM researcher
+         |
+         |             ) r1
+         |          INNER JOIN
+         |            (SELECT  name, id
+         |            FROM tutor
+         |
+         |             ) t2
+         |              ON( r1.tutor_id = t2.id )
          |               INNER JOIN
          |            (SELECT  name, id
          |            FROM science_lab_volunteer
@@ -1291,7 +1466,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
-    assert(res.isSuccess, s"should not fail on same level join")
+    assert(res.isSuccess, s"Building request model failed.")
 
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
@@ -1370,7 +1545,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
-    assert(res.isSuccess, s"should not fail on same level join")
+    assert(res.isSuccess, s"Building request model failed.")
 
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
@@ -1459,7 +1634,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
-    assert(res.isSuccess, s"should not fail on same level join")
+    assert(res.isSuccess, s"Building request model failed.")
 
     val queryPipelineTry = generatePipeline(res.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
@@ -1545,6 +1720,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = ReportingRequest.forceOracle(getReportingRequestSync(jsonString, StudentSchema))
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
@@ -1625,6 +1801,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = ReportingRequest.forceOracle(getReportingRequestSync(jsonString, StudentSchema))
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
@@ -1712,6 +1889,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = ReportingRequest.forceHive(getReportingRequestAsync(jsonString, StudentSchema))
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
@@ -1807,6 +1985,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = ReportingRequest.forcePresto(getReportingRequestAsync(jsonString, StudentSchema))
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
@@ -1902,6 +2081,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(jsonString, StudentSchema))
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
