@@ -986,7 +986,6 @@ object RequestModel extends Logging {
                                   !publicFact.columnsByAlias(filter.field) &&
                                   !(publicDim.containsHighCardinalityFilter(filter) || injectDim.containsHighCardinalityFilter(filter))
                             }
-                            subDimLevel = subDimLevel - 1
                             intermediateCandidates += new DimensionCandidate(
                               injectDim
                               , Set(injectDim.primaryKeyByAlias, publicDim.primaryKeyByAlias)
@@ -1001,7 +1000,6 @@ object RequestModel extends Logging {
                               , hasLowCardinalityFilter
                               , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
                               , hasNonPushDownFilters = injectFilters.exists(filter => !filter.isPushDown)
-                              , subDimLevel
                             )
 
                         }
@@ -1016,7 +1014,6 @@ object RequestModel extends Logging {
                     val hasLowCardinalityFilter = filters.view.filter(!_.isPushDown).exists {
                       filter => colAliases(filter.field) && !publicFact.columnsByAlias(filter.field) && !publicDim.containsHighCardinalityFilter(filter)
                     }
-                    subDimLevel = subDimLevel - 1
                     intermediateCandidates += new DimensionCandidate(
                       publicDim
                       , foreignkeyAlias ++ fields + publicDim.primaryKeyByAlias
@@ -1031,7 +1028,6 @@ object RequestModel extends Logging {
                       , hasLowCardinalityFilter
                       , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
                       , hasNonPushDownFilters = filters.exists(filter => !filter.isPushDown)
-                      , subDimLevel
                     )
                     allRequestedDimAliases ++= requestedDimAliases
                     // Adding current dimension to upper dimension candidates
