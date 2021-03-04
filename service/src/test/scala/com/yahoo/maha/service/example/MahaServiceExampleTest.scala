@@ -928,7 +928,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
-  // generated query does not contain order by Reseacher Name, need to fix
+  // generated query does not contain order by Researcher Name, need to fix
   ignore("Test: 2 same dim level tables join, order by Student Name and Researcher Name, should succeed") {
     val jsonString =
       s"""
@@ -1401,7 +1401,7 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
   }
 
   // sometimes failed, because of random order between science lab volunteer and class volunteer
-  ignore("Testing 5 same level dim tables join") {
+  test("Testing 5 same level dim tables join") {
     val jsonString : String =
       s"""
          |{
@@ -1457,36 +1457,36 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |SELECT  *
          |      FROM (
          |          SELECT "Student Name", "Researcher Name", "Class Volunteer Name", "Science Lab Volunteer Name", "Tutor Name", ROWNUM AS ROW_NUMBER
-         |              FROM(SELECT s3.name "Student Name", r1.name "Researcher Name", cv2.name "Class Volunteer Name", slv0.name "Science Lab Volunteer Name", t4.name "Tutor Name"
+         |              FROM(SELECT s1.name "Student Name", r3.name "Researcher Name", cv0.name "Class Volunteer Name", slv2.name "Science Lab Volunteer Name", t4.name "Tutor Name"
          |                  FROM
          |               ( (SELECT  class_volunteer_id, researcher_id, name, id
          |            FROM student
          |            WHERE (id = 213)
-         |             ) s3
+         |             ) s1
          |          INNER JOIN
          |            (SELECT  science_lab_volunteer_id, tutor_id, name, id
          |            FROM researcher
          |
-         |             ) r1
-         |              ON( s3.researcher_id = r1.id )
+         |             ) r3
+         |              ON( s1.researcher_id = r3.id )
          |               INNER JOIN
          |            (SELECT  name, id
          |            FROM tutor
          |
          |             ) t4
-         |              ON( r1.tutor_id = t4.id )
-         |               INNER JOIN
-         |            (SELECT  name, id
-         |            FROM class_volunteer
-         |
-         |             ) cv2
-         |              ON( s3.class_volunteer_id = cv2.id )
+         |              ON( r3.tutor_id = t4.id )
          |               INNER JOIN
          |            (SELECT  name, id
          |            FROM science_lab_volunteer
          |
-         |             ) slv0
-         |              ON( r1.science_lab_volunteer_id = slv0.id )
+         |             ) slv2
+         |              ON( r3.science_lab_volunteer_id = slv2.id )
+         |               INNER JOIN
+         |            (SELECT  name, id
+         |            FROM class_volunteer
+         |
+         |             ) cv0
+         |              ON( s1.class_volunteer_id = cv0.id )
          |               )
          |
          |                  ))
@@ -1494,6 +1494,5 @@ class ExampleRequestModelTest extends BaseOracleQueryGeneratorTest {
          |""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
-
 }
 

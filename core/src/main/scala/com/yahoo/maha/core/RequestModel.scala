@@ -62,7 +62,7 @@ case class DimensionRelations(relations: Map[(String, String), Boolean]) {
 }
 
 object DimensionCandidate {
-  implicit val ordering: Ordering[DimensionCandidate] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.subDimLevel}-${dc.dim.name}")
+  implicit val ordering: Ordering[DimensionCandidate] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.subDimLevel}-${dc.dim.name}")
 }
 
 sealed trait ColumnInfo {
@@ -1034,7 +1034,7 @@ object RequestModel extends Logging {
                       , subDimLevel
                     )
                     allRequestedDimAliases ++= requestedDimAliases
-                    // Adding current dimension to uppper dimension candidates
+                    // Adding current dimension to upper dimension candidates
                     upperJoinCandidates+=publicDim
                   }
               }
@@ -1221,103 +1221,95 @@ object RequestModel extends Logging {
     }
   }
 
-  def topologicalSortUtil(graph:util.ArrayList[util.ArrayList[Int]], dim:Int, visited: util.ArrayList[Boolean], stack: List[Int]): List[Int] = {
+  def topologicalSortUtil(graph:mutable.HashMap[String, mutable.ArraySeq[String]], dim:String, visited: mutable.HashSet[String], stack: List[String], temporaryVisited:mutable.HashSet[String]): List[String] = {
     var stck = stack
-    visited.set(dim, true)
-    var idx: Int = 0
-    //What if graph.get(dim) is null or empty ???
-    val iter: util.Iterator[Int] = graph.get(dim).iterator()
-    while (iter.hasNext()) {
-      idx = iter.next()
-      if (!visited.get(idx)) {
-        stck = topologicalSortUtil(graph, idx, visited, stck)
+    visited.add(dim)
+    temporaryVisited.add(dim)
+    graph.get(dim).get.foreach{
+      pd => if(!visited.contains(pd) && !temporaryVisited.contains(pd)){
+        stck = topologicalSortUtil(graph, pd, visited, stck, temporaryVisited)
       }
     }
     stck = dim +: stck
     stck
   }
 
-  def topologicalSort(graph:util.ArrayList[util.ArrayList[Int]]): List[Int] = {
-    val visited = new util.ArrayList[Boolean](graph.size())
-    var idx = 0
-    while(idx < graph.size()){
-      visited.add(false)
-      idx += 1
-    }
-    var stack = List[Int]()
-    idx = 0
-    while(idx < visited.size()) {
-      if(visited.get(idx) == false){
-        stack = topologicalSortUtil(graph, idx, visited, stack)
+  def topologicalSort(graph:mutable.HashMap[String, mutable.ArraySeq[String]]): List[String] = {
+    val visited = new mutable.HashSet[String]()
+    val temporaryVisited = new mutable.HashSet[String]()
+    var stack = List[String]()
+    graph.foreach{pd =>
+      if(!visited.contains(pd._1)){
+        stack = topologicalSortUtil(graph, pd._1, visited, stack, temporaryVisited)
       }
-      idx += 1
     }
     stack
   }
 
+  def createFKMap(sameDimLevelMap: mutable.HashMap[String, PublicDimension]): List[String] = {
+    val sameDimLevelGraph = new mutable.HashMap[String, mutable.ArraySeq[String]]()
+    sameDimLevelMap.foreach{ pd =>
+      sameDimLevelGraph.put(pd._1, new mutable.ArraySeq[String](0))
+      pd._2.foreignKeyByAlias.foreach {
+        fk => {
+          if (sameDimLevelMap.contains(fk)) {
+            sameDimLevelGraph.put(pd._1, sameDimLevelGraph.get(pd._1).get :+ fk)
+          }
+        }
+      }
+    }
+    val stack = topologicalSort(sameDimLevelGraph)
+    stack
+  }
+
   def sortOnForeignKey(indexedSeqVar: IndexedSeq[PublicDimension], order: Int):IndexedSeq[PublicDimension] = {
-    //      var dimIdx = 0
-    //      var indexedSeqVarSorted = indexedSeqVar
-    //    while(dimIdx < indexedSeqVar.size - 1){
-    //          var currentDim = indexedSeqVar(dimIdx)
-    //          var nextDim = indexedSeqVar(dimIdx + 1)
-    //          if(currentDim.dimLevel == nextDim.dimLevel && nextDim.foreignKeyByAlias.contains(currentDim.primaryKeyByAlias)){
-    //            indexedSeqVarSorted = indexedSeqVarSorted.updated(dimIdx + 1, currentDim)
-    //            indexedSeqVarSorted = indexedSeqVarSorted.updated(dimIdx, nextDim)
-    //          }
-    //          dimIdx += 1
-    //      }
-    //    indexedSeqVarSorted
-    var indexedSeqVarSorted = indexedSeqVar
-    var dimIdx = 0
-    while(dimIdx < indexedSeqVar.size - 1){
-      var currentDimLevel = indexedSeqVar(dimIdx).dimLevel.level
-      var startIdx = dimIdx
-      var stopIdx = dimIdx + 1
-      while(stopIdx < indexedSeqVar.size && indexedSeqVar(stopIdx).dimLevel.level == currentDimLevel){
-        stopIdx += 1
+    val indexedSeqVarSorted:Array[PublicDimension] = new Array[PublicDimension](indexedSeqVar.size)
+    var sameDimLevelMap = new mutable.HashMap[String, PublicDimension]()
+    var prevPubDim = indexedSeqVar.head
+    var sortedSubList = List[String]()
+    var current_idx = 0
+    var update_idx = 0
+    var updatedValue = None : Option[PublicDimension]
+    indexedSeqVar.foreach { currentPubDim =>
+      if (currentPubDim != prevPubDim && currentPubDim.dimLevel == prevPubDim.dimLevel) {
+        sameDimLevelMap.put(currentPubDim.primaryKeyByAlias, currentPubDim)
+        sameDimLevelMap.put(prevPubDim.primaryKeyByAlias, prevPubDim)
       }
-      var arrLen = stopIdx - startIdx
-      if(arrLen > 1) {
-        var arr = new Array[PublicDimension](arrLen)
-        var n = 0
-        //indexedSeqVar.copyToArray(arr, startIdx)
-        while(n < arrLen){
-          arr(n) = indexedSeqVar(startIdx + n)
-          n += 1
-        }
-        var graph = new util.ArrayList[util.ArrayList[Int]]()
-        var idx = 0
-        while (idx < arrLen) {
-          graph.add(new util.ArrayList[Int]())
-          arr(idx).foreignKeyByAlias.foreach {
-            fk => {
-              var newIdx = 0
-              while (newIdx < arrLen) {
-                if (newIdx != idx && fk.equals(arr(newIdx).primaryKeyByAlias)) {
-                  graph.get(idx).add(newIdx)
-                }
-                newIdx += 1
-              }
+      if (currentPubDim.dimLevel != prevPubDim.dimLevel || current_idx == indexedSeqVar.size - 1) {
+        if(sameDimLevelMap.size > 0) {
+          sortedSubList = createFKMap(sameDimLevelMap)
+          var subDimLevelMax = sameDimLevelMap.size
+          var subDimLevelMin = 0
+          //If A has foreign key to B, then order = 1 means (A,B) and order = 0 is (B,A)
+          sortedSubList = if(order == 0) sortedSubList.reverse else sortedSubList
+          sortedSubList.foreach { pkByAlias =>
+            updatedValue = Some(sameDimLevelMap.get(pkByAlias)).get
+            if(order == 0) {
+              updatedValue.get.subDimLevel = subDimLevelMin
+              subDimLevelMin += 1
             }
+            else{
+              updatedValue.get.subDimLevel = subDimLevelMax
+              subDimLevelMax -= 1
+            }
+            indexedSeqVarSorted(update_idx) = updatedValue.get
+            update_idx += 1
           }
-          idx += 1
+          sameDimLevelMap = new mutable.HashMap[String, PublicDimension]()
         }
-        var stack = topologicalSort(graph)
-        var i = 0
-        while(i < arrLen){
-          var updatedValue = arr(stack(i))
-          if(order == 0){
-            updatedValue = arr(stack(stack.size - 1 - i))
-          }
-          indexedSeqVarSorted = indexedSeqVarSorted.updated(startIdx + i, updatedValue)
-          i += 1
+        else{
+          indexedSeqVarSorted(update_idx) = prevPubDim
+          update_idx += 1
         }
+        if(current_idx == indexedSeqVar.size - 1 && currentPubDim.dimLevel != prevPubDim.dimLevel)
+          indexedSeqVarSorted(update_idx) = currentPubDim
       }
-      dimIdx = stopIdx
+      prevPubDim = currentPubDim
+      current_idx += 1
     }
     indexedSeqVarSorted
   }
+
   private[this] def validateRequiredFiltersForDimOnlyQuery(filterMap:mutable.HashMap[String, mutable.TreeSet[Filter]],requiredAliasSet:Set[RequiredAlias], request:ReportingRequest): Unit = {
     requiredAliasSet.foreach(
       reqAlias => {
