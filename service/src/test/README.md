@@ -1,13 +1,13 @@
 # Example Cubes Info
 
 ### Dimension Cubes - Relations
-![Dimension Cubes Relations](https://lucid.app/publicSegments/view/c0ae81ff-3dda-43eb-a111-5bcfeea8eab8/image.png)
+![Dimension Cubes Relations](https://user-images.githubusercontent.com/42597424/110177452-db80b880-7db9-11eb-86c8-9e266e6f5d32.jpeg)
 
 
 
 ### Dimension Cubes - Alternative Engines
 
-![Dimension Cubes - Alternative Engines](https://lucid.app/publicSegments/view/c78a5b16-36b7-4d11-878d-8a7f95699d03/image.png)
+![Dimension Cubes - Alternative Engines](https://user-images.githubusercontent.com/42597424/110177870-77122900-7dba-11eb-93f4-94473a88e358.jpeg)
 
 ##### dimLevel = 1 
 - class
@@ -55,7 +55,7 @@
 
 ### Fact Cubes - Alternative Engines + Dimension FK
 Note: all the alternative tables in the same cubes have the same FK as its Oracle table.
-![Fact Cubes](https://lucid.app/publicSegments/view/05e988c9-92ef-4060-8031-8f6f15692ff8/image.png)
+![Fact Cubes](https://user-images.githubusercontent.com/42597424/110177883-7ed1cd80-7dba-11eb-8a31-b5605dc2aa11.jpeg)
 
 
 
