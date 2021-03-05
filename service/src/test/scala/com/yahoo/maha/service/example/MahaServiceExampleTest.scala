@@ -3,7 +3,12 @@
 package com.yahoo.maha.service.example
 
 import com.yahoo.maha.core.bucketing._
+import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, SyncDruidQueryOptimizer}
+import com.yahoo.maha.core.query.hive.HiveQueryGenerator
+import com.yahoo.maha.core.query.oracle.{BaseOracleQueryGeneratorTest, OracleQueryGenerator}
+import com.yahoo.maha.core.query.presto.PrestoQueryGenerator
 import com.yahoo.maha.core.query.{QueryRowList, Version}
+import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.log.MultiColoMahaRequestLogWriter
 import com.yahoo.maha.parrequest2.GeneralError
@@ -14,6 +19,7 @@ import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
 import org.scalatest.BeforeAndAfterAll
+import com.yahoo.maha.core.{DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory, TestUDFRegistrationFactory, whiteSpaceNormalised}
 
 /**
  * Created by pranavbhole on 09/06/17.
@@ -130,7 +136,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
     assert(cubesJsonOption.get === """["student_performance","student_performance2"]""")
     val domainJsonOption = mahaService.getDomain("er")
     assert(domainJsonOption.isDefined)
-    assert(domainJsonOption.get.contains("""{"dimensions":[{"name":"section","fields":["Section ID","Student ID","Section Status","Class ID","Section Name"],"fieldsWithSchemas":[{"name":"Section Status","allowedSchemas":[]},{"name":"Class ID","allowedSchemas":[]},{"name":"Section ID","allowedSchemas":[]},{"name":"Section Name","allowedSchemas":[]},{"name":"Student ID","allowedSchemas":[]}]},{"name":"class","fields":["Class Name","Class Status","Professor Name","Class ID"],"fieldsWithSchemas":[{"name":"Class Name","allowedSchemas":[]},{"name":"Class Status","allowedSchemas":[]},{"name":"Professor Name","allowedSchemas":[]},{"name":"Class ID","allowedSchemas":[]}]},{"name":"student","fields":["Profile URL","Student Name","Student ID","Student Status"],"fieldsWithSchemas":[{"name":"Profile URL","allowedSchemas":[]},{"name":"Student Name","allowedSchemas":[]},{"name":"Student ID","allowedSchemas":[]},{"name":"Student Status","allowedSchemas":[]}]},{"name":"remarks","fields":["Remarks","Remark URL","Remark Name","Remark Status"],"fieldsWithSchemas":[{"name":"Remarks","allowedSchemas":[]},{"name":"Remark URL","allowedSchemas":[]},{"name":"Remark Name","allowedSchemas":[]},{"name":"Remark Status","allowedSchemas":[]}]}],"schemas":{"student":["student_performance","student_performance2"]},"cubes":[{"name":"student_performance","mainEntityIds":{"student":"Student ID"},"maxDaysLookBack":[{"requestType":"SyncRequest","grain":"DailyGrain","days":30},{"requestType":"AsyncRequest","grain":"DailyGrain","days":30}],"maxDaysWindow":[{"requestType":"SyncRequest","grain":"DailyGrain","days":20},{"requestType":"AsyncRequest","grain":"DailyGrain","days":20},{"requestType":"SyncRequest","grain":"HourlyGrain","days":20},{"requestType":"AsyncRequest","grain":"HourlyGrain","days":20}],"fields":[{"field":"Class ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"class","filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Day","type":"Dimension","dataType":{"type":"Date","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Month","type":"Dimension","dataType":{"type":"Date","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Remarks","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","=","LIKE"],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Section ID","type":"Dimension","dataType":{"type":"Number","constraint":"3"},"dimensionName":null,"filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Student ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"student","filterable":true,"filterOperations":["IN","LIKE","=","BETWEEN","=="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Top Student ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["=="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Year","type":"Dimension","dataType":{"type":"Enum","constraint":"Freshman|Junior|Sophomore|Senior"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Marks Obtained","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","LIKE","=","BETWEEN","=="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null},{"field":"Performance Factor","type":"Fact","dataType":{"type":"Number","constraint":"10"},"dimensionName":null,"filterable":true,"filterOperations":["IN","BETWEEN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null},{"field":"Total Marks","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","LIKE","=","BETWEEN","=="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null}]},{"name":"student_performance2","mainEntityIds":{"student":"Student ID"},"maxDaysLookBack":[{"requestType":"SyncRequest","grain":"DailyGrain","days":30},{"requestType":"AsyncRequest","grain":"DailyGrain","days":30}],"maxDaysWindow":[{"requestType":"SyncRequest","grain":"DailyGrain","days":20},{"requestType":"AsyncRequest","grain":"DailyGrain","days":20},{"requestType":"SyncRequest","grain":"HourlyGrain","days":20},{"requestType":"AsyncRequest","grain":"HourlyGrain","days":20}],"fields":[{"field":"Class ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"class","filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Day","type":"Dimension","dataType":{"type":"Date","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Month","type":"Dimension","dataType":{"type":"Date","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Section ID","type":"Dimension","dataType":{"type":"Number","constraint":"3"},"dimensionName":"section","filterable":true,"filterOperations":["IN","NOT IN","="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Student ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"student","filterable":true,"filterOperations":["IN","=","=="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Top Student ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["=="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Year","type":"Dimension","dataType":{"type":"Enum","constraint":"Freshman|Junior|Sophomore|Senior"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Marks Obtained","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","BETWEEN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null},{"field":"Total Marks","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","BETWEEN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null}]}]}"""))
+    assert(domainJsonOption.get.contains("""{"dimensions":[{"name":"remarks","fields":["Remarks","Remark URL","Remark Name","Remark Status"],"fieldsWithSchemas":[{"name":"Remarks","allowedSchemas":[]},{"name":"Remark URL","allowedSchemas":[]},{"name":"Remark Name","allowedSchemas":[]},{"name":"Remark Status","allowedSchemas":[]}]},{"name":"researcher","fields":["Researcher Profile URL","Science Lab Volunteer ID","Researcher Name","Tutor ID","Researcher ID","Researcher Status"],"fieldsWithSchemas":[{"name":"Science Lab Volunteer ID","allowedSchemas":[]},{"name":"Researcher Status","allowedSchemas":[]},{"name":"Researcher ID","allowedSchemas":[]},{"name":"Researcher Name","allowedSchemas":[]},{"name":"Researcher Profile URL","allowedSchemas":[]},{"name":"Tutor ID","allowedSchemas":[]}]},{"name":"tutors","fields":["Tutor ID","Tutor Name","Tutor Status"],"fieldsWithSchemas":[{"name":"Tutor ID","allowedSchemas":[]},{"name":"Tutor Name","allowedSchemas":[]},{"name":"Tutor Status","allowedSchemas":[]}]},{"name":"science_lab_volunteers","fields":["Science Lab Volunteer ID","Science Lab Volunteer Name","Science Lab Volunteer Status"],"fieldsWithSchemas":[{"name":"Science Lab Volunteer ID","allowedSchemas":[]},{"name":"Science Lab Volunteer Name","allowedSchemas":[]},{"name":"Science Lab Volunteer Status","allowedSchemas":[]}]},{"name":"class_volunteers","fields":["Class Volunteer ID","Class Volunteer Name","Class Volunteer Status"],"fieldsWithSchemas":[{"name":"Class Volunteer ID","allowedSchemas":[]},{"name":"Class Volunteer Name","allowedSchemas":[]},{"name":"Class Volunteer Status","allowedSchemas":[]}]},{"name":"class","fields":["Class Name","Class Status","Professor Name","Class ID"],"fieldsWithSchemas":[{"name":"Class Name","allowedSchemas":[]},{"name":"Class Status","allowedSchemas":[]},{"name":"Professor Name","allowedSchemas":[]},{"name":"Class ID","allowedSchemas":[]}]},{"name":"section","fields":["Section ID","Lab ID","Student ID","Section Status","Class ID","Section Name"],"fieldsWithSchemas":[{"name":"Section Status","allowedSchemas":[]},{"name":"Class ID","allowedSchemas":[]},{"name":"Section ID","allowedSchemas":[]},{"name":"Section Name","allowedSchemas":[]},{"name":"Student ID","allowedSchemas":[]},{"name":"Lab ID","allowedSchemas":[]}]},{"name":"labs","fields":["Lab Name","Lab ID","Lab Status","Researcher ID"],"fieldsWithSchemas":[{"name":"Lab Name","allowedSchemas":[]},{"name":"Lab ID","allowedSchemas":[]},{"name":"Lab Status","allowedSchemas":[]},{"name":"Researcher ID","allowedSchemas":[]}]},{"name":"student","fields":["Profile URL","Student Name","Student ID","Student Status"],"fieldsWithSchemas":[{"name":"Profile URL","allowedSchemas":[]},{"name":"Student Name","allowedSchemas":[]},{"name":"Student ID","allowedSchemas":[]},{"name":"Student Status","allowedSchemas":[]}]}],"schemas":{"student":["student_performance","student_performance2"]},"cubes":[{"name":"student_performance","mainEntityIds":{"student":"Student ID"},"maxDaysLookBack":[{"requestType":"SyncRequest","grain":"DailyGrain","days":30},{"requestType":"AsyncRequest","grain":"DailyGrain","days":30}],"maxDaysWindow":[{"requestType":"SyncRequest","grain":"DailyGrain","days":20},{"requestType":"AsyncRequest","grain":"DailyGrain","days":20},{"requestType":"SyncRequest","grain":"HourlyGrain","days":20},{"requestType":"AsyncRequest","grain":"HourlyGrain","days":20}],"fields":[{"field":"Class ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"class","filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Day","type":"Dimension","dataType":{"type":"Date","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Month","type":"Dimension","dataType":{"type":"Date","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Remarks","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","=","LIKE"],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Section ID","type":"Dimension","dataType":{"type":"Number","constraint":"3"},"dimensionName":null,"filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Student ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"student","filterable":true,"filterOperations":["IN","LIKE","=","BETWEEN","=="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Top Student ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["=="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Year","type":"Dimension","dataType":{"type":"Enum","constraint":"Freshman|Junior|Sophomore|Senior"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Marks Obtained","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","LIKE","=","BETWEEN","=="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null},{"field":"Performance Factor","type":"Fact","dataType":{"type":"Number","constraint":"10"},"dimensionName":null,"filterable":true,"filterOperations":["IN","BETWEEN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null},{"field":"Total Marks","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","LIKE","=","BETWEEN","=="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null}]},{"name":"student_performance2","mainEntityIds":{"student":"Student ID"},"maxDaysLookBack":[{"requestType":"SyncRequest","grain":"DailyGrain","days":30},{"requestType":"AsyncRequest","grain":"DailyGrain","days":30}],"maxDaysWindow":[{"requestType":"SyncRequest","grain":"DailyGrain","days":20},{"requestType":"AsyncRequest","grain":"DailyGrain","days":20},{"requestType":"SyncRequest","grain":"HourlyGrain","days":20},{"requestType":"AsyncRequest","grain":"HourlyGrain","days":20}],"fields":[{"field":"Class ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"class","filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Day","type":"Dimension","dataType":{"type":"Date","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Month","type":"Dimension","dataType":{"type":"Date","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Section ID","type":"Dimension","dataType":{"type":"Number","constraint":"3"},"dimensionName":"section","filterable":true,"filterOperations":["IN","NOT IN","="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Student ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"student","filterable":true,"filterOperations":["IN","=","=="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Top Student ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["=="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Year","type":"Dimension","dataType":{"type":"Enum","constraint":"Freshman|Junior|Sophomore|Senior"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Marks Obtained","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","BETWEEN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null},{"field":"Total Marks","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","BETWEEN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null}]}]}""".stripMargin))
     val flattenDomainJsonOption = mahaService.getDomain("er")
     assert(flattenDomainJsonOption.isDefined)
     val cubeDomain = mahaService.getDomainForCube("er", "student_performance")
@@ -321,3 +327,1190 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
   }
 
 }
+
+class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
+
+  override protected def beforeAll(): Unit = {
+    OracleQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
+    HiveQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+    DruidQueryGenerator.register(queryGeneratorRegistry, queryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000))
+    PrestoQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
+  }
+
+  def getExampleRegistry(): Registry = {
+    val registryBuilder = new RegistryBuilder
+    new SampleDimensionSchemaRegistrationFactory().register(registryBuilder)
+    new SampleFactSchemaRegistrationFactory().register(registryBuilder)
+    val registry = registryBuilder.build()
+    registry
+  }
+
+  lazy val exampleRegistry: Registry = getExampleRegistry()
+
+  test("Test: query only FK in a dim table should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "forceDimensionDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student ID"
+         |        },
+         |        {
+         |            "field": "Researcher ID"
+         |        },
+         |        {
+         |            "field": "Class Volunteer ID"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (
+         |          SELECT "Student ID", "Researcher ID", "Class Volunteer ID", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT sv0.id "Student ID", sv0.researcher_id "Researcher ID", sv0.class_volunteer_id "Class Volunteer ID"
+         |                  FROM
+         |                (SELECT  class_volunteer_id, researcher_id, id
+         |            FROM student_v1
+         |            WHERE (id = 213)
+         |             ) sv0
+         |
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Test: 2 same dim level tables join should succeed") {
+    val jsonString = s"""{
+                        "cube": "student_performance",
+                        "isDimDriven": true,
+                        "selectFields": [
+                            {
+                                "field": "Student Name"
+                            },
+                            {
+                                "field": "Researcher Name"
+                            }
+                        ],
+                        "filterExpressions": [
+                            {
+                                "field": "Day",
+                                "operator": "between",
+                                "from": "$fromDate",
+                                "to": "$toDate"
+                            },
+                            {
+                                "field": "Student ID",
+                                "operator": "=",
+                                "value": "213"
+                            }
+                        ]
+                    }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: 2 same dim level tables join, with Student Name as filter, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Student Name",
+         |            "operator": "=",
+         |            "value": "testName1"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: 2 same dim level tables join, with Researcher Name as filter, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Researcher Name",
+         |            "operator": "=",
+         |            "value": "testName1"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  /*
+   * This test case will be failed with the following error: (need to fix)
+   * queryPipelineTry.isSuccess was false Fail to get the query pipeline - requirement failed: level of primary dimension must be greater than subquery dimension, dim=student, subquery dim=researcher
+   */
+  test("Test: 2 same dim level tables join, with Researcher Name as filter but not in requested field, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Researcher Name",
+         |            "operator": "=",
+         |            "value": "testName1"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: 2 same dim level tables join, with Student Name as filter but not in requested field, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Student Name",
+         |            "operator": "=",
+         |            "value": "testName1"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: 2 same dim level tables join, with Student Status as filter, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Student Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: 2 same dim level tables join, with Researcher Status as filter, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Researcher Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: 2 same dim level tables join, order by Student Name, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ],
+         |    "sortBy": [
+         |        {
+         |            "field": "Student Name",
+         |            "order": "Asc"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  // generated query does not contain order by Researcher Name, but similar issues exist in maha-cdw too.
+  test("Test: 2 same dim level tables join, order by Researcher Name, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ],
+         |    "sortBy": [
+         |        {
+         |            "field": "Researcher Name",
+         |            "order": "Asc"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  // generated query does not contain order by Reseacher Name, but similar issues exist in maha-cdw too.
+  test("Test: 2 same dim level tables join, order by Student Name and Researcher Name, should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ],
+         |    "sortBy": [
+         |        {
+         |            "field": "Student Name",
+         |            "order": "Asc"
+         |        },
+         |        {
+         |            "field": "Researcher Name",
+         |            "order": "Asc"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Testing same level join with four dims") {
+    val jsonString = s"""{
+                        "cube": "student_performance",
+                        "isDimDriven": true,
+                        "selectFields": [
+                            {
+                                "field": "Student Name"
+                            },
+                            {
+                                "field": "Lab Name"
+                            },
+                            {
+                                "field": "Researcher Name"
+                            },
+                            {
+                                "field": "Section Name"
+                            }
+                        ],
+                        "filterExpressions": [
+                            {
+                                "field": "Day",
+                                "operator": "between",
+                                "from": "$fromDate",
+                                "to": "$toDate"
+                            },
+                            {
+                                "field": "Student ID",
+                                "operator": "=",
+                                "value": "213"
+                            }
+                        ]
+                    }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: 3 same level dim tables join should be succeed (student, researchers, class_volunteers)") {
+    val jsonString : String =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Class Volunteer Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: 3 same level dim tables join should be succeed (student, researchers, science_lab_volunteers)") {
+    val jsonString : String =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: 3 same level dim tables join should be succeed (researchers, science_lab_volunteers, tutor)") {
+    val jsonString : String =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Tutor Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"should not fail on same level join")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+  }
+
+  test("Test: 3 same level dim tables join should be succeed, with more fields, filters") {
+    val jsonString : String =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Student Status"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Status"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Researcher Name",
+         |            "operator": "=",
+         |            "value": "testName"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        },
+         |        {
+         |            "field": "Researcher Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: 4 same level dim tables join should be succeed (student, researchers, class_volunteers, science_lab_volunteers)") {
+    val jsonString : String =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Class Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  // sometimes failed, because of random order between science lab volunteer and class volunteer
+  test("Testing 5 same level dim tables join") {
+    val jsonString : String =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Class Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Tutor Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: fact table join with 2 same dim level tables should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Researcher Status"
+         |        },
+         |        {
+         |            "field": "Total Marks"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = ReportingRequest.forceOracle(getReportingRequestSync(jsonString, StudentSchema))
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: fact table join with 2 same dim level tables, with filter from the 3rd same dim level table should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Researcher Status"
+         |        },
+         |        {
+         |            "field": "Total Marks"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Tutor Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = ReportingRequest.forceOracle(getReportingRequestSync(jsonString, StudentSchema))
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
+  }
+
+  test("Test: fact table join with 2 same dim level tables in Hive should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Researcher Status"
+         |        },
+         |        {
+         |            "field": "Marks Obtained"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Tutor Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = ReportingRequest.forceHive(getReportingRequestAsync(jsonString, StudentSchema))
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(",",NVL(CAST(mang_student_name AS STRING), ''), NVL(CAST(mang_researcher_name AS STRING), ''), NVL(CAST(mang_researcher_status AS STRING), ''), NVL(CAST(mang_marks_obtained AS STRING), ''))
+         |FROM(
+         |SELECT COALESCE(s2.mang_student_name, "NA") mang_student_name, COALESCE(r1.mang_researcher_name, "NA") mang_researcher_name, COALESCE(r1.mang_researcher_status, "NA") mang_researcher_status, COALESCE(obtained_marks, 0L) mang_marks_obtained
+         |FROM(SELECT tutor_id, student_id, researcher_id, SUM(obtained_marks) obtained_marks
+         |FROM hive_student_performance
+         |WHERE (student_id = 213) AND (date >= '$fromDateHive' AND date <= '$toDateHive')
+         |GROUP BY tutor_id, student_id, researcher_id
+         |
+         |       )
+         |hsp0
+         |JOIN (
+         |SELECT tutor_id AS t3_id, name AS mang_researcher_name, status AS mang_researcher_status, id r1_id
+         |FROM hive_researcher
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ))
+         |)
+         |r1
+         |ON
+         |hsp0.researcher_id = r1.r1_id
+         |       JOIN (
+         |SELECT researcher_id AS researcher_id, name AS mang_student_name, id s2_id
+         |FROM hive_student_v1
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (id = 213)
+         |)
+         |s2
+         |ON
+         |hsp0.student_id = s2.s2_id
+         |       JOIN (
+         |SELECT id t3_id
+         |FROM hive_tutor
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (status = 'admitted')
+         |)
+         |t3
+         |ON
+         |hsp0.tutor_id = t3.t3_id
+         |
+         |)
+         |        queryAlias LIMIT 200
+         |""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Test: fact table join with 2 same dim level tables in Presto should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Researcher Status"
+         |        },
+         |        {
+         |            "field": "Marks Obtained"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Tutor Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = ReportingRequest.forcePresto(getReportingRequestAsync(jsonString, StudentSchema))
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+
+    val expected =
+      s"""
+         |SELECT CAST(mang_student_name as VARCHAR) AS mang_student_name, CAST(mang_researcher_name as VARCHAR) AS mang_researcher_name, CAST(mang_researcher_status as VARCHAR) AS mang_researcher_status, CAST(mang_marks_obtained as VARCHAR) AS mang_marks_obtained
+         |FROM(
+         |SELECT COALESCE(CAST(s2.mang_student_name as VARCHAR), 'NA') mang_student_name, COALESCE(CAST(r1.mang_researcher_name as VARCHAR), 'NA') mang_researcher_name, COALESCE(CAST(r1.mang_researcher_status as VARCHAR), 'NA') mang_researcher_status, COALESCE(CAST(obtained_marks as bigint), 0) mang_marks_obtained
+         |FROM(SELECT tutor_id, student_id, researcher_id, SUM(obtained_marks) obtained_marks
+         |FROM presto_student_performance
+         |WHERE (student_id = 213) AND (date >= '$fromDateHive' AND date <= '$toDateHive')
+         |GROUP BY tutor_id, student_id, researcher_id
+         |
+         |       )
+         |psp0
+         |JOIN (
+         |SELECT tutor_id AS t3_id, name AS mang_researcher_name, status AS mang_researcher_status, id r1_id
+         |FROM presto_researcher
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ))
+         |)
+         |r1
+         |ON
+         |psp0.researcher_id = r1.r1_id
+         |       JOIN (
+         |SELECT researcher_id AS researcher_id, name AS mang_student_name, id s2_id
+         |FROM presto_student_v1
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (id = 213)
+         |)
+         |s2
+         |ON
+         |psp0.student_id = s2.s2_id
+         |       JOIN (
+         |SELECT id t3_id
+         |FROM presto_tutor
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (status = 'admitted')
+         |)
+         |t3
+         |ON
+         |psp0.tutor_id = t3.t3_id
+         |
+         |
+         |          )
+         |        queryAlias LIMIT 200
+         |""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Test: fact table join with 2 same dim level tables in Druid should succeed") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Researcher Status"
+         |        },
+         |        {
+         |            "field": "Marks Obtained"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Tutor Status",
+         |            "operator": "=",
+         |            "value": "admitted"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(jsonString, StudentSchema))
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+
+    val expected = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"dr_student_performance"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\}\]\},\{"type":"selector","dimension":"student_id","value":"213"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"name","outputName":"Researcher Name","outputType":"STRING"\},\{"type":"default","dimension":"status","outputName":"Researcher Status","outputType":"STRING"\},\{"type":"default","dimension":"name","outputName":"Student Name","outputType":"STRING"\},\{"type":"default","dimension":"status","outputName":"Tutor Status","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Marks Obtained","fieldName":"obtained_marks"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":400\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}""".r
+    result should fullyMatch regex expected
+  }
+
+}
+

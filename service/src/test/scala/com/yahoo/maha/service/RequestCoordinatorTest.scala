@@ -42,8 +42,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
         VALUES (?, ?, ?, ?, ?, ?)"""
 
     val sectionInsertSql =
-      """INSERT INTO section (id, name, student_id, class_id, start_year, status)
-        VALUES (?, ?, ?, ?, ?, ?)"""
+      """INSERT INTO section (id, name, student_id, class_id, start_year, status, lab_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)"""
 
     val rows: List[Seq[Any]] = List(
       Seq(1, 100, 213, 200, 135, 135, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(9)), "some comment 1", today.toString, 213),
@@ -69,8 +69,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     )
 
     val sectionRows: List[Seq[Any]] = List(
-      Seq(310, "Section A", 213, 200, 2017, "ACTIVE"),
-      Seq(311, "Section B", 214, 201, 2017, "ACTIVE")
+      Seq(310, "Section A", 213, 200, 2017, "ACTIVE", 2),
+      Seq(311, "Section B", 214, 201, 2017, "ACTIVE", 2)
     )
 
     rows.foreach {

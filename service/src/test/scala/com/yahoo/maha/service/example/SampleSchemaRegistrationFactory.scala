@@ -177,6 +177,76 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
     }
 
     registry.register(pubfactOracleReduced)
+
+    def pubfactStudentPerf: PublicFact = {
+      val builder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        import com.yahoo.maha.core.OracleExpression._
+        Fact.newFact(
+          "student_performance", DailyGrain, OracleEngine, Set(StudentSchema),
+          Set(
+            DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+            , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+            , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+            , DimCol("class_volunteer_id", IntType(), annotations = Set(ForeignKey("class_volunteers")))
+            , DimCol("science_lab_volunteer_id", IntType(), annotations = Set(ForeignKey("science_lab_volunteers")))
+            , DimCol("tutor_id", IntType(), annotations = Set(ForeignKey("tutors")))
+            , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
+            , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
+            , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
+            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("date", DateType())
+            , DimCol("month", DateType())
+            , DimCol("top_student_id", IntType())
+          ),
+          Set(
+            FactCol("total_marks", IntType())
+            ,FactCol("obtained_marks", IntType())
+            ,OracleDerFactCol("Performance Factor", DecType(10,2), "{obtained_marks}" /- "{total_marks}")
+          )
+        )
+      }
+
+      ColumnContext.withColumnContext {
+        implicit dc: ColumnContext =>
+          builder.withAlternativeEngine("hive_student_performance","student_performance", HiveEngine)
+      }
+
+      ColumnContext.withColumnContext {
+        implicit dc: ColumnContext =>
+          builder.withAlternativeEngine("presto_student_performance","student_performance", PrestoEngine)
+      }
+
+      ColumnContext.withColumnContext {
+        implicit dc: ColumnContext =>
+          builder.withAlternativeEngine("dr_student_performance","student_performance", DruidEngine)
+      }
+
+      builder.toPublicFact("student_performance",
+        Set(
+          PubCol("class_id", "Class ID", InEquality),
+          PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
+          PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality),
+          PubCol("class_volunteer_id", "Class Volunteer ID", InBetweenEqualityFieldEquality),
+          PubCol("science_lab_volunteer_id", "Science Lab Volunteer ID", InBetweenEqualityFieldEquality),
+          PubCol("tutor_id", "Tutor ID", InBetweenEqualityFieldEquality),
+          PubCol("lab_id", "Lab ID", InBetweenEqualityFieldEquality),
+          PubCol("section_id", "Section ID", InEquality),
+          PubCol("date", "Day", Equality),
+          PubCol("month", "Month", InEquality),
+          PubCol("year", "Year", Equality),
+          PubCol("comment", "Remarks", InEqualityLike),
+          PubCol("top_student_id", "Top Student ID", FieldEquality)
+        ),
+        Set(
+          PublicFactCol("total_marks", "Total Marks", InBetweenEqualityFieldEquality),
+          PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEqualityFieldEquality),
+          PublicFactCol("Performance Factor", "Performance Factor", InBetweenEquality)
+        ),
+        Set.empty,
+        getMaxDaysWindow, getMaxDaysLookBack, revision = 3, dimRevision = 1
+      )
+    }
+    registry.register(pubfactStudentPerf)
   }
 
 }
@@ -209,6 +279,197 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
       }
     }
 
+    val student_dim_v1: PublicDimension = {
+      val builder : DimensionBuilder = {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          Dimension.newDimension("student_v1", OracleEngine, LevelTwo, Set(StudentSchema),
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+              , DimCol("class_volunteer_id", IntType(), annotations = Set(ForeignKey("class_volunteers")))
+              , DimCol("name", StrType())
+              , DimCol("department_id", IntType())
+              , DimCol("admitted_year", IntType())
+              , DimCol("status", StrType())
+              , DimCol("profile_url", StrType())
+            )
+            , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+            , schemaColMap = Map(StudentSchema -> "id")
+            , annotations = Set(OracleHashPartitioning)
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "hive_student_v1",
+            "student_v1",
+            HiveEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+              , DimCol("class_volunteer_id", IntType(), annotations = Set(ForeignKey("class_volunteers")))
+              , DimCol("name", StrType())
+              , DimCol("department_id", IntType())
+              , DimCol("admitted_year", IntType())
+              , DimCol("status", StrType())
+              , DimCol("profile_url", StrType())
+              , HivePartDimCol("load_time", StrType(), annotations = Set.empty)
+            )
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "presto_student_v1",
+            "student_v1",
+            PrestoEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+              , DimCol("class_volunteer_id", IntType(), annotations = Set(ForeignKey("class_volunteers")))
+              , DimCol("name", StrType())
+              , DimCol("department_id", IntType())
+              , DimCol("admitted_year", IntType())
+              , DimCol("status", StrType())
+              , DimCol("profile_url", StrType())
+              , PrestoPartDimCol("load_time", StrType(), annotations = Set.empty)
+            )
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "dr_student_v1",
+            "student_v1",
+            DruidEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+              , DimCol("class_volunteer_id", IntType(), annotations = Set(ForeignKey("class_volunteers")))
+              , DimCol("name", StrType())
+              , DimCol("department_id", IntType())
+              , DimCol("admitted_year", IntType())
+              , DimCol("status", StrType())
+              , DimCol("profile_url", StrType())
+            )
+          )
+        }
+      }
+
+      builder.toPublicDimension("student","student",
+        Set(
+          PubCol("id", "Student ID", InBetweenEqualityFieldEquality)
+          , PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality)
+          , PubCol("class_volunteer_id", "Class Volunteer ID", InBetweenEqualityFieldEquality)
+          , PubCol("name", "Student Name", EqualityFieldEquality)
+          , PubCol("admitted_year", "Admitted Year", InEquality, hiddenFromJson = true)
+          , PubCol("status", "Student Status", InEqualityFieldEquality)
+          , PubCol("profile_url", "Profile URL", InEqualityLike, isImageColumn = true)
+        ), highCardinalityFilters = Set(NotInFilter("Student Status", List("DELETED"))), revision = 1
+      )
+    }
+
+    val researcher_dim: PublicDimension = {
+      val builder : DimensionBuilder = {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          Dimension.newDimension("researcher", OracleEngine, LevelTwo, Set(StudentSchema),
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("science_lab_volunteer_id", IntType(), annotations = Set(ForeignKey("science_lab_volunteers")))
+              , DimCol("tutor_id", IntType(), annotations = Set(ForeignKey("tutors")))
+              , DimCol("department_id", IntType())
+              , DimCol("admitted_year", IntType())
+              , DimCol("status", StrType())
+              , DimCol("profile_url", StrType())
+            )
+            , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+            , annotations = Set(OracleHashPartitioning)
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "hive_researcher",
+            "researcher",
+            HiveEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("science_lab_volunteer_id", IntType(), annotations = Set(ForeignKey("science_lab_volunteers")))
+              , DimCol("tutor_id", IntType(), annotations = Set(ForeignKey("tutors")))
+              , DimCol("department_id", IntType())
+              , DimCol("admitted_year", IntType())
+              , DimCol("status", StrType())
+              , DimCol("profile_url", StrType())
+              , HivePartDimCol("load_time", StrType(), annotations = Set.empty)
+            )
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "presto_researcher",
+            "researcher",
+            PrestoEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("science_lab_volunteer_id", IntType(), annotations = Set(ForeignKey("science_lab_volunteers")))
+              , DimCol("tutor_id", IntType(), annotations = Set(ForeignKey("tutors")))
+              , DimCol("department_id", IntType())
+              , DimCol("admitted_year", IntType())
+              , DimCol("status", StrType())
+              , DimCol("profile_url", StrType())
+              , PrestoPartDimCol("load_time", StrType(), annotations = Set.empty)
+            )
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "dr_researcher",
+            "researcher",
+            DruidEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("science_lab_volunteer_id", IntType(), annotations = Set(ForeignKey("science_lab_volunteers")))
+              , DimCol("tutor_id", IntType(), annotations = Set(ForeignKey("tutors")))
+              , DimCol("department_id", IntType())
+              , DimCol("admitted_year", IntType())
+              , DimCol("status", StrType())
+              , DimCol("profile_url", StrType())
+            )
+          )
+        }
+      }
+
+      builder.toPublicDimension("researcher","researcher",
+        Set(
+          PubCol("id", "Researcher ID", InBetweenEqualityFieldEquality)
+          , PubCol("science_lab_volunteer_id", "Science Lab Volunteer ID", InBetweenEqualityFieldEquality)
+          , PubCol("tutor_id", "Tutor ID", InBetweenEqualityFieldEquality)
+          , PubCol("name", "Researcher Name", EqualityFieldEquality)
+          , PubCol("admitted_year", "Researcher Admitted Year", InEquality, hiddenFromJson = true)
+          , PubCol("status", "Researcher Status", InEqualityFieldEquality)
+          , PubCol("profile_url", "Researcher Profile URL", InEqualityLike, isImageColumn = true)
+        ), highCardinalityFilters = Set(NotInFilter("Researcher Status", List("DELETED")))
+      )
+    }
+
     val remarks_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         Dimension.newDimension("remarks", DruidEngine, LevelTwo, Set(StudentSchema),
@@ -235,28 +496,88 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
     // TODO: fix class, should be level to 2 and should contain foreign keys to student
 
     val class_dim: PublicDimension = {
-      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("class", OracleEngine, LevelOne, Set(StudentSchema),
-          Set(
-            DimCol("id", IntType(), annotations = Set(PrimaryKey))
-            , DimCol("name", StrType())
-            , DimCol("department_id", IntType())
-            , DimCol("start_year", IntType())
-            , DimCol("status", StrType())
-            , DimCol("professor", StrType())
+      val builder : DimensionBuilder = {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          Dimension.newDimension("class", OracleEngine, LevelOne, Set(StudentSchema),
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("department_id", IntType())
+              , DimCol("start_year", IntType())
+              , DimCol("status", StrType())
+              , DimCol("professor", StrType())
+            )
+            , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+            , annotations = Set(OracleHashPartitioning)
           )
-          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleHashPartitioning)
-        ).toPublicDimension("class","class",
-          Set(
-            PubCol("id", "Class ID", Equality)
-            , PubCol("name", "Class Name", Equality)
-            , PubCol("start_year", "Start Year", InEquality, hiddenFromJson = true)
-            , PubCol("status", "Class Status", InEquality)
-            , PubCol("professor", "Professor Name", Equality)
-          ), highCardinalityFilters = Set(NotInFilter("Class Status", List("DELETED")))
-        )
+        }
       }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "hive_class",
+            "class",
+            HiveEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("department_id", IntType())
+              , DimCol("start_year", IntType())
+              , DimCol("status", StrType())
+              , DimCol("professor", StrType())
+              , HivePartDimCol("load_time", StrType(), annotations = Set.empty)
+            )
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "presto_class",
+            "class",
+            PrestoEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("department_id", IntType())
+              , DimCol("start_year", IntType())
+              , DimCol("status", StrType())
+              , DimCol("professor", StrType())
+              , PrestoPartDimCol("load_time", StrType(), annotations = Set.empty)
+            )
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "dr_class",
+            "class",
+            DruidEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("department_id", IntType())
+              , DimCol("start_year", IntType())
+              , DimCol("status", StrType())
+              , DimCol("professor", StrType())
+            )
+          )
+        }
+      }
+
+      builder.toPublicDimension("class","class",
+        Set(
+          PubCol("id", "Class ID", Equality)
+          , PubCol("name", "Class Name", Equality)
+          , PubCol("start_year", "Start Year", InEquality, hiddenFromJson = true)
+          , PubCol("status", "Class Status", InEquality)
+          , PubCol("professor", "Professor Name", Equality)
+        ), highCardinalityFilters = Set(NotInFilter("Class Status", List("DELETED")))
+      )
     }
 
     /*
@@ -264,34 +585,312 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
      describing LevelThree dim. LevelThree dim always contains level one and level two foreign keys.
      */
     val section_dim: PublicDimension = {
+      val builder : DimensionBuilder = {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          Dimension.newDimension("section", OracleEngine, LevelThree, Set(StudentSchema),
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+              , DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+              , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
+              , DimCol("start_year", IntType())
+              , DimCol("status", StrType())
+            )
+            , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+            , annotations = Set(OracleHashPartitioning)
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "hive_section",
+            "section",
+            HiveEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+              , DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+              , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
+              , DimCol("start_year", IntType())
+              , DimCol("status", StrType())
+              , HivePartDimCol("load_time", StrType(), annotations = Set.empty)
+            )
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "presto_section",
+            "section",
+            PrestoEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+              , DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+              , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
+              , DimCol("start_year", IntType())
+              , DimCol("status", StrType())
+              , PrestoPartDimCol("load_time", StrType(), annotations = Set.empty)
+            )
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "dr_section",
+            "section",
+            DruidEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+              , DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+              , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
+              , DimCol("start_year", IntType())
+              , DimCol("status", StrType())
+            )
+          )
+        }
+      }
+
+      builder.toPublicDimension("section","section",
+        Set(
+          PubCol("id", "Section ID", InNotInEquality)
+          , PubCol("student_id", "Student ID", Equality)
+          , PubCol("class_id", "Class ID", Equality)
+          , PubCol("lab_id", "Lab ID", InBetweenEqualityFieldEquality)
+          , PubCol("name", "Section Name", Equality)
+          , PubCol("start_year", "Section Start Year", InEquality, hiddenFromJson = true)
+          , PubCol("status", "Section Status", InEquality)
+        ), highCardinalityFilters = Set(NotInFilter("Section Status", List("DELETED")))
+      )
+    }
+
+    val lab_dim: PublicDimension = {
+      val builder : DimensionBuilder = {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          Dimension.newDimension("lab", OracleEngine, LevelThree, Set(StudentSchema),
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+              , DimCol("name", StrType())
+              , DimCol("start_year", IntType())
+              , DimCol("status", StrType())
+            )
+            , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+            , annotations = Set(OracleHashPartitioning)
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "hive_lab",
+            "lab",
+            HiveEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+              , DimCol("name", StrType())
+              , DimCol("start_year", IntType())
+              , DimCol("status", StrType())
+              , HivePartDimCol("load_time", StrType(), annotations = Set.empty)
+            )
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "presto_lab",
+            "lab",
+            PrestoEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+              , DimCol("name", StrType())
+              , DimCol("start_year", IntType())
+              , DimCol("status", StrType())
+              , PrestoPartDimCol("load_time", StrType(), annotations = Set.empty)
+            )
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "dr_lab",
+            "lab",
+            DruidEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
+              , DimCol("name", StrType())
+              , DimCol("start_year", IntType())
+              , DimCol("status", StrType())
+            )
+          )
+        }
+      }
+
+      builder.toPublicDimension("labs","lab",
+        Set(
+          PubCol("id", "Lab ID", InNotInEquality)
+          , PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality)
+          , PubCol("name", "Lab Name", Equality)
+          , PubCol("start_year", "Lab Start Year", InEquality, hiddenFromJson = true)
+          , PubCol("status", "Lab Status", InEquality)
+        )
+      )
+    }
+
+    val class_volunteer_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("section", OracleEngine, LevelThree, Set(StudentSchema),
+        Dimension.newDimension("class_volunteer", OracleEngine, LevelTwo, Set(StudentSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("name", StrType())
-            , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
-            , DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
-            , DimCol("start_year", IntType())
+            , DimCol("department_id", IntType())
+            , DimCol("admitted_year", IntType())
             , DimCol("status", StrType())
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , annotations = Set(OracleHashPartitioning)
-        ).toPublicDimension("section","section",
+        ).toPublicDimension("class_volunteers","class_volunteer",
           Set(
-            PubCol("id", "Section ID", InNotInEquality)
-            , PubCol("student_id", "Student ID", Equality)
-            , PubCol("class_id", "Class ID", Equality)
-            , PubCol("name", "Section Name", Equality)
-            , PubCol("start_year", "Section Start Year", InEquality, hiddenFromJson = true)
-            , PubCol("status", "Section Status", InEquality)
-          ), highCardinalityFilters = Set(NotInFilter("Section Status", List("DELETED")))
+            PubCol("id", "Class Volunteer ID", InBetweenEqualityFieldEquality)
+            , PubCol("name", "Class Volunteer Name", EqualityFieldEquality)
+            , PubCol("admitted_year", "Class Volunteer Admitted Year", InEquality, hiddenFromJson = true)
+            , PubCol("status", "Class Volunteer Status", InEqualityFieldEquality)
+          ), highCardinalityFilters = Set(NotInFilter("Class Volunteer Status", List("DELETED")))
         )
       }
+    }
+
+    val science_lab_volunteer_dim: PublicDimension = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        Dimension.newDimension("science_lab_volunteer", OracleEngine, LevelTwo, Set(StudentSchema),
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("department_id", IntType())
+            , DimCol("admitted_year", IntType())
+            , DimCol("status", StrType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(OracleHashPartitioning)
+        ).toPublicDimension("science_lab_volunteers","science_lab_volunteer",
+          Set(
+            PubCol("id", "Science Lab Volunteer ID", InBetweenEqualityFieldEquality)
+            , PubCol("name", "Science Lab Volunteer Name", EqualityFieldEquality)
+            , PubCol("admitted_year", "Science Lab Volunteer Admitted Year", InEquality, hiddenFromJson = true)
+            , PubCol("status", "Science Lab Volunteer Status", InEqualityFieldEquality)
+          ), highCardinalityFilters = Set(NotInFilter("Science Lab Volunteer Status", List("DELETED")))
+        )
+      }
+    }
+
+    val tutor_dim: PublicDimension = {
+      val builder : DimensionBuilder = {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          Dimension.newDimension("tutor", OracleEngine, LevelTwo, Set(StudentSchema),
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("department_id", IntType())
+              , DimCol("admitted_year", IntType())
+              , DimCol("status", StrType())
+            )
+            , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+            , annotations = Set(OracleHashPartitioning)
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "hive_tutor",
+            "tutor",
+            HiveEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("department_id", IntType())
+              , DimCol("admitted_year", IntType())
+              , DimCol("status", StrType())
+              , HivePartDimCol("load_time", StrType(), annotations = Set.empty)
+            )
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "presto_tutor",
+            "tutor",
+            PrestoEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("department_id", IntType())
+              , DimCol("admitted_year", IntType())
+              , DimCol("status", StrType())
+              , PrestoPartDimCol("load_time", StrType(), annotations = Set.empty)
+            )
+          )
+        }
+      }
+
+      {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          builder.withAlternateEngine(
+            "dr_tutor",
+            "tutor",
+            DruidEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("department_id", IntType())
+              , DimCol("admitted_year", IntType())
+              , DimCol("status", StrType())
+            )
+          )
+        }
+      }
+
+      builder.toPublicDimension("tutors","tutor",
+        Set(
+          PubCol("id", "Tutor ID", InBetweenEqualityFieldEquality)
+          , PubCol("name", "Tutor Name", EqualityFieldEquality)
+          , PubCol("admitted_year", "Tutor Admitted Year", InEquality, hiddenFromJson = true)
+          , PubCol("status", "Tutor Status", InEqualityFieldEquality)
+        ), highCardinalityFilters = Set(NotInFilter("Tutor Status", List("DELETED")))
+      )
     }
 
     registry.register(section_dim)
     registry.register(class_dim)
     registry.register(student_dim)
+    registry.register(student_dim_v1)
+    registry.register(researcher_dim)
+    registry.register(lab_dim)
     registry.register(remarks_dim)
+    registry.register(class_volunteer_dim)
+    registry.register(science_lab_volunteer_dim)
+    registry.register(tutor_dim)
   }
 }
