@@ -390,7 +390,6 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
 
     val expected =
       s"""
@@ -1269,8 +1268,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Same dim level join should be failed"))
   }
 
-  // Need fix: dim table where condition always has an empty filter as the first filter; random join order
-  ignore("Test: fact table join with 2 same dim level tables in Hive should succeed") {
+  test("Test: fact table join with 2 same dim level tables in Hive should succeed") {
     val jsonString =
       s"""
          |{
@@ -1320,13 +1318,12 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
 
     val expected =
       s"""
          |SELECT CONCAT_WS(",",NVL(CAST(mang_student_name AS STRING), ''), NVL(CAST(mang_researcher_name AS STRING), ''), NVL(CAST(mang_researcher_status AS STRING), ''), NVL(CAST(mang_marks_obtained AS STRING), ''))
          |FROM(
-         |SELECT COALESCE(s3.mang_student_name, "NA") mang_student_name, COALESCE(r2.mang_researcher_name, "NA") mang_researcher_name, COALESCE(r2.mang_researcher_status, "NA") mang_researcher_status, COALESCE(obtained_marks, 0L) mang_marks_obtained
+         |SELECT COALESCE(s2.mang_student_name, "NA") mang_student_name, COALESCE(r1.mang_researcher_name, "NA") mang_researcher_name, COALESCE(r1.mang_researcher_status, "NA") mang_researcher_status, COALESCE(obtained_marks, 0L) mang_marks_obtained
          |FROM(SELECT tutor_id, student_id, researcher_id, SUM(obtained_marks) obtained_marks
          |FROM hive_student_performance
          |WHERE (student_id = 213) AND (date >= '$fromDateHive' AND date <= '$toDateHive')
@@ -1335,29 +1332,29 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
          |       )
          |hsp0
          |JOIN (
-         |SELECT id t1_id
-         |FROM hive_tutor
-         |WHERE (()) AND (status = 'admitted')
-         |)
-         |t1
-         |ON
-         |hsp0.tutor_id = t1.t1_id
-         |       JOIN (
-         |SELECT tutor_id AS tutor_id, name AS mang_researcher_name, status AS mang_researcher_status, id r2_id
+         |SELECT tutor_id AS t3_id, name AS mang_researcher_name, status AS mang_researcher_status, id r1_id
          |FROM hive_researcher
-         |WHERE (())
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ))
          |)
-         |r2
+         |r1
          |ON
-         |hsp0.researcher_id = r2.r2_id
+         |hsp0.researcher_id = r1.r1_id
          |       JOIN (
-         |SELECT researcher_id AS researcher_id, name AS mang_student_name, id s3_id
+         |SELECT researcher_id AS researcher_id, name AS mang_student_name, id s2_id
          |FROM hive_student_v1
-         |WHERE (()) AND (id = 213)
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (id = 213)
          |)
-         |s3
+         |s2
          |ON
-         |hsp0.student_id = s3.s3_id
+         |hsp0.student_id = s2.s2_id
+         |       JOIN (
+         |SELECT id t3_id
+         |FROM hive_tutor
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (status = 'admitted')
+         |)
+         |t3
+         |ON
+         |hsp0.tutor_id = t3.t3_id
          |
          |)
          |        queryAlias LIMIT 200
@@ -1365,8 +1362,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
-  // Need fix: dim table where condition always has an empty filter as the first filter; random join order
-  ignore("Test: fact table join with 2 same dim level tables in Presto should succeed") {
+  test("Test: fact table join with 2 same dim level tables in Presto should succeed") {
     val jsonString =
       s"""
          |{
@@ -1416,13 +1412,12 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
 
     val expected =
       s"""
          |SELECT CAST(mang_student_name as VARCHAR) AS mang_student_name, CAST(mang_researcher_name as VARCHAR) AS mang_researcher_name, CAST(mang_researcher_status as VARCHAR) AS mang_researcher_status, CAST(mang_marks_obtained as VARCHAR) AS mang_marks_obtained
          |FROM(
-         |SELECT COALESCE(CAST(s3.mang_student_name as VARCHAR), 'NA') mang_student_name, COALESCE(CAST(r2.mang_researcher_name as VARCHAR), 'NA') mang_researcher_name, COALESCE(CAST(r2.mang_researcher_status as VARCHAR), 'NA') mang_researcher_status, COALESCE(CAST(obtained_marks as bigint), 0) mang_marks_obtained
+         |SELECT COALESCE(CAST(s2.mang_student_name as VARCHAR), 'NA') mang_student_name, COALESCE(CAST(r1.mang_researcher_name as VARCHAR), 'NA') mang_researcher_name, COALESCE(CAST(r1.mang_researcher_status as VARCHAR), 'NA') mang_researcher_status, COALESCE(CAST(obtained_marks as bigint), 0) mang_marks_obtained
          |FROM(SELECT tutor_id, student_id, researcher_id, SUM(obtained_marks) obtained_marks
          |FROM presto_student_performance
          |WHERE (student_id = 213) AND (date >= '$fromDateHive' AND date <= '$toDateHive')
@@ -1431,29 +1426,29 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
          |       )
          |psp0
          |JOIN (
-         |SELECT id t1_id
-         |FROM presto_tutor
-         |WHERE (()) AND (status = 'admitted')
-         |)
-         |t1
-         |ON
-         |psp0.tutor_id = t1.t1_id
-         |       JOIN (
-         |SELECT tutor_id AS tutor_id, name AS mang_researcher_name, status AS mang_researcher_status, id r2_id
+         |SELECT tutor_id AS t3_id, name AS mang_researcher_name, status AS mang_researcher_status, id r1_id
          |FROM presto_researcher
-         |WHERE (())
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ))
          |)
-         |r2
+         |r1
          |ON
-         |psp0.researcher_id = r2.r2_id
+         |psp0.researcher_id = r1.r1_id
          |       JOIN (
-         |SELECT researcher_id AS researcher_id, name AS mang_student_name, id s3_id
+         |SELECT researcher_id AS researcher_id, name AS mang_student_name, id s2_id
          |FROM presto_student_v1
-         |WHERE (()) AND (id = 213)
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (id = 213)
          |)
-         |s3
+         |s2
          |ON
-         |psp0.student_id = s3.s3_id
+         |psp0.student_id = s2.s2_id
+         |       JOIN (
+         |SELECT id t3_id
+         |FROM presto_tutor
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (status = 'admitted')
+         |)
+         |t3
+         |ON
+         |psp0.tutor_id = t3.t3_id
          |
          |
          |          )
@@ -1512,7 +1507,6 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
 
     val expected = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"dr_student_performance"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\}\]\},\{"type":"selector","dimension":"student_id","value":"213"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"name","outputName":"Researcher Name","outputType":"STRING"\},\{"type":"default","dimension":"status","outputName":"Researcher Status","outputType":"STRING"\},\{"type":"default","dimension":"name","outputName":"Student Name","outputType":"STRING"\},\{"type":"default","dimension":"status","outputName":"Tutor Status","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Marks Obtained","fieldName":"obtained_marks"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":400\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}""".r
     result should fullyMatch regex expected
