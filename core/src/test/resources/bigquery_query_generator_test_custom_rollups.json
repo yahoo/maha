@@ -1,0 +1,29 @@
+{
+  "cube": "bid_reco",
+  "selectFields": [
+    { "field": "Day" },
+    { "field": "Advertiser ID" },
+    { "field": "Campaign ID" },
+    { "field": "Ad Group ID" },
+    { "field": "Bid Strategy" },
+    { "field": "Forecasted Spend" },
+    { "field": "Bid Modifier" },
+    { "field": "Impressions" },
+    { "field": "Max Rollup Spend" },
+    { "field": "Min Rollup Spend" },
+    { "field": "Avg Rollup Spend" },
+    { "field": "Custom Rollup Spend" },
+    { "field": "Noop Rollup Spend" }
+  ],
+  "filterExpressions":[
+    { "field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}" },
+    { "field": "Advertiser ID", "operator": "=", "value": "12345" },
+    { "field": "Spend", "operator": "in", "values": ["1"]}
+  ],
+  "sortBy": [
+    { "field": "Impressions", "order": "Asc" }
+  ],
+  "paginationStartIndex": 0,
+  "rowsPerPage": 100
+}
+

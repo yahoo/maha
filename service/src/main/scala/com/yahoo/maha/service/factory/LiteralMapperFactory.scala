@@ -3,7 +3,7 @@
 package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
-import com.yahoo.maha.core.{DruidLiteralMapper, OracleLiteralMapper, PostgresLiteralMapper}
+import com.yahoo.maha.core.{BigqueryLiteralMapper, DruidLiteralMapper, OracleLiteralMapper, PostgresLiteralMapper}
 import org.json4s.JValue
 import _root_.scalaz._
 import com.yahoo.maha.executor.postgres.PostgresLiteralMapperUsingDriver
@@ -37,6 +37,14 @@ class DefaultPostgresLiteralMapperFactory extends PostgresLiteralMapperFactory {
 class DefaultPostgresLiteralMapperUsingDriverFactory extends PostgresLiteralMapperFactory {
   override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[PostgresLiteralMapper] = {
     new PostgresLiteralMapperUsingDriver().successNel
+  }
+
+  override def supportedProperties: List[(String, Boolean)] = List.empty
+}
+
+class DefaultBigqueryLiteralMapperFactory extends BigqueryLiteralMapperFactory {
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[BigqueryLiteralMapper] = {
+    new BigqueryLiteralMapper().successNel
   }
 
   override def supportedProperties: List[(String, Boolean)] = List.empty

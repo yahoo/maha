@@ -4,12 +4,13 @@ package com.yahoo.maha.service.factory
 
 import java.io.Closeable
 import java.util.concurrent.RejectedExecutionHandler
-
 import com.google.common.io.Closer
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing._
+import com.yahoo.maha.core.query.bigquery.BigqueryPartitionColumnRenderer
 import com.yahoo.maha.core.query.druid.DruidQueryOptimizer
 import com.yahoo.maha.core.query.{ResultSetTransformer, _}
+import com.yahoo.maha.executor.bigquery.BigqueryQueryExecutorConfig
 import com.yahoo.maha.executor.druid.{AuthHeaderProvider, DruidQueryExecutorConfig}
 import com.yahoo.maha.executor.presto.PrestoQueryTemplate
 import com.yahoo.maha.log.MahaRequestLogWriter
@@ -87,6 +88,11 @@ trait PostgresLiteralMapperFactory extends BaseFactory {
   def supportedProperties: List[(String, Boolean)]
 }
 
+trait BigqueryLiteralMapperFactory extends BaseFactory {
+  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[BigqueryLiteralMapper]
+  def supportedProperties: List[(String, Boolean)]
+}
+
 trait DruidLiteralMapperFactory extends BaseFactory {
   def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[DruidLiteralMapper]
   def supportedProperties: List[(String, Boolean)]
@@ -99,6 +105,11 @@ trait DruidQueryOptimizerFactory extends BaseFactory {
 
 trait DruidQueryExecutorConfigFactory extends BaseFactory {
   def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[DruidQueryExecutorConfig]
+  def supportedProperties: List[(String, Boolean)]
+}
+
+trait BigqueryQueryExecutorConfigFactory extends BaseFactory {
+  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[BigqueryQueryExecutorConfig]
   def supportedProperties: List[(String, Boolean)]
 }
 
@@ -316,6 +327,14 @@ class DefaultBucketingConfigFactory extends BucketingConfigFactory {
 
 class DefaultPartitionColumnRendererFactory extends PartitionColumnRendererFactory {
   override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] =  DefaultPartitionColumnRenderer.successNel
+
+  override def supportedProperties: List[(String, Boolean)] = {
+    List.empty
+  }
+}
+
+class BigqueryPartitionColumnRendererFactory extends PartitionColumnRendererFactory {
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] =  BigqueryPartitionColumnRenderer.successNel
 
   override def supportedProperties: List[(String, Boolean)] = {
     List.empty

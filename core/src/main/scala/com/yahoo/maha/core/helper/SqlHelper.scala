@@ -1,11 +1,12 @@
 package com.yahoo.maha.core.helper
 
 import com.yahoo.maha.core.query.{InnerJoin, JoinType, LeftOuterJoin, RightOuterJoin}
-import com.yahoo.maha.core.{Engine, HiveEngine, OracleEngine, PrestoEngine, PostgresEngine}
+import com.yahoo.maha.core.{BigqueryEngine, Engine, HiveEngine, OracleEngine, PrestoEngine, PostgresEngine}
 
 object SqlHelper {
   def getJoinString(joinType: JoinType, engine : Engine): String = {
     engine match {
+      case BigqueryEngine => getJoinSqlString(joinType)
       case OracleEngine => getJoinSqlString(joinType)
       case PostgresEngine => getJoinSqlString(joinType)
       case HiveEngine => getJoinSqlString(joinType)
