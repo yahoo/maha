@@ -41,6 +41,8 @@ case class PostgresPartitioningScheme(schemeName:String) extends PartitioningSch
 
 case class PrestoPartitioningScheme(schemeName:String) extends PartitioningScheme  with FactAnnotationInstance with WithPrestoEngine
 
+case class BigqueryPartitioningScheme(schemeName: String) extends PartitioningScheme  with FactAnnotationInstance with WithBigqueryEngine
+
 case class DruidQueryPriority(priority: Int) extends FactAnnotationInstance with WithDruidEngine
 case object DruidGroupByStrategyV1 extends FactAnnotationInstance with WithDruidEngine
 case object DruidGroupByStrategyV2 extends FactAnnotationInstance with WithDruidEngine

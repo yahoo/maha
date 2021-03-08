@@ -1,0 +1,19 @@
+{
+  "cube": "s_stats",
+  "selectFields": [
+    { "field": "Day" },
+    { "field": "Advertiser ID" },
+    { "field": "Impressions" },
+    { "field": "Advertiser Status" },
+    { "field": "Average Position" }
+  ],
+  "filterExpressions": [
+    { "field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}" },
+    { "field": "Advertiser ID", "operator": "=", "value": "12345" }
+  ],
+  "sortBy": [
+    { "field": "Impressions", "order": "Asc" }
+  ],
+  "paginationStartIndex": 0,
+  "rowsPerPage": 100
+}

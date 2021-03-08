@@ -209,6 +209,7 @@ class MahaResource(mahaService: MahaService
             case HiveEngine => ReportingRequest.forceHive(withDebug)
             case PrestoEngine => ReportingRequest.forcePresto(withDebug)
             case PostgresEngine => ReportingRequest.forcePostgres(withDebug)
+            case BigqueryEngine => ReportingRequest.forceBigquery(withDebug)
             case _ => withDebug
           }
         } else {

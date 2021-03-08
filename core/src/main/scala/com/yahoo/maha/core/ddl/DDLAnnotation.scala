@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.ddl
 
-import com.yahoo.maha.core.{WithHiveEngine, WithOracleEngine, WithPrestoEngine, WithPostgresEngine}
+import com.yahoo.maha.core.{WithHiveEngine, WithOracleEngine, WithPrestoEngine, WithPostgresEngine, WithBigqueryEngine}
 
 /**
  * Created by shengyao on 1/28/16.
@@ -20,4 +20,7 @@ case class PrestoDDLAnnotation(annotations: Map[String, String] = Map.empty,
 
 case class PostgresDDLAnnotation(pks: Set[String] = Set.empty,
                                partCols: Set[String] = Set.empty) extends DDLAnnotation with WithPostgresEngine
+
+case class BigqueryDDLAnnotation(annotations: Map[String, String] = Map.empty,
+                                 columnOrdering: IndexedSeq[String] = IndexedSeq.empty) extends DDLAnnotation with WithBigqueryEngine
 

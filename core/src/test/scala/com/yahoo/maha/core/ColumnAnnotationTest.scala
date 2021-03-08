@@ -17,6 +17,11 @@ class ColumnAnnotationTest extends AnyFunSuite with Matchers {
     set.contains(HiveShardingExpression.instance) === true
   }
 
+  test("successfully find BigqueryShardingExpression with instance") {
+    val set: Set[ColumnAnnotation] = Set(BigqueryShardingExpression(null))
+    set.contains(BigqueryShardingExpression.instance) === true
+  }
+
   test("successfully find ForeignKey with instance") {
     val set: Set[ColumnAnnotation] = Set(ForeignKey("fid"))
     set.contains(ForeignKey.instance) === true
@@ -41,6 +46,14 @@ class ColumnAnnotationTest extends AnyFunSuite with Matchers {
     val prestoMin : PrestoDerivedExpression = PrestoDerivedExpression.fromExpression(PRESTO_TIMESTAMP_TO_FORMATTED_DATE("{created_date}", "YYYY-MM-dd"))
     val prestoShardingExpr : PrestoShardingExpression = new PrestoShardingExpression(prestoMin)
     assert(prestoShardingExpr.instance == PrestoShardingExpression.instance)
+  }
+
+  test("Instantiate BigqueryShardingExpression") {
+    import BigqueryExpression._
+    implicit val cc: ColumnContext = new ColumnContext
+    val bigqueryDerivedMin: BigqueryDerivedExpression = BigqueryDerivedExpression.fromExpression(MIN("{thing}"))
+    val bigqueryShardingExpr: BigqueryShardingExpression = new BigqueryShardingExpression(bigqueryDerivedMin)
+    assert(bigqueryShardingExpr.instance == BigqueryShardingExpression.instance)
   }
 
   test("Instantiate ForeignKey and DayColumn") {
@@ -99,4 +112,27 @@ class ColumnAnnotationTest extends AnyFunSuite with Matchers {
 
   }
 
+  test("Bigquery column annotations should convert to JSON properly") {
+    import BigqueryExpression._
+    import org.json4s._
+    import org.json4s.jackson.JsonMethods._
+    implicit val formats = DefaultFormats
+
+    implicit val cc: ColumnContext = new ColumnContext
+    val fk: ForeignKey = new ForeignKey("pd")
+    val dc: DayColumn = new DayColumn("format")
+    val bigqueryDerivedMin: BigqueryDerivedExpression = BigqueryDerivedExpression.fromExpression(MIN("{thing}"))
+    val bigqueryShardingExpr: BigqueryShardingExpression = new BigqueryShardingExpression(bigqueryDerivedMin)
+
+    val expressions = Set(fk, dc, bigqueryShardingExpr)
+    val allJSONs: String = expressions.map(exp => compact(exp.asJSON)).mkString(",")
+    val allAnnotations = List(
+      """{"annotation":"ForeignKey","publicDimName":"pd"}""",
+      """{"annotation":"DayColumn","fmt":"format"}""",
+      """{"annotation":"BigqueryShardingExpression","expression":"BigqueryDerivedExpression(""",
+      """,MIN(COL({thing},false,false)))"}"""
+    )
+
+    assert(allAnnotations.forall(annotation => allJSONs.contains(annotation)))
+  }
 }

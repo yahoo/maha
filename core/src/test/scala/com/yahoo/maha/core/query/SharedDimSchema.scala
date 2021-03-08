@@ -6,7 +6,7 @@ import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.ddl.HiveDDLAnnotation
+import com.yahoo.maha.core.ddl.{BigqueryDDLAnnotation, HiveDDLAnnotation}
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
@@ -137,6 +137,47 @@ trait SharedDimSchema {
       }
     }
 
+    {
+      import BigqueryExpression._
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        builder.withAlternateEngine(
+          "bq_targetingattribute",
+          "cache_targeting_attribute",
+          BigqueryEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("parent_type", StrType())
+            , DimCol("parent_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+            , DimCol("value", StrType(255))
+            , DimCol("status", StrType(255))
+            , DimCol("match_type", StrType(64))
+            , DimCol("ad_param_value_1", StrType(2048), annotations = Set(EscapingRequired))
+            , DimCol("ad_param_value_2", StrType(200), annotations = Set(EscapingRequired))
+            , DimCol("ad_param_value_3", StrType(200), annotations = Set(EscapingRequired))
+            , DimCol("editorial_results", StrType(256), annotations = Set(EscapingRequired))
+            , DimCol("cpc", DecType())
+            , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
+            , DimCol("landing_url", StrType())
+            , DimCol("deleted_date", IntType())
+            , DimCol("modifier", DecType())
+            , DimCol("hidden", IntType())
+            , DimCol("created_by_user", StrType())
+            , DimCol("created_date", IntType())
+            , DimCol("last_updated_by_user", StrType())
+            , DimCol("last_updated", IntType())
+            , BigqueryDerDimCol("Keyword Date Created", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{created_date}", "YYYY-MM-dd"), annotations = Set.empty)
+            , BigqueryDerDimCol("Keyword Date Modified", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{last_updated}", "YYYY-MM-dd"), annotations = Set.empty)
+            , BigqueryDimCol("snapshot_ts", IntType(10), annotations = Set(BigquerySnapshotTimestamp))
+            , BigqueryDimCol("shard_id", IntType(3))
+            , BigqueryPartDimCol("load_time", StrType(), annotations = Set.empty)
+            , BigqueryPartDimCol("shard", StrType(10, default="all"), annotations = Set.empty)
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+        )
+      }
+    }
+
     builder.toPublicDimension(
       "keyword","keyword",
       Set(
@@ -205,6 +246,27 @@ trait SharedDimSchema {
           )
       }
     }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import BigqueryExpression._
+        builder
+          .withAlternateEngine("ad_dim_bigquery", "ad_dim_oracle", BigqueryEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("title", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
+              , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+              , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+              , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+              , DimCol("status", StrType())
+              , BigqueryDerDimCol("Ad Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+              , BigqueryPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
+              , BigqueryPartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
+            )
+          )
+      }
+    }
+
     {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         import HiveExpression._
@@ -297,6 +359,26 @@ trait SharedDimSchema {
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , annotations = Set(PostgresHashPartitioning,PostgresPKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import BigqueryExpression._
+        builder.withAlternateEngine("ad_group_bigquery", "ad_group_oracle", BigqueryEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
+            , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
+            , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+            , DimCol("status", StrType())
+            , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
+            , BigqueryDerDimCol("Ad Group Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+            , BigqueryPartDimCol("load_time", StrType())
+            , BigqueryPartDimCol("shard", StrType(10, default="all"))
+          )
         )
       }
     }
@@ -396,6 +478,25 @@ trait SharedDimSchema {
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , annotations = Set(PostgresHashPartitioning, DimensionPostgresStaticHint("CampaignHint"),PostgresPKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import BigqueryExpression._
+        builder.withAlternateEngine("campaign_bigquery", "campaign_oracle", BigqueryEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("campaign_name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
+            , DimCol("status", StrType())
+            , DimCol("campaign_start_date", StrType())
+            , DimCol("campaign_end_date", StrType())
+            , BigqueryDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+            , BigqueryPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
+            , BigqueryPartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
+          )
         )
       }
     }
@@ -519,6 +620,25 @@ trait SharedDimSchema {
 
     {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import BigqueryExpression._
+        builder.withAlternateEngine("advertiser_bigquery", "advertiser_oracle", BigqueryEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("status", StrType())
+            , DimCol("managed_by", IntType())
+            , DimCol("currency", StrType())
+            , DimCol("booking_country", StrType())
+            , BigqueryDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+            , BigqueryPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
+            , BigqueryPartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
+          )
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         import HiveExpression._
         import com.yahoo.maha.core.BaseExpressionTest._
         builder.withAlternateEngine("advertiser_hive", "advertiser_oracle", HiveEngine,
@@ -626,6 +746,24 @@ trait SharedDimSchema {
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , annotations = Set(PostgresHashPartitioning,PostgresPKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import BigqueryExpression._
+        builder.withAlternateEngine("advertiser_bigquery", "advertiser_oracle", BigqueryEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("status", StrType())
+            , DimCol("managed_by", IntType())
+            , DimCol("timezone", StrType())
+            , BigqueryDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+            , BigqueryPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
+            , BigqueryPartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
+          )
         )
       }
     }
@@ -886,6 +1024,56 @@ trait SharedDimSchema {
       }
     }
 
+    {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        builder.withAlternateEngine (
+          "bq_section",
+          "dim_section_complete",
+          BigqueryEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey)),
+            DimCol("snapshot_ts", IntType(10)),
+            DimCol("publisher_id", IntType(), annotations = Set(ForeignKey("publishers"))),
+            DimCol("name", StrType(),annotations = Set(EscapingRequired), alias = Option("section_name")),
+            DimCol("status", StrType(255, (Map("ON" -> "ON"),"OFF"))),
+            DimCol("vertical", StrType(255)),
+            DimCol("site_id", IntType(), annotations = Set(ForeignKey("sites"))),
+            DimCol("source_tag", StrType(),annotations = Set(EscapingRequired)),
+            DimCol("created_ts", IntType()),
+            DimCol("last_update_ts", IntType()),
+            DimCol("rtb_enabled", IntType()),
+            DimCol("auction_type", StrType(),annotations = Set(EscapingRequired)),
+            DimCol("rtb_section_group", StrType(),annotations = Set(EscapingRequired)),
+            DimCol("rtb_section_group_mobile", StrType(),annotations = Set(EscapingRequired)),
+            DimCol("rtb_section_group_tablet", StrType(),annotations = Set(EscapingRequired)),
+            BigqueryPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel),
+            BigqueryPartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , ddlAnnotation = Option(
+            BigqueryDDLAnnotation(Map(),
+              columnOrdering =
+                IndexedSeq(
+                  "id",
+                  "name",
+                  "status",
+                  "vertical",
+                  "publisher_id",
+                  "site_id",
+                  "source_tag",
+                  "created_ts",
+                  "last_update_ts",
+                  "snapshot_ts",
+                  "rtb_enabled",
+                  "auction_type",
+                  "rtb_section_group",
+                  "rtb_section_group_mobile",
+                  "rtb_section_group_tablet"
+                )))
+        )
+      }
+    }
+
     builder.toPublicDimension(
         "sections",
         "section",
@@ -991,6 +1179,44 @@ trait SharedDimSchema {
       }
     }
 
+    {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        builder.withAlternateEngine(
+          "bq_publisher",
+          "dim_publisher_complete",
+          BigqueryEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey)),
+            DimCol("snapshot_ts", IntType(10)),
+            DimCol("name", StrType(1000), alias = Option("publisher_name")),
+            DimCol("status", StrType(255, (Map("ON" -> "ON"), "OFF"))),
+            DimCol("timezone", StrType()),
+            DimCol("created_ts", IntType()),
+            DimCol("last_update_ts", IntType()),
+            DimCol("rev_share", DecType()),
+            DimCol("source_type", StrType()),
+            BigqueryPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel),
+            BigqueryPartDimCol("shard", StrType(10, default = "all"), partitionLevel = SecondPartitionLevel)
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , ddlAnnotation = Option(
+            BigqueryDDLAnnotation(Map(),
+              columnOrdering =
+                IndexedSeq(
+                  "id",
+                  "name",
+                  "status",
+                  "timezone",
+                  "created_ts",
+                  "last_update_ts",
+                  "rev_share",
+                  "source_type",
+                  "snapshot_ts"
+                )))
+        )
+      }
+    }
+
     builder.toPublicDimension(
         "publishers",
         "publisher",
@@ -1092,6 +1318,44 @@ trait SharedDimSchema {
       }
     }
 
+    {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        builder.withAlternateEngine (
+          "bq_site",
+          "dim_site_complete",
+          BigqueryEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey)),
+            DimCol("snapshot_ts", IntType(10)),
+            DimCol("name", StrType(255), annotations = Set(EscapingRequired), alias = Option("site_name")),
+            DimCol("status", StrType(255, (Map("ON" -> "ON"),"OFF"))),
+            DimCol("publisher_id", IntType(), annotations = Set(ForeignKey("publishers"))),
+            DimCol("rmx_section_id", IntType()),
+            DimCol("created_ts", IntType()),
+            DimCol("last_update_ts", IntType()),
+            DimCol("platform", StrType(), annotations = Set(EscapingRequired)),
+            BigqueryPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel),
+            BigqueryPartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , ddlAnnotation = Option(
+            BigqueryDDLAnnotation(Map(),
+              columnOrdering =
+                IndexedSeq(
+                  "id",
+                  "publisher_id",
+                  "name",
+                  "status",
+                  "rmx_section_id",
+                  "created_ts",
+                  "last_update_ts",
+                  "platform",
+                  "snapshot_ts"
+                )))
+        )
+      }
+    }
+
     builder.toPublicDimension(
         "sites",
         "site",
@@ -1182,6 +1446,30 @@ trait SharedDimSchema {
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , annotations = Set(PostgresHashPartitioning, PostgresPKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        builder.withAlternateEngine (
+          "restaurant_bigquery",
+          "restaurant_oracle",
+          BigqueryEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey), alias = Option("external_id"))
+            , DimCol("external_site_name", StrType(60, default="Others"))
+            , BigqueryPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
+            , BigqueryPartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , ddlAnnotation = Option(
+            BigqueryDDLAnnotation(Map(),
+              columnOrdering =
+                IndexedSeq(
+                  "id",
+                  "external_site_name"
+                )))
         )
       }
     }
