@@ -9,13 +9,6 @@ CREATE TABLE public.advertiser (
     managed_by numeric  NOT NULL,
 CONSTRAINT advertiser_pkey
     PRIMARY KEY (id));
-CREATE TABLE public.campaign_stats (
-    impressions numeric(3,0) DEFAULT 1 NOT NULL,
-    spend numeric DEFAULT 0.0 NOT NULL,
-    stats_date date  NOT NULL,
-    advertiser_id numeric  NOT NULL,
-    clicks numeric(3,0) DEFAULT 0 NOT NULL,
-    campaign_id numeric  NOT NULL);
 CREATE TABLE public.campaign (
     device_id numeric(3,0)  NOT NULL,
     campaign_name character varying  NOT NULL,
@@ -42,6 +35,17 @@ CONSTRAINT ad_group_pkey
 CONSTRAINT ad_group_advertiser_id_fkey
     FOREIGN KEY (advertiser_id) REFERENCES advertiser(id),
 CONSTRAINT ad_group_campaign_id_fkey
+    FOREIGN KEY (campaign_id) REFERENCES campaign(id));
+CREATE TABLE public.campaign_stats (
+    impressions numeric(3,0) DEFAULT 1 NOT NULL,
+    spend numeric DEFAULT 0.0 NOT NULL,
+    stats_date date  NOT NULL,
+    advertiser_id numeric  NOT NULL,
+    clicks numeric(3,0) DEFAULT 0 NOT NULL,
+    campaign_id numeric  NOT NULL,
+CONSTRAINT campaign_stats_advertiser_id_fkey
+    FOREIGN KEY (advertiser_id) REFERENCES advertiser(id),
+CONSTRAINT campaign_stats_campaign_id_fkey
     FOREIGN KEY (campaign_id) REFERENCES campaign(id));
 CREATE TABLE public.targetingattribute (
     device_id numeric(3,0)  NOT NULL,
