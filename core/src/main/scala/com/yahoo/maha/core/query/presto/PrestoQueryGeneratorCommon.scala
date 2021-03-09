@@ -5,7 +5,7 @@ import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
 
-abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithPrestoEngine] with HivePrestoQueryCommon {
+abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithPrestoEngine] with BigqueryHivePrestoQueryCommon {
 
   // render outercols with column expression
   def generateOuterColumns(queryContext: CombinedQueryContext,

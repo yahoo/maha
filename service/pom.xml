@@ -52,6 +52,11 @@
         </dependency>
         <dependency>
             <groupId>com.yahoo.maha</groupId>
+            <artifactId>maha-bigquery-executor</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.yahoo.maha</groupId>
             <artifactId>maha-oracle-executor</artifactId>
             <version>${project.version}</version>
         </dependency>

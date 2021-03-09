@@ -58,6 +58,11 @@ case class PostgresCustomRollup(expression: PostgresDerivedExpression) extends C
   override lazy val sourceColumns: Set[String] = expression.sourceColumns
   override lazy val sourcePrimitiveColumns: Set[String] = expression.sourcePrimitiveColumns
 }
+case class BigqueryCustomRollup(expression: BigqueryDerivedExpression) extends CustomRollup with WithBigqueryEngine {
+  override val hasDerivedExpression: Boolean = true
+  override lazy val sourceColumns: Set[String] = expression.sourceColumns
+  override lazy val sourcePrimitiveColumns: Set[String] = expression.sourcePrimitiveColumns
+}
 case class DruidCustomRollup(expression: DruidDerivedExpression) extends CustomRollup with WithDruidEngine {
   override val hasDerivedExpression: Boolean = true
   override lazy val sourceColumns: Set[String] = expression.sourceColumns

@@ -341,6 +341,64 @@ object PostgresDerDimCol {
   }
 }
 
+case class BigqueryDimCol(name: String,
+                          dataType: DataType,
+                          columnContext: ColumnContext,
+                          alias: Option[String],
+                          annotations: Set[ColumnAnnotation],
+                          filterOperationOverrides: Set[FilterOperation]) extends BaseDimCol with WithBigqueryEngine {
+  override val isDerivedColumn: Boolean = false
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean): DimensionColumn = {
+    if (resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias))
+    }
+  }
+}
+
+object BigqueryDimCol {
+  def apply(name: String,
+            dataType: DataType,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext): BigqueryDimCol = {
+    BigqueryDimCol(name, dataType, cc, alias, annotations, filterOperationOverrides)
+  }
+}
+
+
+case class BigqueryDerDimCol(name: String,
+                             dataType: DataType,
+                             columnContext: ColumnContext,
+                             derivedExpression: BigqueryDerivedExpression,
+                             alias: Option[String],
+                             annotations: Set[ColumnAnnotation],
+                             filterOperationOverrides: Set[FilterOperation]) extends BaseDerivedDimCol with WithBigqueryEngine {
+  require(derivedExpression != null,
+    s"Derived expression should be defined for a derived column $name")
+  require(!derivedExpression.expression.hasRollupExpression, s"Cannot have rollup expression for dimension column: $name - $derivedExpression")
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean): DimensionColumn = {
+    if (resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name), derivedExpression = derivedExpression.copyWith(columnContext))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias), derivedExpression = derivedExpression.copyWith(columnContext))
+    }
+  }
+}
+
+object BigqueryDerDimCol {
+  def apply(name: String,
+            dataType: DataType,
+            derivedExpression: BigqueryDerivedExpression,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : BigqueryDerDimCol = {
+    BigqueryDerDimCol(name, dataType, cc, derivedExpression, alias, annotations, filterOperationOverrides)
+  }
+}
+
+
 case class DruidFuncDimCol(name: String,
                            dataType: DataType,
                            columnContext: ColumnContext,
@@ -458,6 +516,33 @@ object PostgresPartDimCol {
             annotations: Set[ColumnAnnotation] = Set.empty,
             partitionLevel: PartitionLevel = NoPartitionLevel )(implicit cc: ColumnContext) : PostgresPartDimCol = {
     PostgresPartDimCol(name, dataType, cc, alias, annotations, partitionLevel)
+  }
+}
+
+case class BigqueryPartDimCol(name: String,
+                              dataType: DataType,
+                              columnContext: ColumnContext,
+                              alias: Option[String],
+                              annotations: Set[ColumnAnnotation],
+                              partitionLevel: PartitionLevel) extends BaseDimCol with WithBigqueryEngine with PartitionColumn {
+  override val filterOperationOverrides: Set[FilterOperation] = Set.empty
+  override val isDerivedColumn: Boolean = false
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean): DimensionColumn = {
+    if (resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias))
+    }
+  }
+}
+
+object BigqueryPartDimCol {
+  def apply(name: String,
+            dataType: DataType,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            partitionLevel: PartitionLevel = NoPartitionLevel )(implicit cc: ColumnContext): BigqueryPartDimCol = {
+    BigqueryPartDimCol(name, dataType, cc, alias, annotations, partitionLevel)
   }
 }
 

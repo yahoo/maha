@@ -7,7 +7,7 @@ import com.yahoo.maha.core.query._
 
 import scala.collection.{SortedSet, mutable}
 
-abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithHiveEngine] with HivePrestoQueryCommon {
+abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithHiveEngine] with BigqueryHivePrestoQueryCommon {
 
   // render outercols with column expression
   def generateOuterColumns(queryContext: CombinedQueryContext,

@@ -124,6 +124,12 @@ class DaysUtilsTest extends AnyFunSuite with Matchers {
     list should be equals List(BetweenFilter("utc_time","2015-12-24","2015-12-27"))
   }
 
+  test("Test long list getDayBetweenFilters In Bigquery") {
+    val list = DaysUtils.getDayBetweenFilters("utc_time", List(20151224, 20151225, 20151226, 20151227), BigqueryEngine)
+
+    list should be equals List(BetweenFilter("utc_time","2015-12-24","2015-12-27"))
+  }
+
   test("Test long list getHourBetweenFilters In Hive") {
     val list = DaysUtils.getHourBetweenFilters("utc_time", List(2015122401, 2015122402, 2015122405, 2015122406),HiveEngine)
     
@@ -135,6 +141,14 @@ class DaysUtilsTest extends AnyFunSuite with Matchers {
   test("Test long list getHourBetweenFilters In Presto") {
     val list = DaysUtils.getHourBetweenFilters("utc_time", List(2015122401, 2015122402, 2015122405, 2015122406),PrestoEngine)
     
+    list should be equals List(
+      BetweenFilter("utc_time","2015-12-24 01","2015-12-24 02"),
+      BetweenFilter("utc_time","2015-12-24 05","2015-12-24 06"))
+  }
+
+  test("Test long list getHourBetweenFilters In Bigquery") {
+    val list = DaysUtils.getHourBetweenFilters("utc_time", List(2015122401, 2015122402, 2015122405, 2015122406), BigqueryEngine)
+
     list should be equals List(
       BetweenFilter("utc_time","2015-12-24 01","2015-12-24 02"),
       BetweenFilter("utc_time","2015-12-24 05","2015-12-24 06"))

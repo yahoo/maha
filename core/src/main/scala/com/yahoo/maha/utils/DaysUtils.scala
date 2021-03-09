@@ -77,6 +77,10 @@ case object DaysUtils extends Logging {
             val from = datetimeFormat.parseDateTime(pair._1.toString).toString(dateNumberFormatString)
             val to = datetimeFormat.parseDateTime(pair._2.toString).toString(dateNumberFormatString)
             betweenFilterSet.add(new BetweenFilter(colName,from,to))
+          case BigqueryEngine =>
+            val from = datetimeFormat.parseDateTime(pair._1.toString).toString(formatString)
+            val to = datetimeFormat.parseDateTime(pair._2.toString).toString(formatString)
+            betweenFilterSet.add(new BetweenFilter(colName,from,to))
           case _ =>
             throw new IllegalArgumentException(s"Need to define case for this engine Engine $engine")
         }
@@ -189,6 +193,10 @@ case object DaysUtils extends Logging {
           case HiveEngine | PrestoEngine =>
             val from = datetimeFormat.parseDateTime(pair._1.toString).toString(dateNumberFormatString)
             val to = datetimeFormat.parseDateTime(pair._2.toString).toString(dateNumberFormatString)
+            betweenFilterSet.add(new BetweenFilter(colName,from,to))
+          case BigqueryEngine =>
+            val from = datetimeFormat.parseDateTime(pair._1.toString).toString(hourFormatString)
+            val to = datetimeFormat.parseDateTime(pair._2.toString).toString(hourFormatString)
             betweenFilterSet.add(new BetweenFilter(colName,from,to))
           case _ =>
             throw new IllegalArgumentException(s"Need to define case for this engine Engine $engine")

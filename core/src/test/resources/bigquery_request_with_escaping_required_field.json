@@ -1,0 +1,13 @@
+{
+  "cube": "s_stats",
+  "selectFields": [
+    { "field": "Impressions" },
+    { "field": "Keyword" },
+    { "field": "Advertiser ID" },
+    { "field": "Day" }
+  ],
+  "filterExpressions": [
+    { "field": "Advertiser ID", "operator": "=", "value": "12345" },
+    { "field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}" }
+  ]
+}

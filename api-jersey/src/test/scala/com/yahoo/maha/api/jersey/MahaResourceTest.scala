@@ -197,6 +197,33 @@ class MahaResourceTest {
   }
 
   @Test
+  def failedBigqueryRequest() {
+    assertNotNull("jetty must be initialised", MahaResourceTest.server)
+    val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/query?debug=true&forceEngine=bigquery")
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "${ExampleMahaService.yesterday}", "to": "${ExampleMahaService.today}"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val httpEntity: HttpEntity = new StringEntity(jsonRequest)
+    httpPost.setEntity(httpEntity)
+    httpPost.setHeader(HttpHeaders.ACCEPT,MediaType.APPLICATION_JSON)
+    httpPost.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+    httpPost.setHeader("RequestId", "failedBigqueryRequest")
+    val httpResponse: HttpResponse = httpClient.execute(httpPost)
+    assertEquals(s"should return status 400, ${httpResponse.getStatusLine}", 400, httpResponse.getStatusLine.getStatusCode)
+  }
+
+  @Test
   def successfulSyncRequest(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
