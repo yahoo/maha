@@ -463,7 +463,11 @@ object DefaultQueryPipelineFactory extends Logging {
       }
     } else {
       if (a._5 == b._5) {
-        a._3 < b._3
+        if(a._4 == b._4){
+          a._3 < b._3
+        } else {
+          a._4 < b._4
+        }
       } else {
         a._5 < b._5
       }
