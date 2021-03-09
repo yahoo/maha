@@ -6,10 +6,11 @@ import com.yahoo.maha.core.fact._
 
 import scala.collection.mutable
 
-trait HivePrestoQueryCommon {
+trait BigqueryHivePrestoQueryCommon {
 
   val hiveLiteralMapper = new HiveLiteralMapper()
   val prestoLiteralMapper = new HiveLiteralMapper()
+  val bigqueryLiteralMapper = new BigqueryLiteralMapper()
 
   def generateOrderByClause(queryContext: DimFactOuterGroupByQueryQueryContext,
                             queryBuilder: QueryBuilder,
@@ -50,8 +51,10 @@ trait HivePrestoQueryCommon {
             }
         }
       case derCol : FactCol =>
-        require(engine == HiveEngine && derCol.rollupExpression.isInstanceOf[HiveCustomRollup] ||
-          engine == PrestoEngine && derCol.rollupExpression.isInstanceOf[PrestoCustomRollup],
+        require(
+          engine == HiveEngine && derCol.rollupExpression.isInstanceOf[HiveCustomRollup] ||
+          engine == PrestoEngine && derCol.rollupExpression.isInstanceOf[PrestoCustomRollup] ||
+          engine == BigqueryEngine && derCol.rollupExpression.isInstanceOf[BigqueryCustomRollup],
           s"Unexpected Rollup expression ${derCol.rollupExpression} in finding primitive cols")
         if (engine == HiveEngine) {
           val customRollup = derCol.rollupExpression.asInstanceOf[HiveCustomRollup]
@@ -65,6 +68,27 @@ trait HivePrestoQueryCommon {
               } else {
                 col match {
                   case fcol: FactCol if !fcol.rollupExpression.isInstanceOf[HiveCustomRollup] =>
+                    val name = col.alias.getOrElse(col.name)
+                    if (!primitiveColsSet.contains((name, col))) {
+                      primitiveColsSet.add((name, col))
+                    }
+                  case _ =>
+                }
+              }
+          }
+        }
+        else if (engine == BigqueryEngine) {
+          val customRollup = derCol.rollupExpression.asInstanceOf[BigqueryCustomRollup]
+          customRollup.expression.sourceColumns.toList.sorted.foreach {
+            sourceCol =>
+              val colOption = fact.columnsByNameMap.get(sourceCol)
+              require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
+              val col = colOption.get
+              if (col.isDerivedColumn) {
+                dfsGetPrimitiveCols(fact, IndexedSeq(col.asInstanceOf[DerivedColumn]), primitiveColsSet, engine)
+              } else {
+                col match {
+                  case fcol: FactCol if !fcol.rollupExpression.isInstanceOf[BigqueryCustomRollup] =>
                     val name = col.alias.getOrElse(col.name)
                     if (!primitiveColsSet.contains((name, col))) {
                       primitiveColsSet.add((name, col))
@@ -114,6 +138,8 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
             rollup match {
               case HiveCustomRollup(e) =>
                 parseCustomRollup(e, col, alias)
+              case BigqueryCustomRollup(e) =>
+                parseCustomRollup(e, col, alias)
               case PrestoCustomRollup(e) =>
                 parseCustomRollup(e, col, alias)
               case NoopRollup =>
@@ -128,6 +154,28 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
                 // If NoopRollup column has Aggregate/rollup Expression then push it inside for OGB
                 pickupLeaf(col, alias)
               case _=> //ignore all other rollup cases
+            }
+            if (rollup != NoopRollup) {
+              de.sourceColumns.toList.sorted.foreach {
+                sourceColName =>
+                  val colOption = fact.columnsByNameMap.get(sourceColName)
+                  require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
+                  val sourceCol = colOption.get
+                  val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
+                  if (col.alias.getOrElse(col.name) != sourceColAlias) {
+                    // avoid adding self dependent columns
+                    dfsNoopRollupCols(fact, Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
+                  }
+              }
+            }
+          case derCol@BigqueryDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
+            rollup match {
+              case BigqueryCustomRollup(e) =>
+                parseCustomRollup(e, col, alias)
+              case NoopRollup if grepHasRollupExpression(fact, de.expression) =>
+                // If NoopRollup column has Aggregate/rollup Expression then push it inside for OGB
+                pickupLeaf(col, alias)
+              case _=>
             }
             if (rollup != NoopRollup) {
               de.sourceColumns.toList.sorted.foreach {
@@ -192,7 +240,7 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       } else  {
         // Matching case for non rollup expression recursively
         expression match {
-          case col@(PrestoExpression.COL(_, _, _) | HiveExpression.COL(_, _, _)) =>
+          case col@(PrestoExpression.COL(_, _, _) | BigqueryExpression.COL(_, _, _) | HiveExpression.COL(_, _, _)) =>
             val pattern = "\\{([^}]+)\\}".r
             val colNames = pattern.findAllIn(col.asString).toSet
             for (colName <- colNames) {
@@ -201,6 +249,8 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
               val hasRollupExpr = if(colOption.isDefined) {
                 colOption.get match {
                   case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
+                    grepHasRollupExpression(fact, de.expression)
+                  case BigqueryDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
                     grepHasRollupExpression(fact, de.expression)
                   case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
                     grepHasRollupExpression(fact, de.expression)
@@ -215,6 +265,9 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
           case HiveExpression.ROUND(hiveExp, _)=> grepHasRollupExpression(fact, hiveExp)
           case HiveExpression.COALESCE(hiveExp, _)=> grepHasRollupExpression(fact, hiveExp)
           case HiveExpression.NVL(hiveExp, _)=> grepHasRollupExpression(fact, hiveExp)
+          case BigqueryExpression.ROUND(bigqueryExp, _) => grepHasRollupExpression(fact, bigqueryExp)
+          case BigqueryExpression.COALESCE(bigqueryExp, _) => grepHasRollupExpression(fact, bigqueryExp)
+          case BigqueryExpression.NVL(bigqueryExp, _) => grepHasRollupExpression(fact, bigqueryExp)
           case PrestoExpression.ROUND(prestoExp, _)=> grepHasRollupExpression(fact, prestoExp)
           case PrestoExpression.COALESCE(prestoExp, _)=> grepHasRollupExpression(fact, prestoExp)
           case PrestoExpression.NVL(prestoExp, _)=> grepHasRollupExpression(fact, prestoExp)
@@ -249,10 +302,16 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       case HiveDerDimCol(_, dt, cc, de, _, annotations, _) =>
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         s"""$renderedAlias"""
+      case BigqueryDerDimCol(_, dt, cc, de, _, annotations, _) =>
+        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+        s"""$renderedAlias"""
       case PrestoDerDimCol(_, dt, cc, de, _, annotations, _) =>
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         s"""$renderedAlias"""
       case HivePartDimCol(_, dt, cc, _, annotations, _) =>
+        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+        s"""$renderedAlias"""
+      case BigqueryPartDimCol(_, dt, cc, _, annotations, _) =>
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         s"""$renderedAlias"""
       case PrestoPartDimCol(_, dt, cc, _, annotations, _) =>
@@ -277,6 +336,11 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
         val de = factCol.rollupExpression.asInstanceOf[HiveCustomRollup].expression
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         s"""${de.render(name, Map.empty)} AS $renderedAlias"""
+      case factCol@FactCol(_, dt, cc, rollup, _, annotations, _) if factCol.rollupExpression.isInstanceOf[BigqueryCustomRollup] =>
+        val name = factCol.alias.getOrElse(factCol.name)
+        val de = factCol.rollupExpression.asInstanceOf[BigqueryCustomRollup].expression
+        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+        s"""${de.render(name, Map.empty)} AS $renderedAlias"""
       case factCol@FactCol(_, dt, cc, rollup, _, annotations, _) if factCol.rollupExpression.isInstanceOf[PrestoCustomRollup]=>
         val name = factCol.alias.getOrElse(factCol.name)
         val de = factCol.rollupExpression.asInstanceOf[PrestoCustomRollup].expression
@@ -286,6 +350,10 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         s"""$renderedAlias"""
       case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
+        val name = column.alias.getOrElse(column.name)
+        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+        s"""${de.render(name, Map.empty)} AS $renderedAlias"""
+      case BigqueryDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
         val name = column.alias.getOrElse(column.name)
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         s"""${de.render(name, Map.empty)} AS $renderedAlias"""
@@ -331,6 +399,12 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
           case (from, to) => s"'$from', '$to'"
         }
         s"""decodeUDF($nameOrAlias, ${decodeValues.mkString(", ")}, '$defaultValue')"""
+      case StrType(_, sm, _) if sm.isDefined && engine == BigqueryEngine =>
+        val defaultValue = sm.get.default
+        val whenClauses = sm.get.tToStringMap.map {
+          case (from, to) => s"WHEN ($nameOrAlias IN ('$from')) THEN '$to'"
+        }
+        s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
       case StrType(_, sm, _) if sm.isDefined && engine == PrestoEngine =>
         val defaultValue = sm.get.default
         val whenClauses = sm.get.tToStringMap.map {
@@ -416,6 +490,10 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
         s"""${de.render(name, Map.empty)} $renderedAlias"""
+      case BigqueryDerDimCol(_, dt, _, de, _, _, _) =>
+        val renderedAlias = renderColumnAlias(alias)
+        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+        s"""${de.render(name, Map.empty)} $renderedAlias"""
       case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
@@ -423,6 +501,10 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       case HivePartDimCol(_, dt, _, _, _, _) =>
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+        name
+      case BigqueryPartDimCol(_, dt, _, _, _, _) =>
+        val renderedAlias = renderColumnAlias(alias)
+        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
         name
       case PrestoPartDimCol(_, dt, _, _, _, _) =>
         val renderedAlias = renderColumnAlias(alias)
@@ -470,6 +552,23 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)})"""))
         ""
+      case BigqueryDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
+        if factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
+          || de.isDimensionDriven =>
+        val renderedAlias = renderColumnAlias(alias)
+        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+        s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
+      case BigqueryDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
+        de.sourceColumns.foreach {
+          case src if src != name =>
+            val sourceCol = fact.columnsByNameMap(src)
+            val renderedAlias = sourceCol.alias.getOrElse(sourceCol.name)
+            renderColumnWithAlias(fact, sourceCol, renderedAlias, requiredInnerCols, isOuterColumn, queryContext, queryBuilderContext, queryBuilder, engine)
+          case _ =>
+        }
+        val renderedAlias = renderColumnAlias(alias)
+        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)})"""))
+        ""
       case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
         if factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
           || de.isDimensionDriven =>
@@ -505,6 +604,7 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       case MinRollup => s"MIN($expression)"
       case AverageRollup => s"AVG($expression)"
       case HiveCustomRollup(exp) => s"(${exp.render(expression, Map.empty, renderedColExp)})"
+      case BigqueryCustomRollup(exp) => s"(${exp.render(expression, Map.empty, renderedColExp)})"
       case PrestoCustomRollup(exp) => s"(${exp.render(expression, Map.empty, renderedColExp)})"
       case NoopRollup => s"($expression)"
       case CountRollup => s"COUNT(*)"

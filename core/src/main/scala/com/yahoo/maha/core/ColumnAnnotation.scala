@@ -61,11 +61,30 @@ case object PrestoShardingExpression {
   val instance: ColumnAnnotation = PrestoShardingExpression(null)
 }
 
+case class BigqueryShardingExpression(expression: BigqueryDerivedExpression) extends ColumnAnnotationInstance with WithBigqueryEngine {
+  def instance: ColumnAnnotation = BigqueryShardingExpression.instance
+
+  val jUtils = JsonUtils
+
+  override def asJSON(): JObject =
+    makeObj(
+      List(
+        ("annotation" -> toJSON(this.getClass.getSimpleName))
+        ,("expression" -> jUtils.asJSON(expression))
+      )
+    )
+}
+
+case object BigqueryShardingExpression {
+  val instance: ColumnAnnotation = BigqueryShardingExpression(null)
+}
+
 case object PrimaryKey extends ColumnAnnotation
 case object EscapingRequired extends ColumnAnnotation
 case object HiveSnapshotTimestamp extends ColumnAnnotation with SingletonColumn with WithHiveEngine
 case object OracleSnapshotTimestamp extends ColumnAnnotation with SingletonColumn with WithOracleEngine
 case object PostgresSnapshotTimestamp extends ColumnAnnotation with SingletonColumn with WithPostgresEngine
+case object BigquerySnapshotTimestamp extends ColumnAnnotation with SingletonColumn with WithBigqueryEngine
 case object IsAggregation extends ColumnAnnotation
 case object CaseInsensitive extends ColumnAnnotation
 case class ForeignKey(publicDimName: String) extends ColumnAnnotationInstance {

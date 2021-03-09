@@ -1,0 +1,13 @@
+{
+  "cube": "u_stats",
+  "selectFields": [
+    { "field": "Impressions" },
+    { "field": "Advertiser Status" },
+    { "field": "Day" }
+  ],
+  "filterExpressions": [
+    { "field": "Advertiser ID", "operator": "=", "value": "12345" },
+    { "field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}" },
+    { "field": "Gender", "operator": "=", "value": "F" }
+  ]
+}

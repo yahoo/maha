@@ -8,7 +8,7 @@ import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV2}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, EqualityFilter, RequestModel, _}
-import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor, MockPostgresQueryExecutor}
+import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor, MockPostgresQueryExecutor, MockBigqueryQueryExecutor}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.BeforeAndAfterAll
@@ -35,6 +35,11 @@ object DefaultQueryPipelineFactoryTest {
     }
     def withPostgresCallback(callback: QueryRowList => Unit) : PipelineRunner = {
       val e = new MockPostgresQueryExecutor(callback)
+      queryExecutorContext.register(e)
+      this
+    }
+    def withBigqueryCallback(callback: QueryRowList => Unit) : PipelineRunner = {
+      val e = new MockBigqueryQueryExecutor(callback)
       queryExecutorContext.register(e)
       this
     }

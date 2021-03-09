@@ -4,6 +4,7 @@ package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.{QueryGenerator, Version}
+import com.yahoo.maha.core.query.bigquery.BigqueryQueryGenerator
 import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, DruidQueryOptimizer}
 import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV2}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
@@ -249,3 +250,50 @@ class PostgresQueryGeneratorFactory extends QueryGeneratorFactory {
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
+
+class BigqueryQueryGeneratorFactory extends QueryGeneratorFactory {
+  """
+    |{
+    |"partitionColumnRendererClass" : "DefaultPartitionColumnRendererFactory",
+    |"partitionColumnRendererConfig" : [{"key": "value"}],
+    |"udfRegistrationFactoryName" : "",
+    |"udfRegistrationFactoryConfig" : [],
+    |"version": 0
+    |}
+  """.stripMargin
+
+  override def fromJson(configJson: org.json4s.JValue)
+    (implicit context: MahaServiceConfigContext): MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
+    import org.json4s.scalaz.JsonScalaz._
+    val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
+    val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
+    val udfRegistrationFactoryNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("udfRegistrationFactoryName")(configJson)
+    val udfRegistrationFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("udfRegistrationFactoryConfig")(configJson)
+    val versionResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("version")(configJson)
+
+    val partitionColumnRenderer: MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] = for {
+      partitionColumnRendererClass <- partitionColumnRendererClassResult
+      partitionColumnRendererFactory <- getFactory[PartitionColumnRendererFactory](partitionColumnRendererClass, this.closer)
+      partitionColumnRendererConfig <- partitionColumnRendererConfigResult
+      partitionColumnRenderer <- partitionColumnRendererFactory.fromJson(partitionColumnRendererConfig)
+    } yield partitionColumnRenderer
+
+    val udfStatements: MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]] = for {
+      udfStatementsFactory <- getFactory[MahaUDFRegistrationFactory](udfRegistrationFactoryNameResult
+        .toOption
+        .get, this.closer)
+      udfRegistrationFactoryConfig <- udfRegistrationFactoryConfigResult
+      udfStatements <- udfStatementsFactory.fromJson(udfRegistrationFactoryConfig)
+    } yield udfStatements
+
+
+    (partitionColumnRenderer |@| udfStatements) {
+      (renderer, stmt) => {
+        new BigqueryQueryGenerator(renderer, stmt)
+      }
+    }
+  }
+
+  override def supportedProperties: List[(String, Boolean)] = List.empty
+}
+

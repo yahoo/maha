@@ -1,0 +1,25 @@
+{
+  "cube": "s_stats",
+  "selectFields": [
+    { "field": "Day" },
+    { "field": "Advertiser ID" },
+    { "field": "Campaign ID" },
+    { "field": "Campaign Name" },
+    { "field": "Ad Group ID" },
+    { "field": "Keyword ID" },
+    { "field": "Keyword" },
+    { "field": "Search Term" },
+    { "field": "Delivered Match Type" },
+    { "field": "Impressions" },
+    { "field": "Average CPC" }
+  ],
+  "filterExpressions": [
+    { "field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}" },
+    { "field": "Advertiser ID", "operator": "=", "value": "12345" }
+  ],
+  "sortBy": [
+    { "field": "Impressions", "order": "Asc" }
+  ],
+  "paginationStartIndex": 0,
+  "rowsPerPage": 100
+}

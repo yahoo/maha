@@ -315,6 +315,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("admitted_year", IntType())
               , DimCol("status", StrType())
               , DimCol("profile_url", StrType())
+              , HivePartDimCol("load_time", StrType(), annotations = Set.empty)
             )
           )
         }
@@ -335,6 +336,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("admitted_year", IntType())
               , DimCol("status", StrType())
               , DimCol("profile_url", StrType())
+              , PrestoPartDimCol("load_time", StrType(), annotations = Set.empty)
             )
           )
         }
@@ -408,6 +410,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("admitted_year", IntType())
               , DimCol("status", StrType())
               , DimCol("profile_url", StrType())
+              , HivePartDimCol("load_time", StrType(), annotations = Set.empty)
             )
           )
         }
@@ -428,6 +431,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("admitted_year", IntType())
               , DimCol("status", StrType())
               , DimCol("profile_url", StrType())
+              , PrestoPartDimCol("load_time", StrType(), annotations = Set.empty)
             )
           )
         }
@@ -522,6 +526,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("start_year", IntType())
               , DimCol("status", StrType())
               , DimCol("professor", StrType())
+              , HivePartDimCol("load_time", StrType(), annotations = Set.empty)
             )
           )
         }
@@ -540,6 +545,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("start_year", IntType())
               , DimCol("status", StrType())
               , DimCol("professor", StrType())
+              , PrestoPartDimCol("load_time", StrType(), annotations = Set.empty)
             )
           )
         }
@@ -611,6 +617,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
               , DimCol("start_year", IntType())
               , DimCol("status", StrType())
+              , HivePartDimCol("load_time", StrType(), annotations = Set.empty)
             )
           )
         }
@@ -630,6 +637,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
               , DimCol("start_year", IntType())
               , DimCol("status", StrType())
+              , PrestoPartDimCol("load_time", StrType(), annotations = Set.empty)
             )
           )
         }
@@ -696,6 +704,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("name", StrType())
               , DimCol("start_year", IntType())
               , DimCol("status", StrType())
+              , HivePartDimCol("load_time", StrType(), annotations = Set.empty)
             )
           )
         }
@@ -713,6 +722,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("name", StrType())
               , DimCol("start_year", IntType())
               , DimCol("status", StrType())
+              , PrestoPartDimCol("load_time", StrType(), annotations = Set.empty)
             )
           )
         }
@@ -821,6 +831,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("department_id", IntType())
               , DimCol("admitted_year", IntType())
               , DimCol("status", StrType())
+              , HivePartDimCol("load_time", StrType(), annotations = Set.empty)
             )
           )
         }
@@ -838,6 +849,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("department_id", IntType())
               , DimCol("admitted_year", IntType())
               , DimCol("status", StrType())
+              , PrestoPartDimCol("load_time", StrType(), annotations = Set.empty)
             )
           )
         }

@@ -1511,6 +1511,8 @@ object RequestModelFactory extends Logging {
                     ReportingRequest.forcePresto(request)
                   case PostgresEngine =>
                     ReportingRequest.forcePostgres(request)
+                  case BigqueryEngine =>
+                    ReportingRequest.forceBigquery(request)
                   case a =>
                     throw new IllegalArgumentException(s"Unknown engine: $a")
                 }

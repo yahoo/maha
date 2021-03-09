@@ -1017,6 +1017,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
          |    ]
          |}
          |""".stripMargin
+
     val request: ReportingRequest = getReportingRequestSync(jsonString, StudentSchema)
     val registry = exampleRegistry
     val res = getRequestModel(request, registry, revision = Some(3))
@@ -1849,7 +1850,6 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
-  // Need fix: dim table where condition always has an empty filter as the first filter
   test("Test: fact table join with 2 same dim level tables in Hive should succeed") {
     val jsonString =
       s"""
@@ -1917,7 +1917,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
          |JOIN (
          |SELECT id t1_id
          |FROM hive_tutor
-         |WHERE (()) AND (status = 'admitted')
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (status = 'admitted')
          |)
          |t1
          |ON
@@ -1925,7 +1925,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
          |       JOIN (
          |SELECT tutor_id AS tutor_id, name AS mang_researcher_name, status AS mang_researcher_status, id r2_id
          |FROM hive_researcher
-         |WHERE (())
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ))
          |)
          |r2
          |ON
@@ -1933,7 +1933,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
          |       JOIN (
          |SELECT researcher_id AS researcher_id, name AS mang_student_name, id s3_id
          |FROM hive_student_v1
-         |WHERE (()) AND (id = 213)
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (id = 213)
          |)
          |s3
          |ON
@@ -1945,7 +1945,6 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
-  // Need fix: dim table where condition always has an empty filter as the first filter
   test("Test: fact table join with 2 same dim level tables in Presto should succeed") {
     val jsonString =
       s"""
@@ -2013,7 +2012,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
          |JOIN (
          |SELECT id t1_id
          |FROM presto_tutor
-         |WHERE (()) AND (status = 'admitted')
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (status = 'admitted')
          |)
          |t1
          |ON
@@ -2021,7 +2020,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
          |       JOIN (
          |SELECT tutor_id AS tutor_id, name AS mang_researcher_name, status AS mang_researcher_status, id r2_id
          |FROM presto_researcher
-         |WHERE (())
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ))
          |)
          |r2
          |ON
@@ -2029,7 +2028,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
          |       JOIN (
          |SELECT researcher_id AS researcher_id, name AS mang_student_name, id s3_id
          |FROM presto_student_v1
-         |WHERE (()) AND (id = 213)
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (id = 213)
          |)
          |s3
          |ON
