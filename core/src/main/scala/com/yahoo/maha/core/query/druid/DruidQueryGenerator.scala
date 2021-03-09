@@ -24,7 +24,7 @@ import org.apache.druid.js.JavaScriptConfig
 import org.apache.druid.math.expr.ExprMacroTable
 import org.apache.druid.query.aggregation._
 import org.apache.druid.query.aggregation.datasketches.theta.{SketchMergeAggregatorFactory, SketchModule}
-import org.apache.druid.query.aggregation.hyperloglog.HyperUniquesAggregatorFactory
+import org.apache.druid.query.aggregation.hyperloglog.{HyperUniquesAggregatorFactory, HyperUniqueFinalizingPostAggregator}
 import org.apache.druid.query.aggregation.post.{ArithmeticPostAggregator, FieldAccessPostAggregator}
 import org.apache.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec, ExtractionDimensionSpec}
 import org.apache.druid.query.extraction._
@@ -673,7 +673,41 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 //    val isRowCountRequest = queryContext.requestModel.reportingRequest.curatorJsonConfigMap.contains("rowcount")
     val isRowCountRequest = queryContext.requestModel.reportingRequest.queryType == RowCountQuery
 
-    val groupByQuery: GroupByQuery = if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn || hasExpensiveDateDimFilter) {
+    val hasHyperUniqueTimeBucketedRollupAgg = aliasColumnMap.values.foldLeft(false) {
+      (b, col) => {
+        val result = col match {
+          case FactCol(_, _, _, rollup, _, _, _) => {
+            rollup match {
+              case DruidHyperUniqueTimeBucketedRollup(_) => true
+              case _ => false
+            }
+          }
+          case DruidDerFactCol(_, _, dt, cc, de, _, _, _) =>
+            de.sourceColumns.foldLeft(false) {
+              (prev, src) => {
+                val fact = queryContext.factBestCandidate.fact
+                val sourceCol = fact.columnsByNameMap(src)
+                val res = if (!sourceCol.isDerivedColumn) {
+                  val name = sourceCol.alias.getOrElse(sourceCol.name)
+                  sourceCol match {
+                    case FactCol(_, _, _, rollup, _, _, _) =>
+                      rollup match {
+                        case DruidHyperUniqueTimeBucketedRollup(_) => true
+                        case _ => false
+                      }
+                    case _ => false
+                  }
+                } else false
+                prev || res
+              }
+            }
+          case _ => false
+        }
+        b || result
+      }
+    }
+
+    val groupByQuery: GroupByQuery = if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn || hasExpensiveDateDimFilter || hasHyperUniqueTimeBucketedRollupAgg) {
 
       //this is nested groupBy query so reset limitSpec inside inner query
       innerGroupByQueryBuilder.setLimitSpec(NoopLimitSpec.INSTANCE)
@@ -684,6 +718,11 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           innerGroupByQueryBuilder.setDimFilter(new AndDimFilter(dimWithDateTimeFilterList.asJava))
       } else if (dimFilterList.nonEmpty) {
         innerGroupByQueryBuilder.setDimFilter(new AndDimFilter(dimFilterList.asJava))
+      }
+
+      if (hasHyperUniqueTimeBucketedRollupAgg) {
+        val innerQueryTimeFieldName = "hyperUniqueTimeBucket"
+        innerGroupByQueryBuilder.addDimension(DRUID_TIME_FORMAT.sourceDimColName, innerQueryTimeFieldName)
       }
 
       val outerQueryBuilder = GroupByQuery.builder()
@@ -1055,6 +1094,18 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             columnAlias)
         case DruidFilteredListRollup(_, _, _) =>
           getFilteredListAggregatorFactory(dataType, rollup, alias)
+        case DruidHyperUniqueTimeBucketedRollup(fieldName) if (forOuterQuery) =>
+          getAggregatorFactory(
+            dataType,
+            SumRollup,
+            alias,
+            columnAlias)
+        case DruidHyperUniqueTimeBucketedRollup(fieldName) =>
+          val hyperUniqueOutputName = s"_hyperUniqueOutput_$fieldName"
+          postAggregatorList += new HyperUniqueFinalizingPostAggregator(columnAlias, hyperUniqueOutputName)
+          getHyperUniqueAggregatorFactory(dataType, hyperUniqueOutputName, fieldName)
+        case DruidHyperUniqueRollup(fieldName) if (forOuterQuery) =>
+          getHyperUniqueAggregatorFactory(dataType, alias, alias)
         case DruidHyperUniqueRollup(fieldName) =>
           getHyperUniqueAggregatorFactory(dataType, alias, fieldName)
         case DruidThetaSketchRollup =>

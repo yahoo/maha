@@ -104,6 +104,7 @@ case class FactCol(name: String,
         }
       case DruidThetaSketchRollup =>
       case DruidHyperUniqueRollup(f) =>
+      case DruidHyperUniqueTimeBucketedRollup(f) =>
       case customRollup: CustomRollup =>
         //error, we missed a check on custom rollup
         throw new IllegalArgumentException(s"Need a check on custom rollup")

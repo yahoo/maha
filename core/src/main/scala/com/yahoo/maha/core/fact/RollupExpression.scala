@@ -85,3 +85,7 @@ case class DruidHyperUniqueRollup(column: String) extends CustomRollup with With
 }
 case object DruidThetaSketchRollup extends CustomRollup with WithDruidEngine
 
+case class DruidHyperUniqueTimeBucketedRollup(column: String) extends CustomRollup with WithDruidEngine {
+  override val hasDerivedExpression: Boolean = true
+  override lazy val sourceColumns: Set[String] = Set(column)
+}
