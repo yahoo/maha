@@ -1235,7 +1235,7 @@ object RequestModel extends Logging {
 
       indexedSeq.foreach { currPubDim =>            // find the range of each dim level; sort same dim level on FK + alphabetical order
         if (currPubDim.dimLevel != prevDimLevel || endIdx == indexedSeq.size - 1) {
-          val end = if (endIdx == indexedSeq.size - 1) endIdx + 1 else endIdx
+          val end = if (currPubDim.dimLevel == prevDimLevel && endIdx == indexedSeq.size - 1) endIdx + 1 else endIdx
           val sameDimLevelPubDim = indexedSeq.slice(startIdx, end)
           val fkDependency = new mutable.LinkedHashMap[PublicDimension, List[PublicDimension]]()
 
@@ -1244,7 +1244,7 @@ object RequestModel extends Logging {
           )
 
           sortOnSameDimLevel(fkDependency, sortedIndexedSeq)
-          startIdx = endIdx
+          startIdx = end
           prevDimLevel = currPubDim.dimLevel
         }
         endIdx += 1
@@ -1254,7 +1254,7 @@ object RequestModel extends Logging {
         sortedIndexedSeq += indexedSeq.last
       }
 
-      sortedIndexedSeq.foreach(pd => pd.subDimLevel = sortedIndexedSeq.size - sortedIndexedSeq.indexOf(pd))
+      sortedIndexedSeq.zipWithIndex.foreach( tuple => tuple._1.subDimLevel = sortedIndexedSeq.size - tuple._2)
       sortedIndexedSeq
     } else {
       indexedSeqVar
