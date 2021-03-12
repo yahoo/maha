@@ -224,42 +224,7 @@ class QueryPipelineWithFallbackTest extends AnyFunSuite with Matchers with Befor
     assert(pipeline.fallbackQueryChainOption.isEmpty, s"No fallback query expected: $pipeline")
   }
 
-  private[this] def aLessThanBByLevelAndCostAndCardinality(a: (String, Engine, Long, Int, Int), b: (String, Engine, Long, Int, Int)): Boolean = {
-    if (a._2 == b._2) {
-      if (a._4 == b._4) {
-        a._3 < b._3
-      } else {
-        a._4 < b._4
-      }
-    } else {
-      if (a._5 == b._5) {
-        if(a._4 == b._4){
-          a._3 < b._3
-        } else {
-          a._4 < b._4
-        }
-      } else {
-        a._5 < b._5
-      }
-    }
-  }
-
   test("Show the comparator result") {
-    def aLessThanBByLevelAndCostAndCardinalityOldMethod(a: (String, Engine, Long, Int, Int), b: (String, Engine, Long, Int, Int)): Boolean = {
-      if (a._2 == b._2) {
-        if (a._4 == b._4) {
-          a._3 < b._3
-        } else {
-          a._4 < b._4
-        }
-      } else {
-        if (a._5 == b._5) {
-          a._3 < b._3
-        } else {
-          a._5 < b._5
-        }
-      }
-    }
 
     def aLessThanBByLevelAndCostAndCardinality(a: (String, Engine, Long, Int, Int), b: (String, Engine, Long, Int, Int)): Boolean = {
       if (a._2 == b._2) {
@@ -281,6 +246,9 @@ class QueryPipelineWithFallbackTest extends AnyFunSuite with Matchers with Befor
       }
     }
 
+    //(fn, engine, rowcost.costEstimate, level, dimCardinalityPreference)
+    //(name:String, engine: Engine, cost: Long, level: Int, cardinality: Int)
+
     val t1 = ("dr_stats_hourly", DruidEngine, 1600L, 9993, 8675309)
     val t2 = ("dr_ad_stats_hourly", DruidEngine, 1600L, 9995, 8675309)
     val t3 = ("oracle_stats", OracleEngine, 1600L, 9992, 8675309)
@@ -291,8 +259,8 @@ class QueryPipelineWithFallbackTest extends AnyFunSuite with Matchers with Befor
     val t8 = ("dr_teacher_ad_stats_hourly", DruidEngine, 1600L, 9997, 8675309)
 
 
-    val oldResult = Vector(t1,t2,t3,t4,t5,t6,t7,t8).sortWith(aLessThanBByLevelAndCostAndCardinalityOldMethod)
-    val newResult = Vector(t1,t2,t3,t4,t5,t6,t7,t8).sortWith(aLessThanBByLevelAndCostAndCardinality)
+    val oldResult = Vector(t1,t2,t3,t4,t5,t6,t7,t8).sortWith(DefaultQueryPipelineFactory.rollupComparator())
+    val newResult = Vector(t1,t2,t3,t4,t5,t6,t7,t8).sortWith(DefaultQueryPipelineFactory.rollupComparator(aLessThanBByLevelAndCostAndCardinality))
 
     println(oldResult.mkString("\n"))
     println(newResult.mkString("\n"))

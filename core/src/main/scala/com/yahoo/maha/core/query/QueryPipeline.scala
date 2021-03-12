@@ -454,6 +454,12 @@ object DefaultQueryPipelineFactory extends Logging {
 
   val druidMultiQueryEngineList: Seq[Engine] = List(OracleEngine, PostgresEngine)
 
+  def rollupComparator(
+                        f: ((String, Engine, Long, Int, Int), (String, Engine, Long, Int, Int)) => Boolean = aLessThanBByLevelAndCostAndCardinality
+                      ) = {
+    f
+  }
+
   private[this] def aLessThanBByLevelAndCostAndCardinality(a: (String, Engine, Long, Int, Int), b: (String, Engine, Long, Int, Int)): Boolean = {
     if (a._2 == b._2) {
       if (a._4 == b._4) {
@@ -463,11 +469,7 @@ object DefaultQueryPipelineFactory extends Logging {
       }
     } else {
       if (a._5 == b._5) {
-        if(a._4 == b._4){
-          a._3 < b._3
-        } else {
-          a._4 < b._4
-        }
+        a._3 < b._3
       } else {
         a._5 < b._5
       }
@@ -543,7 +545,7 @@ object DefaultQueryPipelineFactory extends Logging {
               info(s"fn=$fn engine=$engine cost=${rowcost.costEstimate} level=$level cardinalityPreference=$dimCardinalityPreference")
             }
             (fn, engine, rowcost.costEstimate, level, dimCardinalityPreference)
-        }.sortWith(aLessThanBByLevelAndCostAndCardinality)
+        }.sortWith(rollupComparator(aLessThanBByLevelAndCostAndCardinality))
         require(result.nonEmpty,
           s"Failed to find best candidate, forceEngine=$forceEngine, engine disqualifyingSet=$disqualifySet, candidates=${requestModel.bestCandidates.get.facts.mapValues(_.fact.engine).toSet}")
         requestModel.bestCandidates.get.getFactBestCandidate(result.head._1, requestModel)
