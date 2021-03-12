@@ -2097,5 +2097,65 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
     result should fullyMatch regex expected
   }
 
+  test("Test") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        },
+         |        {
+         |            "field": "Class Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Science Lab Volunteer Name"
+         |        },
+         |        {
+         |            "field": "Tutor Name"
+         |        },
+         |        {
+         |            "field": "Section Name"
+         |        },
+         |        {
+         |            "field": "Class Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        }
+         |    ]
+         |}
+         |""".stripMargin
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(jsonString, StudentSchema))
+    val registry = exampleRegistry
+    val res = getRequestModel(request, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+    println(result)
+
+    //val expected = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"dr_student_performance"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\}\]\},\{"type":"selector","dimension":"student_id","value":"213"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"name","outputName":"Researcher Name","outputType":"STRING"\},\{"type":"default","dimension":"status","outputName":"Researcher Status","outputType":"STRING"\},\{"type":"default","dimension":"name","outputName":"Student Name","outputType":"STRING"\},\{"type":"default","dimension":"status","outputName":"Tutor Status","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Marks Obtained","fieldName":"obtained_marks"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":400\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}""".r
+    //result should fullyMatch regex expected
+  }
+
 }
 

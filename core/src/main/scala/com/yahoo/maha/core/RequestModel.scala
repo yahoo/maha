@@ -1215,7 +1215,138 @@ object RequestModel extends Logging {
       }
     }
   }
+/*
+  def createSameLevelDimGraph() : mutable.IndexedSeq[PublicDimension] = {
 
+  }
+  def sortSameDimLevelPubDims(indexedSeqVar: IndexedSeq[PublicDimension]): IndexedSeq[PublicDimension] = {
+    val indexedSeqVarSorted = new Array[PublicDimension](indexedSeqVar.size)
+    indexedSeqVar.copyToArray(indexedSeqVarSorted) // Converting to array because update operations on indexedSeq return new sequences whereas array updates in place.
+    if(indexedSeqVar.nonEmpty) {
+      var sameDimLevelMap = new mutable.HashMap[String, PublicDimension]()
+      var prevPubDim = indexedSeqVar.head
+      var sortedSubList = List[PublicDimension]()
+      var currentIdx = 0
+      var updateIdx = 0
+      var updatedValue = None: Option[PublicDimension]
+      indexedSeqVar.foreach { currentPubDim =>
+        if (currentPubDim != prevPubDim && currentPubDim.dimLevel == prevPubDim.dimLevel) {
+          sameDimLevelMap.put(currentPubDim.primaryKeyByAlias, currentPubDim)
+          sameDimLevelMap.put(prevPubDim.primaryKeyByAlias, prevPubDim)
+        }
+        if ((currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == indexedSeqVar.size - 1) && sameDimLevelMap.size > 0) {
+          //var subDimLevelMin = 0
+          sortedSubList = sortPubDimOnSameDimLevel(sameDimLevelMap)
+          sortedSubList.foreach { pubDim =>
+            updatedValue = Some(pubDim)
+            //updatedValue.get.subDimLevel = subDimLevelMin
+            indexedSeqVarSorted(updateIdx) = updatedValue.get
+            //subDimLevelMin += 1
+            updateIdx += 1
+          }
+          sameDimLevelMap = sameDimLevelMap.empty
+        }
+        prevPubDim = currentPubDim
+        currentIdx += 1
+      }
+    }
+    indexedSeqVarSorted
+  }
+
+
+ */
+
+  def sortOnForeignKeyUtil(graph:mutable.HashMap[PublicDimension, mutable.ListBuffer[PublicDimension]], dim:PublicDimension, visited: mutable.HashMap[String, Int], sortedListBuffer: ListBuffer[PublicDimension], temporaryVisited:mutable.HashSet[PublicDimension], subDimLevel: Int): (ListBuffer[PublicDimension], Int) = {
+    var sortedListBufferVar = sortedListBuffer
+    temporaryVisited.add(dim)
+    var i = subDimLevel
+    var tuple = (sortedListBufferVar, i)
+    graph.get(dim).get.foreach{
+      pd =>
+        if(!visited.contains(pd.primaryKeyByAlias) && !temporaryVisited.contains(pd)){
+          tuple = sortOnForeignKeyUtil(graph, pd, visited, sortedListBufferVar, temporaryVisited, i)
+          i = Math.max(i,tuple._2)
+        }
+        if(visited.contains(pd.primaryKeyByAlias)){
+          i = Math.max(i, visited.get(pd.primaryKeyByAlias).get + 1)
+        }
+    }
+    sortedListBufferVar = tuple._1
+    if(i > dim.subDimLevel){
+      dim.subDimLevel = i
+    }
+    visited.put(dim.primaryKeyByAlias, dim.subDimLevel)
+    sortedListBufferVar += dim
+    (sortedListBufferVar, subDimLevel + 1)
+  }
+
+  def sortOnForeignKey(graph:mutable.HashMap[PublicDimension, ListBuffer[PublicDimension]]): ListBuffer[PublicDimension] = {
+    val visited = new mutable.HashMap[String, Int]()
+    val temporaryVisited = new mutable.HashSet[PublicDimension]()
+    var sortedListBuffer = new ListBuffer[PublicDimension]()
+    val i = 0
+    var tuple = (sortedListBuffer, i)
+    graph.foreach{pd =>
+      if(!visited.contains(pd._1.primaryKeyByAlias)){
+        tuple = sortOnForeignKeyUtil(graph, pd._1, visited, sortedListBuffer, temporaryVisited, 0)
+      }
+    }
+    tuple._1
+  }
+
+  def sortPubDimOnSameDimLevel(sameDimLevelMap: mutable.HashMap[String, PublicDimension]): List[PublicDimension] = {
+    val sameDimLevelGraph = new mutable.HashMap[PublicDimension, ListBuffer[PublicDimension]]()
+    sameDimLevelMap.foreach{ pd =>
+      sameDimLevelGraph.put(pd._2, new ListBuffer[PublicDimension])
+      pd._2.foreignKeyByAlias.foreach {
+        fk => {
+          if (sameDimLevelMap.contains(fk)) {
+            sameDimLevelGraph.put(pd._2, sameDimLevelGraph.get(pd._2).get += sameDimLevelMap.get(fk).get)
+          }
+        }
+      }
+    }
+    val sortedListBuffer = sortOnForeignKey(sameDimLevelGraph)
+    sortedListBuffer.toList
+  }
+
+  def sortOnSameDimLevel(indexedSeqVar: IndexedSeq[PublicDimension]):IndexedSeq[PublicDimension] = {
+    val indexedSeqVarSorted = new Array[PublicDimension](indexedSeqVar.size)
+    indexedSeqVar.copyToArray(indexedSeqVarSorted) // Converting to array because update operations on indexedSeq return new sequences whereas array updates in place.
+    if(indexedSeqVar.nonEmpty) {
+      var sameDimLevelMap = new mutable.HashMap[String, PublicDimension]()
+      var prevPubDim = indexedSeqVar.head
+      var sortedSubList = List[PublicDimension]()
+      var currentIdx = 0
+      var updateIdx = 0
+      var updatedValue = None: Option[PublicDimension]
+      indexedSeqVar.foreach { currentPubDim =>
+        if (currentPubDim != prevPubDim && currentPubDim.dimLevel == prevPubDim.dimLevel) {
+          sameDimLevelMap.put(currentPubDim.primaryKeyByAlias, currentPubDim)
+          sameDimLevelMap.put(prevPubDim.primaryKeyByAlias, prevPubDim)
+        }
+        if ((currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == indexedSeqVar.size - 1)) {
+          if(sameDimLevelMap.size > 0){
+            sortedSubList = sortPubDimOnSameDimLevel(sameDimLevelMap)
+            sortedSubList.foreach { pubDim =>
+              updatedValue = Some(pubDim)
+              indexedSeqVarSorted(updateIdx) = updatedValue.get
+              updateIdx += 1
+            }
+            sameDimLevelMap = sameDimLevelMap.empty
+          }
+          else{
+            updateIdx = currentIdx
+          }
+        }
+        prevPubDim = currentPubDim
+        currentIdx += 1
+      }
+    }
+    indexedSeqVarSorted
+  }
+
+/*
   def sortOnForeignKeyUtil(graph:mutable.HashMap[String, mutable.ArrayBuffer[String]], dim:String, visited: mutable.HashSet[String], sortedListBuffer: ListBuffer[String], temporaryVisited:mutable.HashSet[String]): ListBuffer[String] = {
     var sortedListBufferVar = sortedListBuffer
     visited.add(dim)
@@ -1291,6 +1422,8 @@ object RequestModel extends Logging {
     indexedSeqVarSorted
   }
 
+
+ */
   private[this] def validateRequiredFiltersForDimOnlyQuery(filterMap:mutable.HashMap[String, mutable.TreeSet[Filter]],requiredAliasSet:Set[RequiredAlias], request:ReportingRequest): Unit = {
     requiredAliasSet.foreach(
       reqAlias => {
