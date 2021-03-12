@@ -235,10 +235,10 @@ class QueryPipelineWithFallbackTest extends AnyFunSuite with Matchers with Befor
         }
       } else {
         if (a._5 == b._5) {
-          if(a._4 == b._4){
-            a._3 < b._3
-          } else {
+          if(a._3 == b._3){
             a._4 < b._4
+          } else {
+            a._3 < b._3
           }
         } else {
           a._5 < b._5
