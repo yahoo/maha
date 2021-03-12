@@ -1217,12 +1217,13 @@ object RequestModel extends Logging {
     }
   }
 
-  def sortOnFK(publicDimension: PublicDimension, fkDependency: mutable.HashMap[String, List[PublicDimension]], sortedIndexedSeq: ArrayBuffer[PublicDimension], subDimLevelCount: Int): ArrayBuffer[PublicDimension] = {
+  def sortOnFK(publicDimension: PublicDimension, fkDependency: mutable.HashMap[String, List[PublicDimension]], sortedIndexedSeq: ArrayBuffer[PublicDimension], subDimLevelCount: Int, pendingPubDim: mutable.Set[PublicDimension]): ArrayBuffer[PublicDimension] = {
     var newSortedIndexedSeq = sortedIndexedSeq
     val dependent = fkDependency(publicDimension.primaryKeyByAlias)
 
     if (dependent.nonEmpty && !newSortedIndexedSeq.contains(dependent.head)) {
-      newSortedIndexedSeq = sortOnFK(dependent.head, fkDependency, sortedIndexedSeq, subDimLevelCount)
+      pendingPubDim += publicDimension
+      newSortedIndexedSeq = sortOnFK(dependent.head, fkDependency, sortedIndexedSeq, subDimLevelCount, pendingPubDim)
     }
 
     publicDimension.subDimLevel = subDimLevelCount - newSortedIndexedSeq.size
@@ -1239,7 +1240,7 @@ object RequestModel extends Logging {
     var sortedIndexedSeq = new ArrayBuffer[PublicDimension]
     indexedSeqVar.foreach{ pd =>
       if (!sortedIndexedSeq.contains(pd)) {
-        sortedIndexedSeq = sortOnFK(pd, fkDependency, sortedIndexedSeq, subDimLevelCount)
+        sortedIndexedSeq = sortOnFK(pd, fkDependency, sortedIndexedSeq, subDimLevelCount, mutable.Set[PublicDimension]())
       }
     }
     sortedIndexedSeq
