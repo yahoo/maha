@@ -38,7 +38,6 @@ case class DimensionCandidate(dim: PublicDimension
                               , hasLowCardinalityFilter: Boolean
                               , hasPKRequested : Boolean
                               , hasNonPushDownFilters : Boolean
-                              , subDimLevel : Int = 0
                              ) {
 
   def debugString : String = {

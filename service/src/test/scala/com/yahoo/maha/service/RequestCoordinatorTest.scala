@@ -55,7 +55,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       Seq(1, 311, 214, 201, 100, 90, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(4)), "some comment 1", today.toString, 213),
       Seq(1, 311, 214, 201, 125, 100, today.toString, "some comment 1", today.toString, 213),
       Seq(1, 311, 214, 198, 180, 150, yesterday.toString, "some comment 2", today.toString, 213),
-      Seq(1, 311, 214, 199, 175, 145, today.toString, "some comment 3", today.toString, 213),
+      Seq(1, 311, 214, 199, 175, 145, today.toString, "some comment 3", today.toString, 213)
     )
 
     val studentRows: List[Seq[Any]] = List(

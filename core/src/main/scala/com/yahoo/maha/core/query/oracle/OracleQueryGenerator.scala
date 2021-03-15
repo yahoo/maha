@@ -514,11 +514,8 @@ b. Dim Driven
           }
         }
         val parentJoinsLOJBuilder = new StringBuilder
-        println(renderedDimensionsList)
         val (_, renderedPrimaryDim, renderedPrimaryDimBundle) = renderedDimensionsList.reduceRight {
           (renderedDim, b) =>
-            println("renderedDim" + renderedDim)
-            println("b" + b)
             require(renderedDim._2.onCondition.isDefined,
               s"Failed to determine join condition between ${primaryBundle.dim.name} and ${renderedDim._1}")
             if (requestModel.isDebugEnabled) {
