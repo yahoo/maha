@@ -783,19 +783,13 @@ object RequestModel extends Logging {
               }
           }
 
-//            if(dimDrivenRequestedDimensionPrimaryKeyAliases.nonEmpty && !isFactDriven) {
-//              val dimDrivenDimensionPrimaryKeyIndSeq = dimDrivenRequestedDimensionPrimaryKeyAliases
-//                .map(pk => registry.getPkDimensionUsingFactTable(pk, Some(publicFact.dimRevision), publicFact.dimToRevisionMap).get) //we can do .get since we already checked above
-//                .to[IndexedSeq]
-//              val dimDrivenDimensionPrimaryKeySorted = sortOnForeignKey(dimDrivenDimensionPrimaryKeyIndSeq, 0)
-//              val dimDrivenHighestLevelDim = dimDrivenDimensionPrimaryKeySorted.last
           if(dimDrivenRequestedDimensionPrimaryKeyAliases.nonEmpty && !isFactDriven) {
             val dimDrivenPKDimensionIndexedSeq =
             dimDrivenRequestedDimensionPrimaryKeyAliases
               .map(pk => registry.getPkDimensionUsingFactTable(pk, Some(publicFact.dimRevision), publicFact.dimToRevisionMap).get) //we can do .get since we already checked above
               .toIndexedSeq
             val dimDrivenSameLevelDimSortedSeq = sortOnSameDimLevel(dimDrivenPKDimensionIndexedSeq)
-            val dimDrivenHighestLevelDim = dimDrivenSameLevelDimSortedSeq.last
+            val dimDrivenHighestLevelDim = dimDrivenSameLevelDimSortedSeq.head
 
             val addDim = {
               if(allRequestedDimensionPrimaryKeyAliases.nonEmpty) {
@@ -832,16 +826,11 @@ object RequestModel extends Logging {
           val dimensionCandidatesPreValidation: SortedSet[DimensionCandidate] = {
             val intermediateCandidates = new mutable.TreeSet[DimensionCandidate]()
             val upperJoinCandidates = new mutable.TreeSet[PublicDimension]()
-//            finalAllRequestedDimensionPrimaryKeyAliases
-//              .flatMap(f => registry.getPkDimensionUsingFactTable(f, Some(publicFact.dimRevision), publicFact.dimToRevisionMap))
-//              .toIndexedSeq
-//              .sortWith((a, b) => b.dimLevel < a.dimLevel)
 
             val AllRequestedDimensionPrimaryKeyAliasesSeq = finalAllRequestedDimensionPrimaryKeyAliases
               .flatMap(f => registry.getPkDimensionUsingFactTable(f, Some(publicFact.dimRevision), publicFact.dimToRevisionMap))
-              .toIndexedSeq.sortWith((a, b) => a.dimLevel < b.dimLevel)
-            val sortedAllRequestedDimensionPKAliases = sortOnSameDimLevel(AllRequestedDimensionPrimaryKeyAliasesSeq).reverse
-            sortedAllRequestedDimensionPKAliases
+              .toIndexedSeq.sorted
+            sortOnSameDimLevel(AllRequestedDimensionPrimaryKeyAliasesSeq)
               .foreach {
                 publicDimOption =>
                   //used to identify the highest level dimension
@@ -1215,66 +1204,28 @@ object RequestModel extends Logging {
       }
     }
   }
-/*
-  def createSameLevelDimGraph() : mutable.IndexedSeq[PublicDimension] = {
 
-  }
-  def sortSameDimLevelPubDims(indexedSeqVar: IndexedSeq[PublicDimension]): IndexedSeq[PublicDimension] = {
-    val indexedSeqVarSorted = new Array[PublicDimension](indexedSeqVar.size)
-    indexedSeqVar.copyToArray(indexedSeqVarSorted) // Converting to array because update operations on indexedSeq return new sequences whereas array updates in place.
-    if(indexedSeqVar.nonEmpty) {
-      var sameDimLevelMap = new mutable.HashMap[String, PublicDimension]()
-      var prevPubDim = indexedSeqVar.head
-      var sortedSubList = List[PublicDimension]()
-      var currentIdx = 0
-      var updateIdx = 0
-      var updatedValue = None: Option[PublicDimension]
-      indexedSeqVar.foreach { currentPubDim =>
-        if (currentPubDim != prevPubDim && currentPubDim.dimLevel == prevPubDim.dimLevel) {
-          sameDimLevelMap.put(currentPubDim.primaryKeyByAlias, currentPubDim)
-          sameDimLevelMap.put(prevPubDim.primaryKeyByAlias, prevPubDim)
-        }
-        if ((currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == indexedSeqVar.size - 1) && sameDimLevelMap.size > 0) {
-          //var subDimLevelMin = 0
-          sortedSubList = sortPubDimOnSameDimLevel(sameDimLevelMap)
-          sortedSubList.foreach { pubDim =>
-            updatedValue = Some(pubDim)
-            //updatedValue.get.subDimLevel = subDimLevelMin
-            indexedSeqVarSorted(updateIdx) = updatedValue.get
-            //subDimLevelMin += 1
-            updateIdx += 1
-          }
-          sameDimLevelMap = sameDimLevelMap.empty
-        }
-        prevPubDim = currentPubDim
-        currentIdx += 1
-      }
-    }
-    indexedSeqVarSorted
-  }
-
-
- */
-
-  def sortOnForeignKeyUtil(sameDimLevelFKMap:mutable.HashMap[PublicDimension, List[PublicDimension]], dim:PublicDimension, visited: mutable.HashMap[String, Int], indexedSeqVarSorted: ArrayBuffer[PublicDimension], tempVisited: mutable.Set[PublicDimension]): Unit = {
+  def sortOnForeignKeyUtil(sameDimLevelFKMap:mutable.LinkedHashMap[PublicDimension, List[PublicDimension]], dim:PublicDimension, visited: mutable.HashMap[PublicDimension, Int], indexedSeqVarSorted: ArrayBuffer[PublicDimension], tempVisited: mutable.Set[PublicDimension]): Unit = {
+    var subDimLevel = 0
     tempVisited += dim
     sameDimLevelFKMap.get(dim).get.foreach{ pd =>
-        if(!visited.contains(pd.primaryKeyByAlias) && !tempVisited.contains(pd))
+        if(!visited.contains(pd) && !tempVisited.contains(pd))
           sortOnForeignKeyUtil(sameDimLevelFKMap, pd, visited, indexedSeqVarSorted, tempVisited)
-        dim.subDimLevel = Math.max(dim.subDimLevel, visited.get(pd.primaryKeyByAlias).get + 1)
+        subDimLevel = Math.max(subDimLevel, visited.getOrElse(pd, 0) + 1)
     }
-    visited.put(dim.primaryKeyByAlias, dim.subDimLevel)
-    indexedSeqVarSorted += dim
+    visited.put(dim, subDimLevel)
+    dim.subDimLevel = subDimLevel
+    indexedSeqVarSorted.prepend(dim)
   }
 
-  def sortOnForeignKey(indexedSeqVarSorted: ArrayBuffer[PublicDimension], sameDimLevelFKMap:mutable.HashMap[PublicDimension, List[PublicDimension]]): Unit = {
-    val visited = new mutable.HashMap[String, Int]()
+  def sortOnForeignKey(indexedSeqVarSorted: ArrayBuffer[PublicDimension], sameDimLevelFKMap:mutable.LinkedHashMap[PublicDimension, List[PublicDimension]]): Unit = {
+    val visitedSubDimMap = mutable.HashMap[PublicDimension, Int]()
     sameDimLevelFKMap.keySet.foreach{ pd =>
-      if(!visited.contains(pd.primaryKeyByAlias))
-        sortOnForeignKeyUtil(sameDimLevelFKMap, pd, visited, indexedSeqVarSorted, mutable.Set[PublicDimension]())
+      if(!visitedSubDimMap.contains(pd)) sortOnForeignKeyUtil(sameDimLevelFKMap, pd, visitedSubDimMap, indexedSeqVarSorted, mutable.Set[PublicDimension]())
     }
   }
-
+  // assigns subDimLevel to PublicDimensions and orders them in desc order of dimLevel and subDimLevel
+  // a.subDimLevel > b.subDimLevel if a has a foreign key to b
   def sortOnSameDimLevel(indexedSeqVar: IndexedSeq[PublicDimension]):IndexedSeq[PublicDimension] = {
     val indexedSeqVarSorted = new ArrayBuffer[PublicDimension]() //using ArrayBuffer instead of IndexedSeq[PublicDimension] so that it accepts the public dimensions in order of subDimLevel instead of alphabetically.
     if(indexedSeqVar.nonEmpty) {
@@ -1282,111 +1233,27 @@ object RequestModel extends Logging {
       var startIdx = 0
       var currentIdx = 0
       indexedSeqVar.foreach { currentPubDim =>
-        if (currentPubDim.dimLevel == prevPubDim.dimLevel)
-          currentIdx += 1
-
+        if (currentPubDim.dimLevel == prevPubDim.dimLevel) currentIdx += 1
         if (currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == indexedSeqVar.size) {
           if(currentIdx - startIdx > 1){
-            val sameDimLevelFKMap = new mutable.HashMap[PublicDimension, List[PublicDimension]]()
-            val slicedIdxSeq = indexedSeqVar.slice(startIdx, currentIdx)
-            slicedIdxSeq.foreach{
-              pubDim => sameDimLevelFKMap.put(pubDim, slicedIdxSeq.filter(publicDim => pubDim.foreignKeyByAlias.contains(publicDim.primaryKeyByAlias)).toList)
+            val sameDimLevelFKMap = new mutable.LinkedHashMap[PublicDimension, List[PublicDimension]]()
+            val sameDimLevelPDSeq = indexedSeqVar.slice(startIdx, currentIdx).reverse //reversing here so when the Public Dims are prepended, asc alphabetical order is preserved if they are on same subDimLevels.
+            sameDimLevelPDSeq.foreach{
+              pubDim => sameDimLevelFKMap.put(pubDim, sameDimLevelPDSeq.filter(publicDim => pubDim != publicDim && pubDim.foreignKeyByAlias.contains(publicDim.primaryKeyByAlias)).toList)
             }
             sortOnForeignKey(indexedSeqVarSorted, sameDimLevelFKMap)
           }
-          else{
-            indexedSeqVarSorted += prevPubDim
-          }
+          else indexedSeqVarSorted.prepend(prevPubDim)
           startIdx = currentIdx
           currentIdx += 1
         }
-
         prevPubDim = currentPubDim
       }
-    }
-    if(indexedSeqVarSorted.size < indexedSeqVar.size)
-      indexedSeqVarSorted += indexedSeqVar.last
-    indexedSeqVarSorted
-  }
-
-/*
-  def sortOnForeignKeyUtil(graph:mutable.HashMap[String, mutable.ArrayBuffer[String]], dim:String, visited: mutable.HashSet[String], sortedListBuffer: ListBuffer[String], temporaryVisited:mutable.HashSet[String]): ListBuffer[String] = {
-    var sortedListBufferVar = sortedListBuffer
-    visited.add(dim)
-    temporaryVisited.add(dim)
-    graph.get(dim).get.foreach{
-      pd => if(!visited.contains(pd) && !temporaryVisited.contains(pd)){
-        sortedListBufferVar = sortOnForeignKeyUtil(graph, pd, visited, sortedListBufferVar, temporaryVisited)
-      }
-    }
-    sortedListBufferVar += dim
-    sortedListBufferVar
-  }
-
-  def sortOnForeignKey(graph:mutable.HashMap[String, ArrayBuffer[String]]): ListBuffer[String] = {
-    val visited = new mutable.HashSet[String]()
-    val temporaryVisited = new mutable.HashSet[String]()
-    var sortedListBuffer = new ListBuffer[String]()
-    graph.foreach{pd =>
-      if(!visited.contains(pd._1)){
-        sortedListBuffer = sortOnForeignKeyUtil(graph, pd._1, visited, sortedListBuffer, temporaryVisited)
-      }
-    }
-    sortedListBuffer
-  }
-
-  def sortPubDimOnSameDimLevel(sameDimLevelMap: mutable.HashMap[String, PublicDimension]): List[String] = {
-    val sameDimLevelGraph = new mutable.HashMap[String, ArrayBuffer[String]]()
-    sameDimLevelMap.foreach{ pd =>
-      sameDimLevelGraph.put(pd._1, new ArrayBuffer[String])
-      pd._2.foreignKeyByAlias.foreach {
-        fk => {
-          if (sameDimLevelMap.contains(fk)) {
-            sameDimLevelGraph.put(pd._1, sameDimLevelGraph.get(pd._1).get += fk)
-          }
-        }
-      }
-    }
-    val sortedListBuffer = sortOnForeignKey(sameDimLevelGraph)
-    sortedListBuffer.toList
-  }
-
-  def sortOnSameDimLevel(indexedSeqVar: IndexedSeq[PublicDimension]):IndexedSeq[PublicDimension] = {
-    val indexedSeqVarSorted = new Array[PublicDimension](indexedSeqVar.size)
-    indexedSeqVar.copyToArray(indexedSeqVarSorted) // Converting to array because update operations on indexedSeq return new sequences whereas array updates in place.
-    if(indexedSeqVar.nonEmpty) {
-      var sameDimLevelMap = new mutable.HashMap[String, PublicDimension]()
-      var prevPubDim = indexedSeqVar.head
-      var sortedSubList = List[String]()
-      var currentIdx = 0
-      var updateIdx = 0
-      var updatedValue = None: Option[PublicDimension]
-      indexedSeqVar.foreach { currentPubDim =>
-        if (currentPubDim != prevPubDim && currentPubDim.dimLevel == prevPubDim.dimLevel) {
-          sameDimLevelMap.put(currentPubDim.primaryKeyByAlias, currentPubDim)
-          sameDimLevelMap.put(prevPubDim.primaryKeyByAlias, prevPubDim)
-        }
-        if ((currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == indexedSeqVar.size - 1) && sameDimLevelMap.size > 0) {
-          var subDimLevelMin = 0
-          sortedSubList = sortPubDimOnSameDimLevel(sameDimLevelMap)
-          sortedSubList.foreach { pkByAlias =>
-            updatedValue = Some(sameDimLevelMap.get(pkByAlias).get)
-            updatedValue.get.subDimLevel = subDimLevelMin
-            indexedSeqVarSorted(updateIdx) = updatedValue.get
-            subDimLevelMin += 1
-            updateIdx += 1
-          }
-          sameDimLevelMap = sameDimLevelMap.empty
-        }
-        prevPubDim = currentPubDim
-        currentIdx += 1
-      }
+      if(indexedSeqVarSorted.size < indexedSeqVar.size) indexedSeqVarSorted.prepend(indexedSeqVar.last)
     }
     indexedSeqVarSorted
   }
 
-
- */
   private[this] def validateRequiredFiltersForDimOnlyQuery(filterMap:mutable.HashMap[String, mutable.TreeSet[Filter]],requiredAliasSet:Set[RequiredAlias], request:ReportingRequest): Unit = {
     requiredAliasSet.foreach(
       reqAlias => {
