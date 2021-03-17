@@ -462,14 +462,18 @@ object DefaultQueryPipelineFactory extends Logging {
 
   private[this] def aLessThanBByLevelAndCostAndCardinality(a: (String, Engine, Long, Int, Int), b: (String, Engine, Long, Int, Int)): Boolean = {
     if (a._2 == b._2) {
-      if (a._4 == b._4) {
-        a._3 < b._3
-      } else {
+      if (a._3 == b._3) {
         a._4 < b._4
+      } else {
+        a._3 < b._3
       }
     } else {
       if (a._5 == b._5) {
-        a._3 < b._3
+        if(a._3 == b._3){
+          a._4 < b._4
+        } else {
+          a._3 < b._3
+        }
       } else {
         a._5 < b._5
       }
