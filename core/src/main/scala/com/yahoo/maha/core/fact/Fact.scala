@@ -1269,7 +1269,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , forceFilters: Set[ForceFilter] = Set.empty
                    , resetAliasIfNotPresent: Boolean = false
                    , availableOnwardsDate : Option[String] = None
-                   , underlyingTableName: Option[String] = None) : FactBuilder = {
+                   , underlyingTableName: Option[String] = None
+                   , costMultiplier: Option[BigDecimal] = None) : FactBuilder = {
     require(tableMap.nonEmpty, "no table to create subset from")
     require(tableMap.contains(from), s"from table not valid $from")
     require(!tableMap.contains(name), s"table $name already exists")
@@ -1329,6 +1330,16 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
         case _ =>
           ddlAnnotation
       }
+
+      val remappedMultiplier: Map[RequestType, CostMultiplier] =
+        fromTable.costMultiplierMap.map(f => (
+          f._1 -> {
+            val adjustedLRL: LongRangeLookup[BigDecimal] = LongRangeLookup(f._2.rows.list.map(row => (row._1, row._2 * costMultiplier.getOrElse(1))))
+            CostMultiplier(adjustedLRL)
+          }
+          )
+        )
+
       tableMap = tableMap +
         (name -> new FactTable(
           name
@@ -1341,7 +1352,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
           , Option(fromTable)
           , fromTable.annotations
           , newDDLAnnotation
-          , fromTable.costMultiplierMap
+          , remappedMultiplier
           , newForceFilters
           , fromTable.defaultCardinality
           , fromTable.defaultRowCount

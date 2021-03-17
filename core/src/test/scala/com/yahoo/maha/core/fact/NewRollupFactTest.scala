@@ -7,7 +7,7 @@ import com.yahoo.maha.core.NoopSchema.NoopSchema
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension.DimCol
-import com.yahoo.maha.core.request.{RequestType, SyncRequest}
+import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
 
 /**
  * Created by jians on 10/20/15.
@@ -295,6 +295,18 @@ class NewRollupFactTest extends BaseFactTest {
     require(bcOption.isDefined, "Failed to get candidates!")
     assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === true)
   }
+
+  test("Create a new rollup with a different cost basis") {
+    val fact = fact1
+    fact.newRollUp("fact2", "fact1", Set("ad_group_id"), schemas = Set(AdvertiserSchema, ResellerSchema), availableOnwardsDate = Some(toDate), costMultiplier = Some(0.5))
+
+    val costMultMap1 = publicFact(fact).facts("fact1").costMultiplierMap
+    val costMultMap2 = publicFact(fact).facts("fact2").costMultiplierMap
+    assert(costMultMap1(SyncRequest).rows.list.head._2 == 1 && costMultMap2(SyncRequest).rows.list.head._2 == 0.5)
+    assert(costMultMap1(AsyncRequest).rows.list.head._2 == 1 && costMultMap2(AsyncRequest).rows.list.head._2 == 0.5)
+  }
+
+
 }
 
 
