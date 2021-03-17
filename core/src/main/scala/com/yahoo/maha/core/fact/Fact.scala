@@ -1442,6 +1442,14 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
 
       val newGrain = grain.getOrElse(fromTable.grain)
       val newForceFilters = if(forceFilters.isEmpty) fromTable.forceFilters else forceFilters
+      val remappedMultiplier: Map[RequestType, CostMultiplier] =
+        fromTable.costMultiplierMap.map(f => (
+          f._1 -> {
+            val adjustedLRL: LongRangeLookup[BigDecimal] = LongRangeLookup(f._2.rows.list.map(row => (row._1, row._2 * costMultiplier.getOrElse(1))))
+            CostMultiplier(adjustedLRL)
+          }
+          )
+        )
 
       tableMap = tableMap +
         (name -> new FactTable(
@@ -1455,7 +1463,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
           , Option(fromTable)
           , fromTable.annotations ++ overrideAnnotations
           , ddlAnnotations
-          , fromTable.costMultiplierMap
+          , remappedMultiplier//fromTable.costMultiplierMap
           , newForceFilters
           , fromTable.defaultCardinality
           , fromTable.defaultRowCount
