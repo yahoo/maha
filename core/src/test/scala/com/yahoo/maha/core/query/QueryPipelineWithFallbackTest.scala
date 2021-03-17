@@ -226,18 +226,18 @@ class QueryPipelineWithFallbackTest extends AnyFunSuite with Matchers with Befor
 
   test("Demonstrate the fix in the new result comparator.") {
 
-    def aLessThanBByLevelAndCostAndCardinality(a: (String, Engine, Long, Int, Int), b: (String, Engine, Long, Int, Int)): Boolean = {
-      if (a._2 == b._2) {
-        if (a._4 == b._4) {
-          a._3 < b._3
+    def aLessThanBByLevelAndCostAndCardinality(a: RollupTuple, b: RollupTuple): Boolean = {
+      if (a.engine == b.engine) {
+        if (a.level == b.level) {
+          a.costEstimate < b.costEstimate
         } else {
-          a._4 < b._4
+          a.level < b.level
         }
       } else {
-        if (a._5 == b._5) {
-          a._3 < b._3
+        if (a.cardinality == b.cardinality) {
+          a.costEstimate < b.costEstimate
         } else {
-          a._5 < b._5
+          a.cardinality < b.cardinality
         }
       }
     }
@@ -245,14 +245,14 @@ class QueryPipelineWithFallbackTest extends AnyFunSuite with Matchers with Befor
     //(fn, engine, rowcost.costEstimate, level, dimCardinalityPreference)
     //(name:String, engine: Engine, cost: Long, level: Int, cardinality: Int)
 
-    val t1 = ("dr_stats_hourly", DruidEngine, 1600L, 9993, 8675309)
-    val t2 = ("dr_ad_stats_hourly", DruidEngine, 1600L, 9995, 8675309)
-    val t3 = ("oracle_stats", OracleEngine, 1600L, 9992, 8675309)
-    val t4 = ("oracle_ad_stats", OracleEngine, 1600L, 9994, 8675309)
-    val t5 = ("dr_teacher_ad_stats", DruidEngine, 1600L, 9998, 8675309)
-    val t6 = ("oracle_teacher_stats", OracleEngine, 1600L, 9991, 8675309)
-    val t7 = ("dr_teacher_stats_hourly", DruidEngine, 1600L, 9992, 8675309)
-    val t8 = ("dr_teacher_ad_stats_hourly", DruidEngine, 1600L, 9997, 8675309)
+    val t1 = RollupTuple("dr_stats_hourly", DruidEngine, 1600L, 9993, 8675309)
+    val t2 = RollupTuple("dr_ad_stats_hourly", DruidEngine, 1600L, 9995, 8675309)
+    val t3 = RollupTuple("oracle_stats", OracleEngine, 1600L, 9992, 8675309)
+    val t4 = RollupTuple("oracle_ad_stats", OracleEngine, 1600L, 9994, 8675309)
+    val t5 = RollupTuple("dr_teacher_ad_stats", DruidEngine, 1600L, 9998, 8675309)
+    val t6 = RollupTuple("oracle_teacher_stats", OracleEngine, 1600L, 9991, 8675309)
+    val t7 = RollupTuple("dr_teacher_stats_hourly", DruidEngine, 1600L, 9992, 8675309)
+    val t8 = RollupTuple("dr_teacher_ad_stats_hourly", DruidEngine, 1600L, 9997, 8675309)
 
 
     val newResult = Vector(t1,t2,t3,t4,t5,t6,t7,t8).sortWith(DefaultQueryPipelineFactory.rollupComparator())
@@ -261,7 +261,7 @@ class QueryPipelineWithFallbackTest extends AnyFunSuite with Matchers with Befor
     //println(oldResult.mkString("\n"))
     //println(newResult.mkString("\n"))
 
-    assert(oldResult.mkString("\n").equals(
+    assert(oldResult.map(_.getTuple).mkString("\n").equals(
       "(dr_stats_hourly,Druid,1600,9993,8675309)\n" +
         "(dr_ad_stats_hourly,Druid,1600,9995,8675309)\n" +
         "(oracle_stats,Oracle,1600,9992,8675309)\n" +
@@ -271,7 +271,7 @@ class QueryPipelineWithFallbackTest extends AnyFunSuite with Matchers with Befor
         "(dr_teacher_stats_hourly,Druid,1600,9992,8675309)\n" +
         "(dr_teacher_ad_stats_hourly,Druid,1600,9997,8675309)"
     ))
-    assert(newResult.mkString("\n").equals(
+    assert(newResult.map(_.getTuple).mkString("\n").equals(
       "(oracle_teacher_stats,Oracle,1600,9991,8675309)\n" +
         "(oracle_stats,Oracle,1600,9992,8675309)\n" +
         "(dr_teacher_stats_hourly,Druid,1600,9992,8675309)\n" +
