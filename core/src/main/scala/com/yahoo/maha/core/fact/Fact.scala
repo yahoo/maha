@@ -843,6 +843,23 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     mutableDiscardingSet.toSet
   }
 
+  private[this] def remapMultiplier(
+                                     costMultiplierMap: Map[RequestType, CostMultiplier]
+                                   , costMultiplier: Option[BigDecimal] = None): Map[RequestType, CostMultiplier] = {
+    costMultiplierMap.map(rTypeMult =>
+      rTypeMult._1 -> {
+        val adjustedLRL: LongRangeLookup[BigDecimal] =
+          LongRangeLookup(
+            rTypeMult._2.rows.list.map(
+              row => (row._1, row._2 * costMultiplier.getOrElse(1))
+            )
+          )
+        CostMultiplier(adjustedLRL)
+      }
+
+    )
+  }
+
   def withNewGrain(name: String
                    , from: String
                    , grain: Grain
@@ -1331,14 +1348,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
           ddlAnnotation
       }
 
-      val remappedMultiplier: Map[RequestType, CostMultiplier] =
-        fromTable.costMultiplierMap.map(f => (
-          f._1 -> {
-            val adjustedLRL: LongRangeLookup[BigDecimal] = LongRangeLookup(f._2.rows.list.map(row => (row._1, row._2 * costMultiplier.getOrElse(1))))
-            CostMultiplier(adjustedLRL)
-          }
-          )
-        )
+      val remappedMultiplier: Map[RequestType, CostMultiplier] = remapMultiplier(fromTable.costMultiplierMap, costMultiplier)
 
       tableMap = tableMap +
         (name -> new FactTable(
@@ -1453,14 +1463,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
 
       val newGrain = grain.getOrElse(fromTable.grain)
       val newForceFilters = if(forceFilters.isEmpty) fromTable.forceFilters else forceFilters
-      val remappedMultiplier: Map[RequestType, CostMultiplier] =
-        fromTable.costMultiplierMap.map(f => (
-          f._1 -> {
-            val adjustedLRL: LongRangeLookup[BigDecimal] = LongRangeLookup(f._2.rows.list.map(row => (row._1, row._2 * costMultiplier.getOrElse(1))))
-            CostMultiplier(adjustedLRL)
-          }
-          )
-        )
+      val remappedMultiplier: Map[RequestType, CostMultiplier] = remapMultiplier(fromTable.costMultiplierMap, costMultiplier)
 
       tableMap = tableMap +
         (name -> new FactTable(
@@ -1474,7 +1477,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
           , Option(fromTable)
           , fromTable.annotations ++ overrideAnnotations
           , ddlAnnotations
-          , remappedMultiplier//fromTable.costMultiplierMap
+          , remappedMultiplier
           , newForceFilters
           , fromTable.defaultCardinality
           , fromTable.defaultRowCount
