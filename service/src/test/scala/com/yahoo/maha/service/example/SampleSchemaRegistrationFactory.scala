@@ -35,7 +35,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
     ExampleSchema.register()
 
     def pubfactOracle: PublicFact = {
-      val builder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+     val builder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         import com.yahoo.maha.core.OracleExpression._
         Fact.newFact(
           "student_grade_sheet", DailyGrain, OracleEngine, Set(StudentSchema),
@@ -48,9 +48,9 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("date", DateType())
             , DimCol("month", DateType())
             , DimCol("top_student_id", IntType())
-          ),
+            ),
           Set(
-            FactCol("total_marks", IntType())
+             FactCol("total_marks", IntType())
             ,FactCol("obtained_marks", IntType())
             ,OracleDerFactCol("Performance Factor", DecType(10,2), "{obtained_marks}" /- "{total_marks}")
           )
@@ -58,30 +58,30 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
       }
       ColumnContext.withColumnContext {
         implicit dc: ColumnContext =>
-          builder.withAlternativeEngine("student_hive","student_grade_sheet", HiveEngine,
-            discarding = Set("total_marks", "Performance Factor"))
+        builder.withAlternativeEngine("student_hive","student_grade_sheet", HiveEngine,
+          discarding = Set("total_marks", "Performance Factor"))
       }
 
 
       builder.toPublicFact("student_performance",
-        Set(
-          PubCol("class_id", "Class ID", InEquality),
-          PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
-          PubCol("section_id", "Section ID", InEquality),
-          PubCol("date", "Day", Equality),
-          PubCol("month", "Month", InEquality),
-          PubCol("year", "Year", Equality),
-          PubCol("comment", "Remarks", InEqualityLike),
-          PubCol("top_student_id", "Top Student ID", FieldEquality)
-        ),
-        Set(
-          PublicFactCol("total_marks", "Total Marks", InBetweenEqualityFieldEquality),
-          PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEqualityFieldEquality),
-          PublicFactCol("Performance Factor", "Performance Factor", InBetweenEquality)
-        ),
-        Set.empty,
-        getMaxDaysWindow, getMaxDaysLookBack
-      )
+          Set(
+            PubCol("class_id", "Class ID", InEquality),
+            PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
+            PubCol("section_id", "Section ID", InEquality),
+            PubCol("date", "Day", Equality),
+            PubCol("month", "Month", InEquality),
+            PubCol("year", "Year", Equality),
+            PubCol("comment", "Remarks", InEqualityLike),
+            PubCol("top_student_id", "Top Student ID", FieldEquality)
+          ),
+          Set(
+            PublicFactCol("total_marks", "Total Marks", InBetweenEqualityFieldEquality),
+            PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEqualityFieldEquality),
+            PublicFactCol("Performance Factor", "Performance Factor", InBetweenEquality)
+          ),
+          Set.empty,
+          getMaxDaysWindow, getMaxDaysLookBack
+        )
     }
     registry.register(pubfactOracle)
 

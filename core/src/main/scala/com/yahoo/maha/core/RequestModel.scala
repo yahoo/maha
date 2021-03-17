@@ -160,7 +160,7 @@ case class RequestModel(cube: String
                         , requestedFkAliasToPublicDimensionMap: Map[String, PublicDimension]
                         , orFilterMeta: Set[OrFilterMeta]
                         , dimensionRelations: DimensionRelations
-                       ) {
+  ) {
 
   val requestColsSet: Set[String] = requestCols.map(_.alias).toSet
   lazy val dimFilters: SortedSet[Filter] = dimensionsCandidates.flatMap(_.filters)
@@ -213,7 +213,7 @@ case class RequestModel(cube: String
         } else {
           //non driving dim case
           val joinType = if(forceDimDriven) {
-            InnerJoin
+              InnerJoin
           } else {
             if(anyDimHasNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
               InnerJoin
@@ -316,8 +316,8 @@ object RequestModel extends Logging {
 
   def from(request: ReportingRequest
            , registry: Registry
-           //I've made userTimeZoneProvider required so on upgrade, users are forced to provide it
-           //instead of a silent failure with using a Noop provider
+          //I've made userTimeZoneProvider required so on upgrade, users are forced to provide it
+          //instead of a silent failure with using a Noop provider
            , userTimeZoneProvider: UserTimeZoneProvider
            , utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider
            , revision: Option[Int] = None
@@ -385,7 +385,7 @@ object RequestModel extends Logging {
           val allRequestedFkAliasToPublicDimMap =
             publicFact.foreignKeyAliases.filter(allProjectedAliases.contains(_)).map {
               case fkAlias =>
-                val dimensionOption = registry.getPkDimensionUsingFactTable(fkAlias, Some(publicFact.dimRevision), publicFact.dimToRevisionMap)
+               val dimensionOption = registry.getPkDimensionUsingFactTable(fkAlias, Some(publicFact.dimRevision), publicFact.dimToRevisionMap)
                 require(dimensionOption.isDefined, s"Can not find the dimension for Foreign Key Alias $fkAlias in public fact ${publicFact.name}")
                 fkAlias -> dimensionOption.get
             }.toMap
@@ -471,7 +471,7 @@ object RequestModel extends Logging {
                       val pdName = registry.getDimColIdentity(reqCol).get.publcDimName
                       publicFact.dimToRevisionMap.contains(pdName) && registry.dimMap.contains(pdName, publicFact.dimToRevisionMap(pdName))
                     } else false
-                  }
+                    }
                   )
                   .map(reqCol => {
                     val pdName = registry.getDimColIdentity(reqCol).get.publcDimName
@@ -489,7 +489,7 @@ object RequestModel extends Logging {
           val colsWithRestrictedSchema: IndexedSeq[String] = (requestedAliasList ++ allFilters).collect {
             case reqCol if (publicFact.restrictedSchemasMap.contains(reqCol)
               && !publicFact.restrictedSchemasMap(reqCol)(request.schema))
-            => reqCol
+              => reqCol
             case dimReqCol if (requestedDimAliasesToPublicDimMap.contains(dimReqCol)
               && requestedDimAliasesToPublicDimMap(dimReqCol).restrictedSchemasMap.contains(dimReqCol)
               && !requestedDimAliasesToPublicDimMap(dimReqCol).restrictedSchemasMap(dimReqCol)(request.schema)
@@ -551,13 +551,13 @@ object RequestModel extends Logging {
               allOuterFilters ++= outerFilters
             } else if (filter.isInstanceOf[OrFilter]) {
               /**
-               * Split the current Filters into a series of OrFilters,
-               * categorized by Column type which then get rendered separately.
-               */
+                * Split the current Filters into a series of OrFilters,
+                * categorized by Column type which then get rendered separately.
+                */
 
               val orFilter = filter.asInstanceOf[OrFilter]
               val mapForOrFilterSplitting: mutable.HashMap[MetaType.Value, mutable.SortedSet[Filter]] = mutable.HashMap[MetaType.Value, mutable.SortedSet[Filter]]()
-              orFilter.filters.foreach{
+                orFilter.filters.foreach{
                 filter =>
                   val containsField = publicFact.columnsByAliasMap.contains(filter.field)
                   if (!containsField) if (mapForOrFilterSplitting.contains(MetaType.DimType)) mapForOrFilterSplitting(MetaType.DimType) += filter else mapForOrFilterSplitting.put(MetaType.DimType, mutable.SortedSet(filter))
@@ -711,7 +711,7 @@ object RequestModel extends Logging {
           })
 
           val (utcTimeDayFilter, utcTimeHourFilter, utcTimeMinuteFilter) = if(bestCandidatesOption.isDefined && bestCandidatesOption.get.publicFact.enableUTCTimeConversion
-            || (allRequestedFactAliases.isEmpty && allFactFilters.isEmpty)) {
+          || (allRequestedFactAliases.isEmpty && allFactFilters.isEmpty)) {
             utcTimeProvider.getUTCDayHourMinuteFilter(localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter, timezone, isDebugEnabled)
           } else (localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter)
 
@@ -1142,7 +1142,7 @@ object RequestModel extends Logging {
 
             validateRequiredFiltersForDimOnlyQuery(filterMap, (requiredAliasSetFromRelatedDims ++ selfDimSchemaRequiredAlias).toSet , request)
           }
-
+          
           // All Dim only queries are by default dim driven
           val forceDimensionDriven:Boolean = if(isDimOnlyQuery) {
             true
@@ -1197,7 +1197,7 @@ object RequestModel extends Logging {
             requestedFkAliasToPublicDimensionMap = allRequestedFkAliasToPublicDimMap,
             orFilterMeta = allOrFilterMeta.toSet,
             dimensionRelations = dimensionRelations
-          )
+           )
       }
     }
   }
@@ -1208,7 +1208,7 @@ object RequestModel extends Logging {
         require(filterMap.contains(reqAlias.alias), s"Missing Dim Only query Schema(${request.schema}) required filter on '${reqAlias.alias}'")
         val filter = filterMap(reqAlias.alias)
         for (f <- filter)
-          require(FilterOperation.InEquality.contains(f.operator), s"Invalid Schema Required Filter ${f.field} operation, expected at least one of set(In,=), found ${f.operator}")
+            require(FilterOperation.InEquality.contains(f.operator), s"Invalid Schema Required Filter ${f.field} operation, expected at least one of set(In,=), found ${f.operator}")
       }
     )
   }
@@ -1308,11 +1308,11 @@ object RequestModel extends Logging {
   }
 
   /**
-   * Attempt to Statically Map the current filter, if applicable.
-   * @param filter     - Filter to check against Statically Mapped Columns
-   * @param publicFact - Source of Statically Mapped Column checking.
-   * @return           - Reverse Statically Mapped filter.
-   */
+    * Attempt to Statically Map the current filter, if applicable.
+    * @param filter     - Filter to check against Statically Mapped Columns
+    * @param publicFact - Source of Statically Mapped Column checking.
+    * @return           - Reverse Statically Mapped filter.
+    */
   def tryCreateReverseMappedFilter(filter: Filter
                                    , publicFact: PublicFact): Filter = {
     if (publicFact.aliasToReverseStaticMapping.contains(filter.field)) {
