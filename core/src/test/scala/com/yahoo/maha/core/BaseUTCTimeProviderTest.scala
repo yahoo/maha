@@ -31,7 +31,71 @@ class BaseUTCTimeProviderTest extends AnyFunSuite {
     assertEquals("2016-03-06T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.fromDateTime))
     assertEquals("2016-03-11T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.toDateTime))
     assertFalse(utcHourFilter.isDefined)
+    assertFalse(utcMinuteFilter.isDefined)
   }
+
+  test("Case: from_date > to_date") {
+    val timezone = None
+    val from = "2016-03-07T00:00:00.000"
+    val to = "2016-03-05T00:00:00.000"
+    assertThrows[IllegalArgumentException](DateTimeBetweenFilterHelper.yearMonthDayHourMinuteSecondMilli("Day", "2016-03-07T00:00:00.000", "2016-03-05T00:00:00.000"), s"From datetime must be before or equal to To datetime : from=$from, to=$to")
+  }
+
+  test("Case: yearMonthDayHourMinuteSecondMilli") {
+    val timezone = None
+    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDayHourMinuteSecondMilli("Day", "2016-03-07T00:00:00.000", "2016-03-10T00:00:00.000")
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[DateTimeBetweenFilter, Option[Filter], Option[Filter]]]
+
+    assertEquals("2016-03-06T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.fromDateTime))
+    assertEquals("2016-03-11T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.toDateTime))
+    assertFalse(utcHourFilter.isDefined)
+    assertFalse(utcMinuteFilter.isDefined)
+  }
+
+  test("Case: yearMonthDayHourMinuteSecond") {
+    val timezone = None
+    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDayHourMinuteSecond("Day", "2016-03-07T00:00:00", "2016-03-10T00:00:00")
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[DateTimeBetweenFilter, Option[Filter], Option[Filter]]]
+
+    assertEquals("2016-03-06T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.fromDateTime))
+    assertEquals("2016-03-11T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.toDateTime))
+    assertFalse(utcHourFilter.isDefined)
+    assertFalse(utcMinuteFilter.isDefined)
+  }
+
+  test("Case: yearMonthDayHourMinute") {
+    val timezone = None
+    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDayHourMinute("Day", "2016-03-07T00:00", "2016-03-10T00:00")
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[DateTimeBetweenFilter, Option[Filter], Option[Filter]]]
+
+    assertEquals("2016-03-06T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.fromDateTime))
+    assertEquals("2016-03-11T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.toDateTime))
+    assertFalse(utcHourFilter.isDefined)
+    assertFalse(utcMinuteFilter.isDefined)
+  }
+
+  test("Case: yearMonthDayHour") {
+    val timezone = None
+    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDayHour("Day", "2016-03-07T00", "2016-03-10T00")
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[DateTimeBetweenFilter, Option[Filter], Option[Filter]]]
+
+    assertEquals("2016-03-06T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.fromDateTime))
+    assertEquals("2016-03-11T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.toDateTime))
+    assertFalse(utcHourFilter.isDefined)
+    assertFalse(utcMinuteFilter.isDefined)
+  }
+
+  test("Case: yearMonthDay") {
+    val timezone = None
+    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDay("Day", "2016-03-07", "2016-03-10")
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[DateTimeBetweenFilter, Option[Filter], Option[Filter]]]
+
+    assertEquals("2016-03-06T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.fromDateTime))
+    assertEquals("2016-03-11T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.toDateTime))
+    assertFalse(utcHourFilter.isDefined)
+    assertFalse(utcMinuteFilter.isDefined)
+  }
+
   test("Case: Timezone: not provided - datetime between with hour provided should give one day before and one day after") {
     val timezone = None
     val localDayFilter = new DateTimeBetweenFilter("Day", "2016-03-07T06:00:00.000Z", "2016-03-10T20:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormatString)
