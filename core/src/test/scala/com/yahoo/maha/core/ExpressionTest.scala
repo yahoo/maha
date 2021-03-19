@@ -241,6 +241,7 @@ class ExpressionTest extends AnyFunSuite with Matchers {
     exp.asString should equal("CASE WHEN {engagement_type} = 1 THEN {engagement_count} ELSE 0 END")
     val exp2: PostgresExp = DECODE_DIM("{engagement_type}", "1", "{engagement_count}", "0", "{engagement_count_2}")
     exp2.asString should equal("CASE WHEN {engagement_type} = 1 THEN {engagement_count} WHEN {engagement_type} = 0 THEN {engagement_count_2} END")
+    assertThrows[IllegalArgumentException](DECODE_DIM("{engagement_type}", "1"), "Usage: DECODE( expression , search , result [, search , result]... [, default] )")
   }
   test("generate Postgres expression with COALESCE") {
     import PostgresExpression._
