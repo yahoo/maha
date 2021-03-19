@@ -5,6 +5,7 @@ package com.yahoo.maha.core
 import com.yahoo.maha.core.BaseExpressionTest.PRESTO_TIMESTAMP_TO_FORMATTED_DATE
 import com.yahoo.maha.core.HiveExpression._
 import org.json4s.JObject
+import org.json4s.JsonAST.JString
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -30,6 +31,11 @@ class ColumnAnnotationTest extends AnyFunSuite with Matchers {
   test("successfully find DayColumn with instance") {
     val set: Set[ColumnAnnotation] = Set(DayColumn("YYYYMMDD"))
     set.contains(DayColumn.instance) === true
+  }
+
+  test("successfully create JSON object") {
+    val colAnnotation = DayColumn("YYYYMMDD")
+    colAnnotation.asJSON() === JObject(List(("annotation",JString("DayColumn")), ("fmt",JString("YYYYMMDD"))))
   }
 
   test("successfully find PrestoShardingExpression with instance") {

@@ -11,6 +11,7 @@ import org.json4s.JsonAST.JObject
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
+
 /**
  * Created by hiral on 10/13/15.
  */
@@ -249,6 +250,14 @@ class DerivedExpressionTest extends AnyFunSuite with Matchers {
       val postResultCol = DruidPostResultDerivedFactCol("copyWithTest", IntType(), "{clicks}" ++ "{impressions}", postResultFunction = POST_RESULT_DECODE("{impressions}", "0", "N/A"))
       val postResultCopy = postResultCol.copyWith(cc, Map("copyWithTest" -> "copyWithResult"), true)
       val postResultCopyNoReset = postResultCol.copyWith(cc2, Map("copyWithTest" -> "copyWithResult"), false)
+    }
+  }
+
+  test("assert failure if number of arguments to POST_RESULT_DECODE < 3") {
+    import DruidExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      val exception = intercept[IllegalArgumentException]{DruidPostResultDerivedFactCol("copyWithTest", IntType(), "{clicks}" ++ "{impressions}", postResultFunction = POST_RESULT_DECODE("{impressions}"))}
+      assert(exception.getMessage.contains(s"""Usage: DECODE( fieldName , search , result [, search , result]... [, default] )"""))
     }
   }
 
