@@ -6,13 +6,11 @@ import com.yahoo.maha.core.BaseExpressionTest.{FACT_HIVE_EXPRESSION, PRESTO_TIME
 import com.yahoo.maha.core.DruidPostResultFunction.POST_RESULT_DECODE
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core.query.{PostResultRowData, Row}
 import org.apache.druid.jackson.DefaultObjectMapper
 import org.json4s.JsonAST.JObject
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.mutable.ArrayBuffer
 
 /**
  * Created by hiral on 10/13/15.
