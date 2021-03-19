@@ -6,7 +6,7 @@ import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.NoopSchema.NoopSchema
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension.DimCol
-import com.yahoo.maha.core.request.SyncRequest
+import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 import com.yahoo.maha.core.{ColumnContext, DailyGrain, InFilter, InFilterOperation, IntType, OracleEngine, PrimaryKey, StrType}
 
 /**
@@ -164,5 +164,15 @@ class createSubsetTest extends BaseFactTest {
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, InFilter("Day", List(s"$toDate")))
     require(bcOption.isDefined, "Failed to get candidates!")
     assert(bcOption.get.facts.keys.exists(_ == "fact2") === true, "create subset failed")
+  }
+
+  test("Create a subset with a different cost basis") {
+    val fact = fact1
+    fact.createSubset("fact2", "fact1", Set("clicks"), schemas = Set(AdvertiserSchema, ResellerSchema), availableOnwardsDate = Some(toDate), costMultiplier = Some(0.5))
+
+    val costMultMap1 = publicFact(fact).facts("fact1").costMultiplierMap
+    val costMultMap2 = publicFact(fact).facts("fact2").costMultiplierMap
+    assert(costMultMap1(SyncRequest).rows.list.head._2 == 1 && costMultMap2(SyncRequest).rows.list.head._2 == 0.5)
+    assert(costMultMap1(AsyncRequest).rows.list.head._2 == 1 && costMultMap2(AsyncRequest).rows.list.head._2 == 0.5)
   }
 }
