@@ -223,4 +223,63 @@ class QueryPipelineWithFallbackTest extends AnyFunSuite with Matchers with Befor
     pipeline = builder._1.toOption.get.build()
     assert(pipeline.fallbackQueryChainOption.isEmpty, s"No fallback query expected: $pipeline")
   }
+
+  test("Demonstrate the fix in the new result comparator.") {
+
+    def aLessThanBByLevelAndCostAndCardinality(a: RollupTuple, b: RollupTuple): Boolean = {
+      if (a.engine == b.engine) {
+        if (a.level == b.level) {
+          a.costEstimate < b.costEstimate
+        } else {
+          a.level < b.level
+        }
+      } else {
+        if (a.cardinality == b.cardinality) {
+          a.costEstimate < b.costEstimate
+        } else {
+          a.cardinality < b.cardinality
+        }
+      }
+    }
+
+    //(fn, engine, rowcost.costEstimate, level, dimCardinalityPreference)
+    //(name:String, engine: Engine, cost: Long, level: Int, cardinality: Int)
+
+    val t1 = RollupTuple("dr_stats_hourly", DruidEngine, 1600L, 9993, 8675309)
+    val t2 = RollupTuple("dr_ad_stats_hourly", DruidEngine, 1600L, 9995, 8675309)
+    val t3 = RollupTuple("oracle_stats", OracleEngine, 1600L, 9992, 8675309)
+    val t4 = RollupTuple("oracle_ad_stats", OracleEngine, 1600L, 9994, 8675309)
+    val t5 = RollupTuple("dr_teacher_ad_stats", DruidEngine, 1600L, 9998, 8675309)
+    val t6 = RollupTuple("oracle_teacher_stats", OracleEngine, 1600L, 9991, 8675309)
+    val t7 = RollupTuple("dr_teacher_stats_hourly", DruidEngine, 1600L, 9992, 8675309)
+    val t8 = RollupTuple("dr_teacher_ad_stats_hourly", DruidEngine, 1600L, 9997, 8675309)
+
+
+    val newResult = Vector(t1,t2,t3,t4,t5,t6,t7,t8).sortWith(DefaultQueryPipelineFactory.rollupComparator())
+    val oldResult = Vector(t1,t2,t3,t4,t5,t6,t7,t8).sortWith(DefaultQueryPipelineFactory.rollupComparator(aLessThanBByLevelAndCostAndCardinality))
+
+    //println(oldResult.mkString("\n"))
+    //println(newResult.mkString("\n"))
+
+    assert(oldResult.map(_.getTuple).mkString("\n").equals(
+      "(dr_stats_hourly,Druid,1600,9993,8675309)\n" +
+        "(dr_ad_stats_hourly,Druid,1600,9995,8675309)\n" +
+        "(oracle_stats,Oracle,1600,9992,8675309)\n" +
+        "(oracle_ad_stats,Oracle,1600,9994,8675309)\n" +
+        "(dr_teacher_ad_stats,Druid,1600,9998,8675309)\n" +
+        "(oracle_teacher_stats,Oracle,1600,9991,8675309)\n" +
+        "(dr_teacher_stats_hourly,Druid,1600,9992,8675309)\n" +
+        "(dr_teacher_ad_stats_hourly,Druid,1600,9997,8675309)"
+    ))
+    assert(newResult.map(_.getTuple).mkString("\n").equals(
+      "(oracle_teacher_stats,Oracle,1600,9991,8675309)\n" +
+        "(oracle_stats,Oracle,1600,9992,8675309)\n" +
+        "(dr_teacher_stats_hourly,Druid,1600,9992,8675309)\n" +
+        "(dr_stats_hourly,Druid,1600,9993,8675309)\n" +
+        "(oracle_ad_stats,Oracle,1600,9994,8675309)\n" +
+        "(dr_ad_stats_hourly,Druid,1600,9995,8675309)\n" +
+        "(dr_teacher_ad_stats_hourly,Druid,1600,9997,8675309)\n" +
+        "(dr_teacher_ad_stats,Druid,1600,9998,8675309)"
+    ))
+  }
 }
