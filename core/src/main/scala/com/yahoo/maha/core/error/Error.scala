@@ -62,4 +62,9 @@ case class IncomparableColumnError(field: String, compareTo: String) extends Err
   override val message = s"Field found only in Dimension table is not comparable with Fact fields.  Input: ($field, $compareTo)"
 }
 
+case class MahaCalciteSqlParserError(errorStr: String, sql:String) extends Error {
+  override val code: Int = 12001
+  override val message: String = s"MAHA-SQL-${code}: ${errorStr}"
+}
+
 
