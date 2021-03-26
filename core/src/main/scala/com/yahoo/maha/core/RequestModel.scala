@@ -16,7 +16,7 @@ import com.yahoo.maha.utils.DaysUtils
 import grizzled.slf4j.Logging
 import org.joda.time.DateTimeZone
 import org.slf4j.LoggerFactory
-
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedSet, mutable}
 import scala.util.{Failure, Success, Try}
 
@@ -60,7 +60,7 @@ case class DimensionRelations(relations: Map[(String, String), Boolean]) {
 }
 
 object DimensionCandidate {
-  implicit val ordering: Ordering[DimensionCandidate] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.name}")
+  implicit val ordering: Ordering[DimensionCandidate] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.secondaryDimLevel}-${dc.dim.name}")
 }
 
 sealed trait ColumnInfo {
@@ -782,11 +782,12 @@ object RequestModel extends Logging {
 
           //if we are dim driven, add primary key of highest level dim
           if(dimDrivenRequestedDimensionPrimaryKeyAliases.nonEmpty && !isFactDriven) {
-            val dimDrivenHighestLevelDim =
+
+            val requestedDimPrimaryKeyAliases =
               dimDrivenRequestedDimensionPrimaryKeyAliases
                 .map(pk => registry.getPkDimensionUsingFactTable(pk, Some(publicFact.dimRevision), publicFact.dimToRevisionMap).get) //we can do .get since we already checked above
-                .to[SortedSet]
-                .lastKey
+                .toIndexedSeq
+            val dimDrivenHighestLevelDim = sortOnSameDimLevel(requestedDimPrimaryKeyAliases).head
 
             val addDim = {
               if(allRequestedDimensionPrimaryKeyAliases.nonEmpty) {
@@ -823,10 +824,11 @@ object RequestModel extends Logging {
           val dimensionCandidatesPreValidation: SortedSet[DimensionCandidate] = {
             val intermediateCandidates = new mutable.TreeSet[DimensionCandidate]()
             val upperJoinCandidates = new mutable.TreeSet[PublicDimension]()
-            finalAllRequestedDimensionPrimaryKeyAliases
+
+            val allRequestedDimensionPrimaryKeyAliasesSeq = finalAllRequestedDimensionPrimaryKeyAliases
               .flatMap(f => registry.getPkDimensionUsingFactTable(f, Some(publicFact.dimRevision), publicFact.dimToRevisionMap))
-              .toIndexedSeq
-              .sortWith((a, b) => b.dimLevel < a.dimLevel)
+              .toIndexedSeq.sorted
+            sortOnSameDimLevel(allRequestedDimensionPrimaryKeyAliasesSeq)
               .foreach {
                 publicDimOption =>
                   //used to identify the highest level dimension
@@ -924,7 +926,7 @@ object RequestModel extends Logging {
                               foreignkeyAlias += alias
                               val pd = finalAllRequestedDimsMap(alias)
                               //only keep lower join candidates
-                              if(pd.dimLevel != publicDim.dimLevel && pd.dimLevel <= prevLevel) {
+                              if(pd.dimLevel <= publicDim.dimLevel) {
                                 lowerJoinCandidates += finalAllRequestedDimsMap(alias)
                               }
                             }
@@ -938,7 +940,7 @@ object RequestModel extends Logging {
 
                     // always include primary key in dimension table for join
                     val requestedDimAliases = foreignkeyAlias ++ fields + publicDim.primaryKeyByAlias
-                    val filteredUpper = upperJoinCandidates.filter(pd => pd.dimLevel != publicDim.dimLevel && pd.dimLevel >= aboveLevel)
+                    val filteredUpper = upperJoinCandidates.filter(pd => pd.dimLevel >= publicDim.dimLevel)
 
                     // attempting to find the better upper candidate if exist
                     // ads->adgroup->campaign hierarchy, better upper candidate for campaign is ad
@@ -1015,7 +1017,7 @@ object RequestModel extends Logging {
                       , hasNonPushDownFilters = filters.exists(filter => !filter.isPushDown)
                     )
                     allRequestedDimAliases ++= requestedDimAliases
-                    // Adding current dimension to uppper dimension candidates
+                    // Adding current dimension to upper dimension candidates
                     upperJoinCandidates+=publicDim
                   }
               }
@@ -1200,6 +1202,55 @@ object RequestModel extends Logging {
            )
       }
     }
+  }
+
+  def sortOnForeignKeyUtil(sameDimLevelFKMap:mutable.LinkedHashMap[PublicDimension, List[PublicDimension]], dim:PublicDimension, visited: mutable.HashMap[PublicDimension, Int], indexedSeqVarSorted: ArrayBuffer[PublicDimension], tempVisited: mutable.Set[PublicDimension]): Unit = {
+    var subDimLevel = 0
+    tempVisited += dim
+    sameDimLevelFKMap.get(dim).get.foreach{ pd =>
+      if(!visited.contains(pd) && !tempVisited.contains(pd))
+        sortOnForeignKeyUtil(sameDimLevelFKMap, pd, visited, indexedSeqVarSorted, tempVisited)
+      subDimLevel = Math.max(subDimLevel, visited.getOrElse(pd, 0) + 1)
+    }
+    visited.put(dim, subDimLevel)
+    dim.secondaryDimLevel = subDimLevel
+    indexedSeqVarSorted.prepend(dim)
+  }
+
+  def sortOnForeignKey(indexedSeqVarSorted: ArrayBuffer[PublicDimension], sameDimLevelFKMap:mutable.LinkedHashMap[PublicDimension, List[PublicDimension]]): Unit = {
+    val visitedSubDimMap = mutable.HashMap[PublicDimension, Int]()
+    sameDimLevelFKMap.keySet.foreach{ pd =>
+      if(!visitedSubDimMap.contains(pd)) sortOnForeignKeyUtil(sameDimLevelFKMap, pd, visitedSubDimMap, indexedSeqVarSorted, mutable.Set[PublicDimension]())
+    }
+  }
+  // assigns subDimLevel to PublicDimensions and orders them in desc order of dimLevel and subDimLevel
+  // a.subDimLevel > b.subDimLevel if a has a foreign key to b
+  def sortOnSameDimLevel(indexedSeqVar: IndexedSeq[PublicDimension]):IndexedSeq[PublicDimension] = {
+    val indexedSeqVarSorted = new ArrayBuffer[PublicDimension]() //using ArrayBuffer instead of IndexedSeq[PublicDimension] so that it accepts the public dimensions in order of subDimLevel instead of alphabetically.
+    if(indexedSeqVar.nonEmpty) {
+      var prevPubDim = indexedSeqVar.head
+      var startIdx = 0
+      var currentIdx = 0
+      indexedSeqVar.foreach { currentPubDim =>
+        if (currentPubDim.dimLevel == prevPubDim.dimLevel) currentIdx += 1
+        if (currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == indexedSeqVar.size) {
+          if(currentIdx - startIdx > 1){
+            val sameDimLevelFKMap = new mutable.LinkedHashMap[PublicDimension, List[PublicDimension]]()
+            val sameDimLevelPDSeq = indexedSeqVar.slice(startIdx, currentIdx).reverse //reversing here so when the Public Dims are prepended, asc alphabetical order is preserved if they are on same subDimLevels.
+            sameDimLevelPDSeq.foreach{
+              pubDim => sameDimLevelFKMap.put(pubDim, sameDimLevelPDSeq.filter(publicDim => pubDim != publicDim && pubDim.foreignKeyByAlias.contains(publicDim.primaryKeyByAlias)).toList)
+            }
+            sortOnForeignKey(indexedSeqVarSorted, sameDimLevelFKMap)
+          }
+          else indexedSeqVarSorted.prepend(prevPubDim)
+          startIdx = currentIdx
+          currentIdx += 1
+        }
+        prevPubDim = currentPubDim
+      }
+      if(indexedSeqVarSorted.size < indexedSeqVar.size) indexedSeqVarSorted.prepend(indexedSeqVar.last)
+    }
+    indexedSeqVarSorted
   }
 
   private[this] def validateRequiredFiltersForDimOnlyQuery(filterMap:mutable.HashMap[String, mutable.TreeSet[Filter]],requiredAliasSet:Set[RequiredAlias], request:ReportingRequest): Unit = {
