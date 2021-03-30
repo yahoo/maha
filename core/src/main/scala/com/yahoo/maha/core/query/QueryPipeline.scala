@@ -450,22 +450,36 @@ trait QueryPipelineFactory {
 
 }
 
+case class RollupTuple(name: String, engine: Engine, costEstimate: Long, level: Int, cardinality: Int) {
+  def getTuple = (name, engine, costEstimate, level, cardinality)
+}
+
 object DefaultQueryPipelineFactory extends Logging {
 
   val druidMultiQueryEngineList: Seq[Engine] = List(OracleEngine, PostgresEngine)
 
-  private[this] def aLessThanBByLevelAndCostAndCardinality(a: (String, Engine, Long, Int, Int), b: (String, Engine, Long, Int, Int)): Boolean = {
-    if (a._2 == b._2) {
-      if (a._4 == b._4) {
-        a._3 < b._3
+  def rollupComparator(
+                        f: (RollupTuple, RollupTuple) => Boolean = aLessThanBByLevelAndCostAndCardinality
+                      ) = {
+    f
+  }
+
+  private[this] def aLessThanBByLevelAndCostAndCardinality(a: RollupTuple, b: RollupTuple): Boolean = {
+    if (a.engine == b.engine) {
+      if (a.costEstimate == b.costEstimate) {
+        a.level < b.level
       } else {
-        a._4 < b._4
+        a.costEstimate < b.costEstimate
       }
     } else {
-      if (a._5 == b._5) {
-        a._3 < b._3
+      if (a.cardinality == b.cardinality) {
+        if(a.costEstimate == b.costEstimate){
+          a.level < b.level
+        } else {
+          a.costEstimate < b.costEstimate
+        }
       } else {
-        a._5 < b._5
+        a.cardinality < b.cardinality
       }
     }
   }
@@ -529,7 +543,7 @@ object DefaultQueryPipelineFactory extends Logging {
         if (requestModel.isDebugEnabled) {
           info(s"disqualifySet = $disqualifySet")
         }
-        val result: IndexedSeq[(String, Engine, Long, Int, Int)] = requestModel.factCost.toIndexedSeq.collect {
+        val result: IndexedSeq[RollupTuple] = requestModel.factCost.toIndexedSeq.collect {
           case ((fn, engine), rowcost) if (!queryGeneratorRegistry.getDefaultGenerator(engine).isDefined || queryGeneratorRegistry.getDefaultGenerator(engine).get.validateEngineConstraints(requestModel)) && (forceEngine.contains(engine) || (!disqualifySet(engine) && forceEngine.isEmpty)) =>
             val fact = requestModel.bestCandidates.get.facts(fn).fact
             val level = fact.level
@@ -538,11 +552,11 @@ object DefaultQueryPipelineFactory extends Logging {
             if (requestModel.isDebugEnabled) {
               info(s"fn=$fn engine=$engine cost=${rowcost.costEstimate} level=$level cardinalityPreference=$dimCardinalityPreference")
             }
-            (fn, engine, rowcost.costEstimate, level, dimCardinalityPreference)
-        }.sortWith(aLessThanBByLevelAndCostAndCardinality)
+            RollupTuple(fn, engine, rowcost.costEstimate, level, dimCardinalityPreference)
+        }.sortWith(rollupComparator())
         require(result.nonEmpty,
           s"Failed to find best candidate, forceEngine=$forceEngine, engine disqualifyingSet=$disqualifySet, candidates=${requestModel.bestCandidates.get.facts.mapValues(_.fact.engine).toSet}")
-        requestModel.bestCandidates.get.getFactBestCandidate(result.head._1, requestModel)
+        requestModel.bestCandidates.get.getFactBestCandidate(result.head.name, requestModel)
     }
   }
 

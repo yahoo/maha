@@ -34,66 +34,46 @@ class BaseUTCTimeProviderTest extends AnyFunSuite {
     assertFalse(utcMinuteFilter.isDefined)
   }
 
-  test("Case: from_date > to_date") {
+  test("Case: from_date > to_date - IllegalArgumentException should be thrown") {
     val timezone = None
     val from = "2016-03-07T00:00:00.000"
     val to = "2016-03-05T00:00:00.000"
-    assertThrows[IllegalArgumentException](DateTimeBetweenFilterHelper.yearMonthDayHourMinuteSecondMilli("Day", "2016-03-07T00:00:00.000", "2016-03-05T00:00:00.000"), s"From datetime must be before or equal to To datetime : from=$from, to=$to")
+    assertThrows[IllegalArgumentException](DateTimeBetweenFilterHelper.yearMonthDayHourMinuteSecondMilli("Day", s"$from", s"$to"), s"From datetime must be before or equal to To datetime : from=$from, to=$to")
   }
 
-  test("Case: yearMonthDayHourMinuteSecondMilli") {
-    val timezone = None
-    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDayHourMinuteSecondMilli("Day", "2016-03-07T00:00:00.000", "2016-03-10T00:00:00.000")
-    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[DateTimeBetweenFilter, Option[Filter], Option[Filter]]]
-
-    assertEquals("2016-03-06T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.fromDateTime))
-    assertEquals("2016-03-11T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.toDateTime))
-    assertFalse(utcHourFilter.isDefined)
-    assertFalse(utcMinuteFilter.isDefined)
+  test("Case: DateTimeBetweenFilterHelper.yearMonthDayHourMinuteSecondMilli should create the correct DateTimeBetweenFilter") {
+    val from = "2016-03-07T00:00:00.000"
+    val to = "2016-03-10T00:00:00.000"
+    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDayHourMinuteSecondMilli("Day", s"$from", s"$to")
+    localDayFilter === DateTimeBetweenFilter("Day", s"$from", s"$to", "yyyy-MM-dd'T'HH:mm:ss.SSS")
   }
 
-  test("Case: yearMonthDayHourMinuteSecond") {
-    val timezone = None
-    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDayHourMinuteSecond("Day", "2016-03-07T00:00:00", "2016-03-10T00:00:00")
-    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[DateTimeBetweenFilter, Option[Filter], Option[Filter]]]
-
-    assertEquals("2016-03-06T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.fromDateTime))
-    assertEquals("2016-03-11T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.toDateTime))
-    assertFalse(utcHourFilter.isDefined)
-    assertFalse(utcMinuteFilter.isDefined)
+  test("Case: DateTimeBetweenFilterHelper.yearMonthDayHourMinuteSecond should create the correct DateTimeBetweenFilter") {
+    val from = "2016-03-07T00:00:00"
+    val to = "2016-03-10T00:00:00"
+    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDayHourMinuteSecond("Day", s"$from", s"$to")
+    localDayFilter === DateTimeBetweenFilter("Day", s"$from", s"$to", "yyyy-MM-dd'T'HH:mm:ss")
   }
 
-  test("Case: yearMonthDayHourMinute") {
-    val timezone = None
-    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDayHourMinute("Day", "2016-03-07T00:00", "2016-03-10T00:00")
-    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[DateTimeBetweenFilter, Option[Filter], Option[Filter]]]
-
-    assertEquals("2016-03-06T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.fromDateTime))
-    assertEquals("2016-03-11T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.toDateTime))
-    assertFalse(utcHourFilter.isDefined)
-    assertFalse(utcMinuteFilter.isDefined)
+  test("Case: DateTimeBetweenFilterHelper.yearMonthDayHourMinute should create the correct DateTimeBetweenFilter") {
+    val from = "2016-03-07T00:00"
+    val to = "2016-03-10T00:00"
+    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDayHourMinute("Day", s"$from", s"$to")
+    localDayFilter === DateTimeBetweenFilter("Day", s"$from", s"$to", "yyyy-MM-dd'T'HH:mm")
   }
 
-  test("Case: yearMonthDayHour") {
-    val timezone = None
-    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDayHour("Day", "2016-03-07T00", "2016-03-10T00")
-    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[DateTimeBetweenFilter, Option[Filter], Option[Filter]]]
-
-    assertEquals("2016-03-06T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.fromDateTime))
-    assertEquals("2016-03-11T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.toDateTime))
-    assertFalse(utcHourFilter.isDefined)
-    assertFalse(utcMinuteFilter.isDefined)
+  test("Case: DateTimeBetweenFilterHelper.yearMonthDayHour should create the correct DateTimeBetweenFilter") {
+    val from = "2016-03-07T00"
+    val to = "2016-03-10T00"
+    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDayHour("Day", s"$from", s"$to")
+    localDayFilter === DateTimeBetweenFilter("Day", s"$from", s"$to", "yyyy-MM-dd'T'HH")
   }
 
-  test("Case: yearMonthDay") {
-    val timezone = None
-    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDay("Day", "2016-03-07", "2016-03-10")
-    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[DateTimeBetweenFilter, Option[Filter], Option[Filter]]]
-
-    assertEquals("2016-03-06T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.fromDateTime))
-    assertEquals("2016-03-11T00:00:00.000Z", DateTimeBetweenFilterHelper.iso8601FormattedString(utcDayFilter.toDateTime))
-    assertFalse(utcHourFilter.isDefined)
-    assertFalse(utcMinuteFilter.isDefined)
+  test("Case: DateTimeBetweenFilterHelper.yearMonthDay should create the correct DateTimeBetweenFilter") {
+    val from = "2016-03-07"
+    val to = "2016-03-10"
+    val localDayFilter = DateTimeBetweenFilterHelper.yearMonthDay("Day", s"$from", s"$to")
+    localDayFilter === DateTimeBetweenFilter("Day", s"$from", s"$to", "yyyy-MM-dd")
   }
 
   test("Case: Timezone: not provided - datetime between with hour provided should give one day before and one day after") {

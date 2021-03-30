@@ -6,13 +6,11 @@ import com.yahoo.maha.core.BaseExpressionTest.{FACT_HIVE_EXPRESSION, PRESTO_TIME
 import com.yahoo.maha.core.DruidPostResultFunction.POST_RESULT_DECODE
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core.query.{PostResultRowData, Row}
 import org.apache.druid.jackson.DefaultObjectMapper
 import org.json4s.JsonAST.JObject
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.mutable.ArrayBuffer
 
 /**
  * Created by hiral on 10/13/15.
@@ -255,54 +253,9 @@ class DerivedExpressionTest extends AnyFunSuite with Matchers {
     }
   }
 
-  test("test resultApply") {
+  test("assert failure if number of arguments to POST_RESULT_DECODE < 3") {
     import DruidExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-      //register dependent column
-      DimCol("clicks", IntType())
-      DimCol("impressions", IntType())
-
-      val om = new DefaultObjectMapper()
-      val col = DruidDerFactCol("BLAH", StrType(), "{clicks}" ++ "{impressions}")
-      col.derivedExpression.sourceColumns.contains("clicks") should equal(true)
-      col.derivedExpression.sourceColumns.contains("impressions") should equal(true)
-      val json = om.writeValueAsString(col.derivedExpression.render(col.name)("BLAH", Map("clicks"->"Clicks")))
-
-      json should equal("""{"type":"arithmetic","name":"BLAH","fn":"+","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}""")
-
-      val alias: Map[String, Int] = Map("clicks" -> 0, "impressions" -> 1)
-
-      val arrayBuffer = new ArrayBuffer[Any]()
-      arrayBuffer += "90"
-      arrayBuffer += "154"
-      val newRow = new Row(alias, arrayBuffer)
-      val rowData = PostResultRowData(newRow , columnAlias = "clicks")
-      val cc = new ColumnContext
-      val cc2 = new ColumnContext
-      val postResultCol = DruidPostResultDerivedFactCol("copyWithTest", IntType(), "{clicks}" ++ "{impressions}", postResultFunction = POST_RESULT_DECODE("{impressions}", "0", "N/A"))
-      val postResultFunction = POST_RESULT_DECODE("{impressions}", "0", "N/A").resultApply(rowData)
-      val postResultCopy = postResultCol.copyWith(cc, Map("copyWithTest" -> "copyWithResult"), true)
-      val postResultCopyNoReset = postResultCol.copyWith(cc2, Map("copyWithTest" -> "copyWithResult"), false)
-    }
-  }
-
-  test("test failure") {
-    import DruidExpression._
-    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-      //register dependent column
-      DimCol("clicks", IntType())
-      DimCol("impressions", IntType())
-
-      val om = new DefaultObjectMapper()
-      val col = DruidDerFactCol("BLAH", StrType(), "{clicks}" ++ "{impressions}")
-      col.derivedExpression.sourceColumns.contains("clicks") should equal(true)
-      col.derivedExpression.sourceColumns.contains("impressions") should equal(true)
-      val json = om.writeValueAsString(col.derivedExpression.render(col.name)("BLAH", Map("clicks"->"Clicks")))
-
-      json should equal("""{"type":"arithmetic","name":"BLAH","fn":"+","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}""")
-
-      val cc = new ColumnContext
-      val cc2 = new ColumnContext
       val exception = intercept[IllegalArgumentException]{DruidPostResultDerivedFactCol("copyWithTest", IntType(), "{clicks}" ++ "{impressions}", postResultFunction = POST_RESULT_DECODE("{impressions}"))}
       assert(exception.getMessage.contains(s"""Usage: DECODE( fieldName , search , result [, search , result]... [, default] )"""))
     }

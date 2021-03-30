@@ -33,7 +33,7 @@ class ColumnAnnotationTest extends AnyFunSuite with Matchers {
     set.contains(DayColumn.instance) === true
   }
 
-  test("Test as json") {
+  test("successfully create JSON object") {
     val colAnnotation = DayColumn("YYYYMMDD")
     colAnnotation.asJSON() === JObject(List(("annotation",JString("DayColumn")), ("fmt",JString("YYYYMMDD"))))
   }
