@@ -1205,15 +1205,15 @@ object RequestModel extends Logging {
   }
 
   def sortOnForeignKeyUtil(sameDimLevelFKMap:mutable.LinkedHashMap[PublicDimension, List[PublicDimension]], dim:PublicDimension, visited: mutable.HashMap[PublicDimension, Int], indexedSeqVarSorted: ArrayBuffer[PublicDimension], tempVisited: mutable.Set[PublicDimension]): Unit = {
-    var subDimLevel = 0
+    var secondaryDimLevel = 0
     tempVisited += dim
     sameDimLevelFKMap.get(dim).get.foreach{ pd =>
       if(!visited.contains(pd) && !tempVisited.contains(pd))
         sortOnForeignKeyUtil(sameDimLevelFKMap, pd, visited, indexedSeqVarSorted, tempVisited)
-      subDimLevel = Math.max(subDimLevel, visited.getOrElse(pd, 0) + 1)
+      secondaryDimLevel = Math.max(secondaryDimLevel, visited.getOrElse(pd, 0) + 1)
     }
-    visited.put(dim, subDimLevel)
-    dim.secondaryDimLevel = subDimLevel
+    visited.put(dim, secondaryDimLevel)
+    dim.secondaryDimLevel = secondaryDimLevel
     indexedSeqVarSorted.prepend(dim)
   }
 
@@ -1223,10 +1223,10 @@ object RequestModel extends Logging {
       if(!visitedSubDimMap.contains(pd)) sortOnForeignKeyUtil(sameDimLevelFKMap, pd, visitedSubDimMap, indexedSeqVarSorted, mutable.Set[PublicDimension]())
     }
   }
-  // assigns subDimLevel to PublicDimensions and orders them in desc order of dimLevel and subDimLevel
-  // a.subDimLevel > b.subDimLevel if a has a foreign key to b
+  // assigns secondaryDimLevel to PublicDimensions and orders them in desc order of dimLevel and secondaryDimLevel
+  // a.secondaryDimLevel > b.secondaryDimLevel if a has a foreign key to b
   def sortOnSameDimLevel(indexedSeqVar: IndexedSeq[PublicDimension]):IndexedSeq[PublicDimension] = {
-    val indexedSeqVarSorted = new ArrayBuffer[PublicDimension]() //using ArrayBuffer instead of IndexedSeq[PublicDimension] so that it accepts the public dimensions in order of subDimLevel instead of alphabetically.
+    val indexedSeqVarSorted = new ArrayBuffer[PublicDimension]() //using ArrayBuffer instead of IndexedSeq[PublicDimension] so that it accepts the public dimensions in order of secondaryDimLevel instead of alphabetically.
     if(indexedSeqVar.nonEmpty) {
       var prevPubDim = indexedSeqVar.head
       var startIdx = 0

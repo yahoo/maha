@@ -448,7 +448,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
     val expected = s"""SELECT  *
                       |      FROM (
                       |          SELECT "Student Name", "Researcher Name", ROWNUM AS ROW_NUMBER
@@ -516,7 +516,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -589,7 +589,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -663,7 +663,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -727,7 +727,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -800,7 +800,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -873,7 +873,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -947,7 +947,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -1022,7 +1022,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -1101,7 +1101,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -1172,7 +1172,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -1256,7 +1256,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -1332,7 +1332,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -1408,7 +1408,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -1505,7 +1505,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -1584,7 +1584,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -1673,7 +1673,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -1763,7 +1763,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -1844,7 +1844,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -1931,7 +1931,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -2026,7 +2026,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected =
       s"""
@@ -2122,13 +2122,13 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
     val expected = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"dr_student_performance"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\}\]\},\{"type":"selector","dimension":"student_id","value":"213"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"name","outputName":"Researcher Name","outputType":"STRING"\},\{"type":"default","dimension":"status","outputName":"Researcher Status","outputType":"STRING"\},\{"type":"default","dimension":"name","outputName":"Student Name","outputType":"STRING"\},\{"type":"default","dimension":"status","outputName":"Tutor Status","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Marks Obtained","fieldName":"obtained_marks"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":400\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}""".r
     result should fullyMatch regex expected
   }
 
-  test("Test") {
+  test("Test: Columns from multiple same dimLevel dimensions") {
     val jsonString =
       s"""
          |{
@@ -2182,10 +2182,59 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    //println(result)
 
-    //val expected = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"dr_student_performance"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\},\{"type":"selector","dimension":"date","value":".*"\}\]\},\{"type":"selector","dimension":"student_id","value":"213"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"name","outputName":"Researcher Name","outputType":"STRING"\},\{"type":"default","dimension":"status","outputName":"Researcher Status","outputType":"STRING"\},\{"type":"default","dimension":"name","outputName":"Student Name","outputType":"STRING"\},\{"type":"default","dimension":"status","outputName":"Tutor Status","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Marks Obtained","fieldName":"obtained_marks"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":400\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}""".r
-    //result should fullyMatch regex expected
+    val expected = s"""SELECT  *
+                      |      FROM (
+                      |          SELECT "Student Name", "Researcher Name", "Class Volunteer Name", "Science Lab Volunteer Name", "Tutor Name", "Section Name", "Class Name", ROWNUM AS ROW_NUMBER
+                      |              FROM(SELECT sv3.name "Student Name", r5.name "Researcher Name", cv2.name "Class Volunteer Name", slv4.name "Science Lab Volunteer Name", t6.name "Tutor Name", s1.name "Section Name", c0.name "Class Name"
+                      |                  FROM
+                      |               ( (SELECT  class_id, student_id, name, id
+                      |            FROM section
+                      |            WHERE (student_id = 213)
+                      |             ) s1
+                      |          INNER JOIN
+                      |            (SELECT  class_volunteer_id, researcher_id, name, id
+                      |            FROM student_v1
+                      |
+                      |             ) sv3
+                      |              ON( s1.student_id = sv3.id )
+                      |               INNER JOIN
+                      |            (SELECT  science_lab_volunteer_id, tutor_id, name, id
+                      |            FROM researcher
+                      |
+                      |             ) r5
+                      |              ON( sv3.researcher_id = r5.id )
+                      |               INNER JOIN
+                      |            (SELECT  name, id
+                      |            FROM tutor
+                      |
+                      |             ) t6
+                      |              ON( r5.tutor_id = t6.id )
+                      |               INNER JOIN
+                      |            (SELECT  name, id
+                      |            FROM science_lab_volunteer
+                      |
+                      |             ) slv4
+                      |              ON( r5.science_lab_volunteer_id = slv4.id )
+                      |               INNER JOIN
+                      |            (SELECT  name, id
+                      |            FROM class_volunteer
+                      |
+                      |             ) cv2
+                      |              ON( sv3.class_volunteer_id = cv2.id )
+                      |               INNER JOIN
+                      |            (SELECT  name, id
+                      |            FROM class
+                      |
+                      |             ) c0
+                      |              ON( s1.class_id = c0.id )
+                      |               )
+                      |
+                      |                  ))
+                      |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+                      |""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
 }
