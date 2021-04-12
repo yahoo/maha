@@ -144,7 +144,7 @@ case class DimensionBundle(dim: Dimension
 }
 
 object DimensionBundle {
-  implicit val ordering: Ordering[DimensionBundle] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.publicDim.secondaryDimLevel}-${dc.dim.name}")
+  implicit val ordering: Ordering[DimensionBundle] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.secondaryDimLevel}-${dc.dim.name}")
 }
 
 class QueryContextBuilder(queryType: QueryType, requestModel: RequestModel) {

@@ -969,8 +969,6 @@ trait PublicDimension extends PublicTable {
 
   def dimLevel: DimLevel
 
-  var secondaryDimLevel: Int = 0
-
   def schemas: Set[Schema]
 
   def schemaRequiredAlias(schema: Schema): Option[RequiredAlias]

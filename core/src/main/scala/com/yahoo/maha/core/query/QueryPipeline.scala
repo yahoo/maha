@@ -673,7 +673,7 @@ object DefaultQueryPipelineFactory extends Logging {
           , hasPKRequested = dc.hasPKRequested
           , hasNonFKNonForceFilters = dc.hasNonFKNonForceFilters
           , hasLowCardinalityFilter = dc.hasLowCardinalityFilter
-          , dc.dim.secondaryDimLevel
+          , dc.secondaryDimLevel
         )
       }
     }
