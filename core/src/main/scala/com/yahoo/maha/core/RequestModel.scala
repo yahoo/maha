@@ -1209,7 +1209,7 @@ object RequestModel extends Logging {
                            publicDimSecDimLevelMap: mutable.LinkedHashMap[PublicDimension, Int],
                            tempVisited: mutable.Set[PublicDimension]): Unit = {
     var secondaryDimLevel = 0
-    // tempVisited avoids cyclic fkDependencies.
+    // tempVisited checks for cyclic fkDependencies.
     tempVisited.add(dim)
     sameDimLevelFKMap.get(dim).get.foreach { pd =>
       if(!publicDimSecDimLevelMap.contains(pd) && !tempVisited.contains(pd))
@@ -1235,14 +1235,19 @@ object RequestModel extends Logging {
     if (indexedSeqVar.nonEmpty) {
       var prevPubDim = indexedSeqVar.head
       var startIdx = 0
+      val endIdx = indexedSeqVar.size - 1
       indexedSeqVar.zipWithIndex.foreach {
         case(currentPubDim, currentIdx) => {
           if(currentIdx > 0) {
-            if (currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == indexedSeqVar.size - 1) {
-              if (currentIdx - startIdx > 0) {
+            if (currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == endIdx) {
+              var sameDimLevelPDSeq = Seq[PublicDimension]()
+              // reversing the slice so that when output map is traversed from right to left, alphabetical order is ascending.
+              if (currentIdx == endIdx && currentPubDim.dimLevel == prevPubDim.dimLevel)
+                sameDimLevelPDSeq = indexedSeqVar.drop(startIdx - 1).reverse
+              else
+                  sameDimLevelPDSeq = indexedSeqVar.slice(startIdx, currentIdx).reverse
+              if(sameDimLevelPDSeq.size > 1) {
                 val sameDimLevelFKMap = new mutable.LinkedHashMap[PublicDimension, List[PublicDimension]]()
-                // reversing the slice so that when output map is traversed from right to left, alphabetical order is ascending.
-                val sameDimLevelPDSeq = indexedSeqVar.slice(startIdx, currentIdx + 1).reverse
                 sameDimLevelPDSeq.foreach {
                   pubDim => sameDimLevelFKMap.put(pubDim,
                     sameDimLevelPDSeq.filter(
