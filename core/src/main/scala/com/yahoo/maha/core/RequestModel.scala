@@ -1242,11 +1242,11 @@ object RequestModel extends Logging {
             if (currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == endIdx) {
               var sameDimLevelPDSeq = Seq[PublicDimension]()
               // reversing the slice so that when output map is traversed from right to left, alphabetical order is ascending.
-              if (currentIdx == endIdx && currentPubDim.dimLevel == prevPubDim.dimLevel)
-                sameDimLevelPDSeq = indexedSeqVar.drop(startIdx - 1).reverse
-              else
-                  sameDimLevelPDSeq = indexedSeqVar.slice(startIdx, currentIdx).reverse
-              if(sameDimLevelPDSeq.size > 1) {
+              if (currentPubDim.dimLevel == prevPubDim.dimLevel)
+                sameDimLevelPDSeq = indexedSeqVar.drop(startIdx).reverse
+              else if (currentPubDim.dimLevel != prevPubDim.dimLevel)
+                sameDimLevelPDSeq = indexedSeqVar.slice(startIdx, currentIdx).reverse
+              if (sameDimLevelPDSeq.size > 1) {
                 val sameDimLevelFKMap = new mutable.LinkedHashMap[PublicDimension, List[PublicDimension]]()
                 sameDimLevelPDSeq.foreach {
                   pubDim => sameDimLevelFKMap.put(pubDim,
