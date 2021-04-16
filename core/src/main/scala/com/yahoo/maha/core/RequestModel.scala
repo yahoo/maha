@@ -16,7 +16,6 @@ import com.yahoo.maha.utils.DaysUtils
 import grizzled.slf4j.Logging
 import org.joda.time.DateTimeZone
 import org.slf4j.LoggerFactory
-import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedSet, mutable}
 import scala.util.{Failure, Success, Try}
 
@@ -1235,16 +1234,16 @@ object RequestModel extends Logging {
     if (indexedSeqVar.nonEmpty) {
       var prevPubDim = indexedSeqVar.head
       var startIdx = 0
-      val endIdx = indexedSeqVar.size - 1
       indexedSeqVar.zipWithIndex.foreach {
         case(currentPubDim, currentIdx) => {
           if(currentIdx > 0) {
-            if (currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == endIdx) {
+            if (currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == indexedSeqVar.size - 1) {
               var sameDimLevelPDSeq = Seq[PublicDimension]()
-              // reversing the slice so that when output map is traversed from right to left, alphabetical order is ascending.
+              // reversing the slice so that when output map is traversed from
+              // right to left, ascending alphabetical order is preserved.
               if (currentPubDim.dimLevel == prevPubDim.dimLevel)
                 sameDimLevelPDSeq = indexedSeqVar.drop(startIdx).reverse
-              else if (currentPubDim.dimLevel != prevPubDim.dimLevel)
+              else
                 sameDimLevelPDSeq = indexedSeqVar.slice(startIdx, currentIdx).reverse
               if (sameDimLevelPDSeq.size > 1) {
                 val sameDimLevelFKMap = new mutable.LinkedHashMap[PublicDimension, List[PublicDimension]]()
