@@ -36,7 +36,7 @@ class DefaultMahaCalciteSqlParserTest extends AnyFunSuite {
       )
     }
       .newRollUp("intermediate_rollup", "fact", Set("is_adjustment"), schemas = Set(NoopSchema))
-      .toPublicFact("publicFact",
+      .toPublicFact("public_fact",
         Set(
           PubCol("id", "Fact ID", Equality),
           PubCol("advertiser_id", "Advertiser ID", Equality),
@@ -100,8 +100,20 @@ class DefaultMahaCalciteSqlParserTest extends AnyFunSuite {
   val defaultMahaCalciteSqlParser = DefaultMahaCalciteSqlParser(registry)
 
   test("Sql Parser test") {
-    val sql = "select * from publicFact where 'Advertiser ID' = 123";
-    val result = defaultMahaCalciteSqlParser.parse(sql)
+    val sql = s"""
+              select * from public_fact
+              where 'Advertiser ID' = 123
+              AND 'Source' = 'Native'
+              AND 'Price Type' in ('CPC', 'CPA')
+              AND 'Impressions' > 0
+              """
+    //TODO: convert advertiser id to advertiser_id
+    //val sql = "select advertiser_id from publicFact where 'Advertiser ID' = 123";
+    //TODO:
+    //val sql = "select 'Advertiser ID' from publicFact where 'Advertiser ID' = 123";
+
+    val result = defaultMahaCalciteSqlParser.parse(sql, AdvertiserSchema)
+    print(result)
   }
 
 
