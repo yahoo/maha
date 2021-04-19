@@ -780,7 +780,6 @@ object RequestModel extends Logging {
               }
           }
 
-          //if we are dim driven, add primary key of highest level dim
           if(dimDrivenRequestedDimensionPrimaryKeyAliases.nonEmpty && !isFactDriven) {
 
             val requestedDimPrimaryKeyAliases =
@@ -998,7 +997,6 @@ object RequestModel extends Logging {
                     val hasLowCardinalityFilter = filters.view.filter(!_.isPushDown).exists {
                       filter => colAliases(filter.field) && !publicFact.columnsByAlias(filter.field) && !publicDim.containsHighCardinalityFilter(filter)
                     }
-
                     intermediateCandidates += new DimensionCandidate(
                       publicDim
                       , foreignkeyAlias ++ fields + publicDim.primaryKeyByAlias
