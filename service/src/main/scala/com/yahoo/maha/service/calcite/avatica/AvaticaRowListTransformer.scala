@@ -29,13 +29,7 @@ class DefaultAvaticaRowListTransformer extends AvaticaRowListTransformer {
               columns.add(MetaImpl.columnMetaData(columnName, index, classOf[java.lang.Integer], true))
             case DecType(_,_,_,_,_,_) =>
               columns.add(MetaImpl.columnMetaData(columnName, index, classOf[java.lang.Double], true))
-            case StrType(_,_,_) =>
-              columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
-            case DateType(format) =>
-              columns.add(MetaImpl.columnMetaData(columnName, index, classOf[java.sql.Date], true))
-            case TimestampType(format) =>
-              columns.add(MetaImpl.columnMetaData(columnName, index, classOf[java.sql.Timestamp], true))
-            case _ =>
+            case e=>
               columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
           }
         }
@@ -57,8 +51,8 @@ class DefaultAvaticaRowListTransformer extends AvaticaRowListTransformer {
                 case IntType(_, _, _, _, _) => arrayList.add(value)
                 case DecType(_, _, _, _, _, _) => arrayList.add(value)
                 case StrType(_, _, _) => arrayList.add(value)
-                case DateType(format) => arrayList.add(Date.valueOf(value.toString))
-                case TimestampType(format) => arrayList.add(Timestamp.valueOf(value.toString))
+                case DateType(format) => arrayList.add(value.toString)
+                case TimestampType(format) => arrayList.add(value.toString)
                 case _ =>
               }
             }
