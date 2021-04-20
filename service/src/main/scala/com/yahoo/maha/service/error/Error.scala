@@ -13,3 +13,7 @@ sealed abstract class MahaServiceError extends Product with Serializable {
 case class JsonParseError(message: String, source: Option[Throwable] = None) extends MahaServiceError
 case class ServiceConfigurationError(message: String, source: Option[Throwable] = None) extends MahaServiceError
 case class FailedToConstructFactory(message: String, source: Option[Throwable] = None) extends MahaServiceError
+
+case class MahaCalciteSqlParserError(errorStr: String, sql:String, source: Option[Throwable] = None) extends MahaServiceError {
+  override val message: String = s"MAHA-SQL-${sql}: ${errorStr}"
+}

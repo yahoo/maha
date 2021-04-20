@@ -1,12 +1,12 @@
 package com.yahoo.maha.service.calcite
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.error.MahaCalciteSqlParserError
 import com.yahoo.maha.core.fact.PublicFact
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.ReportingRequest.DEFAULT_DAY_FILTER
 import com.yahoo.maha.core.request.{Field, PaginationConfig, ReportingRequest, SelectQuery, SyncRequest}
 import com.yahoo.maha.service.MahaServiceConfig
+import com.yahoo.maha.service.error.MahaCalciteSqlParserError
 import grizzled.slf4j.Logging
 import org.apache.calcite.sql._
 import org.apache.calcite.sql.parser.{SqlParseException, SqlParser}
