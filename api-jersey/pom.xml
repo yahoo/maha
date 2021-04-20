@@ -26,6 +26,12 @@
             <groupId>com.yahoo.maha</groupId>
             <artifactId>maha-core</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.druid</groupId>
+                    <artifactId>druid-server</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.yahoo.maha</groupId>
@@ -44,6 +50,13 @@
             <groupId>org.json4s</groupId>
             <artifactId>json4s-core_${scala.major.version}</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.scalaj</groupId>
+            <artifactId>scalaj-http_${scala.major.version}</artifactId>
+            <version>2.4.2</version>
+        </dependency>
+
         <dependency>
             <groupId>org.json4s</groupId>
             <artifactId>json4s-jackson_${scala.major.version}</artifactId>

@@ -2,8 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.api.jersey
 
+import com.yahoo.maha.service.calcite.avatica.MahaAvaticaService
 import javax.ws.rs.core.MediaType
-
 import com.yahoo.maha.api.jersey.example.ExampleMahaService
 import com.yahoo.maha.service.utils.MahaConstants
 import junit.framework.TestCase.assertNotNull
@@ -21,7 +21,7 @@ import org.junit._
 class MahaResourceTest {
 
   @Test
-  def successfulCubesEndpoint(){
+  def successfulCubesEndpoint() {
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
     val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/academic/cubes")
@@ -29,6 +29,7 @@ class MahaResourceTest {
     assertEquals("should return status 200", 200, httpResponse.getStatusLine.getStatusCode)
     val cubesJson: String = EntityUtils.toString(httpResponse.getEntity)
     assert(cubesJson.equals("""["student_performance"]"""))
+
   }
 
   @Test
@@ -463,6 +464,19 @@ class MahaResourceTest {
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
     
     assert(responseJson.contains("""{"errorMsg":"requirement failed: Failure(NonEmpty[UncategorizedError(Day,requirement failed: Day filter not found in list of filters!,List())])"}"""))
+  }
+
+  @Test
+  def testAvaticaNoopEndpointTest() {
+    assertNotNull("jetty must be initialised", MahaResourceTest.server)
+    val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/sql-avatica")
+    val jsonRequest = s"""{}"""
+    val httpEntity: HttpEntity = new StringEntity(jsonRequest)
+    httpPost.setEntity(httpEntity)
+    httpPost.setHeader(HttpHeaders.ACCEPT,MediaType.APPLICATION_JSON)
+    httpPost.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+    val httpResponse: HttpResponse = httpClient.execute(httpPost)
   }
 
   @Test

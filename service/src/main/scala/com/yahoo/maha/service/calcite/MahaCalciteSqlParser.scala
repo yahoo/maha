@@ -1,26 +1,28 @@
-package com.yahoo.maha.core.calcite
+package com.yahoo.maha.service.calcite
 
-import com.yahoo.maha.core.error.{Error, MahaCalciteSqlParserError}
-import com.yahoo.maha.core.{EqualityFilter, Filter, GreaterThanFilter, InFilter, Schema}
+import com.yahoo.maha.core._
+import com.yahoo.maha.core.error.MahaCalciteSqlParserError
 import com.yahoo.maha.core.fact.PublicFact
 import com.yahoo.maha.core.registry.Registry
-import com.yahoo.maha.core.request.ReportingRequest.{DEFAULT_DAY_FILTER, DEFAULT_PAGINATION_CONFIG, NOOP_DAY_FILTER}
+import com.yahoo.maha.core.request.ReportingRequest.DEFAULT_DAY_FILTER
 import com.yahoo.maha.core.request.{Field, PaginationConfig, ReportingRequest, SelectQuery, SyncRequest}
+import com.yahoo.maha.service.MahaServiceConfig
 import grizzled.slf4j.Logging
-import org.apache.calcite.sql.{SqlBasicCall, SqlBinaryOperator, SqlIdentifier, SqlKind, SqlNode, SqlNodeList, SqlSelect}
+import org.apache.calcite.sql._
 import org.apache.calcite.sql.parser.{SqlParseException, SqlParser}
 import org.apache.commons.lang.StringUtils
 
-import scala.collection.mutable.ArrayBuffer
-
 trait MahaCalciteSqlParser {
-  def parse(sql:String, schema: Schema) : ReportingRequest
+  def parse(sql:String, schema: Schema, registryName:String) : ReportingRequest
 }
 
-case class DefaultMahaCalciteSqlParser(registry:Registry) extends MahaCalciteSqlParser with Logging {
+case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) extends MahaCalciteSqlParser with Logging {
 
-  override def parse(sql: String, schema: Schema): ReportingRequest = {
+  override def parse(sql: String, schema: Schema, registryName:String): ReportingRequest = {
     require(!StringUtils.isEmpty(sql), MahaCalciteSqlParserError("Sql can not be empty", sql))
+    require(mahaServiceConfig.registry.contains(registryName), s"failed to find the registry ${registryName} in the mahaService Config")
+    val registry:Registry  = mahaServiceConfig.registry.get(registryName).get.registry
+
     val parser: SqlParser = SqlParser.create(sql)
     try {
       var sqlNode: SqlNode = null
@@ -30,21 +32,22 @@ case class DefaultMahaCalciteSqlParser(registry:Registry) extends MahaCalciteSql
       //execute X
       sqlNode match {
         case sqlSelect: SqlSelect =>
-          val publicFact = getCube(sqlSelect.getFrom)
+          val publicFact = getCube(sqlSelect.getFrom, registry)
           require(publicFact.isDefined,MahaCalciteSqlParserError(s"Failed to find the cube ${sqlSelect.getFrom}", sql))
           val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get)
           val filterExpression = getFilterList(sqlSelect.getWhere, publicFact.get)
+          val dayFilter = filterExpression.filter(f=> "Day".equalsIgnoreCase(f.field)).headOption.getOrElse(DEFAULT_DAY_FILTER)
           return new ReportingRequest(
             cube=publicFact.get.name,
             selectFields = selectFields,
             filterExpressions = filterExpression,
             requestType = SyncRequest,
-            schema = Schema.withNameInsensitiveOption("advertiser").get,
+            schema = schema,
             reportDisplayName = None,
-            forceDimensionDriven = true,
+            forceDimensionDriven = false,
             forceFactDriven = false,
             includeRowCount = false,
-            dayFilter = DEFAULT_DAY_FILTER,
+            dayFilter = dayFilter,
             hourFilter = None,
             minuteFilter = None,
             numDays = 1,
@@ -65,7 +68,7 @@ case class DefaultMahaCalciteSqlParser(registry:Registry) extends MahaCalciteSql
     null
   }
 
-  def getCube(sqlNode: SqlNode) : Option[PublicFact] = {
+  def getCube(sqlNode: SqlNode, registry:Registry) : Option[PublicFact] = {
     sqlNode match {
       case sqlIdentifier: SqlIdentifier =>
         registry.getFact(sqlIdentifier.getSimple.toLowerCase)
@@ -107,15 +110,17 @@ case class DefaultMahaCalciteSqlParser(registry:Registry) extends MahaCalciteSql
   }
 
   def getFilterList(sqlNode: SqlNode, publicFact: PublicFact) : IndexedSeq[Filter] = {
-    sqlNode match {
-      case sqlBasicCall: SqlBasicCall =>
-        val filterListOption = recursiveGetFilterList(sqlBasicCall, publicFact)
-        filterListOption.getOrElse(List.empty).toIndexedSeq
-      case other: AnyRef =>
-        val errMsg = String.format("sqlNode type[%s] in getSelectList is not yet supported", other.getClass.toString)
-        logger.error(errMsg);
-        IndexedSeq.empty
-    }
+    if (sqlNode!=null) {
+      sqlNode match {
+        case sqlBasicCall: SqlBasicCall =>
+          val filterListOption = recursiveGetFilterList(sqlBasicCall, publicFact)
+          filterListOption.getOrElse(List.empty).toIndexedSeq
+        case other: AnyRef =>
+          val errMsg = String.format("sqlNode type[%s] in getSelectList is not yet supported", other.getClass.toString)
+          logger.error(errMsg);
+          IndexedSeq.empty
+      }
+    } else IndexedSeq.empty
   }
 
   def recursiveGetFilterList(sqlNode: SqlNode, publicFact: PublicFact): Option[List[Filter]] = {

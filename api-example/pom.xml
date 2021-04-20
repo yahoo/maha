@@ -19,7 +19,7 @@
     <url>http://maven.apache.org</url>
 
     <properties>
-        <jersey.version>2.27</jersey.version>
+        <jersey.version>2.29.1</jersey.version>
         <jetty.version>9.4.35.v20201120</jetty.version>
     </properties>
 
@@ -112,6 +112,13 @@
             <groupId>org.clapper</groupId>
             <artifactId>grizzled-slf4j_${scala.major.version}</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.15.8</version>
+        </dependency>
+
 
         <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
@@ -281,7 +288,7 @@
             <plugin>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-maven-plugin</artifactId>
-                <version>9.4.7.v20170914</version>
+                <version>${jetty.version}</version>
                 <configuration>
                     <scanIntervalSeconds>1</scanIntervalSeconds>
                     <webApp>
