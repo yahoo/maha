@@ -25,7 +25,7 @@ class DefaultAvaticaRowListTransformer extends AvaticaRowListTransformer {
         val columnOption = aliasColumnMap.get(columnName)
         if (columnOption.isDefined) {
           columnOption.get.dataType match {
-            case IntType(_,_,_,_,_) =>
+            case i@IntType(_,_,_,_,_)  if !i.hasStaticMapping =>
               columns.add(MetaImpl.columnMetaData(columnName, index, classOf[java.lang.Integer], true))
             case DecType(_,_,_,_,_,_) =>
               columns.add(MetaImpl.columnMetaData(columnName, index, classOf[java.lang.Double], true))
@@ -48,12 +48,12 @@ class DefaultAvaticaRowListTransformer extends AvaticaRowListTransformer {
             if (columnOption.isDefined) {
               val value = row.getValue(columnName).asInstanceOf[AnyRef]
               columnOption.get.dataType match {
-                case IntType(_, _, _, _, _) => arrayList.add(value)
+                case i@IntType(_, _, _, _, _) if !i.hasStaticMapping => arrayList.add(value)
                 case DecType(_, _, _, _, _, _) => arrayList.add(value)
                 case StrType(_, _, _) => arrayList.add(value)
                 case DateType(format) => arrayList.add(value.toString)
                 case TimestampType(format) => arrayList.add(value.toString)
-                case _ =>
+                case _ => arrayList.add(value.toString)
               }
             }
         }
