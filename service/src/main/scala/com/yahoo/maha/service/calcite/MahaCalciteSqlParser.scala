@@ -11,12 +11,19 @@ import grizzled.slf4j.Logging
 import org.apache.calcite.sql._
 import org.apache.calcite.sql.parser.{SqlParseException, SqlParser}
 import org.apache.commons.lang.StringUtils
+import org.joda.time.{DateTime, DateTimeZone}
 
 trait MahaCalciteSqlParser {
   def parse(sql:String, schema: Schema, registryName:String) : ReportingRequest
 }
 
 case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) extends MahaCalciteSqlParser with Logging {
+
+  lazy protected[this] val fromDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
+  lazy protected[this] val toDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
+
+  val DEFAULT_DAY_FILTER : Filter = BetweenFilter("Day", fromDate, toDate)
+  val DAY = "Day"
 
   override def parse(sql: String, schema: Schema, registryName:String): ReportingRequest = {
     require(!StringUtils.isEmpty(sql), MahaCalciteSqlParserError("Sql can not be empty", sql))
@@ -25,8 +32,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
 
     val parser: SqlParser = SqlParser.create(sql)
     try {
-      var sqlNode: SqlNode = null
-      sqlNode = parser.parseQuery
+      val sqlNode: SqlNode = parser.parseQuery
       //validate validate AST
       //optimize convert AST to RequestModel and/or ReportingRequest
       //execute X
@@ -36,11 +42,12 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
           require(publicFact.isDefined,MahaCalciteSqlParserError(s"Failed to find the cube ${sqlSelect.getFrom}", sql))
           val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get)
           val filterExpression = getFilterList(sqlSelect.getWhere, publicFact.get)
-          val dayFilter = filterExpression.filter(f=> "Day".equalsIgnoreCase(f.field)).headOption.getOrElse(DEFAULT_DAY_FILTER)
+          val nonDayFilterExpressions = filterExpression.filter(f=> !DAY.equalsIgnoreCase(f.field))
+          val dayFilter = filterExpression.filter(f=> DAY.equalsIgnoreCase(f.field)).headOption.getOrElse(DEFAULT_DAY_FILTER)
           return new ReportingRequest(
             cube=publicFact.get.name,
             selectFields = selectFields,
-            filterExpressions = filterExpression,
+            filterExpressions = nonDayFilterExpressions,
             requestType = SyncRequest,
             schema = schema,
             reportDisplayName = None,
@@ -88,8 +95,8 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
               case sqlIdentifier: SqlIdentifier =>
                 if (sqlIdentifier.isStar) {
                   val indexedSeq: IndexedSeq[Field]=
-                    publicFact.factCols.map(publicFactCol => Field(publicFactCol.name, Option(publicFactCol.alias), None)).toIndexedSeq ++
-                      publicFact.dimCols.map(publicDimCol => Field(publicDimCol.name, Option(publicDimCol.alias), None)).toIndexedSeq
+                    publicFact.factCols.map(publicFactCol => Field(publicFactCol.alias, None, None)).toIndexedSeq ++
+                      publicFact.dimCols.map(publicDimCol => Field(publicDimCol.alias, None, None)).toIndexedSeq
                   return indexedSeq
                 }
               //TODO: other non-star cases
@@ -137,6 +144,8 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
             } else {
               Some(constructFilterList(sqlBasicCall.operands(1)))
             }
+          case SqlKind.BETWEEN =>
+            None
           case SqlKind.OR =>
             None
 
@@ -148,18 +157,24 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     }
   }
 
+  def toLiteral(str: String) : String = {
+    if (str!=null)
+      str.replaceAll("^[\"']+|[\"']+$", "")
+    else ""
+  }
+
   def constructFilterList(sqlNode: SqlNode): List[Filter] = {
     require(sqlNode.isInstanceOf[SqlBasicCall], "type not supported in construct current filter")
     val sqlBasicCall: SqlBasicCall = sqlNode.asInstanceOf[SqlBasicCall]
     val operands = sqlBasicCall.getOperands
     sqlBasicCall.getOperator.kind match {
       case SqlKind.EQUALS =>
-        List.empty ++ List(EqualityFilter(operands(0).toString, operands(1).toString))
+        List.empty ++ List(EqualityFilter(toLiteral(operands(0).toString), toLiteral(operands(1).toString)))
       case SqlKind.GREATER_THAN =>
-        List.empty ++ List(GreaterThanFilter(operands(0).toString, operands(1).toString))
+        List.empty ++ List(GreaterThanFilter(toLiteral(operands(0).toString), toLiteral(operands(1).toString)))
       case SqlKind.IN =>
-        val inList: List[String] = operands(1).asInstanceOf[SqlNodeList].toArray.toList.map(sqlNode => sqlNode.toString)
-        List.empty ++ List(InFilter(operands(0).toString, inList))
+        val inList: List[String] = operands(1).asInstanceOf[SqlNodeList].toArray.toList.map(sqlNode => toLiteral(sqlNode.toString))
+        List.empty ++ List(InFilter(toLiteral(operands(0).toString), inList))
     }
   }
 }
