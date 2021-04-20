@@ -15,7 +15,7 @@ services:
   - docker
 
 jdk:
-- oraclejdk8
+- openjdk8
 
 install: ./travis/install-dependencies.sh
 script: ./travis/build.sh
