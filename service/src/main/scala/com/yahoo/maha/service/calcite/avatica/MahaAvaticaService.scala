@@ -87,7 +87,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
     override def apply(openConnectionRequest: Service.OpenConnectionRequest): Service.OpenConnectionResponse = {
         val infoMap = openConnectionRequest.info
         val userID = infoMap.getOrDefault("userId", CalciteAvaticaUser)
-        val requestId = infoMap.getOrDefault("requestId", MahaAvaticaServiceHelper.getRequestID(CalciteAvaticaUser))
+        val requestId = infoMap.getOrDefault("requestId", MahaAvaticaServiceHelper.getRequestID(CalciteAvaticaUser, openConnectionRequest.connectionId))
         val schemaStr = infoMap.getOrDefault("schema", defaultSchema.entryName)
         val schema = schemaMapper(schemaStr)
         val connectionUserInfo = ConnectionUserInfo(userID, requestId)
@@ -162,8 +162,8 @@ case class ConnectionUserInfo(userId: String, requestId: String) {
 object MahaAvaticaServiceHelper extends Logging {
 
     val CalciteAvaticaUser = "calcite-avatica"
-    def getRequestID(userId:String):String= {
-        DigestUtils.md5(s"${userId}${System.currentTimeMillis()}${connectionID}").toString
+    def getRequestID(userId:String, connectionId:String):String= {
+        DigestUtils.md5(s"${userId}${System.currentTimeMillis()}${connectionId}").toString
     }
 
     val hostname: String = {
