@@ -34,9 +34,6 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     val parser: SqlParser = SqlParser.create(sql)
     try {
       val sqlNode: SqlNode = parser.parseQuery
-      //validate validate AST
-      //optimize convert AST to RequestModel and/or ReportingRequest
-      //execute X
       sqlNode match {
         case sqlSelect: SqlSelect =>
           val publicFact = getCube(sqlSelect.getFrom, registry)
@@ -48,9 +45,6 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
             case null => SelectQuery
             case _ => GroupByQuery
           }
-//          val filterExpression = getFilterList(sqlSelect.getWhere, publicFact.get)
-//          val nonDayFilterExpressions = filterExpression.filter(f=> !DAY.equalsIgnoreCase(f.field))
-//          val dayFilter = filterExpression.filter(f=> DAY.equalsIgnoreCase(f.field)).headOption.getOrElse(DEFAULT_DAY_FILTER)
           return new ReportingRequest(
             cube=publicFact.get.name,
             selectFields = selectFields,
@@ -62,7 +56,6 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
             forceFactDriven = false,
             includeRowCount = false,
             dayFilter = dayFilterOption.getOrElse(DEFAULT_DAY_FILTER),
-            //dayFilter = dayFilter,
             hourFilter = hourFilterOption,
             minuteFilter = minuteFilterOption,
             numDays = numDays,
@@ -134,8 +127,8 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
   def getFilterList(sqlNode: SqlNode, publicFact: PublicFact) : (IndexedSeq[Filter], Option[Filter], Option[Filter], Option[Filter], Int) = {
     sqlNode match {
       case sqlBasicCall: SqlBasicCall =>
-        val filterListOption = recursiveGetFilterList(sqlBasicCall, publicFact)
-        return validate(filterListOption.get)
+        val filterList = constructFilters(sqlBasicCall)
+        validate(filterList)
       case others: AnyRef =>
         logger.error(s"sqlNode type ${sqlNode.getKind} in getSelectList is not yet supported")
         (IndexedSeq.empty, None, None, None, 1)
@@ -145,35 +138,16 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     }
   }
 
-  def recursiveGetFilterList(sqlNode: SqlNode, publicFact: PublicFact): Option[ArrayBuffer[Filter]] = {
-    sqlNode match {
-      case sqlBasicCall: SqlBasicCall =>
-        sqlBasicCall.getOperator.kind match {
-          case SqlKind.AND =>
-            val filterOption: Option[ArrayBuffer[Filter]] = recursiveGetFilterList(sqlBasicCall.operands(0), publicFact)
-            if(filterOption.isDefined) {
-              Some(filterOption.get ++ constructFilterList(sqlBasicCall.operands(1)))
-            } else {
-              Some(constructFilterList(sqlBasicCall.operands(1)))
-            }
-          case SqlKind.BETWEEN =>
-            None
-          case SqlKind.OR =>
-            None
-
-          case _ => //only one filter left
-            Some(constructFilterList(sqlBasicCall))
-        }
-      case other: AnyRef =>
-        None
-    }
-  }
-
-  def constructFilterList(sqlNode: SqlNode): ArrayBuffer[Filter] = {
+  def constructFilters(sqlNode: SqlNode): ArrayBuffer[Filter] = {
     require(sqlNode.isInstanceOf[SqlBasicCall], s"type ${sqlNode.getKind} not supported in construct current filter")
     val sqlBasicCall: SqlBasicCall = sqlNode.asInstanceOf[SqlBasicCall]
     val operands = sqlBasicCall.getOperands
     sqlBasicCall.getOperator.kind match {
+      case SqlKind.AND =>
+        constructFilters(operands(0)) ++ constructFilters(operands(1))
+      case SqlKind.OR =>
+        val mergeBuffer: ArrayBuffer[Filter] = constructFilters(operands(0)) ++ constructFilters(operands(1))
+        ArrayBuffer.empty += OrFilter(mergeBuffer.toList).asInstanceOf[Filter]
       case SqlKind.EQUALS =>
         ArrayBuffer.empty += EqualityFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
       case SqlKind.GREATER_THAN =>
@@ -181,10 +155,11 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
       case SqlKind.IN =>
         val inList: List[String] = operands(1).asInstanceOf[SqlNodeList].toArray.toList.map(sqlNode => toLiteral(sqlNode))
         ArrayBuffer.empty += InFilter(toLiteral(operands(0)), inList).asInstanceOf[Filter]
+      case SqlKind.BETWEEN =>
+        ArrayBuffer.empty += BetweenFilter(toLiteral(operands(0)), toLiteral(operands(1)), toLiteral(operands(2))).asInstanceOf[Filter]
     }
   }
 
-//  toLiteral
   def toLiteral(sqlNode: SqlNode): String = {
     if(sqlNode != null)
     sqlNode.toString.replaceAll("^[\"']+|[\"']+$", "")
