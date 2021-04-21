@@ -17,6 +17,7 @@ import grizzled.slf4j.Logging
 import org.joda.time.DateTimeZone
 import org.slf4j.LoggerFactory
 
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedSet, mutable}
 import scala.util.{Failure, Success, Try}
 
@@ -36,6 +37,7 @@ case class DimensionCandidate(dim: PublicDimension
                               , hasLowCardinalityFilter: Boolean
                               , hasPKRequested : Boolean
                               , hasNonPushDownFilters : Boolean
+                              , subDimLevel : Int = 0
                              ) {
 
   def debugString : String = {
@@ -60,7 +62,7 @@ case class DimensionRelations(relations: Map[(String, String), Boolean]) {
 }
 
 object DimensionCandidate {
-  implicit val ordering: Ordering[DimensionCandidate] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.name}")
+  implicit val ordering: Ordering[DimensionCandidate] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.subDimLevel}-${dc.dim.name}")
 }
 
 sealed trait ColumnInfo {
@@ -782,11 +784,12 @@ object RequestModel extends Logging {
 
           //if we are dim driven, add primary key of highest level dim
           if(dimDrivenRequestedDimensionPrimaryKeyAliases.nonEmpty && !isFactDriven) {
-            val dimDrivenHighestLevelDim =
+            val dimDrivenPKDimensionIndexedSeq =
               dimDrivenRequestedDimensionPrimaryKeyAliases
                 .map(pk => registry.getPkDimensionUsingFactTable(pk, Some(publicFact.dimRevision), publicFact.dimToRevisionMap).get) //we can do .get since we already checked above
-                .to[SortedSet]
-                .lastKey
+                .toIndexedSeq
+            val dimDrivenSameLevelDimSortedSeq = sortPubDim(dimDrivenPKDimensionIndexedSeq)
+            val dimDrivenHighestLevelDim = dimDrivenSameLevelDimSortedSeq.head
 
             val addDim = {
               if(allRequestedDimensionPrimaryKeyAliases.nonEmpty) {
@@ -823,10 +826,14 @@ object RequestModel extends Logging {
           val dimensionCandidatesPreValidation: SortedSet[DimensionCandidate] = {
             val intermediateCandidates = new mutable.TreeSet[DimensionCandidate]()
             val upperJoinCandidates = new mutable.TreeSet[PublicDimension]()
-            finalAllRequestedDimensionPrimaryKeyAliases
+
+            val AllRequestedDimensionPrimaryKeyAliasesSeq = finalAllRequestedDimensionPrimaryKeyAliases
               .flatMap(f => registry.getPkDimensionUsingFactTable(f, Some(publicFact.dimRevision), publicFact.dimToRevisionMap))
               .toIndexedSeq
-              .sortWith((a, b) => b.dimLevel < a.dimLevel)
+              .sorted
+            val sortedAllRequestedDimensionPKAliases = sortPubDim(AllRequestedDimensionPrimaryKeyAliasesSeq)
+
+            sortedAllRequestedDimensionPKAliases
               .foreach {
                 publicDimOption =>
                   //used to identify the highest level dimension
@@ -924,7 +931,7 @@ object RequestModel extends Logging {
                               foreignkeyAlias += alias
                               val pd = finalAllRequestedDimsMap(alias)
                               //only keep lower join candidates
-                              if(pd.dimLevel != publicDim.dimLevel && pd.dimLevel <= prevLevel) {
+                              if(pd.dimLevel <= publicDim.dimLevel) {
                                 lowerJoinCandidates += finalAllRequestedDimsMap(alias)
                               }
                             }
@@ -938,7 +945,7 @@ object RequestModel extends Logging {
 
                     // always include primary key in dimension table for join
                     val requestedDimAliases = foreignkeyAlias ++ fields + publicDim.primaryKeyByAlias
-                    val filteredUpper = upperJoinCandidates.filter(pd => pd.dimLevel != publicDim.dimLevel && pd.dimLevel >= aboveLevel)
+                    val filteredUpper = upperJoinCandidates.filter(pd => pd.dimLevel >= publicDim.dimLevel)
 
                     // attempting to find the better upper candidate if exist
                     // ads->adgroup->campaign hierarchy, better upper candidate for campaign is ad
@@ -1199,6 +1206,58 @@ object RequestModel extends Logging {
             dimensionRelations = dimensionRelations
            )
       }
+    }
+  }
+
+  def sortOnFK(publicDimension: PublicDimension, fkDependency: mutable.LinkedHashMap[PublicDimension, List[PublicDimension]], sortedIndexedSeq: ArrayBuffer[PublicDimension], pendingPubDim: mutable.Set[PublicDimension]): Unit = {
+    val dependent = fkDependency(publicDimension)
+    if (dependent.nonEmpty && !sortedIndexedSeq.contains(dependent.head) && !pendingPubDim.contains(dependent.head)) {
+      sortOnFK(dependent.head, fkDependency, sortedIndexedSeq, pendingPubDim + publicDimension)
+    }
+    sortedIndexedSeq += publicDimension
+  }
+
+  def sortOnSameDimLevel(fkDependency: mutable.LinkedHashMap[PublicDimension, List[PublicDimension]], sortedIndexedSeq: ArrayBuffer[PublicDimension]): Unit = {
+    fkDependency.keySet.foreach{ pd =>
+      if (!sortedIndexedSeq.contains(pd)) {
+        sortOnFK(pd, fkDependency, sortedIndexedSeq, mutable.Set[PublicDimension]())
+      }
+    }
+  }
+
+  def sortPubDim(indexedSeqVar: IndexedSeq[PublicDimension]): IndexedSeq[PublicDimension] = {
+    if (indexedSeqVar.size > 1) {
+      val indexedSeq = indexedSeqVar.sortWith((a, b) => a.dimLevel > b.dimLevel)
+      val sortedIndexedSeq = new ArrayBuffer[PublicDimension]
+      var prevDimLevel = indexedSeq.head.dimLevel
+      var startIdx = 0
+      var endIdx = 0
+
+      indexedSeq.foreach { currPubDim =>            // find the range of each dim level; sort same dim level on FK + alphabetical order
+        if (currPubDim.dimLevel != prevDimLevel || endIdx == indexedSeq.size - 1) {
+          val end = if (currPubDim.dimLevel == prevDimLevel && endIdx == indexedSeq.size - 1) endIdx + 1 else endIdx
+          val sameDimLevelPubDim = indexedSeq.slice(startIdx, end)
+          val fkDependency = new mutable.LinkedHashMap[PublicDimension, List[PublicDimension]]()
+
+          sameDimLevelPubDim.foreach( key =>
+            fkDependency += (key -> sameDimLevelPubDim.filter(pd => pd.foreignKeyByAlias.contains(key.primaryKeyByAlias)).toList)
+          )
+
+          sortOnSameDimLevel(fkDependency, sortedIndexedSeq)
+          startIdx = end
+          prevDimLevel = currPubDim.dimLevel
+        }
+        endIdx += 1
+      }
+
+      if (sortedIndexedSeq.size == indexedSeq.size - 1) {
+        sortedIndexedSeq += indexedSeq.last
+      }
+
+      sortedIndexedSeq.zipWithIndex.foreach( tuple => tuple._1.subDimLevel = sortedIndexedSeq.size - tuple._2)
+      sortedIndexedSeq
+    } else {
+      indexedSeqVar
     }
   }
 
