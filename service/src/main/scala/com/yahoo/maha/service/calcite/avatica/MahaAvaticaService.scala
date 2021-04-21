@@ -5,7 +5,6 @@ import java.util
 import org.apache.calcite.avatica.ConnectionPropertiesImpl
 import org.apache.calcite.avatica.Meta.{ConnectionProperties, StatementHandle}
 import org.apache.calcite.avatica.remote.Service._
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.apache.calcite.avatica.remote.Service
@@ -31,11 +30,11 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                                 schemaMapper: (String) => Schema,
                                 defaultRegistry: String,
                                 defaultSchema: Schema,
-                                baseReportingRequest:BaseRequest
+                                baseReportingRequest:BaseRequest,
+                                connectionUserInfoProvider: ConnectionUserInfoProvider
                         ) extends MahaAvaticaService with Logging {
     import MahaAvaticaServiceHelper._
 
-    val connectionIDToUserInfoMap = new ConcurrentHashMap[String, ConnectionUserInfo]()
     val rpcMetadataResponse = new RpcMetadataResponse(MahaAvaticaServiceHelper.hostname)
     val statementIdCounter = new AtomicInteger(1)
 
@@ -92,13 +91,13 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val schema = schemaMapper(schemaStr)
         val connectionUserInfo = ConnectionUserInfo(userID, requestId)
         connectionUserInfo.setSchema(schema)
-        connectionIDToUserInfoMap.put(openConnectionRequest.connectionId, connectionUserInfo)
+        connectionUserInfoProvider.store(openConnectionRequest.connectionId, connectionUserInfo)
         info(s"Open Connection for ${connectionUserInfo} with Schema: ${schema}")
         new OpenConnectionResponse(rpcMetadataResponse)
     }
 
     override def apply(closeConnectionRequest: Service.CloseConnectionRequest): Service.CloseConnectionResponse =  {
-        connectionIDToUserInfoMap.remove(closeConnectionRequest.connectionId)
+       connectionUserInfoProvider.invalidate(closeConnectionRequest.connectionId)
         info(s"Closing Connection, id: ${closeConnectionRequest.connectionId} ")
         new CloseConnectionResponse(rpcMetadataResponse)
     }
@@ -128,8 +127,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val connectionID = avaticaContext.connectionID
         val sql = avaticaContext.sql
         val reportingRequest = calciteSqlParser.parse(sql, defaultSchema, defaultRegistry)
-        require(connectionIDToUserInfoMap.containsKey(connectionID), "Failed to find the registered connection id in the map")
-        val userInfo = connectionIDToUserInfoMap.get(connectionID)
+        val userInfo = connectionUserInfoProvider.getUserInfo(connectionID)
         val requestJson = baseReportingRequest.serialize(reportingRequest)
         info(s"Got the maha SQL : ${sql}, userInfo : ${userInfo}")
         info(s"Translated sql ${sql} to  ${new String(requestJson)}")

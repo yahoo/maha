@@ -4,7 +4,7 @@ import com.yahoo.maha.core.query.QueryRowList
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.service.{MahaRequestContext, MahaService}
 import com.yahoo.maha.service.calcite.DefaultMahaCalciteSqlParser
-import com.yahoo.maha.service.calcite.avatica.{DefaultAvaticaRowListTransformer, DefaultMahaAvaticaService, MahaAvaticaService}
+import com.yahoo.maha.service.calcite.avatica.{DefaultAvaticaRowListTransformer, DefaultConnectionUserInfoProvider, DefaultMahaAvaticaService, MahaAvaticaService}
 import com.yahoo.maha.service.error.MahaServiceExecutionException
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 
@@ -18,7 +18,8 @@ object ExampleAvaticaService {
       (schma)=> ExampleSchema.namesToValuesMap(schma),
       defaultRegistry = "student",
       defaultSchema = ExampleSchema.StudentSchema,
-      ReportingRequest
+      ReportingRequest,
+      new DefaultConnectionUserInfoProvider()
     )
   }
 
