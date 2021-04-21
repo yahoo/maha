@@ -112,10 +112,10 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                   logger.error(errMsg)
                 }
               case sqlCharStringLiteral: SqlCharStringLiteral =>
-                val publicCol: PublicColumn = publicFact.columnsByAliasMap(trimSqlNode(sqlCharStringLiteral))
+                val publicCol: PublicColumn = publicFact.columnsByAliasMap(toLiteral(sqlCharStringLiteral))
                 arrayBuffer += Field(publicCol.name, Option(publicCol.alias), None)
               case sqlBasicCall: SqlBasicCall =>
-                val publicCol: PublicColumn = publicFact.columnsByAliasMap(trimSqlNode(sqlBasicCall.operands(0)))
+                val publicCol: PublicColumn = publicFact.columnsByAliasMap(toLiteral(sqlBasicCall.operands(0)))
                 arrayBuffer += Field(publicCol.name, Option(publicCol.alias), None)
               case other: AnyRef =>
                 val errMsg = s"sqlNode type${other.getClass.toString} in getSelectList is not yet supported"
@@ -169,29 +169,26 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     }
   }
 
-  def toLiteral(str: String) : String = {
-    if (str!=null)
-      str.replaceAll("^[\"']+|[\"']+$", "")
-    else ""
-  }
-
   def constructFilterList(sqlNode: SqlNode): ArrayBuffer[Filter] = {
     require(sqlNode.isInstanceOf[SqlBasicCall], s"type ${sqlNode.getKind} not supported in construct current filter")
     val sqlBasicCall: SqlBasicCall = sqlNode.asInstanceOf[SqlBasicCall]
     val operands = sqlBasicCall.getOperands
     sqlBasicCall.getOperator.kind match {
       case SqlKind.EQUALS =>
-        ArrayBuffer.empty += EqualityFilter(trimSqlNode(operands(0)), trimSqlNode(operands(1))).asInstanceOf[Filter]
+        ArrayBuffer.empty += EqualityFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
       case SqlKind.GREATER_THAN =>
-        ArrayBuffer.empty += GreaterThanFilter(trimSqlNode(operands(0)), trimSqlNode(operands(1))).asInstanceOf[Filter]
+        ArrayBuffer.empty += GreaterThanFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
       case SqlKind.IN =>
-        val inList: List[String] = operands(1).asInstanceOf[SqlNodeList].toArray.toList.map(sqlNode => trimSqlNode(sqlNode))
-        ArrayBuffer.empty += InFilter(trimSqlNode(operands(0)), inList).asInstanceOf[Filter]
+        val inList: List[String] = operands(1).asInstanceOf[SqlNodeList].toArray.toList.map(sqlNode => toLiteral(sqlNode))
+        ArrayBuffer.empty += InFilter(toLiteral(operands(0)), inList).asInstanceOf[Filter]
     }
   }
 
-  def trimSqlNode(sqlNode: SqlNode): String = {
-    sqlNode.toString.stripPrefix("'").stripSuffix("'")
+//  toLiteral
+  def toLiteral(sqlNode: SqlNode): String = {
+    if(sqlNode != null)
+    sqlNode.toString.replaceAll("^[\"']+|[\"']+$", "")
+    else ""
   }
 
   def validate(arrayBuffer: ArrayBuffer[Filter]): (IndexedSeq[Filter], Option[Filter], Option[Filter], Option[Filter], Int)= {
