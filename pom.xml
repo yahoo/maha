@@ -652,6 +652,8 @@
                         </execution>
                     </executions>
                     <configuration>
+                        <source>${maven.compiler.target}</source>
+                        <target>${maven.compiler.target}</target>
                         <jvmArgs>
                             <jvmArg>-Xms64m</jvmArg>
                             <jvmArg>-Xmx2048m</jvmArg>
@@ -775,6 +777,8 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <source>${maven.compiler.target}</source>
+                    <target>${maven.compiler.target}</target>
                     <args>
                         <arg>-Xlint</arg>
                         <arg>-deprecation</arg>
