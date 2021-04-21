@@ -7,4 +7,4 @@ set -ev
 #sudo    apt -y autoremove
 #sudo apt-get clean
 #sudo apt-get update --option Acquire::Retries=100 --option Acquire::http::Timeout="60"
-sudo apt-get install rpm
+#sudo apt-get install rpm
