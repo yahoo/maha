@@ -1,42 +1,45 @@
-package com.yahoo.maha.core.calcite
+package com.yahoo.maha.service.calcite
 
-import com.yahoo.maha.core.error.{Error, MahaCalciteSqlParserError}
-import com.yahoo.maha.core.{DailyGrain, EqualityFilter, Filter, GreaterThanFilter, HourlyGrain, InFilter, MinuteGrain, PublicColumn, Schema}
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.fact.PublicFact
 import com.yahoo.maha.core.registry.Registry
-import com.yahoo.maha.core.request.ReportingRequest.{DEFAULT_DAY_FILTER, DEFAULT_PAGINATION_CONFIG, NOOP_DAY_FILTER}
+import com.yahoo.maha.core.request.ReportingRequest.DEFAULT_DAY_FILTER
 import com.yahoo.maha.core.request.{Field, GroupByQuery, PaginationConfig, QueryType, ReportingRequest, SelectQuery, SyncRequest}
-import com.yahoo.maha.parrequest2.Nothing
+import com.yahoo.maha.service.MahaServiceConfig
+import com.yahoo.maha.service.error.MahaCalciteSqlParserError
 import grizzled.slf4j.Logging
-import org.apache.calcite.sql.fun.SqlStdOperatorTable
-import org.apache.calcite.sql.{SqlBasicCall, SqlBinaryOperator, SqlCharStringLiteral, SqlIdentifier, SqlKind, SqlNode, SqlNodeList, SqlSelect}
+import org.apache.calcite.sql._
 import org.apache.calcite.sql.parser.{SqlParseException, SqlParser}
 import org.apache.commons.lang.StringUtils
-import org.json4s.scalaz.JsonScalaz
-import scalaz.Validation
+import org.joda.time.{DateTime, DateTimeZone}
 
-import scala.+:
 import scala.collection.mutable.ArrayBuffer
 
 trait MahaCalciteSqlParser {
-  def parse(sql:String, schema: Schema) : ReportingRequest
+  def parse(sql:String, schema: Schema, registryName:String) : ReportingRequest
 }
 
-case class DefaultMahaCalciteSqlParser(registry:Registry) extends MahaCalciteSqlParser with Logging {
+case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) extends MahaCalciteSqlParser with Logging {
 
-  override def parse(sql: String, schema: Schema): ReportingRequest = {
+  lazy protected[this] val fromDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
+  lazy protected[this] val toDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
+
+  val DEFAULT_DAY_FILTER : Filter = BetweenFilter("Day", fromDate, toDate)
+  val DAY = "Day"
+
+  override def parse(sql: String, schema: Schema, registryName:String): ReportingRequest = {
     require(!StringUtils.isEmpty(sql), MahaCalciteSqlParserError("Sql can not be empty", sql))
-    SqlStdOperatorTable.instance()
+    require(mahaServiceConfig.registry.contains(registryName), s"failed to find the registry ${registryName} in the mahaService Config")
+    val registry:Registry  = mahaServiceConfig.registry.get(registryName).get.registry
     val parser: SqlParser = SqlParser.create(sql)
     try {
-      var sqlNode: SqlNode = null
-      sqlNode = parser.parseQuery
+      val sqlNode: SqlNode = parser.parseQuery
       //validate validate AST
       //optimize convert AST to RequestModel and/or ReportingRequest
       //execute X
       sqlNode match {
         case sqlSelect: SqlSelect =>
-          val publicFact = getCube(sqlSelect.getFrom)
+          val publicFact = getCube(sqlSelect.getFrom, registry)
           require(publicFact.isDefined,MahaCalciteSqlParserError(s"Failed to find the cube ${sqlSelect.getFrom}", sql))
           val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get)
           val (filterExpression, dayFilterOption, hourFilterOption, minuteFilterOption, numDays) = getFilterList(sqlSelect.getWhere, publicFact.get)
@@ -45,7 +48,9 @@ case class DefaultMahaCalciteSqlParser(registry:Registry) extends MahaCalciteSql
             case null => SelectQuery
             case _ => GroupByQuery
           }
-
+//          val filterExpression = getFilterList(sqlSelect.getWhere, publicFact.get)
+//          val nonDayFilterExpressions = filterExpression.filter(f=> !DAY.equalsIgnoreCase(f.field))
+//          val dayFilter = filterExpression.filter(f=> DAY.equalsIgnoreCase(f.field)).headOption.getOrElse(DEFAULT_DAY_FILTER)
           return new ReportingRequest(
             cube=publicFact.get.name,
             selectFields = selectFields,
@@ -53,10 +58,11 @@ case class DefaultMahaCalciteSqlParser(registry:Registry) extends MahaCalciteSql
             requestType = SyncRequest,
             schema = schema,
             reportDisplayName = None,
-            forceDimensionDriven = true,
+            forceDimensionDriven = false,
             forceFactDriven = false,
             includeRowCount = false,
             dayFilter = dayFilterOption.getOrElse(DEFAULT_DAY_FILTER),
+            //dayFilter = dayFilter,
             hourFilter = hourFilterOption,
             minuteFilter = minuteFilterOption,
             numDays = numDays,
@@ -65,9 +71,6 @@ case class DefaultMahaCalciteSqlParser(registry:Registry) extends MahaCalciteSql
             queryType = queryType,
             pagination = PaginationConfig(Map.empty)
           )
-
-
-
         case e=>
       }
     }
@@ -80,7 +83,7 @@ case class DefaultMahaCalciteSqlParser(registry:Registry) extends MahaCalciteSql
     null
   }
 
-  def getCube(sqlNode: SqlNode) : Option[PublicFact] = {
+  def getCube(sqlNode: SqlNode, registry:Registry) : Option[PublicFact] = {
     sqlNode match {
       case sqlIdentifier: SqlIdentifier =>
         registry.getFact(sqlIdentifier.getSimple.toLowerCase)
@@ -101,8 +104,8 @@ case class DefaultMahaCalciteSqlParser(registry:Registry) extends MahaCalciteSql
               case sqlIdentifier: SqlIdentifier =>
                 if (sqlIdentifier.isStar) {
                   val indexedSeq: IndexedSeq[Field]=
-                    publicFact.factCols.map(publicFactCol => Field(publicFactCol.name, Option(publicFactCol.alias), None)).toIndexedSeq ++
-                      publicFact.dimCols.map(publicDimCol => Field(publicDimCol.name, Option(publicDimCol.alias), None)).toIndexedSeq
+                    publicFact.factCols.map(publicFactCol => Field(publicFactCol.alias, None, None)).toIndexedSeq ++
+                      publicFact.dimCols.map(publicDimCol => Field(publicDimCol.alias, None, None)).toIndexedSeq
                   return indexedSeq
                 } else {
                   val errMsg = s"SqlIdentifier type ${sqlIdentifier.getKind.toString} in getSelectList is not yet supported"
@@ -153,6 +156,8 @@ case class DefaultMahaCalciteSqlParser(registry:Registry) extends MahaCalciteSql
             } else {
               Some(constructFilterList(sqlBasicCall.operands(1)))
             }
+          case SqlKind.BETWEEN =>
+            None
           case SqlKind.OR =>
             None
 
@@ -162,6 +167,12 @@ case class DefaultMahaCalciteSqlParser(registry:Registry) extends MahaCalciteSql
       case other: AnyRef =>
         None
     }
+  }
+
+  def toLiteral(str: String) : String = {
+    if (str!=null)
+      str.replaceAll("^[\"']+|[\"']+$", "")
+    else ""
   }
 
   def constructFilterList(sqlNode: SqlNode): ArrayBuffer[Filter] = {

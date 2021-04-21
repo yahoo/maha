@@ -13,6 +13,7 @@
     <bean id="requestValidator" class="com.yahoo.maha.api.jersey.NoopRequestValidator"/>
     <bean id="debugRenderer" class="com.yahoo.maha.service.output.NoopDebugRenderer"/>
     <bean id="mahaRequestContextBuilder" class="com.yahoo.maha.api.jersey.DefaultMahaRequestContextBuilder"/>
+    <bean id="mahaAvaticaService" class="com.yahoo.maha.service.calcite.avatica.NoopMahaAvaticaService"/>
     <import resource="classpath:maha-jersey-context.xml" />
 
 </beans>

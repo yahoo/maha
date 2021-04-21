@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>6.38-SNAPSHOT</version>
+        <version>6.39-SNAPSHOT</version>
     </parent>
 
     <name>maha core</name>
@@ -192,13 +192,6 @@
             <groupId>com.jsuereth</groupId>
             <artifactId>scala-arm_${scala.major.version}</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.apache.calcite</groupId>
-            <artifactId>calcite-core</artifactId>
-            <version>1.26.0</version>
-        </dependency>
-
         <dependency>
             <groupId>com.opentable.components</groupId>
             <artifactId>otj-pg-embedded</artifactId>
