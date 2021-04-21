@@ -1226,7 +1226,7 @@ object RequestModel extends Logging {
     }
   }
 
-  // assigns secondaryDimLevel to PublicDimensions
+  // sortOnSameDimLevel assigns secondaryDimLevel to PublicDimensions
   // if a and b have same dimLevels and a has a foreign key to b, then a.secondaryDimLevel > b.secondaryDimLevel
 
   def sortOnSameDimLevel(indexedSeqVar: IndexedSeq[PublicDimension]):mutable.LinkedHashMap[PublicDimension, Int] = {
