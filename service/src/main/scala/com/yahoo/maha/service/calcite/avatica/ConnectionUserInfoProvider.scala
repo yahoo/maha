@@ -3,7 +3,8 @@ package com.yahoo.maha.service.calcite.avatica
 import java.util.concurrent.ConcurrentHashMap
 
 /*
- When JDBC establishes the connection, provider stores userInfo in metadata and validates queries based on this connection id
+ When JDBC establishes the connection, provider stores userInfo in metadata and validates queries based on this connection id.
+ In the case of multi host deployments, this needs be implementation of common store across all host
  */
 trait ConnectionUserInfoProvider {
   def store(connectionId:String, userInfo: ConnectionUserInfo)
