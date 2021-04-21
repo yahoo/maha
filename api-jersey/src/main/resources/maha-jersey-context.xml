@@ -16,6 +16,7 @@
         <constructor-arg name="mahaRequestContextBuilder" ref="mahaRequestContextBuilder"/>
         <constructor-arg name="debugRenderer" ref="debugRenderer"/>
         <constructor-arg name="debugUserListCSV" value="unknown"/>
+        <constructor-arg name="mahaAvaticaService" ref="mahaAvaticaService"/>
     </bean>
 
 </beans>

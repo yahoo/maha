@@ -66,9 +66,9 @@ object ExampleMahaService extends Logging {
     erRegistry.factMap.values.foreach {
       publicFact =>
         publicFact.factList.foreach {
-          fact=>
+          fact =>
             val ddl = ddlGenerator.toDDL(fact)
-            assert(jdbcConnection.get.executeUpdate(ddl).isSuccess)
+            assert (jdbcConnection.get.executeUpdate(ddl).isSuccess)
         }
     }
 

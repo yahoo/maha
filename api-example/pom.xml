@@ -11,7 +11,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>6.38-SNAPSHOT</version>
+        <version>6.39-SNAPSHOT</version>
     </parent>
 
     <name>maha api-example</name>
@@ -28,6 +28,12 @@
             <groupId>com.yahoo.maha</groupId>
             <artifactId>maha-api-jersey</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.druid</groupId>
+                    <artifactId>druid-server</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.zaxxer</groupId>
@@ -111,6 +117,12 @@
         <dependency>
             <groupId>org.clapper</groupId>
             <artifactId>grizzled-slf4j_${scala.major.version}</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
         </dependency>
 
         <dependency>
@@ -281,7 +293,7 @@
             <plugin>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-maven-plugin</artifactId>
-                <version>9.4.7.v20170914</version>
+                <version>${jetty.version}</version>
                 <configuration>
                     <scanIntervalSeconds>1</scanIntervalSeconds>
                     <webApp>

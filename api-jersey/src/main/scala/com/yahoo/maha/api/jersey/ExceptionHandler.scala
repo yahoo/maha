@@ -27,7 +27,10 @@ class GenericExceptionMapper extends ExceptionMapper[Throwable] with Logging {
             case _ =>
               Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Error(message)).`type`(MediaType.APPLICATION_JSON).build()
           }
-        case _ => Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Error(s"$e")).`type`(MediaType.APPLICATION_JSON).build()
+        case _ => {
+          e.printStackTrace()
+          Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Error(s"$e")).`type`(MediaType.APPLICATION_JSON).build()
+        }
       }
     }
 

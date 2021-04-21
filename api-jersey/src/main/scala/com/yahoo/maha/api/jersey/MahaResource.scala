@@ -2,8 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.api.jersey
 
-import java.util.UUID
-
+import java.util.{UUID}
+import com.yahoo.maha.service.calcite.avatica.MahaAvaticaService
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.container.{AsyncResponse, ContainerRequestContext, Suspended}
 import javax.ws.rs.core.{Context, MediaType}
@@ -16,11 +16,12 @@ import com.yahoo.maha.service._
 import com.yahoo.maha.service.output.{DebugRenderer, NoopDebugRenderer}
 import com.yahoo.maha.service.utils.MahaConstants
 import grizzled.slf4j.Logging
+import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem
+import org.apache.calcite.avatica.remote.{JsonHandler}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.MDC
 import org.springframework.stereotype.Component
-
 import scala.util.Try
 
 @Path("/registry")
@@ -31,6 +32,7 @@ class MahaResource(mahaService: MahaService
                    , mahaRequestContextBuilder: MahaRequestContextBuilder
                    , debugRenderer: DebugRenderer = new NoopDebugRenderer
                    , debugUserListCSV: String = ""
+                   , mahaAvaticaService: MahaAvaticaService
                   ) extends Logging {
 
   private[this] val debugUsers: Set[String] = debugUserListCSV.split(",").toSet
@@ -112,6 +114,25 @@ class MahaResource(mahaService: MahaService
     } else {
       throw NotFoundException(Error(s"registry $registryName and cube $cube with revision $revision not found"))
     }
+  }
+
+  @POST
+  @Path("/{registryName}/schemas/{schema}/sql-avatica")
+  //@Produces(Array(MediaType.APPLICATION_JSON))
+  //@Consumes(Array(MediaType.APPLICATION_JSON))
+  def avatica(@PathParam("registryName") registryName: String,
+            @PathParam("schema") schema: String,
+            @QueryParam("debug") @DefaultValue("false") requestDebug: Boolean,
+            @Context httpServletRequest: HttpServletRequest,
+            @Context containerRequestContext: ContainerRequestContext,
+            @Suspended response: AsyncResponse) : Unit = {
+    val avaticaJsonHandler = new JsonHandler(mahaAvaticaService, NoopMetricsSystem.getInstance())
+    val rawJson = IOUtils.toByteArray(httpServletRequest.getInputStream)
+    val json = new String(rawJson)
+    logger.info(json)
+    val handlerResponse = avaticaJsonHandler.apply(json)
+    logger.info(handlerResponse.getResponse)
+    response.resume(handlerResponse.getResponse)
   }
 
   @POST
