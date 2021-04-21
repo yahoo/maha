@@ -4,7 +4,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.fact.PublicFact
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.ReportingRequest.DEFAULT_DAY_FILTER
-import com.yahoo.maha.core.request.{Field, PaginationConfig, ReportingRequest, SelectQuery, SyncRequest}
+import com.yahoo.maha.core.request.{Field, GroupByQuery, PaginationConfig, QueryType, ReportingRequest, SelectQuery, SyncRequest}
 import com.yahoo.maha.service.MahaServiceConfig
 import com.yahoo.maha.service.error.MahaCalciteSqlParserError
 import grizzled.slf4j.Logging
@@ -12,6 +12,8 @@ import org.apache.calcite.sql._
 import org.apache.calcite.sql.parser.{SqlParseException, SqlParser}
 import org.apache.commons.lang.StringUtils
 import org.joda.time.{DateTime, DateTimeZone}
+
+import scala.collection.mutable.ArrayBuffer
 
 trait MahaCalciteSqlParser {
   def parse(sql:String, schema: Schema, registryName:String) : ReportingRequest
@@ -29,38 +31,37 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     require(!StringUtils.isEmpty(sql), MahaCalciteSqlParserError("Sql can not be empty", sql))
     require(mahaServiceConfig.registry.contains(registryName), s"failed to find the registry ${registryName} in the mahaService Config")
     val registry:Registry  = mahaServiceConfig.registry.get(registryName).get.registry
-
     val parser: SqlParser = SqlParser.create(sql)
     try {
       val sqlNode: SqlNode = parser.parseQuery
-      //validate validate AST
-      //optimize convert AST to RequestModel and/or ReportingRequest
-      //execute X
       sqlNode match {
         case sqlSelect: SqlSelect =>
           val publicFact = getCube(sqlSelect.getFrom, registry)
           require(publicFact.isDefined,MahaCalciteSqlParserError(s"Failed to find the cube ${sqlSelect.getFrom}", sql))
           val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get)
-          val filterExpression = getFilterList(sqlSelect.getWhere, publicFact.get)
-          val nonDayFilterExpressions = filterExpression.filter(f=> !DAY.equalsIgnoreCase(f.field))
-          val dayFilter = filterExpression.filter(f=> DAY.equalsIgnoreCase(f.field)).headOption.getOrElse(DEFAULT_DAY_FILTER)
+          val (filterExpression, dayFilterOption, hourFilterOption, minuteFilterOption, numDays) = getFilterList(sqlSelect.getWhere, publicFact.get)
+          //determine if groupby query or select query
+          val queryType: QueryType = sqlSelect.getGroup match {
+            case null => SelectQuery
+            case _ => GroupByQuery
+          }
           return new ReportingRequest(
             cube=publicFact.get.name,
             selectFields = selectFields,
-            filterExpressions = nonDayFilterExpressions,
+            filterExpressions = filterExpression,
             requestType = SyncRequest,
             schema = schema,
             reportDisplayName = None,
             forceDimensionDriven = false,
             forceFactDriven = false,
             includeRowCount = false,
-            dayFilter = dayFilter,
-            hourFilter = None,
-            minuteFilter = None,
-            numDays = 1,
+            dayFilter = dayFilterOption.getOrElse(DEFAULT_DAY_FILTER),
+            hourFilter = hourFilterOption,
+            minuteFilter = minuteFilterOption,
+            numDays = numDays,
             curatorJsonConfigMap = Map.empty,
             additionalParameters = Map.empty,
-            queryType = SelectQuery,
+            queryType = queryType,
             pagination = PaginationConfig(Map.empty)
           )
         case e=>
@@ -88,6 +89,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     sqlNode match {
       case sqlNodeList: SqlNodeList =>
         if (sqlNodeList.size() > 0) {
+          var arrayBuffer: ArrayBuffer[Field] = ArrayBuffer.empty
           val iter = sqlNodeList.iterator()
           while (iter.hasNext) {
             val subNode = iter.next();
@@ -98,83 +100,100 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                     publicFact.factCols.map(publicFactCol => Field(publicFactCol.alias, None, None)).toIndexedSeq ++
                       publicFact.dimCols.map(publicDimCol => Field(publicDimCol.alias, None, None)).toIndexedSeq
                   return indexedSeq
+                } else {
+                  val errMsg = s"SqlIdentifier type ${sqlIdentifier.getKind.toString} in getSelectList is not yet supported"
+                  logger.error(errMsg)
                 }
-              //TODO: other non-star cases
-              //else {
-              //
-              //}
+              case sqlCharStringLiteral: SqlCharStringLiteral =>
+                val publicCol: PublicColumn = publicFact.columnsByAliasMap(toLiteral(sqlCharStringLiteral))
+                arrayBuffer += Field(publicCol.name, Option(publicCol.alias), None)
+              case sqlBasicCall: SqlBasicCall =>
+                val publicCol: PublicColumn = publicFact.columnsByAliasMap(toLiteral(sqlBasicCall.operands(0)))
+                arrayBuffer += Field(publicCol.name, Option(publicCol.alias), None)
               case other: AnyRef =>
-                val errMsg = String.format("sqlNode type[%s] in getSelectList is not yet supported", other.getClass.toString)
+                val errMsg = s"sqlNode type${other.getClass.toString} in getSelectList is not yet supported"
                 logger.error(errMsg);
             }
           }
+          arrayBuffer.toIndexedSeq
         } else {
           IndexedSeq.empty
         }
       case e=>
+        IndexedSeq.empty
     }
-    IndexedSeq(null)
   }
 
-  def getFilterList(sqlNode: SqlNode, publicFact: PublicFact) : IndexedSeq[Filter] = {
-    if (sqlNode!=null) {
-      sqlNode match {
-        case sqlBasicCall: SqlBasicCall =>
-          val filterListOption = recursiveGetFilterList(sqlBasicCall, publicFact)
-          filterListOption.getOrElse(List.empty).toIndexedSeq
-        case other: AnyRef =>
-          val errMsg = String.format("sqlNode type[%s] in getSelectList is not yet supported", other.getClass.toString)
-          logger.error(errMsg);
-          IndexedSeq.empty
-      }
-    } else IndexedSeq.empty
-  }
-
-  def recursiveGetFilterList(sqlNode: SqlNode, publicFact: PublicFact): Option[List[Filter]] = {
+  def getFilterList(sqlNode: SqlNode, publicFact: PublicFact) : (IndexedSeq[Filter], Option[Filter], Option[Filter], Option[Filter], Int) = {
     sqlNode match {
       case sqlBasicCall: SqlBasicCall =>
-        sqlBasicCall.getOperator.kind match {
-          case SqlKind.EQUALS => //only one filter left
-            Some(constructFilterList(sqlBasicCall))
-          case SqlKind.AND =>
-            val filterOption: Option[List[Filter]] = recursiveGetFilterList(sqlBasicCall.operands(0), publicFact)
-            println(constructFilterList(sqlBasicCall.operands(1)))
-            if(filterOption.isDefined) {
-              Some(filterOption.get ++ constructFilterList(sqlBasicCall.operands(1)))
-            } else {
-              Some(constructFilterList(sqlBasicCall.operands(1)))
-            }
-          case SqlKind.BETWEEN =>
-            None
-          case SqlKind.OR =>
-            None
-
-          case _ =>
-            None
-        }
-      case other: AnyRef =>
-        None
+        val filterList = constructFilters(sqlBasicCall)
+        validate(filterList)
+      case others: AnyRef =>
+        logger.error(s"sqlNode type ${sqlNode.getKind} in getSelectList is not yet supported")
+        (IndexedSeq.empty, None, None, None, 1)
+      case null =>
+        logger.error("sqlNode is null in getFilterList")
+        (IndexedSeq.empty, None, None, None, 1)
     }
   }
 
-  def toLiteral(str: String) : String = {
-    if (str!=null)
-      str.replaceAll("^[\"']+|[\"']+$", "")
-    else ""
-  }
-
-  def constructFilterList(sqlNode: SqlNode): List[Filter] = {
-    require(sqlNode.isInstanceOf[SqlBasicCall], "type not supported in construct current filter")
+  def constructFilters(sqlNode: SqlNode): ArrayBuffer[Filter] = {
+    require(sqlNode.isInstanceOf[SqlBasicCall], s"type ${sqlNode.getKind} not supported in construct current filter")
     val sqlBasicCall: SqlBasicCall = sqlNode.asInstanceOf[SqlBasicCall]
     val operands = sqlBasicCall.getOperands
     sqlBasicCall.getOperator.kind match {
+      case SqlKind.AND =>
+        constructFilters(operands(0)) ++ constructFilters(operands(1))
+      case SqlKind.OR =>
+        val mergeBuffer: ArrayBuffer[Filter] = constructFilters(operands(0)) ++ constructFilters(operands(1))
+        ArrayBuffer.empty += OrFilter(mergeBuffer.toList).asInstanceOf[Filter]
       case SqlKind.EQUALS =>
-        List.empty ++ List(EqualityFilter(toLiteral(operands(0).toString), toLiteral(operands(1).toString)))
+        ArrayBuffer.empty += EqualityFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
       case SqlKind.GREATER_THAN =>
-        List.empty ++ List(GreaterThanFilter(toLiteral(operands(0).toString), toLiteral(operands(1).toString)))
+        ArrayBuffer.empty += GreaterThanFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
       case SqlKind.IN =>
-        val inList: List[String] = operands(1).asInstanceOf[SqlNodeList].toArray.toList.map(sqlNode => toLiteral(sqlNode.toString))
-        List.empty ++ List(InFilter(toLiteral(operands(0).toString), inList))
+        val inList: List[String] = operands(1).asInstanceOf[SqlNodeList].toArray.toList.map(sqlNode => toLiteral(sqlNode))
+        ArrayBuffer.empty += InFilter(toLiteral(operands(0)), inList).asInstanceOf[Filter]
+      case SqlKind.BETWEEN =>
+        ArrayBuffer.empty += BetweenFilter(toLiteral(operands(0)), toLiteral(operands(1)), toLiteral(operands(2))).asInstanceOf[Filter]
     }
+  }
+
+  def toLiteral(sqlNode: SqlNode): String = {
+    if(sqlNode != null)
+    sqlNode.toString.replaceAll("^[\"']+|[\"']+$", "")
+    else ""
+  }
+
+  def validate(arrayBuffer: ArrayBuffer[Filter]): (IndexedSeq[Filter], Option[Filter], Option[Filter], Option[Filter], Int)= {
+    val attributeAndMetricFilters = ArrayBuffer.empty[Filter]
+    var dayFilter: Option[Filter] = None
+    var hourFilter: Option[Filter] = None
+    var minuteFilter: Option[Filter] = None
+    var numDays = 1
+
+    arrayBuffer.foreach {
+      filter =>
+        if (filter.field == DailyGrain.DAY_FILTER_FIELD) {
+
+          dayFilter = Option(filter)
+        } else if (filter.field == HourlyGrain.HOUR_FILTER_FIELD) {
+          hourFilter = Option(filter)
+        } else if (filter.field == MinuteGrain.MINUTE_FILTER_FIELD) {
+          minuteFilter = Option(filter)
+        } else {
+          attributeAndMetricFilters += filter
+        }
+    }
+
+    if (dayFilter.isEmpty)
+      dayFilter = Option(DEFAULT_DAY_FILTER)
+
+    //validate day filter
+    require(dayFilter.isDefined, "Day filter not found in list of filters!")
+    dayFilter.map(DailyGrain.validateFilterAndGetNumDays).foreach(nd => numDays = nd)
+
+    (attributeAndMetricFilters.toIndexedSeq, dayFilter, hourFilter, minuteFilter, numDays)
   }
 }
