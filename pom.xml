@@ -50,7 +50,7 @@
         <leveldb.version>1.8</leveldb.version>
         <rocksdb.version>6.13.3</rocksdb.version>
         <protobuf.version>3.15.8</protobuf.version>
-        <http4s.version>0.18.16</http4s.version>
+        <http4s.version>1.0-232-85dadc2</http4s.version>
         <maven-site-plugin.skip>true</maven-site-plugin.skip>
         <checkstyle.skip>true</checkstyle.skip>
         <freemarker.version>2.3.20</freemarker.version>
