@@ -71,7 +71,7 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!--- Calcite and Avatica core, require proto v3 version-->
+        <!-- Calcite and Avatica core, require proto v3 version-->
 
         <dependency>
             <groupId>org.apache.calcite</groupId>
