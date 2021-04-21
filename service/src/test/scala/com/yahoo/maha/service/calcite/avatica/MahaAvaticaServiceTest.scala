@@ -4,16 +4,15 @@ import com.google.common.collect.Maps
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryRowList}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.service.calcite.DefaultMahaCalciteSqlParser
 import com.yahoo.maha.service.example.ExampleSchema
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
-import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext, MahaService, MahaServiceConfig}
+import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext, MahaService}
 import org.apache.calcite.avatica.remote.Service.{OpenConnectionRequest, PrepareAndExecuteRequest}
-import org.junit.Test
 
 class MahaAvaticaServiceTest extends BaseMahaServiceTest {
+
 
   val jsonRequest =
     s"""{
@@ -80,7 +79,8 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
       (schma)=> ExampleSchema.namesToValuesMap(schma),
       REGISTRY,
       StudentSchema,
-      ReportingRequest
+      ReportingRequest,
+      new DefaultConnectionUserInfoProvider
     )
 
     mahaAvaticaService(new OpenConnectionRequest(connectionID, Maps.newHashMap()))
