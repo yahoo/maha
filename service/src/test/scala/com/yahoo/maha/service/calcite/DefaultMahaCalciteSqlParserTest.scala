@@ -1,6 +1,5 @@
 package com.yahoo.maha.service.calcite
 
-import com.yahoo.maha.core.{EqualityFilter, GreaterThanFilter, InFilter, OrFilter}
 import com.yahoo.maha.core.request.{GroupByQuery, ReportingRequest, SyncRequest}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.BaseMahaServiceTest

@@ -41,10 +41,6 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
           val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get)
           val (filterExpression, dayFilterOption, hourFilterOption, minuteFilterOption, numDays) = getFilterList(sqlSelect.getWhere, publicFact.get)
           //determine if groupby query or select query
-          val queryType: QueryType = sqlSelect.getGroup match {
-            case null => SelectQuery
-            case _ => GroupByQuery
-          }
           return new ReportingRequest(
             cube=publicFact.get.name,
             selectFields = selectFields,
@@ -61,7 +57,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
             numDays = numDays,
             curatorJsonConfigMap = Map.empty,
             additionalParameters = Map.empty,
-            queryType = queryType,
+            queryType = GroupByQuery,
             pagination = PaginationConfig(Map.empty)
           )
         case e=>
