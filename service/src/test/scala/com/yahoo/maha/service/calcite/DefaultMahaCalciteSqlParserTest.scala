@@ -35,6 +35,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest {
     //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.selectFields.size == 3)
+    assert(request.selectFields.map(_.field).contains("Student ID"))
     assert(request.filterExpressions.size == 0)
     assert(request.queryType == GroupByQuery)
 
