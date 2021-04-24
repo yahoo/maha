@@ -9,10 +9,9 @@ import com.yahoo.maha.service.example.ExampleSchema
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext, MahaService}
-import org.apache.calcite.avatica.remote.Service.{OpenConnectionRequest, PrepareAndExecuteRequest}
+import org.apache.calcite.avatica.remote.Service.{FetchRequest, OpenConnectionRequest, PrepareAndExecuteRequest}
 
 class MahaAvaticaServiceTest extends BaseMahaServiceTest {
-
 
   val jsonRequest =
     s"""{
@@ -100,6 +99,8 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
   test("Noop avatica service") {
     val noopMahaAvaticaService = new NoopMahaAvaticaService()
     noopMahaAvaticaService.apply(new PrepareAndExecuteRequest("", 1, "", 10))
+    noopMahaAvaticaService.apply(new OpenConnectionRequest())
+    noopMahaAvaticaService.apply(new FetchRequest("", 1, 0, 10))
   }
 
 
