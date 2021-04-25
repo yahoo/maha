@@ -2,8 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.api.jersey
 
-import java.util.{UUID}
-import com.yahoo.maha.service.calcite.avatica.MahaAvaticaService
+import java.util.UUID
+
+import com.yahoo.maha.service.calcite.avatica.{AvaticaMahaJsonHandler, MahaAvaticaService}
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.container.{AsyncResponse, ContainerRequestContext, Suspended}
 import javax.ws.rs.core.{Context, MediaType}
@@ -17,11 +18,11 @@ import com.yahoo.maha.service.output.{DebugRenderer, NoopDebugRenderer}
 import com.yahoo.maha.service.utils.MahaConstants
 import grizzled.slf4j.Logging
 import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem
-import org.apache.calcite.avatica.remote.{JsonHandler}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.MDC
 import org.springframework.stereotype.Component
+
 import scala.util.Try
 
 @Path("/registry")
@@ -126,7 +127,7 @@ class MahaResource(mahaService: MahaService
             @Context httpServletRequest: HttpServletRequest,
             @Context containerRequestContext: ContainerRequestContext,
             @Suspended response: AsyncResponse) : Unit = {
-    val avaticaJsonHandler = new JsonHandler(mahaAvaticaService, NoopMetricsSystem.getInstance())
+    val avaticaJsonHandler = new AvaticaMahaJsonHandler(mahaAvaticaService, NoopMetricsSystem.getInstance())
     val rawJson = IOUtils.toByteArray(httpServletRequest.getInputStream)
     val json = new String(rawJson)
     logger.info(json)
