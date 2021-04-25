@@ -3,11 +3,11 @@
 package com.yahoo.maha.core.query.bigquery
 
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 import scala.collection.{SortedSet, mutable}
-
 
 class BigqueryQueryGenerator(
   partitionColumnRenderer: PartitionColumnRenderer,
@@ -132,6 +132,7 @@ class BigqueryQueryGenerator(
       case DimColumnInfo(alias) =>
         columnAliasToColMap += queryBuilderContext.getDimensionColNameForAlias(alias) -> queryBuilderContext.getDimensionColByAlias(alias)
       case ConstantColumnInfo(alias, value) =>
+        columnAliasToColMap += renderColumnAlias(alias) -> new DimCol(alias, StrType(), new ColumnContext, None, Set.empty, Set.empty)
     }
 
     val paramBuilder = new QueryParameterBuilder
