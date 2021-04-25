@@ -4,7 +4,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.fact.PublicFact
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.ReportingRequest.DEFAULT_DAY_FILTER
-import com.yahoo.maha.core.request.{Field, GroupByQuery, PaginationConfig, QueryType, ReportingRequest, SelectQuery, SyncRequest}
+import com.yahoo.maha.core.request.{ASC, DESC, Field, GroupByQuery, Order, PaginationConfig, QueryType, ReportingRequest, SelectQuery, SortBy, SyncRequest}
 import com.yahoo.maha.service.MahaServiceConfig
 import com.yahoo.maha.service.error.MahaCalciteSqlParserError
 import grizzled.slf4j.Logging
@@ -26,6 +26,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
 
   val DEFAULT_DAY_FILTER : Filter = BetweenFilter("Day", fromDate, toDate)
   val DAY = "Day"
+  import scala.collection.JavaConverters._
 
   override def parse(sql: String, schema: Schema, registryName:String): ReportingRequest = {
     require(!StringUtils.isEmpty(sql), MahaCalciteSqlParserError("Sql can not be empty", sql))
@@ -33,19 +34,45 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     val registry:Registry  = mahaServiceConfig.registry.get(registryName).get.registry
     val parser: SqlParser = SqlParser.create(sql)
     try {
-      val sqlNode: SqlNode = parser.parseQuery
-      sqlNode match {
+      val topSqlNode: SqlNode = parser.parseQuery
+      val orderByList: IndexedSeq[SortBy] = {
+        if (topSqlNode.isInstanceOf[SqlOrderBy]) {
+          val orderBySql = topSqlNode.asInstanceOf[SqlOrderBy]
+          orderBySql.orderList.asScala.map {
+            case sqlOrderByBasic:SqlBasicCall=>
+              require(sqlOrderByBasic.operands.size>0, s"Missing field and Order by Clause ${sqlOrderByBasic}")
+              val order:Order = {
+                if (sqlOrderByBasic.getOperator!=null && sqlOrderByBasic.getKind == SqlKind.DESCENDING) {
+                  DESC
+                } else ASC
+              }
+              SortBy(toLiteral(sqlOrderByBasic.operands(0)), order)
+            case sqlString:SqlCharStringLiteral=>
+              SortBy(toLiteral(sqlString), ASC)
+            case other =>
+             throw new IllegalArgumentException(s"Maha Calcite: order by case ${other} not supported")
+          }.toIndexedSeq
+        } else IndexedSeq.empty
+      }
+      val sqlSelectNode:SqlNode = topSqlNode match {
+         case sqlSelect: SqlSelect=> sqlSelect
+         case sqlOrderBy: SqlOrderBy=> sqlOrderBy.query
+         case e=>
+           throw new IllegalArgumentException(s"Query type ${e} is not supported by Maha-Calcite")
+      }
+
+      sqlSelectNode match {
         case sqlSelect: SqlSelect =>
           val publicFact = getCube(sqlSelect.getFrom, registry)
           require(publicFact.isDefined,MahaCalciteSqlParserError(s"Failed to find the cube ${sqlSelect.getFrom}", sql))
           val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get)
           val (filterExpression, dayFilterOption, hourFilterOption, minuteFilterOption, numDays) = getFilterList(sqlSelect.getWhere, publicFact.get)
-          //determine if groupby query or select query
           return new ReportingRequest(
             cube=publicFact.get.name,
             selectFields = selectFields,
             filterExpressions = filterExpression,
             requestType = SyncRequest,
+            sortBy = orderByList,
             schema = schema,
             reportDisplayName = None,
             forceDimensionDriven = false,
@@ -61,15 +88,15 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
             pagination = PaginationConfig(Map.empty)
           )
         case e=>
+          throw new IllegalArgumentException(s"Query type ${e} is not supported by Maha-Calcite")
       }
     }
     catch {
       case e: SqlParseException =>
-        val error = s"Failed to parse SQL ${sql} ${e.getMessage}"
+        val error = s"Calcite Error: Failed to parse SQL ${sql} ${e.getMessage}"
         logger.error(error, e)
-        Left(MahaCalciteSqlParserError(error, sql))
+        throw e;
     }
-    null
   }
 
   def getCube(sqlNode: SqlNode, registry:Registry) : Option[PublicFact] = {
