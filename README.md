@@ -191,7 +191,7 @@ Once your application context is ready, you are good to launch the war file on t
 ##### Run demo : 
   * Step 1: Checkout yahoo/maha repository 
   * Step 2: Run ``` mvn clean install ``` in maha
-  * Step 3: Go to ``` cd api-example ``` module and run ```mvn jerry:run```, you can run it with -X for debug logs. 
+  * Step 3: Go to ``` cd api-example ``` module and run ```mvn jetty:run```, you can run it with -X for debug logs. 
   * Step 4: Step 2 will launch jetty server in local and will deploy maha-api example war and you are good to play with it!
 
 ##### Playing with demo :
