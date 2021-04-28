@@ -105,7 +105,7 @@ b. Dim Driven
       //add subquery filters
       subqueryBundles.foreach {
         subqueryBundle =>
-          require(primaryDimLevel > subqueryBundle.dim.dimLevel,
+          require(primaryDimLevel >= subqueryBundle.dim.dimLevel,
             s"level of primary dimension must be greater than subquery dimension, dim=${dimBundle.publicDim.name}, subquery dim=${subqueryBundle.publicDim.name}")
           require(dimBundle.publicDim.columnsByAlias(subqueryBundle.publicDim.primaryKeyByAlias),
             s"subquery dim primary key not found in primary dimension, dim=${dimBundle.publicDim.name}, subquery dim=${subqueryBundle.publicDim.name}")
