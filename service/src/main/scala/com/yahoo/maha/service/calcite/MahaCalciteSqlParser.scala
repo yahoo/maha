@@ -3,8 +3,7 @@ package com.yahoo.maha.service.calcite
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.fact.PublicFact
 import com.yahoo.maha.core.registry.Registry
-import com.yahoo.maha.core.request.ReportingRequest.DEFAULT_DAY_FILTER
-import com.yahoo.maha.core.request.{ASC, DESC, DescribeQuery, Field, GroupByQuery, Order, PaginationConfig, QueryType, ReportingRequest, SelectQuery, SortBy, SyncRequest}
+import com.yahoo.maha.core.request.{ASC, DESC, Field, GroupByQuery, Order, PaginationConfig, ReportingRequest, SortBy, SyncRequest}
 import com.yahoo.maha.service.MahaServiceConfig
 import com.yahoo.maha.service.error.MahaCalciteSqlParserError
 import grizzled.slf4j.Logging
@@ -16,7 +15,7 @@ import org.joda.time.{DateTime, DateTimeZone}
 import scala.collection.mutable.ArrayBuffer
 
 trait MahaCalciteSqlParser {
-  def parse(sql:String, schema: Schema, registryName:String) : ReportingRequest
+  def parse(sql:String, schema: Schema, registryName:String) : MahaSqlNode
 }
 
 case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) extends MahaCalciteSqlParser with Logging {
@@ -28,7 +27,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
   val DAY = "Day"
   import scala.collection.JavaConverters._
 
-  override def parse(sql: String, schema: Schema, registryName:String): ReportingRequest = {
+  override def parse(sql: String, schema: Schema, registryName:String): MahaSqlNode = {
     require(!StringUtils.isEmpty(sql), MahaCalciteSqlParserError("Sql can not be empty", sql))
     require(mahaServiceConfig.registry.contains(registryName), s"failed to find the registry ${registryName} in the mahaService Config")
     val registry:Registry  = mahaServiceConfig.registry.get(registryName).get.registry
@@ -68,47 +67,30 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
           require(publicFact.isDefined,MahaCalciteSqlParserError(s"Failed to find the cube ${sqlSelect.getFrom}", sql))
           val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get)
           val (filterExpression, dayFilterOption, hourFilterOption, minuteFilterOption, numDays) = getFilterList(sqlSelect.getWhere, publicFact.get)
-          new ReportingRequest(
-            cube=publicFact.get.name,
-            selectFields = selectFields,
-            filterExpressions = filterExpression,
-            requestType = SyncRequest,
-            sortBy = orderByList,
-            schema = schema,
-            reportDisplayName = None,
-            forceDimensionDriven = false,
-            forceFactDriven = false,
-            includeRowCount = false,
-            dayFilter = dayFilterOption.getOrElse(DEFAULT_DAY_FILTER),
-            hourFilter = hourFilterOption,
-            minuteFilter = minuteFilterOption,
-            numDays = numDays,
-            curatorJsonConfigMap = Map.empty,
-            additionalParameters = Map.empty,
-            queryType = GroupByQuery,
-            pagination = PaginationConfig(Map.empty)
+          SelectSqlNode(
+            new ReportingRequest(
+              cube=publicFact.get.name,
+              selectFields = selectFields,
+              filterExpressions = filterExpression,
+              requestType = SyncRequest,
+              sortBy = orderByList,
+              schema = schema,
+              reportDisplayName = None,
+              forceDimensionDriven = false,
+              forceFactDriven = false,
+              includeRowCount = false,
+              dayFilter = dayFilterOption.getOrElse(DEFAULT_DAY_FILTER),
+              hourFilter = hourFilterOption,
+              minuteFilter = minuteFilterOption,
+              numDays = numDays,
+              curatorJsonConfigMap = Map.empty,
+              additionalParameters = Map.empty,
+              queryType = GroupByQuery,
+              pagination = PaginationConfig(Map.empty)
+            )
           )
         case sqlDescribeTable: SqlDescribeTable =>
-          new ReportingRequest(
-            cube= getCube(sqlDescribeTable.getTable, registry).get.name,
-            selectFields = null,
-            filterExpressions = null,
-            requestType = SyncRequest,
-            sortBy = null,
-            schema = schema,
-            reportDisplayName = None,
-            forceDimensionDriven = false,
-            forceFactDriven = false,
-            includeRowCount = false,
-            dayFilter = null,
-            hourFilter = None,
-            minuteFilter = None,
-            numDays = 0,
-            curatorJsonConfigMap = null,
-            additionalParameters = null,
-            queryType = DescribeQuery,
-            pagination = null
-          )
+          DescribeSqlNode(getCube(sqlDescribeTable.getTable, registry).get.name)
         case e=>
           throw new IllegalArgumentException(s"Query type ${e.getKind} is not supported by Maha-Calcite")
       }

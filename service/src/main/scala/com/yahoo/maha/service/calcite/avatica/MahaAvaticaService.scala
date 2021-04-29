@@ -11,9 +11,9 @@ import com.yahoo.maha.core.{PublicColumn, Schema}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.QueryRowList
 import com.yahoo.maha.core.registry.Registry
-import com.yahoo.maha.core.request.{BaseRequest, DescribeQuery}
+import com.yahoo.maha.core.request.BaseRequest
 import com.yahoo.maha.service.{MahaRequestContext, MahaService, RegistryConfig}
-import com.yahoo.maha.service.calcite.MahaCalciteSqlParser
+import com.yahoo.maha.service.calcite.{DescribeSqlNode, MahaCalciteSqlParser, SelectSqlNode}
 import grizzled.slf4j.Logging
 import org.apache.commons.codec.digest.DigestUtils
 
@@ -126,11 +126,11 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val responseList = new util.ArrayList[Service.ResultSetResponse]()
         val connectionID = avaticaContext.connectionID
         val sql = avaticaContext.sql
-        val reportingRequest = calciteSqlParser.parse(sql, defaultSchema, defaultRegistry)
-        reportingRequest.queryType match {
-            case DescribeQuery => {
+        val mahaSqlNode = calciteSqlParser.parse(sql, defaultSchema, defaultRegistry)
+        mahaSqlNode match {
+            case describeSqlNode: DescribeSqlNode => {
                 val registry: Registry = mahaService.getMahaServiceConfig.registry.get(defaultRegistry).get.registry
-                val columnsByAliasMap = registry.getFact(reportingRequest.cube).get.columnsByAliasMap
+                val columnsByAliasMap = registry.getFact(describeSqlNode.cube).get.columnsByAliasMap
 
                 val columns = new util.ArrayList[ColumnMetaData]
                 val params = new util.ArrayList[AvaticaParameter]
@@ -150,7 +150,8 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                 val frame: Frame = Frame.create(0, true, rows)
                 responseList.add(new ResultSetResponse(connectionID, -1, false, signature, frame, -1, rpcMetadataResponse))
             }
-            case _ => {
+            case selectSqlNode: SelectSqlNode => {
+                val reportingRequest = selectSqlNode.reportingRequest
                 val userInfo = connectionUserInfoProvider.getUserInfo(connectionID)
                 val requestJson = baseReportingRequest.serialize(reportingRequest)
                 info(s"Got the maha SQL : ${sql}, userInfo : ${userInfo}")

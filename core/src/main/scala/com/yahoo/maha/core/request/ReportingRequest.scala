@@ -49,10 +49,6 @@ case object ScanQuery extends QueryType {
   val stringValue: String = "scan"
 }
 
-case object DescribeQuery extends QueryType {
-  val stringValue: String = "describe"
-}
-
 case class RequestContext(requestId: String, userId: String)
 
 case class ReportingRequest(cube: String
