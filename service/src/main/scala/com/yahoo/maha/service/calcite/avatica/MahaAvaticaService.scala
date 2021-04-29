@@ -1,18 +1,18 @@
 package com.yahoo.maha.service.calcite.avatica;
 
 import java.util
-
-import org.apache.calcite.avatica.ConnectionPropertiesImpl
-import org.apache.calcite.avatica.Meta.{ConnectionProperties, StatementHandle}
+import org.apache.calcite.avatica.{AvaticaParameter, ColumnMetaData, ConnectionPropertiesImpl, Meta, MetaImpl}
+import org.apache.calcite.avatica.Meta.{ConnectionProperties, CursorFactory, Frame, Signature, StatementHandle, StatementType, Style}
 import org.apache.calcite.avatica.remote.Service._
-import java.util.concurrent.atomic.AtomicInteger
 
+import java.util.concurrent.atomic.AtomicInteger
 import org.apache.calcite.avatica.remote.Service
-import com.yahoo.maha.core.Schema
+import com.yahoo.maha.core.{PublicColumn, Schema}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.QueryRowList
-import com.yahoo.maha.core.request.BaseRequest
-import com.yahoo.maha.service.{MahaRequestContext, MahaService}
+import com.yahoo.maha.core.registry.Registry
+import com.yahoo.maha.core.request.{BaseRequest, DescribeQuery}
+import com.yahoo.maha.service.{MahaRequestContext, MahaService, RegistryConfig}
 import com.yahoo.maha.service.calcite.MahaCalciteSqlParser
 import grizzled.slf4j.Logging
 import org.apache.commons.codec.digest.DigestUtils
@@ -127,21 +127,47 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val connectionID = avaticaContext.connectionID
         val sql = avaticaContext.sql
         val reportingRequest = calciteSqlParser.parse(sql, defaultSchema, defaultRegistry)
-        val userInfo = connectionUserInfoProvider.getUserInfo(connectionID)
-        val requestJson = baseReportingRequest.serialize(reportingRequest)
-        info(s"Got the maha SQL : ${sql}, userInfo : ${userInfo}")
-        info(s"Translated sql ${sql} to  ${new String(requestJson)}")
+        reportingRequest.queryType match {
+            case DescribeQuery => {
+                val registry: Registry = mahaService.getMahaServiceConfig.registry.get(defaultRegistry).get.registry
+                val columnsByAliasMap = registry.getFact(reportingRequest.cube).get.columnsByAliasMap
 
-        val mahaRequestContext =  MahaRequestContext(defaultRegistry,
-            BucketParams(UserInfo(userInfo.userId, isInternal = true)),
-            reportingRequest,
-            requestJson,
-            Map.empty,
-            userInfo.userId,
-            userInfo.requestId
-        )
-        val mahaResults = executeFunction(mahaRequestContext, mahaService)
-        responseList.add(rowListTransformer.map(mahaResults, AvaticaContext(connectionID, sql, avaticaContext.statementID, rpcMetadataResponse)))
+                val columns = new util.ArrayList[ColumnMetaData]
+                val params = new util.ArrayList[AvaticaParameter]
+                val cursorFactory = CursorFactory.create(Style.LIST, classOf[String], util.Arrays.asList())
+                Array("Column Name", "Data Type", "Comment").zipWithIndex.foreach {
+                    case (columnName, index) => {
+                        columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
+                    }
+                }
+                val signature: Signature = Signature.create(columns, "", params, cursorFactory, StatementType.SELECT)
+                val rows = new util.ArrayList[Object]()
+                columnsByAliasMap.foreach {
+                    case (alias, publicColumn) =>
+                        val row = Array(alias, "data type placeHolder", publicColumn.toString)
+                        rows.add(row)
+                }
+                val frame: Frame = Frame.create(0, true, rows)
+                responseList.add(new ResultSetResponse(connectionID, -1, false, signature, frame, -1, rpcMetadataResponse))
+            }
+            case _ => {
+                val userInfo = connectionUserInfoProvider.getUserInfo(connectionID)
+                val requestJson = baseReportingRequest.serialize(reportingRequest)
+                info(s"Got the maha SQL : ${sql}, userInfo : ${userInfo}")
+                info(s"Translated sql ${sql} to  ${new String(requestJson)}")
+
+                val mahaRequestContext = MahaRequestContext(defaultRegistry,
+                    BucketParams(UserInfo(userInfo.userId, isInternal = true)),
+                    reportingRequest,
+                    requestJson,
+                    Map.empty,
+                    userInfo.userId,
+                    userInfo.requestId
+                )
+                val mahaResults = executeFunction(mahaRequestContext, mahaService)
+                responseList.add(rowListTransformer.map(mahaResults, AvaticaContext(connectionID, sql, avaticaContext.statementID, rpcMetadataResponse)))
+            }
+        }
         new ExecuteResponse(responseList, false, rpcMetadataResponse)
     }
 }

@@ -1,7 +1,7 @@
 package com.yahoo.maha.service.calcite
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.request.{ASC, DESC, GroupByQuery, ReportingRequest, SyncRequest}
+import com.yahoo.maha.core.request.{ASC, DESC, DescribeQuery, GroupByQuery, ReportingRequest, SyncRequest}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.BaseMahaServiceTest
 import org.scalatest.matchers.should.Matchers
@@ -122,7 +122,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
               """
 
     val request: ReportingRequest = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
-//    print(request)
+    //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.filterExpressions.size > 0)
 
@@ -172,12 +172,22 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
               """
 
     val request: ReportingRequest = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
-//    print(request)
+    //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.numDays == 3)
     assert(request.dayFilter.toString contains "BetweenFilter(Day,2021-04-18,2021-04-21)")
     assert(request.filterExpressions.toString contains "GreaterThanFilter(Total Marks,0,false,false)")
     assert(request.filterExpressions.toString contains "OrFilter(List(EqualityFilter(Student ID,123,false,false), EqualityFilter(Class ID,234,false,false)))")
+  }
+
+  test("tes tDescribe table") {
+    val sql = s"""
+              DESCRIBE student_performance
+              """
+
+    val request: ReportingRequest = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    //print(request)
+    assert(request.queryType == DescribeQuery)
   }
 
 }
