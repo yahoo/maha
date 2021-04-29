@@ -1,18 +1,17 @@
 package com.yahoo.maha.service.calcite.avatica;
 
 import java.util
-
-import org.apache.calcite.avatica.ConnectionPropertiesImpl
-import org.apache.calcite.avatica.Meta.{ConnectionProperties, StatementHandle}
+import org.apache.calcite.avatica.{AvaticaParameter, AvaticaUtils, ColumnMetaData, ConnectionPropertiesImpl, Meta, MetaImpl}
+import org.apache.calcite.avatica.Meta.{ConnectionProperties, CursorFactory, Frame, Signature, StatementHandle, StatementType, Style}
 import org.apache.calcite.avatica.remote.Service._
-import java.util.concurrent.atomic.AtomicInteger
 
+import java.util.concurrent.atomic.AtomicInteger
 import org.apache.calcite.avatica.remote.Service
 import com.yahoo.maha.core.Schema
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.QueryRowList
 import com.yahoo.maha.core.request.BaseRequest
-import com.yahoo.maha.service.{MahaRequestContext, MahaService}
+import com.yahoo.maha.service.{MahaRequestContext, MahaService, RegistryConfig}
 import com.yahoo.maha.service.calcite.MahaCalciteSqlParser
 import grizzled.slf4j.Logging
 import org.apache.commons.codec.digest.DigestUtils
@@ -44,7 +43,31 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
 
     override def apply(schemasRequest: Service.SchemasRequest): Service.ResultSetResponse = null
 
-    override def apply(tablesRequest: Service.TablesRequest): Service.ResultSetResponse = null
+    override def apply(tablesRequest: Service.TablesRequest): Service.ResultSetResponse = {
+        val columns = new util.ArrayList[ColumnMetaData]
+        val params = new util.ArrayList[AvaticaParameter]
+        val cursorFactory = CursorFactory.create(Style.LIST, classOf[String], util.Arrays.asList())
+        tableMetaArray.zipWithIndex.foreach {
+            case (columnName, index) => {
+                columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
+            }
+        }
+        val signature: Signature = Signature.create(columns, "", params, cursorFactory, StatementType.SELECT)
+
+        val factMaps = mahaService.getMahaServiceConfig.registry.values.map{
+            case registryConfig: RegistryConfig => registryConfig.registry.factMap
+        }
+        val rows = new util.ArrayList[Object]()
+        factMaps.foreach{
+            factMap => factMap.foreach {
+                case ((name, version), value) =>
+                    val row = Array(name, "fact", value.toString) //name, type, remarks(description)
+                    rows.add(row)
+            }
+        }
+        val frame: Frame = Frame.create(0, true, rows)
+        new ResultSetResponse(tablesRequest.connectionId, -1, false, signature, frame, -1, rpcMetadataResponse)
+    }
 
     override def apply(tableTypesRequest: Service.TableTypesRequest): Service.ResultSetResponse = null
 
@@ -173,5 +196,8 @@ object MahaAvaticaServiceHelper extends Logging {
             "localhost"
         }
     }
+
+    //("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "TABLE_TYPE", "REMARKS", "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "SELF_REFERENCING_COL_NAME", "REF_GENERATION")
+    val tableMetaArray: Array[String] = Array("TABLE_NAME", "TABLE_TYPE", "REMARKS")
 
 }
