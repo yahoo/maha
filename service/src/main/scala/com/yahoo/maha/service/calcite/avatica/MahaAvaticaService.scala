@@ -137,15 +137,16 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
     def getDataType(dimCol: PublicColumn, publicFact: PublicFact): String = {
         val name = dimCol.name
         val list =  publicFact.factList.map(fact=> fact.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
-        if(list.nonEmpty) {
-            list.head.dataType.toString
+        if (list.nonEmpty) {
+            list.head.dataType.getClass.getSimpleName
         } else ""
     }
+
     def getDataTypeFromDim(dimCol: PublicColumn, publicDim: PublicDimension): String = {
         val name = dimCol.name
         val list =  publicDim.dimList.map(d=> d.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
         if(list.nonEmpty) {
-            list.head.dataType.toString
+            list.head.dataType.getClass.getSimpleName
         } else ""
     }
 
