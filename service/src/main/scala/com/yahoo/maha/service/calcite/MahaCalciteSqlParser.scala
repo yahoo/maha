@@ -90,7 +90,9 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
             )
           )
         case sqlDescribeTable: SqlDescribeTable =>
-          DescribeSqlNode(getCube(sqlDescribeTable.getTable, registry).get.name)
+          val cubeOption = getCube(sqlDescribeTable.getTable, registry)
+          require (cubeOption.isDefined, s"Failed to find the table ${sqlDescribeTable.getTable} in the registry")
+          DescribeSqlNode(cubeOption.get.name)
         case e=>
           throw new IllegalArgumentException(s"Query type ${e.getKind} is not supported by Maha-Calcite")
       }
