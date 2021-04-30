@@ -8,8 +8,12 @@ import com.yahoo.maha.service.calcite.DefaultMahaCalciteSqlParser
 import com.yahoo.maha.service.example.ExampleSchema
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
-import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext, MahaService}
+import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext, MahaService, RegistryConfig}
+import org.apache.calcite.avatica.proto.Requests.TablesRequest
+import org.apache.calcite.avatica.remote.Service
 import org.apache.calcite.avatica.remote.Service.{FetchRequest, OpenConnectionRequest, PrepareAndExecuteRequest}
+
+import scala.collection.mutable.ArrayBuffer
 
 class MahaAvaticaServiceTest extends BaseMahaServiceTest {
 
@@ -101,6 +105,35 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
     noopMahaAvaticaService.apply(new PrepareAndExecuteRequest("", 1, "", 10))
     noopMahaAvaticaService.apply(new OpenConnectionRequest())
     noopMahaAvaticaService.apply(new FetchRequest("", 1, 0, 10))
+  }
+
+  test("Test get table requests") {
+    val mahaAvaticaService = new DefaultMahaAvaticaService(executeFunction,
+      DefaultMahaCalciteSqlParser(mahaServiceConfig),
+      mahaService,
+      new DefaultAvaticaRowListTransformer(),
+      (schma)=> ExampleSchema.namesToValuesMap(schma),
+      REGISTRY,
+      StudentSchema,
+      ReportingRequest,
+      new DefaultConnectionUserInfoProvider
+    )
+
+    val result =  mahaAvaticaService(new Service.TablesRequest(connectionID, "", "", "", null))
+    //println(result)
+    assert(result != null && result.signature != null && result.firstFrame != null)
+    val columns = result.signature.columns
+    assert(columns != null && columns.size() == 3)
+    val rows = result.firstFrame.rows
+    var count = 0
+    rows.iterator().forEachRemaining(s=> {
+      count+=1
+    })
+    val factMaps = mahaServiceConfig.registry.values.map{
+      case registryConfig: RegistryConfig => registryConfig.registry.factMap
+    }
+    val expected_count = factMaps.map(map => map.size).reduce((x, y) => x+y)
+    assert(count == expected_count)
   }
 
 
