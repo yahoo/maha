@@ -116,7 +116,7 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
     rowsIt.forEachRemaining(s=> {
       count+=1
     })
-    assert(count > 10)
+    assert(count > 19)
 
   }
 

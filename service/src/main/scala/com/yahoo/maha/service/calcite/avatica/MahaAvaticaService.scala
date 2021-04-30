@@ -1,14 +1,17 @@
 package com.yahoo.maha.service.calcite.avatica;
 
 import java.util
+
 import org.apache.calcite.avatica.{AvaticaParameter, ColumnMetaData, ConnectionPropertiesImpl, Meta, MetaImpl}
 import org.apache.calcite.avatica.Meta.{ConnectionProperties, CursorFactory, Frame, Signature, StatementHandle, StatementType, Style}
 import org.apache.calcite.avatica.remote.Service._
-
 import java.util.concurrent.atomic.AtomicInteger
+
 import org.apache.calcite.avatica.remote.Service
 import com.yahoo.maha.core.{PublicColumn, Schema}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
+import com.yahoo.maha.core.dimension.{PubCol, PublicDimColumn, PublicDimension}
+import com.yahoo.maha.core.fact.PublicFact
 import com.yahoo.maha.core.query.QueryRowList
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.BaseRequest
@@ -37,6 +40,11 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
 
     val rpcMetadataResponse = new RpcMetadataResponse(MahaAvaticaServiceHelper.hostname)
     val statementIdCounter = new AtomicInteger(1)
+
+    val registryConfigMap = mahaService.getMahaServiceConfig.registry
+    require(registryConfigMap.contains(defaultRegistry), s"Failed to find the ${defaultRegistry} in registry config")
+    val registry: Registry = registryConfigMap.get(defaultRegistry).get.registry
+
 
     override def apply(catalogsRequest: Service.CatalogsRequest): Service.ResultSetResponse = {
         null
@@ -122,6 +130,26 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
 
     override def setRpcMetadata(rpcMetadataResponse: Service.RpcMetadataResponse): Unit = ???
 
+    def toComment(pubCol: PublicColumn):String = {
+        s""" ${pubCol.alias}, allowed filters: ${pubCol.filters}, restricted schemas: ${pubCol.restrictedSchemas}, Is required: ${pubCol.required} """
+    }
+
+    def getDataType(dimCol: PublicColumn, publicFact: PublicFact): String = {
+        val name = dimCol.name
+        val list =  publicFact.factList.map(fact=> fact.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
+        if(list.nonEmpty) {
+            list.head.dataType.toString
+        } else ""
+    }
+    def getDataTypeFromDim(dimCol: PublicColumn, publicDim: PublicDimension): String = {
+        val name = dimCol.name
+        val list =  publicDim.dimList.map(d=> d.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
+        if(list.nonEmpty) {
+            list.head.dataType.toString
+        } else ""
+    }
+
+
     def execute(avaticaContext: AvaticaContext) : ExecuteResponse = {
         val responseList = new util.ArrayList[Service.ResultSetResponse]()
         val connectionID = avaticaContext.connectionID
@@ -129,23 +157,43 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val mahaSqlNode = calciteSqlParser.parse(sql, defaultSchema, defaultRegistry)
         mahaSqlNode match {
             case describeSqlNode: DescribeSqlNode => {
-                val registry: Registry = mahaService.getMahaServiceConfig.registry.get(defaultRegistry).get.registry
-                val columnsByAliasMap = registry.getFact(describeSqlNode.cube).get.columnsByAliasMap
+                val pubFactOption = registry.getFact(describeSqlNode.cube)
+                require(pubFactOption.isDefined, s"Failed to find the cube ${describeSqlNode.cube} in the registry fact map")
+                val publicFact = pubFactOption.get
+                val columnsByAliasMap = pubFactOption.get.columnsByAliasMap
 
                 val columns = new util.ArrayList[ColumnMetaData]
                 val params = new util.ArrayList[AvaticaParameter]
                 val cursorFactory = CursorFactory.create(Style.LIST, classOf[String], util.Arrays.asList())
-                Array("Column Name", "Data Type", "Comment").zipWithIndex.foreach {
+                Array("Column Name", "Column Type", "Data Type", "Comment").zipWithIndex.foreach {
                     case (columnName, index) => {
                         columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
                     }
                 }
                 val signature: Signature = Signature.create(columns, "", params, cursorFactory, StatementType.SELECT)
                 val rows = new util.ArrayList[Object]()
-                columnsByAliasMap.foreach {
-                    case (alias, publicColumn) =>
-                        val row = Array(alias, "data type placeHolder", publicColumn.toString)
+                publicFact.dimCols.foreach {
+                    dimCol=>
+                        val row = Array(dimCol.alias, DIMENSION_COLUMN, getDataType(dimCol, publicFact) , toComment(dimCol))
                         rows.add(row)
+                }
+                publicFact.factCols.foreach {
+                    factCol=>
+                        val row = Array(factCol.alias, METRIC_COLUMN, getDataType(factCol, publicFact) , toComment(factCol))
+                        rows.add(row)
+                }
+                publicFact.foreignKeySources.foreach {
+                    dimensionCube =>
+                    val dimVersionOption = publicFact.dimToRevisionMap.get(dimensionCube)
+                    val dimCubeOption =  registry.getDimension(dimensionCube, dimVersionOption)
+                        dimCubeOption.map {
+                            dim=>
+                            dim.columnsByAliasMap.foreach {
+                                case (alias, dimCol)=>
+                                    val row = Array(dimCol.alias, DIMENSION_JOIN_COLUMN, getDataTypeFromDim(dimCol, dim) , toComment(dimCol))
+                                    rows.add(row)
+                            }
+                        }
                 }
                 val frame: Frame = Frame.create(0, true, rows)
                 responseList.add(new ResultSetResponse(connectionID, -1, false, signature, frame, -1, rpcMetadataResponse))
@@ -187,6 +235,9 @@ case class ConnectionUserInfo(userId: String, requestId: String) {
 object MahaAvaticaServiceHelper extends Logging {
 
     val CalciteAvaticaUser = "calcite-avatica"
+    val METRIC_COLUMN = "Metric/Fact Column"
+    val DIMENSION_COLUMN = "Dimension Column"
+    val DIMENSION_JOIN_COLUMN = "Dimension Join Column"
     def getRequestID(userId:String, connectionId:String):String= {
         DigestUtils.md5(s"${userId}${System.currentTimeMillis()}${connectionId}").toString
     }
