@@ -84,7 +84,6 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
 
     mahaAvaticaService(new OpenConnectionRequest(connectionID, Maps.newHashMap()))
     val result =  mahaAvaticaService(new PrepareAndExecuteRequest(connectionID, 1, "select * from student_performance", 10))
-    println(result)
     assert(result.results.size() == 1)
     val frame = result.results.get(0).firstFrame
     assert(frame!=null)
@@ -94,6 +93,31 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
       count+=1
     })
     assert(count == 1)
+  }
+  test("Test Avatica Service with Describe table request") {
+    val mahaAvaticaService = new DefaultMahaAvaticaService(executeFunction,
+      DefaultMahaCalciteSqlParser(mahaServiceConfig),
+      mahaService,
+      new DefaultAvaticaRowListTransformer(),
+      (schma)=> ExampleSchema.namesToValuesMap(schma),
+      REGISTRY,
+      StudentSchema,
+      ReportingRequest,
+      new DefaultConnectionUserInfoProvider
+    )
+
+    mahaAvaticaService(new OpenConnectionRequest(connectionID, Maps.newHashMap()))
+    val result =  mahaAvaticaService(new PrepareAndExecuteRequest(connectionID, 1, "describe student_performance", 10))
+    assert(result.results.size() == 1)
+    val frame = result.results.get(0).firstFrame
+    assert(frame!=null)
+    var count = 0;
+    val rowsIt = frame.rows.iterator();
+    rowsIt.forEachRemaining(s=> {
+      count+=1
+    })
+    assert(count > 10)
+
   }
 
   test("Noop avatica service") {
