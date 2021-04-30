@@ -17,7 +17,9 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
               where 'Student ID' = 123
               """
 
-    val request: ReportingRequest = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.selectFields.size == 11)
@@ -32,7 +34,9 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
               GROUP BY 'Student ID', 'Class ID'
               """
 
-    var request: ReportingRequest = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.selectFields.size == 3)
@@ -57,7 +61,9 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
           ORDER BY 'Class ID' DESC
           """
 
-    val request: ReportingRequest = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.selectFields.size > 3)
@@ -85,7 +91,9 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
           ORDER BY 'Class ID', 'Total Marks' DESC
           """
 
-    val request: ReportingRequest = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.selectFields.size > 3)
@@ -121,8 +129,10 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
               AND 'Total Marks' > 0
               """
 
-    val request: ReportingRequest = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
-//    print(request)
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.filterExpressions.size > 0)
 
@@ -140,8 +150,10 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
               AND 'Day' = '2021-04-20'
               """
 
-    val request: ReportingRequest = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
-    print(request)
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.numDays == 1)
     assert(request.dayFilter.toString contains "EqualityFilter(Day,2021-04-20,false,false)")
@@ -156,7 +168,9 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
               AND 'Total Marks' > 0
               """
 
-    val request: ReportingRequest = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.numDays == 3)
@@ -171,13 +185,27 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
               AND ('Student ID' = 123 OR 'Class ID' = 234)
               """
 
-    val request: ReportingRequest = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
-//    print(request)
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.numDays == 3)
     assert(request.dayFilter.toString contains "BetweenFilter(Day,2021-04-18,2021-04-21)")
     assert(request.filterExpressions.toString contains "GreaterThanFilter(Total Marks,0,false,false)")
     assert(request.filterExpressions.toString contains "OrFilter(List(EqualityFilter(Student ID,123,false,false), EqualityFilter(Class ID,234,false,false)))")
+  }
+
+  test("tes tDescribe table") {
+    val sql = s"""
+              DESCRIBE student_performance
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[DescribeSqlNode])
+    val describeSqlNode = mahaSqlNode.asInstanceOf[DescribeSqlNode]
+    //print(request)
+    assert(describeSqlNode.cube == "student_performance")
   }
 
 }
