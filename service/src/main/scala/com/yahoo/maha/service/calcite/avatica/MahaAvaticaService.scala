@@ -197,7 +197,6 @@ object MahaAvaticaServiceHelper extends Logging {
         }
     }
 
-    //("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "TABLE_TYPE", "REMARKS", "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "SELF_REFERENCING_COL_NAME", "REF_GENERATION")
     val tableMetaArray: Array[String] = Array("TABLE_NAME", "TABLE_TYPE", "REMARKS")
 
 }

@@ -135,6 +135,4 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
     val expected_count = factMaps.map(map => map.size).reduce((x, y) => x+y)
     assert(count == expected_count)
   }
-
-
 }
