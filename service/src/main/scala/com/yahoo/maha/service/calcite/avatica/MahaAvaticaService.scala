@@ -1,7 +1,7 @@
 package com.yahoo.maha.service.calcite.avatica;
 
 import java.util
-import org.apache.calcite.avatica.{AvaticaParameter, AvaticaUtils, ColumnMetaData, ConnectionPropertiesImpl, Meta, MetaImpl}
+import org.apache.calcite.avatica.{AvaticaParameter, ColumnMetaData, ConnectionPropertiesImpl, MetaImpl}
 import org.apache.calcite.avatica.Meta.{ConnectionProperties, CursorFactory, Frame, Signature, StatementHandle, StatementType, Style}
 import org.apache.calcite.avatica.remote.Service._
 
