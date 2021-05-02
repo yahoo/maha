@@ -103,6 +103,8 @@ case class FactCol(name: String,
           columnContext.render(filter.field, Map.empty)
         }
       case DruidThetaSketchRollup =>
+      case DruidCardinalityRollup(cols, _, _) =>
+        cols.foreach((col: String) => columnContext.render(col, Map.empty))
       case DruidHyperUniqueRollup(f) =>
       case customRollup: CustomRollup =>
         //error, we missed a check on custom rollup
