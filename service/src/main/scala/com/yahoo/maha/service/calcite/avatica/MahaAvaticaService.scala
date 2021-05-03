@@ -79,7 +79,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
 
     override def apply(tableTypesRequest: Service.TableTypesRequest): Service.ResultSetResponse = null
 
-    override def apply(typeIsnfoRequest: Service.TypeInfoRequest): Service.ResultSetResponse = null
+    override def apply(typeInfoRequest: Service.TypeInfoRequest): Service.ResultSetResponse = null
 
     override def apply(columnsRequest: Service.ColumnsRequest): Service.ResultSetResponse = {
 
@@ -95,8 +95,6 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val pubFactOption = registry.getFact(columnsRequest.tableNamePattern)
         require(pubFactOption.isDefined, s"Failed to find the cube ${columnsRequest.tableNamePattern} in the registry fact map")
         val publicFact = pubFactOption.get
-        val columnsByAliasMap = pubFactOption.get.columnsByAliasMap
-        columnsRequest.tableNamePattern
         val rows = new util.ArrayList[Object]()
         publicFact.dimCols.foreach {
             dimCol=>
@@ -122,7 +120,6 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                 }
         }
         val frame: Frame = Frame.create(0, true, rows)
-        //new ResultSetResponse(connectionID, 1, false, null, null, null, rpc )
         new ResultSetResponse(columnsRequest.connectionId, -1, false, signature, frame, -1, rpcMetadataResponse)
     }
 
