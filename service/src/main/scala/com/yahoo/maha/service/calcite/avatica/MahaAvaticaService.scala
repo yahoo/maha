@@ -44,14 +44,17 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
     require(registryConfigMap.contains(defaultRegistry), s"Failed to find the ${defaultRegistry} in registry config")
     val registry: Registry = registryConfigMap.get(defaultRegistry).get.registry
 
+    val allFactMap = mahaService.getMahaServiceConfig.registry.map {
+        case (regName, registryConfig: RegistryConfig) => {
+            registryConfig.registry.factMap
+        }
+    }.flatten.toMap
 
-    override def apply(catalogsRequest: Service.CatalogsRequest): Service.ResultSetResponse = {
-        null
-    }
+    val cubeToRegistryMap = allFactMap.map(f => f._1._1 -> getRegistryForFact(f._1._1))
 
-    override def apply(schemasRequest: Service.SchemasRequest): Service.ResultSetResponse = null
+    val cubeToColsMap: Map[String, (Frame, Signature)] = cubeToRegistryMap.map(f=> f._1 -> getColsForCube(f._2, f._1))
 
-    override def apply(tablesRequest: Service.TablesRequest): Service.ResultSetResponse = {
+    val tablesRequestSignature: Signature = {
         val columns = new util.ArrayList[ColumnMetaData]
         val params = new util.ArrayList[AvaticaParameter]
         val cursorFactory = CursorFactory.create(Style.LIST, classOf[String], util.Arrays.asList())
@@ -60,21 +63,30 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                 columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
             }
         }
-        val signature: Signature = Signature.create(columns, "", params, cursorFactory, StatementType.SELECT)
+        Signature.create(columns, "", params, cursorFactory, StatementType.SELECT)
+    }
+    require(tablesRequestSignature != null, s"tablesRequestSignature is null")
 
-        val factMaps = mahaService.getMahaServiceConfig.registry.values.map{
-            case registryConfig: RegistryConfig => registryConfig.registry.factMap
-        }
+    val tableRequestFrame: Frame = {
         val rows = new util.ArrayList[Object]()
-        factMaps.foreach{
-            factMap => factMap.foreach {
-                case ((name, version), value) =>
-                    val row = Array(name, "fact", value.toString) //name, type, remarks(description)
-                    rows.add(row)
-            }
+        allFactMap.foreach{
+            case ((name, version), value) =>
+                val row = Array(name, "fact", value.toString) //name, type, remarks(description)
+                rows.add(row)
         }
-        val frame: Frame = Frame.create(0, true, rows)
-        new ResultSetResponse(tablesRequest.connectionId, -1, false, signature, frame, -1, rpcMetadataResponse)
+        Frame.create(0, true, rows)
+    }
+    require(tableRequestFrame != null, s"tableRequestFrame is null")
+
+
+    override def apply(catalogsRequest: Service.CatalogsRequest): Service.ResultSetResponse = {
+        null
+    }
+
+    override def apply(schemasRequest: Service.SchemasRequest): Service.ResultSetResponse = null
+
+    override def apply(tablesRequest: Service.TablesRequest): Service.ResultSetResponse = {
+        new ResultSetResponse(tablesRequest.connectionId, -1, false, tablesRequestSignature, tableRequestFrame, -1, rpcMetadataResponse)
     }
 
     override def apply(tableTypesRequest: Service.TableTypesRequest): Service.ResultSetResponse = null
@@ -82,9 +94,10 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
     override def apply(typeInfoRequest: Service.TypeInfoRequest): Service.ResultSetResponse = null
 
     override def apply(columnsRequest: Service.ColumnsRequest): Service.ResultSetResponse = {
-        //new ResultSetResponse(connectionID, 1, false, null, null, null, rpc )
-        // TODO : Domain
-        null
+        val cachedEntryOption: Option[(Frame, Signature)] = cubeToColsMap.get(columnsRequest.tableNamePattern)
+        require(cachedEntryOption.isDefined, s"Failed to find the cube ${columnsRequest.tableNamePattern} in the cached cubeToColsMap map")
+        val (frame, signature) = cachedEntryOption.get
+        new ResultSetResponse(columnsRequest.connectionId, -1, false, signature, frame, -1, rpcMetadataResponse)
     }
 
     override def apply(prepareRequest: Service.PrepareRequest): Service.PrepareResponse = {
@@ -173,6 +186,74 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         } else ""
     }
 
+    def getSqlDataType(dimCol: PublicColumn, publicFact: PublicFact): Int = {
+        val name = dimCol.name
+        val list =  publicFact.factList.map(fact=> fact.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
+        if (list.nonEmpty) {
+            list.head.dataType.sqlDataType
+        } else java.sql.Types.OTHER
+    }
+
+    def getSqlDataTypeFromDim(dimCol: PublicColumn, publicDim: PublicDimension): Int = {
+        val name = dimCol.name
+        val list =  publicDim.dimList.map(d=> d.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
+        if(list.nonEmpty) {
+            list.head.dataType.sqlDataType
+        } else java.sql.Types.OTHER
+    }
+
+    def getColsForCube(registry: Registry, cube:String): (Frame, Signature) = {
+        val columns = new util.ArrayList[ColumnMetaData]
+        val params = new util.ArrayList[AvaticaParameter]
+        val cursorFactory = CursorFactory.create(Style.LIST, classOf[String], util.Arrays.asList())
+        columnMetaArray.zipWithIndex.foreach {
+            case (columnName, index) => {
+                columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
+            }
+        }
+        val signature: Signature = Signature.create(columns, "", params, cursorFactory, StatementType.SELECT)
+        val pubFactOption = registry.getFact(cube)
+        require(pubFactOption.isDefined, s"Failed to find the cube ${cube} in the registry fact map")
+        val publicFact = pubFactOption.get
+        val rows = new util.ArrayList[Object]()
+        publicFact.dimCols.foreach {
+            dimCol=>
+                val row = Array(dimCol.alias, getSqlDataType(dimCol, publicFact), getDataType(dimCol, publicFact) , toComment(dimCol))
+                rows.add(row)
+        }
+        publicFact.factCols.foreach {
+            factCol=>
+                val row = Array(factCol.alias, getSqlDataType(factCol, publicFact), getDataType(factCol, publicFact) , toComment(factCol))
+                rows.add(row)
+        }
+        publicFact.foreignKeySources.foreach {
+            dimensionCube =>
+                val dimVersionOption = publicFact.dimToRevisionMap.get(dimensionCube)
+                val dimCubeOption =  registry.getDimension(dimensionCube, dimVersionOption)
+                dimCubeOption.map {
+                    dim=>
+                        dim.columnsByAliasMap.foreach {
+                            case (alias, dimCol)=>
+                                val row = Array(dimCol.alias, getSqlDataTypeFromDim(dimCol, dim), getDataTypeFromDim(dimCol, dim) , toComment(dimCol))
+                                rows.add(row)
+                        }
+                }
+        }
+        val frame: Frame = Frame.create(0, true, rows)
+        (frame, signature)
+    }
+
+    def getRegistryForFact(cube: String): Registry = {
+        mahaService.getMahaServiceConfig.registry.values.foreach {
+            registryConfig =>
+                val factOption: Option[PublicFact] = registryConfig.registry.getFact(cube)
+                if(factOption.isDefined) {
+                    return registryConfig.registry
+                }
+        }
+        //should not reach here
+        return null
+    }
 
     def execute(avaticaContext: AvaticaContext) : ExecuteResponse = {
         val responseList = new util.ArrayList[Service.ResultSetResponse]()
@@ -277,5 +358,7 @@ object MahaAvaticaServiceHelper extends Logging {
     }
 
     val tableMetaArray: Array[String] = Array("TABLE_NAME", "TABLE_TYPE", "REMARKS")
+
+    val columnMetaArray: Array[String] = Array("COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "REMARKS")
 
 }

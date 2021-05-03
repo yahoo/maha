@@ -159,4 +159,28 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
     val expected_count = factMaps.map(map => map.size).reduce((x, y) => x+y)
     assert(count == expected_count)
   }
+
+  test("Test get column requests") {
+    val mahaAvaticaService = new DefaultMahaAvaticaService(executeFunction,
+      DefaultMahaCalciteSqlParser(mahaServiceConfig),
+      mahaService,
+      new DefaultAvaticaRowListTransformer(),
+      (schma)=> ExampleSchema.namesToValuesMap(schma),
+      REGISTRY,
+      StudentSchema,
+      ReportingRequest,
+      new DefaultConnectionUserInfoProvider
+    )
+
+    val result =  mahaAvaticaService(new Service.ColumnsRequest(connectionID, "", "", "student_performance", null))
+    //println(result)
+    assert(result != null && result.signature != null && result.firstFrame != null)
+    val rows = result.firstFrame.rows
+    var count = 0
+    rows.iterator().forEachRemaining(s=> {
+      println(s)
+      count+=1
+    })
+    assert(count > 19)
+  }
 }

@@ -23,6 +23,8 @@ sealed trait DataType {
   def hasStaticMapping: Boolean
   def hasUniqueStaticMapping: Boolean
   def reverseStaticMapping: Map[String, Set[String]]
+  def sqlDataType: Int = java.sql.Types.OTHER
+
 
   private val jUtils = JsonUtils
 
@@ -68,6 +70,7 @@ case class IntType private(length: Int, staticMapping: Option[StaticMapping[Int]
   val reverseStaticMapping = staticMapping.map(_.stringToTMap).getOrElse(Map.empty)
   val jsonDataType = if (hasStaticMapping) "Enum" else "Number"
   val constraint: Option[String] = if (hasStaticMapping) Option.apply(reverseStaticMapping.keys.mkString("|")) else if (length > 0) Option.apply(length.toString) else None
+  override val sqlDataType = java.sql.Types.INTEGER
 
   override def asJSON: JObject =
     makeObj(
@@ -93,6 +96,8 @@ case class StrType private(length: Int, staticMapping: Option[StaticMapping[Stri
     if (length > 0) Option.apply(length.toString) else None
   }
 
+  override val sqlDataType = java.sql.Types.VARCHAR
+
   override def asJSON: JObject =
     makeObj(
       List(
@@ -110,6 +115,7 @@ case class DecType private(length: Int, scale:Int, default: Option[BigDecimal],
   val reverseStaticMapping : Map[String, Set[String]] = Map.empty
   val jsonDataType: String = "Number"
   val constraint: Option[String] = if (length > 0) Option.apply(length.toString) else None
+  override val sqlDataType = java.sql.Types.DECIMAL
 
   private val jUtils = JsonUtils
 
@@ -132,6 +138,7 @@ case class DateType private(format: Option[String]) extends DataType {
   val reverseStaticMapping : Map[String, Set[String]] = Map.empty
   val jsonDataType: String = "Date"
   val constraint: Option[String] = format
+  override val sqlDataType = java.sql.Types.DATE
 
   override def asJSON: JObject =
     makeObj(
@@ -147,6 +154,7 @@ case class TimestampType private(format: Option[String]) extends DataType {
   val reverseStaticMapping : Map[String, Set[String]] = Map.empty
   val jsonDataType: String = "Date"
   val constraint: Option[String] = format
+  override val sqlDataType = java.sql.Types.TIMESTAMP
 
   override def asJSON: JObject =
     makeObj(
