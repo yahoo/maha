@@ -79,12 +79,51 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
 
     override def apply(tableTypesRequest: Service.TableTypesRequest): Service.ResultSetResponse = null
 
-    override def apply(typeInfoRequest: Service.TypeInfoRequest): Service.ResultSetResponse = null
+    override def apply(typeIsnfoRequest: Service.TypeInfoRequest): Service.ResultSetResponse = null
 
     override def apply(columnsRequest: Service.ColumnsRequest): Service.ResultSetResponse = {
+
+        val columns = new util.ArrayList[ColumnMetaData]
+        val params = new util.ArrayList[AvaticaParameter]
+        val cursorFactory = CursorFactory.create(Style.LIST, classOf[String], util.Arrays.asList())
+        columnMetaArray.zipWithIndex.foreach {
+            case (columnName, index) => {
+                columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
+            }
+        }
+        val signature: Signature = Signature.create(columns, "", params, cursorFactory, StatementType.SELECT)
+        val pubFactOption = registry.getFact(columnsRequest.tableNamePattern)
+        require(pubFactOption.isDefined, s"Failed to find the cube ${columnsRequest.tableNamePattern} in the registry fact map")
+        val publicFact = pubFactOption.get
+        val columnsByAliasMap = pubFactOption.get.columnsByAliasMap
+        columnsRequest.tableNamePattern
+        val rows = new util.ArrayList[Object]()
+        publicFact.dimCols.foreach {
+            dimCol=>
+                val row = Array(dimCol.alias, getSqlDataType(dimCol, publicFact), getDataType(dimCol, publicFact) , toComment(dimCol))
+                rows.add(row)
+        }
+        publicFact.factCols.foreach {
+            factCol=>
+                val row = Array(factCol.alias, getSqlDataType(factCol, publicFact), getDataType(factCol, publicFact) , toComment(factCol))
+                rows.add(row)
+        }
+        publicFact.foreignKeySources.foreach {
+            dimensionCube =>
+                val dimVersionOption = publicFact.dimToRevisionMap.get(dimensionCube)
+                val dimCubeOption =  registry.getDimension(dimensionCube, dimVersionOption)
+                dimCubeOption.map {
+                    dim=>
+                        dim.columnsByAliasMap.foreach {
+                            case (alias, dimCol)=>
+                                val row = Array(dimCol.alias, getSqlDataTypeFromDim(dimCol, dim), getDataTypeFromDim(dimCol, dim) , toComment(dimCol))
+                                rows.add(row)
+                        }
+                }
+        }
+        val frame: Frame = Frame.create(0, true, rows)
         //new ResultSetResponse(connectionID, 1, false, null, null, null, rpc )
-        // TODO : Domain
-        null
+        new ResultSetResponse(columnsRequest.connectionId, -1, false, signature, frame, -1, rpcMetadataResponse)
     }
 
     override def apply(prepareRequest: Service.PrepareRequest): Service.PrepareResponse = {
@@ -171,6 +210,22 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         if(list.nonEmpty) {
             list.head.dataType.getClass.getSimpleName
         } else ""
+    }
+
+    def getSqlDataType(dimCol: PublicColumn, publicFact: PublicFact): Int = {
+        val name = dimCol.name
+        val list =  publicFact.factList.map(fact=> fact.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
+        if (list.nonEmpty) {
+            list.head.dataType.sqlDataType
+        } else java.sql.Types.OTHER
+    }
+
+    def getSqlDataTypeFromDim(dimCol: PublicColumn, publicDim: PublicDimension): Int = {
+        val name = dimCol.name
+        val list =  publicDim.dimList.map(d=> d.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
+        if(list.nonEmpty) {
+            list.head.dataType.sqlDataType
+        } else java.sql.Types.OTHER
     }
 
 
@@ -277,5 +332,7 @@ object MahaAvaticaServiceHelper extends Logging {
     }
 
     val tableMetaArray: Array[String] = Array("TABLE_NAME", "TABLE_TYPE", "REMARKS")
+
+    val columnMetaArray: Array[String] = Array("COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "REMARKS")
 
 }
