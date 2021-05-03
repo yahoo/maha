@@ -79,6 +79,11 @@ case class DruidFilteredListRollup(filter: List[Filter], factCol: DruidExpressio
   override lazy val sourceColumns: Set[String] = filter.map(fil => fil.field).toSet ++ delegateAggregatorRollupExpression.sourceColumns ++ Set(factCol.name)
 }
 
+case class DruidCardinalityRollup(fields: List[String], byRow: Boolean = false, round: Boolean = false) extends CustomRollup with WithDruidEngine {
+  override val hasDerivedExpression: Boolean = true
+  override lazy val sourceColumns: Set[String] = fields.toSet
+}
+
 case class DruidHyperUniqueRollup(column: String) extends CustomRollup with WithDruidEngine {
   override val hasDerivedExpression: Boolean = true
   override lazy val sourceColumns: Set[String] = Set(column)

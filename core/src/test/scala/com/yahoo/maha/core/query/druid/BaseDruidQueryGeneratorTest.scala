@@ -99,6 +99,7 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           , FactCol("avg_pos_times_impressions_trim", DecType(0, "0.0", "0", "1000"), MaxRollup)
           , FactCol("unique_ad_ids", IntType(), DruidHyperUniqueRollup("ad_id"))
           , DruidDerFactCol("unique_ad_ids_count", DecType(), HyperUniqueCardinalityWrapper("{unique_ad_ids}"))
+          , FactCol("ad_ids_cardinality", IntType(), DruidCardinalityRollup(List("ad_id"), round = true))
           , FactCol("engagement_count", IntType(0, 0))
           , ConstFactCol("const_a", IntType(0, 0), "0")
           , ConstFactCol("const_b", IntType(0, 0), "0")
@@ -363,6 +364,7 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           PublicFactCol("CTR", "CTR", InBetweenEquality),
           PublicFactCol("unique_ad_ids", "Unique Ad IDs", InBetweenEquality),
           PublicFactCol("unique_ad_ids_count", "Unique Ad IDs Count", InBetweenEquality),
+          PublicFactCol("ad_ids_cardinality", "Ad IDs Cardinality", InBetweenEquality),
           PublicFactCol("uniqueUserCount", "Unique User Count", InBetweenEquality),
           PublicFactCol("ageBucket_unique_users", "ageBucket_unique_users", InBetweenEquality),
           PublicFactCol("woeids_unique_users", "woeids_unique_users", InBetweenEquality),
