@@ -69,9 +69,9 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
 
     val tableRequestFrame: Frame = {
         val rows = new util.ArrayList[Object]()
-        allFactMap.foreach{
-            case ((name, version), value) =>
-                val row = Array(name, "fact", value.toString) //name, type, remarks(description)
+        allFactMap.foreach {
+            case ((name, version), publicFact: PublicFact) =>
+                val row = Array(name, "fact", s"""version: ${version} ,${publicFact.description}""") //name, type, remarks(description)
                 rows.add(row)
         }
         Frame.create(0, true, rows)

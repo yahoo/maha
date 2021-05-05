@@ -1584,6 +1584,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , dimToRevisionMap: Map[String, Int] = Map.empty
                    , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
                    , powerSetStorage: FkFactMapStorage = RoaringBitmapFkFactMapStorage()
+                   , description:String = ""
                    ) : PublicFact = {
     new PublicFactTable(name
       , baseFact
@@ -1602,6 +1603,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , dimToRevisionMap
       , requiredFilterColumns
       , powerSetStorage
+      , description:String
     )
   }
 
@@ -1633,6 +1635,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , publicFact.dimToRevisionMap ++ dimToRevisionOverrideMap
       , requiredFilterColumns
       , publicFact.getFkFactMapStorage
+      , publicFact.description
     )
   }
 }
@@ -1770,6 +1773,7 @@ trait PublicFact extends PublicTable {
   def requiredFilterColumns: Map[Schema, Set[String]]
   //def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[String]]
   def getFkFactMapStorage: FkFactMapStorage
+  def description:String
 }
 
 case class PublicFactTable private[fact](name: String
@@ -1789,6 +1793,7 @@ case class PublicFactTable private[fact](name: String
                                          , dimToRevisionMap: Map[String, Int] = Map.empty
                                          , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
                                          , fkFactMapStorage: FkFactMapStorage
+                                         , description:String
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values

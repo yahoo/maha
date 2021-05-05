@@ -175,7 +175,24 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.numDays == 3)
-    assert(request.dayFilter.toString contains "BetweenFilter(Day,2021-04-18,2021-04-21)")
+    assert(request.dayFilter.toString contains "BetweenFilter(Day")
+  }
+
+  test("test double quotes") {
+    val sql = s"""
+              select "Student ID", "Class ID", SUM("Total Marks") from student_performance
+              where "Total Marks" > 0
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.selectFields.size == 3)
+    assert(request.filterExpressions.size == 1)
+    assert(request.dayFilter!=null)
+    assert(request.requestType === SyncRequest)
+    assert(request.numDays == 7)
+    assert(request.dayFilter.toString contains "BetweenFilter(Day")
   }
 
   test("test or filter") {
@@ -192,7 +209,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     //print(request)
     assert(request.requestType === SyncRequest)
     assert(request.numDays == 3)
-    assert(request.dayFilter.toString contains "BetweenFilter(Day,2021-04-18,2021-04-21)")
+    assert(request.dayFilter.toString contains "BetweenFilter(Day")
     assert(request.filterExpressions.toString contains "GreaterThanFilter(Total Marks,0,false,false)")
     assert(request.filterExpressions.toString contains "OrFilter(List(EqualityFilter(Student ID,123,false,false), EqualityFilter(Class ID,234,false,false)))")
   }
