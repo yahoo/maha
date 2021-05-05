@@ -244,15 +244,13 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
     }
 
     def getRegistryForFact(cube: String): Registry = {
-        mahaService.getMahaServiceConfig.registry.values.foreach {
-            registryConfig =>
-                val factOption: Option[PublicFact] = registryConfig.registry.getFact(cube)
-                if(factOption.isDefined) {
-                    return registryConfig.registry
-                }
-        }
-        //should not reach here
-        return null
+        val registryOption = mahaService.getMahaServiceConfig.registry
+          .map(rc => rc._2.registry -> rc._2.registry.getFact(cube))
+          .filter(entry => entry._2.isDefined)
+          .map(entry => entry._1)
+          .headOption
+        require(registryOption.isDefined, s"Failed to find the registry for ${cube}")
+        registryOption.get
     }
 
     def execute(avaticaContext: AvaticaContext) : ExecuteResponse = {
