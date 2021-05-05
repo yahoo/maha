@@ -129,15 +129,20 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                     publicFact.factCols.map(publicFactCol => Field(publicFactCol.alias, None, None)).toIndexedSeq ++
                       publicFact.dimCols.map(publicDimCol => Field(publicDimCol.alias, None, None)).toIndexedSeq
                   return indexedSeq
-                } else {
-                  val errMsg = s"SqlIdentifier type ${sqlIdentifier.getKind.toString} in getSelectList is not yet supported"
-                  logger.error(errMsg)
+                }
+                else {
+                  sqlIdentifier.names.asScala.foreach(
+                    c => {
+                      val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, c)
+                      arrayBuffer += Field(publicCol.alias, None, None)
+                    }
+                  )
                 }
               case sqlCharStringLiteral: SqlCharStringLiteral =>
-                val publicCol: PublicColumn = publicFact.columnsByAliasMap(toLiteral(sqlCharStringLiteral))
+                val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlCharStringLiteral))
                 arrayBuffer += Field(publicCol.alias, None, None)
               case sqlBasicCall: SqlBasicCall =>
-                val publicCol: PublicColumn = publicFact.columnsByAliasMap(toLiteral(sqlBasicCall.operands(0)))
+                val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlBasicCall.operands(0)))
                 arrayBuffer += Field(publicCol.alias, None, None)
               case other: AnyRef =>
                 val errMsg = s"sqlNode type${other.getClass.toString} in getSelectList is not yet supported"
@@ -151,6 +156,11 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
       case e=>
         IndexedSeq.empty
     }
+  }
+
+  def getColumnFromPublicFact(publicFact: PublicFact, alias: String): PublicColumn = {
+    require(publicFact.columnsByAliasMap.contains(alias),  s"Failed to find the column ${alias} in cube ${publicFact.name}")
+    publicFact.columnsByAliasMap(alias)
   }
 
   def getFilterList(sqlNode: SqlNode, publicFact: PublicFact) : (IndexedSeq[Filter], Option[Filter], Option[Filter], Option[Filter], Int) = {
