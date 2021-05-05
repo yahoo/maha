@@ -4,6 +4,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.request.{ASC, DESC, GroupByQuery, ReportingRequest, SyncRequest}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.BaseMahaServiceTest
+import org.apache.calcite.sql.parser.SqlParseException
 import org.scalatest.matchers.should.Matchers
 
 class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers {
@@ -196,7 +197,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.filterExpressions.toString contains "OrFilter(List(EqualityFilter(Student ID,123,false,false), EqualityFilter(Class ID,234,false,false)))")
   }
 
-  test("tes tDescribe table") {
+  test("test Describe table") {
     val sql = s"""
               DESCRIBE student_performance
               """
@@ -206,6 +207,42 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val describeSqlNode = mahaSqlNode.asInstanceOf[DescribeSqlNode]
     //print(request)
     assert(describeSqlNode.cube == "student_performance")
+  }
+
+  test("test limit operation: max row, start index") {
+    //start index = 2, max row = 10
+    val sql = s"""
+              select * from student_performance
+              LIMIT 2, 10
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    assert(request.paginationStartIndex == 2)
+    assert(request.rowsPerPage == 10)
+
+    //no start index: default = 0, max row = 10
+    val sql2 = s"""
+              select * from student_performance
+              LIMIT 10
+              """
+
+    val mahaSqlNode2: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql2, StudentSchema, "er")
+    assert(mahaSqlNode2.isInstanceOf[SelectSqlNode])
+    val request2 = mahaSqlNode2.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    assert(request2.paginationStartIndex == 0)
+    assert(request2.rowsPerPage == 10)
+
+    //non-valid value
+    val sql3 = s"""
+              select * from student_performance
+              LIMIT b
+              """
+
+    assertThrows[SqlParseException](defaultMahaCalciteSqlParser.parse(sql3, StudentSchema, "er"))
   }
 
 }
