@@ -1,14 +1,13 @@
 package com.yahoo.maha.service.calcite.avatica
 
-import java.sql.{Date, Timestamp, Types}
 import java.util
 
 import com.yahoo.maha.core.{DateType, DecType, IntType, StrType, TimestampType}
-import com.yahoo.maha.core.query.{InMemRowList, QueryRowList, RowList}
+import com.yahoo.maha.core.query.{QueryRowList}
 import org.apache.calcite.avatica.{AvaticaParameter, ColumnMetaData, Meta, MetaImpl}
 import org.apache.calcite.avatica.Meta.{Frame, Signature, Style}
 import org.apache.calcite.avatica.remote.Service
-import org.apache.calcite.avatica.remote.Service.{ResultSetResponse, RpcMetadataResponse}
+import org.apache.calcite.avatica.remote.Service.{ResultSetResponse}
 
 trait AvaticaRowListTransformer {
   def map(rowList:QueryRowList, avaticaContext: AvaticaContext): ResultSetResponse

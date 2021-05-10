@@ -355,6 +355,8 @@ class RegistryTest extends AnyFunSuite with Matchers {
     registryBuilder.register(base_dim)
     registryBuilder.register(base_dim2_with_fk)
     val registry = registryBuilder.build()
+    val allDomainColumnAliasToPublicColumnMap =  pubFact1.getAllDomainColumnAliasToPublicColumnMap(registry)
+    assert(allDomainColumnAliasToPublicColumnMap.size == 12)
     assert(registry.isCubeDefined("publicFact"), "Cube is not registered!")
   }
 

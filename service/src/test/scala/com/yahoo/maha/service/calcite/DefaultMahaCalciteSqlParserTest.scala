@@ -180,14 +180,15 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
 
   test("test double quotes") {
     val sql = s"""
-              select "Student ID", "Class ID", SUM("Total Marks") from student_performance
+              select "Student ID", "Class ID", "Student Name", SUM("Total Marks") from student_performance
               where "Total Marks" > 0
               """
 
     val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
-    assert(request.selectFields.size == 3)
+    assert(request.selectFields.size == 4)
+    assert(request.selectFields.map(_.field).contains("Student Name"))
     assert(request.filterExpressions.size == 1)
     assert(request.dayFilter!=null)
     assert(request.requestType === SyncRequest)
