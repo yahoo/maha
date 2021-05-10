@@ -64,7 +64,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
       }
 
       val (startIndex, maxRow) = topSqlNode match {
-        case sqlOrderBy: SqlOrderBy=>
+        case sqlOrderBy: SqlOrderBy =>
           val si =  sqlOrderBy.offset match {
             case sqlNumericLiteral: SqlNumericLiteral => sqlNumericLiteral.toValue.toInt
             case null => 0
@@ -89,7 +89,8 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
         case sqlSelect: SqlSelect =>
           val publicFact = getCube(sqlSelect.getFrom, registry)
           require(publicFact.isDefined,MahaCalciteSqlParserError(s"Failed to find the cube ${sqlSelect.getFrom}", sql))
-          val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get)
+          val columnAliasToColumnMap:Map[String, PublicColumn] = publicFact.get.getAllDomainColumnAliasToPublicColumnMap(registry)
+          val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get, columnAliasToColumnMap)
           val (filterExpression, dayFilterOption, hourFilterOption, minuteFilterOption, numDays) = getFilterList(sqlSelect.getWhere, publicFact.get)
           SelectSqlNode(
             new ReportingRequest(
@@ -140,7 +141,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     }
   }
 
-  def getSelectList(sqlNode: SqlNode, publicFact: PublicFact) : IndexedSeq[Field] = {
+  def getSelectList(sqlNode: SqlNode, publicFact: PublicFact, columnAliasToColumnMap:Map[String, PublicColumn]) : IndexedSeq[Field] = {
     sqlNode match {
       case sqlNodeList: SqlNodeList =>
         if (sqlNodeList.size() > 0) {
@@ -159,16 +160,16 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                 else {
                   sqlIdentifier.names.asScala.foreach(
                     c => {
-                      val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, c)
+                      val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, c, columnAliasToColumnMap)
                       arrayBuffer += Field(publicCol.alias, None, None)
                     }
                   )
                 }
               case sqlCharStringLiteral: SqlCharStringLiteral =>
-                val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlCharStringLiteral))
+                val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlCharStringLiteral), columnAliasToColumnMap)
                 arrayBuffer += Field(publicCol.alias, None, None)
               case sqlBasicCall: SqlBasicCall =>
-                val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlBasicCall.operands(0)))
+                val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlBasicCall.operands(0)), columnAliasToColumnMap)
                 arrayBuffer += Field(publicCol.alias, None, None)
               case other: AnyRef =>
                 val errMsg = s"sqlNode type${other.getClass.toString} in getSelectList is not yet supported"
@@ -184,9 +185,9 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     }
   }
 
-  def getColumnFromPublicFact(publicFact: PublicFact, alias: String): PublicColumn = {
-    require(publicFact.columnsByAliasMap.contains(alias),  s"Failed to find the column ${alias} in cube ${publicFact.name}")
-    publicFact.columnsByAliasMap(alias)
+  def getColumnFromPublicFact(publicFact: PublicFact, alias: String, columnAliasToColumnMap:Map[String, PublicColumn]): PublicColumn = {
+    require(columnAliasToColumnMap.contains(alias),  s"Failed to find the column ${alias} in cube ${publicFact.name}")
+    columnAliasToColumnMap.get(alias).get
   }
 
   def getFilterList(sqlNode: SqlNode, publicFact: PublicFact) : (IndexedSeq[Filter], Option[Filter], Option[Filter], Option[Filter], Int) = {

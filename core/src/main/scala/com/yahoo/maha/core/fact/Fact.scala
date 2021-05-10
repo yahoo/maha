@@ -8,6 +8,7 @@ import com.yahoo.maha.core.ddl.{DDLAnnotation, HiveDDLAnnotation}
 import com.yahoo.maha.core.dimension.{BaseFunctionDimCol, ConstDimCol, DimensionColumn, PublicDimColumn}
 import com.yahoo.maha.core.fact.Fact.ViewTable
 import com.yahoo.maha.core.lookup.{LongRange, LongRangeLookup}
+import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
 import grizzled.slf4j.Logging
 
@@ -1774,6 +1775,7 @@ trait PublicFact extends PublicTable {
   //def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[String]]
   def getFkFactMapStorage: FkFactMapStorage
   def description:String
+  def getAllDomainColumnAliasToPublicColumnMap(registry: Registry): Map[String, PublicColumn]
 }
 
 case class PublicFactTable private[fact](name: String
@@ -1853,6 +1855,20 @@ case class PublicFactTable private[fact](name: String
     }
     mutableMap.toMap
   }
+
+  override def getAllDomainColumnAliasToPublicColumnMap(registry: Registry): Map[String, PublicColumn] = {
+    foreignKeySources.map {
+      dimensionCube =>
+        val dimVersionOption = dimToRevisionMap.get(dimensionCube)
+        val dimCubeOption = registry.getDimension(dimensionCube, dimVersionOption)
+        require(dimCubeOption.isDefined, s"Failed to find the dimension cube ${dimensionCube} for version ${dimVersionOption} in registry")
+        dimCubeOption.get.columnsByAliasMap.map {
+          case (alias: String, dimCol: PublicColumn) =>
+            (alias -> dimCol)
+        }
+    }.flatMap(e=> e).toMap ++ columnsByAliasMap
+  }
+
 
   val columnsByAliasMap: Map[String, PublicColumn] =
     dimCols.map(pdc => pdc.alias -> pdc).toMap ++ factCols.map(pdc => pdc.alias -> pdc).toMap
