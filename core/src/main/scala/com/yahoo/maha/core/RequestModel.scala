@@ -829,7 +829,6 @@ object RequestModel extends Logging {
               .flatMap(f => registry.getPkDimensionUsingFactTable(f, Some(publicFact.dimRevision), publicFact.dimToRevisionMap))
               .toIndexedSeq.sorted
             val requestedDimPKSecDimLeveLMap = sortOnSameDimLevel(allRequestedDimensionPrimaryKeyAliasesSeq)
-            val printVar = requestedDimPKSecDimLeveLMap.keySet.toList.reverse
             requestedDimPKSecDimLeveLMap.keySet.toList.reverse
               .foreach {
                 publicDimOption =>
@@ -1258,8 +1257,7 @@ object RequestModel extends Logging {
                         sameDimLevelPDSeq.filter(
                           publicDim => pubDim != publicDim && pubDim.foreignKeyByAlias.contains(publicDim.primaryKeyByAlias)
                         ).toList
-                      )
-                    }
+                      )}
                   }
                   else {
                     sameDimLevelPDSeq
