@@ -1237,8 +1237,7 @@ object RequestModel extends Logging {
       var deriveSecondaryDimLevel = true
       indexedSeqVar.zipWithIndex.foreach {
         case(currentPubDim, currentIdx) => {
-          if(currentPubDim.secondaryDimLevel.get != 1)
-            deriveSecondaryDimLevel = false
+          deriveSecondaryDimLevel = deriveSecondaryDimLevel && currentPubDim.secondaryDimLevel.get == 1
           if(currentIdx > 0) {
             if (currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == indexedSeqVar.size - 1) {
               var sameDimLevelPDSeq = Seq[PublicDimension]()
@@ -1270,7 +1269,7 @@ object RequestModel extends Logging {
                 sortOnForeignKey(sameDimLevelFKMap, publicDimSecDimLevelMap)
               }
               else
-                publicDimSecDimLevelMap.put(prevPubDim, 1)
+                publicDimSecDimLevelMap.put(prevPubDim, prevPubDim.getBaseDim.secondaryDimLevel.get)
               startIdx = currentIdx
               deriveSecondaryDimLevel = true
             }
@@ -1279,7 +1278,7 @@ object RequestModel extends Logging {
         }
       }
       if (publicDimSecDimLevelMap.size < indexedSeqVar.size)
-        publicDimSecDimLevelMap.put(indexedSeqVar.last, 1)
+        publicDimSecDimLevelMap.put(indexedSeqVar.last, indexedSeqVar.last.getBaseDim.secondaryDimLevel.get)
     }
     publicDimSecDimLevelMap
   }
