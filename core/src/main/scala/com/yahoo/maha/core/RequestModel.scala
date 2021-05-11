@@ -35,7 +35,7 @@ case class DimensionCandidate(dim: PublicDimension
                               , hasLowCardinalityFilter: Boolean
                               , hasPKRequested : Boolean
                               , hasNonPushDownFilters : Boolean
-                              , secondaryDimLevel: Int = 0
+                              , secondaryDimLevel: Int = 1
                              ) {
 
   def debugString : String = {
@@ -983,7 +983,7 @@ object RequestModel extends Logging {
                               , hasLowCardinalityFilter
                               , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
                               , hasNonPushDownFilters = injectFilters.exists(filter => !filter.isPushDown)
-                              , requestedDimPKSecDimLeveLMap.getOrElse(injectDim,0)
+                              , requestedDimPKSecDimLeveLMap.getOrElse(injectDim,1)
                             )
 
                         }
@@ -1013,7 +1013,7 @@ object RequestModel extends Logging {
                       , hasLowCardinalityFilter
                       , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
                       , hasNonPushDownFilters = filters.exists(filter => !filter.isPushDown)
-                      , requestedDimPKSecDimLeveLMap.getOrElse(publicDim,0)
+                      , requestedDimPKSecDimLeveLMap.getOrElse(publicDim,1)
                     )
                     allRequestedDimAliases ++= requestedDimAliases
                     // Adding current dimension to upper dimension candidates
@@ -1207,7 +1207,7 @@ object RequestModel extends Logging {
                            dim:PublicDimension,
                            publicDimSecDimLevelMap: mutable.LinkedHashMap[PublicDimension, Int],
                            tempVisited: mutable.Set[PublicDimension]): Unit = {
-    var secondaryDimLevel = 0
+    var secondaryDimLevel = 1
     // tempVisited checks for cyclic fkDependencies.
     tempVisited.add(dim)
     sameDimLevelFKMap.get(dim).get.foreach { pd =>
@@ -1234,8 +1234,10 @@ object RequestModel extends Logging {
     if (indexedSeqVar.nonEmpty) {
       var prevPubDim = indexedSeqVar.head
       var startIdx = 0
+      var deriveSecondaryDimLevel = true
       indexedSeqVar.zipWithIndex.foreach {
         case(currentPubDim, currentIdx) => {
+          deriveSecondaryDimLevel = deriveSecondaryDimLevel && currentPubDim.secondaryDimLevel.get == 1
           if(currentIdx > 0) {
             if (currentPubDim.dimLevel != prevPubDim.dimLevel || currentIdx == indexedSeqVar.size - 1) {
               var sameDimLevelPDSeq = Seq[PublicDimension]()
@@ -1247,24 +1249,36 @@ object RequestModel extends Logging {
                 sameDimLevelPDSeq = indexedSeqVar.slice(startIdx, currentIdx).reverse
               if (sameDimLevelPDSeq.size > 1) {
                 val sameDimLevelFKMap = new mutable.LinkedHashMap[PublicDimension, List[PublicDimension]]()
-                sameDimLevelPDSeq.foreach {
-                  pubDim => sameDimLevelFKMap.put(pubDim,
-                    sameDimLevelPDSeq.filter(
-                      publicDim => pubDim != publicDim && pubDim.foreignKeyByAlias.contains(publicDim.primaryKeyByAlias)
-                    ).toList
-                  )}
+                if(deriveSecondaryDimLevel) {
+                  sameDimLevelPDSeq.foreach {
+                    pubDim =>
+                      sameDimLevelFKMap.put(pubDim,
+                        sameDimLevelPDSeq.filter(
+                          publicDim => pubDim != publicDim && pubDim.foreignKeyByAlias.contains(publicDim.primaryKeyByAlias)
+                        ).toList
+                      )}
+                  }
+                  else {
+                    sameDimLevelPDSeq
+                      .sortWith((a, b) => a.getBaseDim.secondaryDimLevel.get < b.getBaseDim.secondaryDimLevel.get)
+                      .foreach {
+                        pubDim =>
+                          publicDimSecDimLevelMap.put(pubDim, pubDim.secondaryDimLevel.get)
+                      }
+                  }
                 sortOnForeignKey(sameDimLevelFKMap, publicDimSecDimLevelMap)
               }
               else
-                publicDimSecDimLevelMap.put(prevPubDim, 0)
+                publicDimSecDimLevelMap.put(prevPubDim, prevPubDim.getBaseDim.secondaryDimLevel.get)
               startIdx = currentIdx
+              deriveSecondaryDimLevel = true
             }
             prevPubDim = currentPubDim
           }
         }
       }
       if (publicDimSecDimLevelMap.size < indexedSeqVar.size)
-        publicDimSecDimLevelMap.put(indexedSeqVar.last, 0)
+        publicDimSecDimLevelMap.put(indexedSeqVar.last, indexedSeqVar.last.getBaseDim.secondaryDimLevel.get)
     }
     publicDimSecDimLevelMap
   }
