@@ -648,6 +648,7 @@ object Dimension {
                     , underlyingTableName : Option[String] = None
                     , secondaryDimLevel: Option[Int] = Some(1)
                     ) : DimensionBuilder = {
+    require(secondaryDimLevel.isDefined, s"Failed to assign secondaryDimLevel")
     val baseFact = new DimTable(name, 9999, engine, dimLevel, schemas, columns, None, schemaColMap, annotations, ddlAnnotation, isDerivedDimension, viewBaseTable, maxDaysLookBack, underlyingTableName, secondaryDimLevel)
     val map = Map(baseFact.name -> baseFact)
     DimensionBuilder(baseFact, map)
