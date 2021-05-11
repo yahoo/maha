@@ -607,6 +607,7 @@ object HivePartDimCol {
 trait Dimension extends BaseTable {
   def level: Int
   def dimLevel: DimLevel
+  def secondaryDimLevel: Option[Int]
   def schemaColFilterMap: Map[Schema, String]
   def engine: Engine
   def name: String
@@ -645,8 +646,9 @@ object Dimension {
                     , viewBaseTable : Option[String] = None
                     , isDerivedDimension: Boolean = false
                     , underlyingTableName : Option[String] = None
+                    , secondaryDimLevel: Option[Int] = Some(1)
                     ) : DimensionBuilder = {
-    val baseFact = new DimTable(name, 9999, engine, dimLevel, schemas, columns, None, schemaColMap, annotations, ddlAnnotation, isDerivedDimension, viewBaseTable, maxDaysLookBack, underlyingTableName)
+    val baseFact = new DimTable(name, 9999, engine, dimLevel, schemas, columns, None, schemaColMap, annotations, ddlAnnotation, isDerivedDimension, viewBaseTable, maxDaysLookBack, underlyingTableName, secondaryDimLevel)
     val map = Map(baseFact.name -> baseFact)
     DimensionBuilder(baseFact, map)
   }
@@ -666,6 +668,7 @@ case class DimTable private[dimension](name: String
                                        , viewBaseTable: Option[String]
                                        , maxDaysLookBack: Option[Map[RequestType, Int]]
                                        , underlyingTableName: Option[String]
+                                       , secondaryDimLevel: Option[Int] = Some(1)
                                       ) extends Dimension {
 
   val primaryKey: String = {
@@ -860,6 +863,7 @@ case class DimensionBuilder private[dimension](private val baseDim: Dimension, p
       , fromTable.viewBaseTable
       , maxDaysLookBack
       , underlyingTableName
+      , fromTable.secondaryDimLevel
     )
     tableMap += newAltDim.name -> newAltDim
     this
@@ -915,6 +919,7 @@ case class DimensionBuilder private[dimension](private val baseDim: Dimension, p
         , fromTable.viewBaseTable
         , fromTable.maxDaysLookBack
         , fromTable.underlyingTableName
+        , fromTable.secondaryDimLevel
       )
       tableMap += newAltDim.name -> newAltDim
     }
@@ -968,6 +973,8 @@ trait PublicDimension extends PublicTable {
   def grainKey: String
 
   def dimLevel: DimLevel
+
+  def secondaryDimLevel: Option[Int] = Some(1)
 
   def schemas: Set[Schema]
 
@@ -1168,6 +1175,8 @@ case class PublicDim (name: String
   override def schemaRequiredAlias(schema: Schema) : Option[RequiredAlias] = schemaRequiredAliasMap.get(schema)
 
   override def dimLevel: DimLevel = baseDim.dimLevel
+
+  override def secondaryDimLevel: Option[Int] = baseDim.secondaryDimLevel
 
   override def getBaseDim: Dimension = baseDim
 

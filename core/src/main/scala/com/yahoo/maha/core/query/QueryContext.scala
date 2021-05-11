@@ -112,7 +112,7 @@ case class DimensionBundle(dim: Dimension
                            , hasPKRequested: Boolean
                            , hasNonFKNonForceFilters: Boolean
                            , hasLowCardinalityFilter: Boolean
-                           , secondaryDimLevel : Int = 0
+                           , secondaryDimLevel : Int = 1
                             ) {
   //only filtering on primary key alias then subquery candidate
   lazy val filterFields: SortedSet[String] = for (filter <- filters) yield {
