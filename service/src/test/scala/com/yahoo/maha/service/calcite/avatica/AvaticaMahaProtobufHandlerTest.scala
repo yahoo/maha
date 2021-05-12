@@ -1,9 +1,11 @@
 package com.yahoo.maha.service.calcite.avatica
 
+import com.google.common.collect.Lists
 import com.yahoo.maha.core._
 import com.yahoo.maha.service.BaseMahaServiceTest
+import com.yahoo.maha.service.calcite.avatica.HandlerHelper.getError
 import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaServiceExecutionException}
-import org.apache.calcite.avatica.AvaticaSeverity
+import org.apache.calcite.avatica.{AvaticaSeverity, SqlState}
 import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem
 import org.apache.calcite.avatica.remote.{ProtobufTranslationImpl, Service}
 import org.apache.calcite.sql.parser.SqlParseException
@@ -80,6 +82,7 @@ class AvaticaMahaProtobufHandlerTest extends BaseMahaServiceTest with Matchers {
       errorResponse.errorMessage should equal ("Exception at executing query Test execu exception, ") (after being whiteSpaceNormalised)
       errorResponse.errorCode should equal (500)
       //potential bug in Avatica: AvaticaSeverity.UNKNOWN lost after deserializing(paring) serialized ErrorResponse objects
+      //ticket: https://issues.apache.org/jira/browse/CALCITE-4604
       //errorResponse.severity should equal (AvaticaSeverity.UNKNOWN)
       errorResponse.sqlState should equal ("DATA_EXCEPTION_NO_SUBCLASS")
     }
