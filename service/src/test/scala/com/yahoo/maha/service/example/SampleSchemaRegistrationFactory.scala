@@ -41,6 +41,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           "student_grade_sheet", DailyGrain, OracleEngine, Set(StudentSchema),
           Set(
             DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+            , DimCol("batch_id", IntType(), annotations = Set(ForeignKey("batch")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
@@ -66,6 +67,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
       builder.toPublicFact("student_performance",
           Set(
             PubCol("class_id", "Class ID", InEquality),
+            PubCol("batch_id", "Batch ID", InEquality),
             PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
             PubCol("section_id", "Section ID", InEquality),
             PubCol("date", "Day", Equality),
@@ -142,6 +144,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           "student_grade_sheet_again", DailyGrain, OracleEngine, Set(StudentSchema),
           Set(
             DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+            , DimCol("batch_id", IntType(), annotations = Set(ForeignKey("batch")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("section_id", IntType(3), annotations = Set(ForeignKey("section")))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
@@ -160,6 +163,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
         .toPublicFact("student_performance2",
           Set(
             PubCol("class_id", "Class ID", InEquality),
+            PubCol("batch_id", "Batch ID", InEquality),
             PubCol("student_id", "Student ID", InEqualityFieldEquality),
             PubCol("section_id", "Section ID", InNotInEquality),
             PubCol("date", "Day", Equality),
@@ -185,6 +189,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           "student_performance", DailyGrain, OracleEngine, Set(StudentSchema),
           Set(
             DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+            , DimCol("batch_id", IntType(), annotations = Set(ForeignKey("batch")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
             , DimCol("class_volunteer_id", IntType(), annotations = Set(ForeignKey("class_volunteers")))
@@ -224,6 +229,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
       builder.toPublicFact("student_performance",
         Set(
           PubCol("class_id", "Class ID", InEquality),
+          PubCol("batch_id", "Batch ID", InEquality),
           PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
           PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality),
           PubCol("class_volunteer_id", "Class Volunteer ID", InBetweenEqualityFieldEquality),
@@ -580,6 +586,30 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
       )
     }
 
+    val batch_dim: PublicDimension = {
+      val builder: DimensionBuilder = {
+        ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+          Dimension.newDimension("batch", OracleEngine, LevelOne, Set(StudentSchema),
+            Set(DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("name", StrType())
+              , DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+            )
+            , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+            , annotations = Set(OracleHashPartitioning)
+            , secondaryDimLevel = Some(0)
+          )
+        }
+      }
+
+      builder.toPublicDimension("batch","batch",
+        Set(
+          PubCol("id", "Batch ID", InNotInEquality)
+          , PubCol("name", "Batch Name", InNotInEquality)
+          , PubCol("class_id", "Class ID", Equality)
+        )
+      )
+    }
+
     /*
      Section Dimension: although class and student foreign keys in the section dim violates the 2NF and 3NF, it is just example
      describing LevelThree dim. LevelThree dim always contains level one and level two foreign keys.
@@ -593,6 +623,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
               , DimCol("name", StrType())
               , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
               , DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+              , DimCol("batch_id", IntType(), annotations = Set(ForeignKey("batch")))
               , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
               , DimCol("start_year", IntType())
               , DimCol("status", StrType())
@@ -667,6 +698,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
           PubCol("id", "Section ID", InNotInEquality)
           , PubCol("student_id", "Student ID", Equality)
           , PubCol("class_id", "Class ID", Equality)
+          , PubCol("batch_id", "Batch ID", Equality)
           , PubCol("lab_id", "Lab ID", InBetweenEqualityFieldEquality)
           , PubCol("name", "Section Name", Equality)
           , PubCol("start_year", "Section Start Year", InEquality, hiddenFromJson = true)
@@ -884,6 +916,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
 
     registry.register(section_dim)
     registry.register(class_dim)
+    registry.register(batch_dim)
     registry.register(student_dim)
     registry.register(student_dim_v1)
     registry.register(researcher_dim)
