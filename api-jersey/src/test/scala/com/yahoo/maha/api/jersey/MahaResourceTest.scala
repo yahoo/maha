@@ -3,12 +3,14 @@
 package com.yahoo.maha.api.jersey
 
 import com.yahoo.maha.service.calcite.avatica.MahaAvaticaService
+
 import javax.ws.rs.core.MediaType
 import com.yahoo.maha.api.jersey.example.ExampleMahaService
 import com.yahoo.maha.service.utils.MahaConstants
 import junit.framework.TestCase.assertNotNull
+import org.apache.calcite.avatica.proto.Common.WireMessage
 import org.apache.http.client.methods.{HttpGet, HttpPost}
-import org.apache.http.entity.StringEntity
+import org.apache.http.entity.{ByteArrayEntity, StringEntity}
 import org.apache.http.impl.client.{CloseableHttpClient, HttpClientBuilder}
 import org.apache.http.util.EntityUtils
 import org.apache.http.{HttpEntity, HttpHeaders, HttpResponse}
@@ -474,9 +476,12 @@ class MahaResourceTest {
     val jsonRequest = s"""{}"""
     val httpEntity: HttpEntity = new StringEntity(jsonRequest)
     httpPost.setEntity(httpEntity)
-    httpPost.setHeader(HttpHeaders.ACCEPT,MediaType.APPLICATION_JSON)
-    httpPost.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
     val httpResponse: HttpResponse = httpClient.execute(httpPost)
+
+    val httpPost2: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/sql-avatica?serialization=protobuf")
+    val httpEntity2: HttpEntity = new ByteArrayEntity(WireMessage.getDefaultInstance.toByteArray)
+    httpPost2.setEntity(httpEntity2)
+    val httpResponse2: HttpResponse = httpClient.execute(httpPost2)
   }
 
   @Test

@@ -137,7 +137,6 @@ class MahaResource(mahaService: MahaService
         val wireMessage = WireMessage.parseFrom(httpServletRequest.getInputStream)
         logger.info(s"wireMessage type: ${wireMessage.getName}")
         val handlerResponse = avaticaProtobufHandler.apply(wireMessage.toByteArray)
-        logger.info(s"parsed handlerResponse.getResponse:" + translationer.parseResponse(handlerResponse.getResponse))
         response.resume(handlerResponse.getResponse)
       case _ =>
         val avaticaJsonHandler = new AvaticaMahaJsonHandler(mahaAvaticaService, NoopMetricsSystem.getInstance())
