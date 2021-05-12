@@ -3,8 +3,8 @@
 package com.yahoo.maha.api.jersey
 
 import java.util.UUID
+import com.yahoo.maha.service.calcite.avatica.{AvaticaMahaJsonHandler, AvaticaMahaProtobufHandler, MahaAvaticaService}
 
-import com.yahoo.maha.service.calcite.avatica.{AvaticaMahaJsonHandler, MahaAvaticaService}
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.container.{AsyncResponse, ContainerRequestContext, Suspended}
 import javax.ws.rs.core.{Context, MediaType}
@@ -18,6 +18,8 @@ import com.yahoo.maha.service.output.{DebugRenderer, NoopDebugRenderer}
 import com.yahoo.maha.service.utils.MahaConstants
 import grizzled.slf4j.Logging
 import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem
+import org.apache.calcite.avatica.proto.Common.WireMessage
+import org.apache.calcite.avatica.remote.{ProtobufHandler, ProtobufTranslationImpl}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.MDC
@@ -127,13 +129,28 @@ class MahaResource(mahaService: MahaService
             @Context httpServletRequest: HttpServletRequest,
             @Context containerRequestContext: ContainerRequestContext,
             @Suspended response: AsyncResponse) : Unit = {
-    val avaticaJsonHandler = new AvaticaMahaJsonHandler(mahaAvaticaService, NoopMetricsSystem.getInstance())
-    val rawJson = IOUtils.toByteArray(httpServletRequest.getInputStream)
-    val json = new String(rawJson)
-    logger.info(json)
-    val handlerResponse = avaticaJsonHandler.apply(json)
-    logger.info(handlerResponse.getResponse)
-    response.resume(handlerResponse.getResponse)
+    val serialization = httpServletRequest.getParameter("serialization")
+    serialization match {
+      case "PROTOBUF" | "protobuf" =>
+        val translationer = new ProtobufTranslationImpl
+        val avaticaProtobufHandler = new AvaticaMahaProtobufHandler(mahaAvaticaService, translationer, NoopMetricsSystem.getInstance())
+        val wireMessage = WireMessage.parseFrom(httpServletRequest.getInputStream)
+        logger.info(s"wireMessage type: ${wireMessage.getName}")
+        val handlerResponse = avaticaProtobufHandler.apply(wireMessage.toByteArray)
+        response.resume(handlerResponse.getResponse)
+      case _ =>
+        val avaticaJsonHandler = new AvaticaMahaJsonHandler(mahaAvaticaService, NoopMetricsSystem.getInstance())
+        val rawString = IOUtils.toByteArray(httpServletRequest.getInputStream)
+        val json = new String(rawString)
+        logger.info(s"parsed json: " + json)
+        val handlerResponse = avaticaJsonHandler.apply(json)
+        logger.info(handlerResponse.getResponse)
+        response.resume(handlerResponse.getResponse)
+    }
+
+
+
+
   }
 
   @POST
