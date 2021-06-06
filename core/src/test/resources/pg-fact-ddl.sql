@@ -242,7 +242,6 @@ advertiser_id	NUMERIC		NOT NULL,
 max_bid	NUMERIC	DEFAULT 0.0	NOT NULL, 
 clicks	NUMERIC(3)	DEFAULT 0	NOT NULL, 
 ad_format_id	NUMERIC(3)		NOT NULL, 
-ad_format_sub_type	NUMERIC(8)		NOT NULL, 
 country_woeid	NUMERIC		NOT NULL, 
 campaign_id	NUMERIC		NOT NULL, 
 column_id	NUMERIC		NOT NULL)

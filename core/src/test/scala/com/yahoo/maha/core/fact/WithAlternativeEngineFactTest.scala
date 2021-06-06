@@ -343,6 +343,16 @@ class WithAlternativeEngineFactTest extends BaseFactTest {
     thrown.getMessage should startWith ("requirement failed: Cannot override dim col that is supposed to be discarded")
   }
 
+  test("withAlternativeEngine: column alias should be preserved") {
+    val fact = factWithColumnAliasing
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withAlternativeEngine("fact2", "fact1", OracleEngine, maxDaysWindow = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)), maxDaysLookBack = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)))
+    }
+    val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts("fact1").fact.dimCols.count(d => d.name.equals("cmp_id_alias") && d.alias.get.equals("campaign_id")) == 1)
+    assert(bcOption.get.facts("fact2").fact.dimCols.count(d => d.name.equals("cmp_id_alias") && d.alias.get.equals("campaign_id")) == 1)
+  }
 }
 
 
