@@ -419,7 +419,9 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
   }
 
   private[this] def getCubeJsonByName(factList: List[PublicFact], useRevisions: Boolean = false): Map[String, JObject] = {
-    factList.map { publicFact => (publicFact.name, {
+    factList.map { publicFact =>
+      val mappableName = if(!useRevisions) publicFact.name else s"""${publicFact.name},${publicFact.revision}"""
+      (mappableName, {
       val dimensionFieldList = publicFact.dimCols.toList.sortBy(_.alias).collect {
         case  dimCol if !dimCol.hiddenFromJson =>
           val filterList = dimCol.filters.map(_.toString.toUpperCase).toList
