@@ -506,16 +506,16 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
       val maxDaysLookBack = JArray(toMaxDaysList(publicFact.maxDaysLookBack))
       val maxDaysWindow = JArray(toMaxDaysList(publicFact.maxDaysWindow))
 
-      val nameJson = if(!useRevisions) ("name" -> toJSON(publicFact.name)) else ("name,revision" -> toJSON(s"""${publicFact.name},${publicFact.revision}"""))
-
-      makeObj(
-        nameJson
+      val jarray = makeObj(
+        ("name" -> toJSON(publicFact.name))
           :: ("mainEntityIds" -> makeObj(schemaColAliasMap))
           :: ("maxDaysLookBack" -> maxDaysLookBack)
           :: ("maxDaysWindow" -> maxDaysWindow)
           :: ("fields" -> JArray(dimensionFieldList ++ factFieldList))
           :: Nil
       )
+
+        if(!useRevisions) jarray else makeObj(jarray.obj ::: List(("revision" -> toJSON(publicFact.revision))))
     })}.toMap
   }
 
@@ -649,21 +649,23 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
 
   private[this] def getDimensionsJsonArray(dimValues: Iterable[PublicDimension], useRevisions: Boolean = false): JArray = JArray(
     dimValues.map { publicDim =>
-      val nameJson = if(!useRevisions) ("name" -> toJSON(publicDim.name)) else ("name,revision" -> toJSON(s"""${publicDim.name},${publicDim.revision}"""))
-      makeObj(
-        nameJson
-          :: ("fields" -> toJSON(publicDim.columnsByAliasMap.filter(rec => !rec._2.hiddenFromJson).keySet.toList))
-          :: ("fieldsWithSchemas" -> JArray(
-          publicDim.columnsByAliasMap.filter(rec => !rec._2.hiddenFromJson).keySet.map(colName => {
-            makeObj(
-              "name" -> toJSON(colName)
-                ::"allowedSchemas" -> toJSON(publicDim.columnsByAliasMap(colName).restrictedSchemas.map(_.entryName).toList)
-                ::Nil
-            )
-          }).toList
+
+        val jarray = makeObj(
+          ("name" -> toJSON(publicDim.name))
+            :: ("fields" -> toJSON(publicDim.columnsByAliasMap.filter(rec => !rec._2.hiddenFromJson).keySet.toList))
+            :: ("fieldsWithSchemas" -> JArray(
+            publicDim.columnsByAliasMap.filter(rec => !rec._2.hiddenFromJson).keySet.map(colName => {
+              makeObj(
+                "name" -> toJSON(colName)
+                  :: "allowedSchemas" -> toJSON(publicDim.columnsByAliasMap(colName).restrictedSchemas.map(_.entryName).toList)
+                  :: Nil
+              )
+            }).toList
+          )
+            :: Nil)
         )
-          ::Nil
-          ))
+
+        if(!useRevisions) jarray else makeObj(jarray.obj ::: makeObj(List(("revision" -> toJSON(publicDim.revision)))).obj)
     }.toList
   )
 
