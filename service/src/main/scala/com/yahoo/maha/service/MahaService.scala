@@ -195,6 +195,7 @@ trait MahaService {
   def getDomainForCube(registryName: String, cube : String) : Option[String]
   def getFlattenDomain(registryName: String) : Option[String]
   def getFlattenDomainForCube(registryName: String, cube : String, revision: Option[Int]= None) : Option[String]
+  def getRevisionedDomain(registryName: String): Option[String]
 
   /*
     Defines list of engines which are not capable calculating the totalRowCount in one run
@@ -441,6 +442,12 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
       } else {
         Some(config.registry(registryName).registry.getFlattenCubeJsonAsStringForCube(cube))
       }
+    } else None
+  }
+
+  override def getRevisionedDomain(registryName: String): Option[String] = {
+    if (config.registry.contains(registryName)) {
+      Some(config.registry(registryName).registry.versionedDomainJsonAsString)
     } else None
   }
 

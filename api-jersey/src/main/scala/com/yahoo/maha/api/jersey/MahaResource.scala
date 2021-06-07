@@ -119,6 +119,18 @@ class MahaResource(mahaService: MahaService
     }
   }
 
+  @GET
+  @Path("/{registryName}/fulldomain")
+  @Produces(Array(MediaType.APPLICATION_JSON))
+  def getRevisionedDomain(@PathParam("registryName") registryName: String): String = {
+    val domainjson: Option[String] = mahaService.getRevisionedDomain(registryName)
+    if(domainjson.isDefined) {
+      domainjson.get
+    } else {
+      throw NotFoundException(Error(s"registry $registryName not found"))
+    }
+  }
+
   @POST
   @Path("/{registryName}/schemas/{schema}/sql-avatica")
   //@Produces(Array(MediaType.APPLICATION_JSON))

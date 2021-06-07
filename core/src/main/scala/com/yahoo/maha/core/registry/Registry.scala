@@ -410,8 +410,18 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     estimate
   }
 
-  private[this] def getCubeJsonByName: Map[String, JObject] = {
-    factMap.values.toList.filter(publicFact => publicFact.revision == defaultPublicFactRevisionMap(publicFact.name)).map { publicFact => (publicFact.name, {
+  private[this] def factListFiltered: List[PublicFact] = {
+    factMap.values.toList.filter(publicFact => publicFact.revision == defaultPublicFactRevisionMap(publicFact.name))
+  }
+
+  private[this] def factListUnfiltered: List[PublicFact] = {
+    factMap.values.toList
+  }
+
+  private[this] def getCubeJsonByName(factList: List[PublicFact], useRevisions: Boolean = false): Map[String, JObject] = {
+    factList.map { publicFact =>
+      val mappableName = if(!useRevisions) publicFact.name else s"""${publicFact.name},${publicFact.revision}"""
+      (mappableName, {
       val dimensionFieldList = publicFact.dimCols.toList.sortBy(_.alias).collect {
         case  dimCol if !dimCol.hiddenFromJson =>
           val filterList = dimCol.filters.map(_.toString.toUpperCase).toList
@@ -496,7 +506,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
       val maxDaysLookBack = JArray(toMaxDaysList(publicFact.maxDaysLookBack))
       val maxDaysWindow = JArray(toMaxDaysList(publicFact.maxDaysWindow))
 
-      makeObj(
+      val jarray = makeObj(
         ("name" -> toJSON(publicFact.name))
           :: ("mainEntityIds" -> makeObj(schemaColAliasMap))
           :: ("maxDaysLookBack" -> maxDaysLookBack)
@@ -504,6 +514,8 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
           :: ("fields" -> JArray(dimensionFieldList ++ factFieldList))
           :: Nil
       )
+
+        if(!useRevisions) jarray else makeObj(jarray.obj ::: List(("revision" -> toJSON(publicFact.revision))))
     })}.toMap
   }
 
@@ -627,6 +639,36 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     })}.toMap
   }
 
+  private[this] def dimValuesFiltered: Iterable[PublicDimension] = {
+    dimMap.values.filter(pd => pd.revision == defaultPublicDimRevisionMap(pd.name))
+  }
+
+  private[this] def dimValuesUnfiltered: Iterable[PublicDimension] = {
+    dimMap.values
+  }
+
+  private[this] def getDimensionsJsonArray(dimValues: Iterable[PublicDimension], useRevisions: Boolean = false): JArray = JArray(
+    dimValues.map { publicDim =>
+
+        val jarray = makeObj(
+          ("name" -> toJSON(publicDim.name))
+            :: ("fields" -> toJSON(publicDim.columnsByAliasMap.filter(rec => !rec._2.hiddenFromJson).keySet.toList))
+            :: ("fieldsWithSchemas" -> JArray(
+            publicDim.columnsByAliasMap.filter(rec => !rec._2.hiddenFromJson).keySet.map(colName => {
+              makeObj(
+                "name" -> toJSON(colName)
+                  :: "allowedSchemas" -> toJSON(publicDim.columnsByAliasMap(colName).restrictedSchemas.map(_.entryName).toList)
+                  :: Nil
+              )
+            }).toList
+          )
+            :: Nil)
+        )
+
+        if(!useRevisions) jarray else makeObj(jarray.obj ::: makeObj(List(("revision" -> toJSON(publicDim.revision)))).obj)
+    }.toList
+  )
+
 
   private def toMaxDaysList(factDaysMap: Map[(RequestType, Grain), Int]) = {
     factDaysMap.map {
@@ -640,27 +682,10 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
   }
 
   val (domainJsonAsString : String, cubesJsonStringByName: Map[String, String], cubesJson: String) = {
-    val cubeJsonByName : Map[String, JObject] = getCubeJsonByName
+    val cubeJsonByName : Map[String, JObject] = getCubeJsonByName(factListFiltered)
     val cubesJsonArray: JArray = JArray(cubeJsonByName.toList.sortBy(_._1).map(_._2))
 
-    val dimensionsJsonArray: JArray = JArray(
-      dimMap.values.filter(pd => pd.revision == defaultPublicDimRevisionMap(pd.name)).map { publicDim =>
-        makeObj(
-          ("name" -> toJSON(publicDim.name))
-            :: ("fields" -> toJSON(publicDim.columnsByAliasMap.filter(rec => !rec._2.hiddenFromJson).keySet.toList))
-            :: ("fieldsWithSchemas" -> JArray(
-                  publicDim.columnsByAliasMap.filter(rec => !rec._2.hiddenFromJson).keySet.map(colName => {
-                  makeObj(
-                    "name" -> toJSON(colName)
-                    ::"allowedSchemas" -> toJSON(publicDim.columnsByAliasMap(colName).restrictedSchemas.map(_.entryName).toList)
-                    ::Nil
-                  )
-            }).toList
-            )
-            ::Nil
-        ))
-      }.toList
-    )
+    val dimensionsJsonArray: JArray = getDimensionsJsonArray(dimValuesFiltered)
 
     val schemasJson: JObject = {
       val jsonMap = schemaToFactMap.filter(e => e._1 != NoopSchema) map {
@@ -678,6 +703,29 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
 
     val cubesJson = JArray(cubeJsonByName.keys.toList.sorted.map(JString(_)))
     (compact(render(finalJson)), cubeJsonByName.mapValues(j => compact(render(j))), compact(render(cubesJson)))
+  }
+
+  val versionedDomainJsonAsString: String = {
+    val cubeJsonByName : Map[String, JObject] = getCubeJsonByName(factListUnfiltered, true)
+    val cubesJsonArray: JArray = JArray(cubeJsonByName.toList.sortBy(_._1).map(_._2))
+
+    val dimensionsJsonArray: JArray = getDimensionsJsonArray(dimValuesUnfiltered, true)
+
+    val schemasJson: JObject = {
+      val jsonMap = schemaToFactMap.filter(e => e._1 != NoopSchema) map {
+        case (schema, publicFacts) => (schema.toString, toJSON(publicFacts.map(_.name).toList))
+      }
+      makeObj(jsonMap)
+    }
+
+    val finalJson = makeObj(
+      ("dimensions" -> dimensionsJsonArray)
+        :: ("schemas" -> schemasJson)
+        :: ("cubes" -> cubesJsonArray)
+        :: Nil
+    )
+
+    compact(render(finalJson))
   }
 
   def getCubeJsonAsStringForCube(name: String): String = {
