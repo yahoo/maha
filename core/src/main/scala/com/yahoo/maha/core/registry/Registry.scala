@@ -4,10 +4,11 @@ package com.yahoo.maha.core.registry
 
 import com.yahoo.maha.core.NoopSchema.NoopSchema
 import com.yahoo.maha.core.dimension.{PublicDimColumn, PublicDimension}
-import com.yahoo.maha.core.fact.{Fact, FactBuilder, FactCandidate, PublicFact, PublicFactTable, PublicFactColumn}
+import com.yahoo.maha.core.fact.{Fact, FactBuilder, FactCandidate, PublicFact, PublicFactColumn, PublicFactTable}
 import com.yahoo.maha.core.request.{ReportingRequest, RequestType}
 import com.yahoo.maha.core.{DefaultDimEstimator, DefaultFactEstimator, _}
 import grizzled.slf4j.Logging
+import org.joda.time.DateTime
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.scalaz.JsonScalaz._
@@ -681,6 +682,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     }.toList
   }
 
+  val sTime = DateTime.now
   lazy val (domainJsonAsString : String, cubesJsonStringByName: Map[String, String], cubesJson: String) = {
     val cubeJsonByName : Map[String, JObject] = getCubeJsonByName(factListFiltered)
     val cubesJsonArray: JArray = JArray(cubeJsonByName.toList.sortBy(_._1).map(_._2))
@@ -705,6 +707,10 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     (compact(render(finalJson)), cubeJsonByName.mapValues(j => compact(render(j))), compact(render(cubesJson)))
   }
 
+  println("Building Domain took " + (DateTime.now.getMillis - sTime.getMillis)/1000 + " sec.")
+
+  val sTime2 = DateTime.now
+
   lazy val versionedDomainJsonAsString: String = {
     val cubeJsonByName : Map[String, JObject] = getCubeJsonByName(factListUnfiltered, true)
     val cubesJsonArray: JArray = JArray(cubeJsonByName.toList.sortBy(_._1).map(_._2))
@@ -727,6 +733,9 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
 
     compact(render(finalJson))
   }
+
+  println("Building Full Domain took " + (DateTime.now.getMillis - sTime2.getMillis)/1000 + " sec.")
+
 
   def getCubeJsonAsStringForCube(name: String): String = {
     require(cubesJsonStringByName.contains(name), s"cube name $name does not exist")

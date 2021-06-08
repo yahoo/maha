@@ -121,7 +121,7 @@ class TimeoutThrottlingFilterTest extends AnyFunSuite with Matchers with BeforeA
     assert(trynow.isSuccess)
   }
 
-  test("Test thread safeness of TimeoutThrottlingFilter") {
+  ignore("Test thread safeness of TimeoutThrottlingFilter") {
 
     val targetURI = new URI("http://localhost:" + server.address.getPort + "/mock/endpoint");
 
