@@ -682,7 +682,6 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     }.toList
   }
 
-  val sTime = DateTime.now
   lazy val (domainJsonAsString : String, cubesJsonStringByName: Map[String, String], cubesJson: String) = {
     val cubeJsonByName : Map[String, JObject] = getCubeJsonByName(factListFiltered)
     val cubesJsonArray: JArray = JArray(cubeJsonByName.toList.sortBy(_._1).map(_._2))
@@ -707,10 +706,6 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     (compact(render(finalJson)), cubeJsonByName.mapValues(j => compact(render(j))), compact(render(cubesJson)))
   }
 
-  println("Building Domain took " + (DateTime.now.getMillis - sTime.getMillis)/1000 + " sec.")
-
-  val sTime2 = DateTime.now
-
   lazy val versionedDomainJsonAsString: String = {
     val cubeJsonByName : Map[String, JObject] = getCubeJsonByName(factListUnfiltered, true)
     val cubesJsonArray: JArray = JArray(cubeJsonByName.toList.sortBy(_._1).map(_._2))
@@ -733,8 +728,6 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
 
     compact(render(finalJson))
   }
-
-  println("Building Full Domain took " + (DateTime.now.getMillis - sTime2.getMillis)/1000 + " sec.")
 
 
   def getCubeJsonAsStringForCube(name: String): String = {
