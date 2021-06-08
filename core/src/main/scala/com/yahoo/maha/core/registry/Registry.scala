@@ -681,7 +681,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     }.toList
   }
 
-  val (domainJsonAsString : String, cubesJsonStringByName: Map[String, String], cubesJson: String) = {
+  lazy val (domainJsonAsString : String, cubesJsonStringByName: Map[String, String], cubesJson: String) = {
     val cubeJsonByName : Map[String, JObject] = getCubeJsonByName(factListFiltered)
     val cubesJsonArray: JArray = JArray(cubeJsonByName.toList.sortBy(_._1).map(_._2))
 
