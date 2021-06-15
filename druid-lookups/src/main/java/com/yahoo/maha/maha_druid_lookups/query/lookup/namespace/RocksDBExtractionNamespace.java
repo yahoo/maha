@@ -58,6 +58,9 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     private String overrideLookupServiceHosts = null;
     private List<String> overrideLookupServiceHostsList = null;
 
+    @JsonProperty
+    private boolean dynamicSchemaLookupEnabled = false;
+
 
     @JsonCreator
     public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
@@ -74,7 +77,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @NotNull @JsonProperty(value = "missingLookupConfig", required = false) final MissingLookupConfig missingLookupConfig,
                                       @JsonProperty(value = "cacheActionRunner", required = false) final String cacheActionRunnerName,
                                       @JsonProperty(value = "overrideLookupServiceHosts", required = false) final String overrideLookupServiceHosts,
-                                      @JsonProperty(value = "randomLocalPathSuffixEnabled", required = false) final boolean randomLocalPathSuffixEnabled) {
+                                      @JsonProperty(value = "randomLocalPathSuffixEnabled", required = false) final boolean randomLocalPathSuffixEnabled,
+                                      @JsonProperty(value = "dynamicSchemaLookupEnabled", required = false) final boolean dynamicSchemaLookupEnabled) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
@@ -152,6 +156,11 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     //@Override
     public boolean isCacheEnabled() {
         return cacheEnabled;
+    }
+
+    @Override
+    public boolean isDynamicSchemaLookup() {
+        return dynamicSchemaLookupEnabled;
     }
 
     @Override

@@ -34,6 +34,8 @@ public interface ExtractionNamespace {
 
     boolean isCacheEnabled();
 
+    boolean isDynamicSchemaLookup();
+
     ExtractionNameSpaceSchemaType getSchemaType();
 
     default List<String> getOverrideLookupServiceHostsList() { return Collections.emptyList(); }

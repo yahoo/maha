@@ -216,6 +216,9 @@ public class RocksDBManager {
             LOG.info("startNewInstance: adding Listener...");
             kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, false);
         }
+        if (extractionNamespace.isDynamicSchemaLookup()) {
+            //TODO
+        }
 
         final String key = extractionNamespace.getNamespace();
         RocksDB oldDb = null;
