@@ -131,7 +131,7 @@ public class RocksDBManager {
 
         final String localZippedFileNameWithPath = String.format("%s/%s/%srocksdb_%s.zip",
                 localStorageDirectory, extractionNamespace.getNamespace(), loadTime, getLocalPathSuffix(extractionNamespace.isRandomLocalPathSuffixEnabled()));
-        LOG.error(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
+        LOG.info(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
 
         final String localPath = FilenameUtils.removeExtension(localZippedFileNameWithPath);
 
