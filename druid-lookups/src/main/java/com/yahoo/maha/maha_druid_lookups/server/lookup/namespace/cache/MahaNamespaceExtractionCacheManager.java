@@ -397,7 +397,8 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
             return new RocksDBLookupExtractor(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter, (CacheActionRunner) rocksDBExtractionNamespace.getCacheActionRunner());
         } else if (extractionNamespace instanceof MongoExtractionNamespace) {
             return new MongoLookupExtractor((MongoExtractionNamespace) extractionNamespace, map, lookupService);
-        } else {
+        }//TODO Register new extractor
+        else {
 //            return new MapLookupExtractor(map, false);
             return null;
         }

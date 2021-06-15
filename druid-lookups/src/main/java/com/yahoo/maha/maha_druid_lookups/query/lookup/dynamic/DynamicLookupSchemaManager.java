@@ -6,10 +6,14 @@ import java.util.concurrent.*;
 public class DynamicLookupSchemaManager {
 
     private Map<String, DynamicLookupSchema> schemaMap;
+
     public DynamicLookupSchemaManager() {
         schemaMap = new ConcurrentHashMap<>();
     }
 
+    /*
+     Called by Rockdb Manager to update Schema
+     */
     public void updateSchema(String namespace, DynamicLookupSchema schema) {
         schemaMap.put(namespace, schema);
     }
