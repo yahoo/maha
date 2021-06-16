@@ -391,13 +391,15 @@ class JsonRowListTest extends AnyFunSuite with BaseQueryGeneratorTest with Share
   }
   test("fail to construct file json row list with no write perm") {
     val tmpFile= new File("/blah")
-    val jsonRowList : RowList = FileJsonRowList.fileJsonRowList(tmpFile, None, false)(query)
-    val thrown = intercept[FileNotFoundException]{
-      jsonRowList.withLifeCycle {
-        
+    if (!tmpFile.exists()) {
+      val jsonRowList : RowList = FileJsonRowList.fileJsonRowList(tmpFile, None, false)(query)
+      val thrown = intercept[FileNotFoundException]{
+        jsonRowList.withLifeCycle {
+
+        }
       }
+      assert(thrown.getMessage === "/blah (Permission denied)" || thrown.getMessage === "/blah (Read-only file system)")
     }
-    assert(thrown.getMessage === "/blah (Permission denied)" || thrown.getMessage === "/blah (Read-only file system)")
   }
 
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
