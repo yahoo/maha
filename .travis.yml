@@ -1,33 +1,35 @@
 language: scala
 scala:
-  - 2.12.10
+- 2.12.10
 cache:
   directories:
-  - $HOME/.sbt/0.13/dependency
-  - $HOME/.sbt/boot/scala*
-  - $HOME/.sbt/launchers
-  - $HOME/.ivy2/cache
+  - "$HOME/.sbt/0.13/dependency"
+  - "$HOME/.sbt/boot/scala*"
+  - "$HOME/.sbt/launchers"
+  - "$HOME/.ivy2/cache"
 before_cache:
-  - find $HOME/.sbt -name "*.lock" -type f -delete
-  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -type f -delete
+- find $HOME/.sbt -name "*.lock" -type f -delete
+- find $HOME/.ivy2/cache -name "ivydata-*.properties" -type f -delete
 sudo: required
 services:
-  - docker
-
+- docker
 jdk:
 - oraclejdk8
-
-install: ./travis/install-dependencies.sh
-script: ./travis/build.sh
-
+install: "./travis/install-dependencies.sh"
+script: "./travis/build.sh"
 after_success:
-- 'if [ "${TRAVIS_PULL_REQUEST}" = "false" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then ./travis/publish_to_bintray.sh; else echo "skipping publish"; fi'
+- if [ "${TRAVIS_PULL_REQUEST}" = "false" ] && [ "${TRAVIS_BRANCH}" = "master" ];
+  then ./travis/publish_to_maven.sh; else echo "skipping publish"; fi
 branches:
   only:
   - master
-  - /.*/
+  - "/.*/"
 env:
   global:
   - secure: JjGTZFM5w5/dsbrLVQCiPf5p/l9NLICSq0cE6hQA6NjeaaGboJIF2yw6GheSNC0PnuXiE+nu4hGIgrKY33hqf5EE8vVJDl/WLmFhuN+UgcyT+vrTUJFKBvfhSwxDLf1b7FZFO6Z3DL2LirCrb5WVUbir3kAixKn57Ldo6BcMAOGE+EFCVJGt9vHGnz+xDdl/XKNuFydOFjpxzqsBQHzS4KJYaOZLXqAMTBn/L2KND5o+DVtYhdOHF5rjVdkljxpiST08UvA5gzlRRJNGx3pxGkc6o7OHyFzQoouRzOjDLar9LzgEqaM6mZ6CzCzmH7j85nXYwZ706rO2ve9iscZmhGsIo297nP+DdetifSE75VQz0BZ+hkqB3fLDGT+5cmCwQ95yb5/cxM8qBXXHxm7HnIgEAAoz7ZxRnOQnft6PhubXXOV0LXS96vNPU0iKXXbNAsewraAfnNrbHvdAxJgIOHbosUkkxck5U7QVZxgR3Ed5q9BU7/OhJeS6DM3wJy+cqcZMk0nORXoFCBQH9hp/mO++VEs5wZWlAjwynzGEsNtYBwkNC+wuOforusc8vJPeeq3rAS88v5nGCfXNeJp1xInJipzsgvylSX/g4hb6ZJAqb6dqb4IKSEORns37TS3doHPeW3cJ15KFAfFYFOzAiEB9f9b/oIwNDHWMVgya/8Q=
   - secure: hSFVnVSOV9mOUw9llSm0wEZMMOsPVfzjs1VGzv64+2jBJDT7V34mJG0vbAu/aIYuSLs0td6fEAo2kXow/53NWHCfJBTR5JaW93GG/7y/0hyrxoLmEr0SQwbKDTVFzIYWxUg4vUJHwx4buuPPa3PjqX0xTNDB1x2U9hyvCOdP26rXKwA2fKyUqoPvmcY9+tUrobIs8lLXzcYfTboQL3GVkz7BeWGQyF+qiFuIpPd+G+8KfuDbhMxiGSA9okznwiRj5QMJYGBAnwkY6a6DlE5ORGNjwg+ugVhbh1z9z8LnWGdDwJw7QNH8/4P+b7QAfcqWZFcZ+XXBTF7Up08LO8bpMhhJLKZBMZWUY4rcoyvmS2sw2hSPlWEAweKpZ2cItxVXPo3+inmzusVvz7F4wSBZXM+ZiAKNxnl1pW4OX+nmlOXqOxmRsexiVHU5bZDXsyigq0Cyht58nHjNBwBoDamZCSCSmAk74i0874KQcLEMBCBqj62x4nmWgyq/mW4j3nCETATSDoFO7lxDLyMLZc2lQb3sAO1lfQaR2egwEd/B2/rambBMMDy8RbQ1buLde0+blawQbdV5dLTT48xMvf5NO+ycW7xDY0SSbcwhmh5SDdIL3jBY1m//2zESpntTkzQfDTwyGWaiqIwYsJGQyFdtXgNwPgjm0xHa+qZU3RPnorw=
+  - secure: Ad9lZtWgk7gaIcsJyXFvx7q6XG9ml5EYFzKvtAis+qa1GIp0cbIFGvlrVawUBCAFa5U0cJ+OKuxwXtopA1r03aKn0xmwMsal/E6VSdoocjAXjm4e2UrpAsAULkkmdXRn58A29LZs9hhpm7TqitcpxrCDX8M3x6bFPEEb51uVlw4vn/f/gN14j6zKMiLC0wxcK2MV48vZsLR16XlVv0fC8x6Lff64Mo/JL9ADn2HABk9TFJiXJv8eVJ6eEpEcEcFNQiqRAyGIGWW7WTYT0dmFRoIVf5zI02kilyFiHaUhma+LZJOKbKZdjD4pDRTINsNq9n+7svRj7Bj+GWFMeWzMAGDwStzBcBo1AVVMSPOM0t05YfiE3/v8f8WcsaekGijmA3Fe91pjuyDTAgkQxlPNICgzZdJjFa3XDg8eXTTFSLgAs1jqNcnn1QlZ/D5+7644QoHxY89lL6amose3KDUIPq26NaK8oOxji+z/ZmE+v+j9jnn8V9LC5qo/H+zVKe+TZu7DMhsx6fU5WCt21iaUsl2arykOTgOZhNiKxdYRzon3ETIN/ssoI55hj7VgnBS8GcinzNvdcnjgnVbnw7dURuCsc/5lYXq5gdRomNeXAPZJhjHlFDUdXIeA3/sZUtKTJrypC0utlNgpSZVxQyQFnhUn2zGhiMlhlPLhWUUaPs4=
+  - secure: LGdJtHyT+0RDPDK/vYfjeAh3kOGrL7d0p4nmH9AOrYr87W8YsHZzCbguBXbzcX3wfy6YthzYWi/ZBqXVJ71W0B2OUDieCvBzUV4dsW55+0PoR5SxIxrYiv8LyX11uRUY5S8ziEIo6hEz1adtQVDQGWPUo6hLvL/JLTMMdvTAzb12vd4iZ4SQATnBf4/63CnrvCoPcw2puX47qEf2T7EpQmHLq09Aikyhxj6UyE3wEY9v35dxL/3KMc5RE38GtWrPg8zH05uOzxMLXutnUFiGvVlUX8Gj+C6YnL3hV7r9dnjC5RbGU3oxWHgdKjKu4VoqLPjHlXhPW0WuopM61zJP/Qsk9PU6CyA4bepVYSjurXocLDFVMAvLA0EbDLiUTDQAQMm4tHS5tG8woMVNKkbCn/WfPfUXvqzGFmu4H8G92cpNoWWuKqC+es3QOp+vhnHzot0OaXFsqSgfSvqWs/yY+/cGxF9W5hKFQhzNn8FrwmDz2ztDa1D+E+OBb44dI3vIOVMB9hsXds0WgveNsJfQeuzMLh/XpqLW3A4GL2IEDRCGKZru6mIvDlvOg9T+igD4R8gQLp0VSVL6aX0Z40tdSdkBlBQv/TPiUh4XrX9SAXP8D2ViTlLCDE+Q4T9vU4yeVl2kIn1dEBTTOVLdhlvlzOJIScdnMCsl5MBqURF4XB0=
+  - secure: nWzP1rMy1wuKnDB4uGduk0+vJrsKbnch7cDCa9ylzxcOXiEROQ6LymCzqsitgaLVZN1+M0w+/RMtClsMRWbvS0N/NMpjWSgNVnUbjqERkKutaFHil3lnAcJNRPPVveDnZ6WOnsG2v9so3aIdfnXAuabu8N7b5QxJIwk7ioEVErAVztf8kXkcgz+mhaXVt8IWcLJe3oFQo9ABUzincRSMuNGuJz/fys60ggeqm4pJ+h7Cw2Dt4YvoPYfN801A6ajOHbKJXTb5lvdLBIEsvBsFXSnS1QsVr4DUFe8gDs1iIzkb5oF4F1pZ/iXH3n+Elp0sjU2b42ftHTL4mus+5gjw/KHDvPjh8fafMpMiihbFo6c9HLC3DsypWqlrNA0Svxvhamcsg3pRou802rUA3Ixb+eoQWvyBrS67tMgE5NB8CoqEuGRkafLYAobmq1zodY677YURS/9x+Ho/fxarC1VF+YLM0//IIM8eWgwU06Sj4Fd0FhVSbgVzGRwchky+Bwc3cnzqyJstZvdco4QAuSHczIODK7mwqwGD/Jp/DhKwQlKUXThtif1C2Lqjf5pdb/LfLo9eWI0wS0euuk3EjASarXE5CeeFr1EHUOLPom91lrcsoT3lLC92uS3N+dcQEdTwAMpA9ltiiGdyJK0w/iNwQRRAx8wbdhb7hV4soXHLXNY=
+  - secure: gy/dTLF1LU46e67ukbMNYEbtIZrdUXdHKhxUcYZLBtZlh6WI9vlPIq7Z2M+j9I1QSlO7BTE3E5UhTmVPZEz3qrJegWnVqpL6tz0Z1XeJaqEtKRz2CZxf3Vjur5R/8F8iRKD7mswwtc/bRaXLmVVI9/kD/sooiKKTOJ8VOIuNZMMiin9yrawHhTzkDGNR3nggSu0SFk6BcEQTXT510Wt9ZXXSzDzHP9WALahQ7K+V1ZJx/LQFYrzluE3hYWaLscsemJ5X2uSsMzmEXUvTf2HJhrpcPlJjJVuCKBC77BKnC20vbw7pDoMCJD7u3upDozd7AE0pI9WpAeS+TB6rjSy2Jldo+dGXjv2TkA50dlQwb+OMfZrE7S1HgqnP068lYeQCk7QXbOKol9vtCzOuWzAygrk7y9q4Gx2gCDP1Cl3Nn4Esa/dGBC1iGX/tHQFGZK1UbqfZtAZRdVAngO5RiDUz3FVEgJVNglTAMN8qnYrRbVYzZvCVqXE0Z93aD5TyhRJRDW6ElSspkZaNuf9EKFunCbpARyXY0db9AX9T6VK0mjFy/VQsJmmyGQQbdqSR27BEzYHE2YYafrtJwPvgKF/+tsmktc55YXJWma/Xnmmo0WITIJNCtAWP1/ArbDlMvGnXB0pLsp1jbfq5yR4lE4ZVCse8aQmk/2uC0arJWj2FPwA=
 dist: trusty
