@@ -97,6 +97,10 @@
             <name>Yahoo Inc.</name>
             <url>https://github.com/yahoo</url>
         </developer>
+        <developer>
+            <name>Pranav Bhole</name>
+            <url>https://github.com/pranavbhole</url>
+        </developer>
     </developers>
 
     <scm>
@@ -104,6 +108,27 @@
         <url>https://github.com/yahoo/maha.git</url>
         <tag>HEAD</tag>
     </scm>
+
+    <organization>
+        <name>Yahoo! Inc.</name>
+        <url>http://www.yahoo.com/</url>
+    </organization>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/yahoo/maha/issues</url>
+    </issueManagement>
+
+
+    <inceptionYear>2016</inceptionYear>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <dependencyManagement>
         <dependencies>
@@ -595,6 +620,61 @@
                 </plugins>
             </build>
         </profile>
+
+        <profile>
+            <id>ossrh</id>
+            <properties>
+                <gpg.executable>gpg</gpg.executable>
+                <gpg.keyname>${env.GPG_KEYNAME}</gpg.keyname>
+                <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
+                <gpg.defaultKeyring>false</gpg.defaultKeyring>
+                <gpg.homedir>${main.basedir}/ci/deploy</gpg.homedir>
+                <gpg.publickeyring>pubring.gpg</gpg.publickeyring>
+                <gpg.secretkeyring>secring.gpg</gpg.secretkeyring>
+            </properties>
+            <activation>
+                <property>
+                    <name>performRelease</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>1.6.7</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh</serverId>
+                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
     </profiles>
 
     <dependencies>
@@ -818,10 +898,16 @@
             </extension>
         </extensions>
     </build>
+
     <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
         <repository>
-          <id>bintray-maha-parent-repo</id>
-          <url>https://api.bintray.com/maven/yahoo/maven/maha-parent/;publish=1</url>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
+
 </project>

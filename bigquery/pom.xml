@@ -181,10 +181,15 @@
         </plugins>
     </build>
 
-  <distributionManagement>
-    <repository>
-      <id>bintray-maha-bigquery-executor-repo</id>
-      <url>https://api.bintray.com/maven/yahoo/maven/maha-bigquery-executor/;publish=1</url>
-    </repository>
-  </distributionManagement>
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
+
 </project>
