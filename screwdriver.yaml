@@ -27,5 +27,6 @@ jobs:
       - OSSRH_TOKEN
     requires: [~tag, ~release, ~commit]
     steps:
+      - prepare: "screwdriver/release_prepare.sh"
       - build: mvn -B clean install
       - publish: "screwdriver/publish_to_maven.sh"
