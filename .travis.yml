@@ -19,7 +19,7 @@ install: "./travis/install-dependencies.sh"
 script: "./travis/build.sh"
 after_success:
 - if [ "${TRAVIS_PULL_REQUEST}" = "false" ] && [ "${TRAVIS_BRANCH}" = "master" ];
-  then ./travis/publish_to_bintray.sh; else echo "skipping publish"; fi
+  then ./travis/publish_to_maven.sh; else echo "skipping publish"; fi
 branches:
   only:
   - master
