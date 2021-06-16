@@ -1,7 +1,27 @@
-<servers>
-    <server>
-        <id>ossrh</id>
-        <username>${env.OSSRH_USERNAME}</username>
-        <password>${env.OSSRH_PASSWORD}</password>
-    </server>
-</servers>
+<settings>
+
+    <localRepository>maha</localRepository>
+
+    <servers>
+        <server>
+            <id>ossrh</id>
+            <username></username>
+            <password></password>
+        </server>
+    </servers>
+
+
+    <profiles>
+        <profile>
+            <id>ossrh</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <gpg.executable>pubring.gpg</gpg.executable>
+                <gpg.passphrase></gpg.passphrase>
+            </properties>
+        </profile>
+    </profiles>
+
+</settings>
