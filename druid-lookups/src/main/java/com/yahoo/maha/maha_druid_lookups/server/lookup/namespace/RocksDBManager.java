@@ -129,7 +129,7 @@ public class RocksDBManager {
             FileUtils.forceMkdir(file);
         }
 
-        final String localZippedFileNameWithPath = String.format("%s/%s/%srocksdb_%s.zip",
+        final String localZippedFileNameWithPath = String.format("%s/%s/%s/rocksdb%s.zip",
                 localStorageDirectory, extractionNamespace.getNamespace(), loadTime, getLocalPathSuffix(extractionNamespace.isRandomLocalPathSuffixEnabled()));
         LOG.error(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
 
@@ -162,7 +162,7 @@ public class RocksDBManager {
     }
 
     private String getLocalPathSuffix(boolean enabled) {
-        return enabled ? UUID.randomUUID().toString() + "/" : "";
+        return enabled ? "_" + UUID.randomUUID() : "";
     }
 
     private String useSnapshotInstance(final RocksDBExtractionNamespace extractionNamespace,
@@ -236,6 +236,14 @@ public class RocksDBManager {
             } catch (InterruptedException ie) {
                 LOG.error(ie, "Exception while cleaning old instance");
             }
+        }
+
+        //delete old db instances with random local path older than 5 days from today
+        if (rocksDBSnapshot.isRandomLocalPathSuffixEnabled) {
+            String deletingLoadTime = LocalDateTime.now().minus(5, ChronoUnit.DAYS)
+                .format(DateTimeFormatter.ofPattern("yyyyMMdd0000"));
+            String staleDbPath = localPath.replace(loadTime, deletingLoadTime);
+            cleanup(staleDbPath);
         }
 
         return loadTime;
