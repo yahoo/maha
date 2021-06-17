@@ -5,7 +5,7 @@ shared:
   annotations:
     screwdriver.cd/cpu: TURBO
     screwdriver.cd/ram: TURBO
-  image: codenvy/ubuntu_jdk8:latest
+  image: maven-non-root:3.5.4-jdk-8-alpine
   environment:
     #Fetches history so Sonar can assign blame.
     GIT_SHALLOW_CLONE: false
