@@ -26,7 +26,6 @@ jobs:
       - install_libpq: sudo apt-get install libpq-dev
       - prepare: "screwdriver/release_prepare.sh"
       - build: mvn -B clean install
-      - build: mvn -B clean install
 
   main:
     secrets:
