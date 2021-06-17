@@ -249,16 +249,14 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
   }
 
   test("fail to construct file csv row list with no write perm") {
-    val tmpFile= new File("/blah")
-    if (!tmpFile.exists()) {
-      val rowListWithHeaders : CSVRowList = new CSVRowList(query, FileRowCSVWriterProvider(tmpFile), true)
-      val thrown = intercept[FileNotFoundException] {
-        rowListWithHeaders.withLifeCycle {
+    val tmpFile= new File("/dummy/dir")
+    val rowListWithHeaders : CSVRowList = new CSVRowList(query, FileRowCSVWriterProvider(tmpFile), true)
+    val thrown = intercept[FileNotFoundException] {
+      rowListWithHeaders.withLifeCycle {
 
-        }
       }
-      assert(thrown.getMessage === "/blah (Permission denied)" || thrown.getMessage === "/blah (Read-only file system)")
     }
+    assert(thrown.getMessage === "/dummy/dir (No such file or directory)")
   }
 
   test("Error case, no alias") {
