@@ -10,7 +10,7 @@
 
     <name>maha parent</name>
     <url>http://maven.apache.org</url>
-
+    <description>Maha: A framework for rapid reporting API development; with out of the box support for high cardinality dimension lookups with druid. More info at https://github.com/yahoo/maha </description>
 
     <properties>
         <redirectLogsToFileSilently>true</redirectLogsToFileSilently>
