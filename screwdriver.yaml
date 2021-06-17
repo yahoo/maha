@@ -34,6 +34,7 @@ jobs:
           chown -R ciuser:ciuser $CIUSER_BUILD_DIR
           su -c "cd $CIUSER_BUILD_DIR" ciuser
       - install: sudo apt-get install postgresql
+      - install_libpq: sudo apt-get install libpq-dev
       - prepare: "screwdriver/release_prepare.sh"
       - build: mvn -B clean install
       - publish: "screwdriver/publish_to_maven.sh"

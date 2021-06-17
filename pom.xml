@@ -65,7 +65,7 @@
         <akka.version>2.6.10</akka.version>
         <mongo-java-driver.version>3.3.0</mongo-java-driver.version>
         <twitter.chill.version>0.9.5</twitter.chill.version>
-        <pg.embedded.version>0.13.1</pg.embedded.version>
+        <pg.embedded.version>0.13.4</pg.embedded.version>
         <postgres.jdbc.version>42.2.18</postgres.jdbc.version>
         <bigquery.version>1.126.3</bigquery.version>
         <google.http.client.version>1.38.0</google.http.client.version>
