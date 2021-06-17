@@ -87,7 +87,9 @@ trait Curator extends Ordered[Curator] {
   protected def withParRequestError[T](curatorConfig: CuratorConfig, error: GeneralError, idx: Int): Either[GeneralError, T] = {
     new Left(CuratorError(this, curatorConfig, error, Option(idx)))
   }
+  def checkCuratorResponse(responseLength: Int, result: RequestResult ): Int = {responseLength}
 }
+
 
 object DefaultCurator {
   val name: String = "default"
@@ -206,8 +208,21 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
       }
     }
   }
-}
 
+  override def checkCuratorResponse(responseLength: Int, result: RequestResult) = {
+    // this method returns the number of rows in the Default Curator Response
+    var respLength = 0
+    val getResponseLength = Try {
+      if (responseLength < result.queryPipelineResult.rowList.length) {
+        respLength = result.queryPipelineResult.rowList.length
+      }
+    }
+    if(!getResponseLength.isSuccess){
+      logger.warn("result response length could not be extracted. \n")
+    }
+    respLength
+  }
+}
 object RowCountConfig extends Logging {
   implicit val formats: DefaultFormats.type = DefaultFormats
 
@@ -223,7 +238,7 @@ case class RowCountConfig(isFactDriven: Option[Boolean]) extends CuratorConfig
 object RowCountCurator {
   val name: String = "rowcount"
 
-  def getRowCount(mahaRequestContext: MahaRequestContext) : Option[Int] = {
+  def getRowCount(mahaRequestContext: MahaRequestContext): Option[Int] = {
     mahaRequestContext.mutableState.get(name) match {
       case Some(i: Int) => Option(i)
       case _ => None
@@ -251,12 +266,12 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
   }
 
   override def process(resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]]
-                         , mahaRequestContext: MahaRequestContext
-                         , mahaService: MahaService
-                         , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
-                         , curatorConfig: CuratorConfig
-                         , curatorInjector: CuratorInjector
-                        ) : Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = {
+                     , mahaRequestContext: MahaRequestContext
+                     , mahaService: MahaService
+                     , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
+                     , curatorConfig: CuratorConfig
+                     , curatorInjector: CuratorInjector
+                    ): Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = {
     val parallelServiceExecutor = mahaService.getParallelServiceExecutor(mahaRequestContext)
     val parRequestLabel = "processTotalRows"
 
@@ -444,5 +459,20 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
       val curatorResult = CuratorResult(this, curatorConfig, Option(finalParRequestResult), requestModelResult.copy(model = totalRowsRequestModel))
       withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
     }
+  }
+
+  override def checkCuratorResponse(responseLength: Int, result: RequestResult) = {
+    // if the totalRowCount of rowCount curator is lesser than number of rows returned in DefaultCurator Response, this method modifies
+    // rowCountCurator response to match the number of rows returned in DefaultCurator Response
+    val modifyTotalRowCount = Try {
+      val rowCountRowList = result.queryPipelineResult.rowList
+      if (rowCountRowList.getTotalRowCount > 1 && rowCountRowList.getTotalRowCount < responseLength) {
+        rowCountRowList.setTotalRowCount(responseLength)
+      }
+    }
+    if (!modifyTotalRowCount.isSuccess) {
+      logger.warn("Failed to modify total row count.\n")
+    }
+    responseLength
   }
 }
