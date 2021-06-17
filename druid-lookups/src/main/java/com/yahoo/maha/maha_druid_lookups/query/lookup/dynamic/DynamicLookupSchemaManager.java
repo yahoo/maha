@@ -1,5 +1,7 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic;
 
+import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.DynamicLookupSchema;
+
 import java.util.*;
 import java.util.concurrent.*;
 
