@@ -16,6 +16,16 @@ jobs:
     secrets:
       - COVERALLS_REPO_TOKEN
     steps:
+      - createUser: |
+          adduser --disabled-password --gecos "" ciuser
+          CIUSER_BUILD_DIR=/home/ciuser/build
+          cp -r $SHIPPABLE_BUILD_DIR $CIUSER_BUILD_DIR
+          chown -R ciuser:ciuser $CIUSER_BUILD_DIR
+          su -c "cd $CIUSER_BUILD_DIR" ciuser
+      - install: sudo apt-get install postgresql
+      - install_libpq: sudo apt-get install libpq-dev
+      - prepare: "screwdriver/release_prepare.sh"
+      - build: mvn -B clean install
       - build: mvn -B clean install
 
   main:
