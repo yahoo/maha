@@ -636,7 +636,7 @@
                 <gpg.keyname>${env.GPG_KEYNAME}</gpg.keyname>
                 <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
                 <gpg.defaultKeyring>false</gpg.defaultKeyring>
-                <gpg.homedir>${main.basedir}/ci/deploy</gpg.homedir>
+                <gpg.homedir>${main.basedir}/screwdriver/deploy</gpg.homedir>
                 <gpg.publickeyring>pubring.gpg</gpg.publickeyring>
                 <gpg.secretkeyring>secring.gpg</gpg.secretkeyring>
             </properties>
@@ -755,6 +755,7 @@
                     <configuration>
                         <source>${maven.compiler.target}</source>
                         <target>${maven.compiler.target}</target>
+                        <encoding>UTF-8</encoding>
                     </configuration>
                 </plugin>
                 <plugin>
