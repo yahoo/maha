@@ -390,16 +390,14 @@ class JsonRowListTest extends AnyFunSuite with BaseQueryGeneratorTest with Share
     assert(jsonString === """{"header":{"cube":"k_stats","fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"},{"fieldName":"TotalRows","fieldType":"CONSTANT"}],"maxRows":100},"rows":[[1,2,"\"name\"","o,n",1.11,1]],"debug":{"fields":[{"fieldName":"Campaign ID","dataType":"Number"},{"fieldName":"Campaign Status","dataType":"String"},{"fieldName":"Impressions","dataType":"Number"},{"fieldName":"Campaign Name","dataType":"String"},{"fieldName":"CTR","dataType":"Number"},{"fieldName":"TOTALROWS","dataType":"Number"},{"fieldName":"TotalRows","dataType":"integer"}],"drivingQuery":{"tableName":"campaign_oracle","engine":"Oracle"}}}""")
   }
   test("fail to construct file json row list with no write perm") {
-    val tmpFile= new File("/blah")
-    if (!tmpFile.exists()) {
-      val jsonRowList : RowList = FileJsonRowList.fileJsonRowList(tmpFile, None, false)(query)
-      val thrown = intercept[FileNotFoundException]{
-        jsonRowList.withLifeCycle {
+    val tmpFile= new File("/dummy/dir")
+    val jsonRowList : RowList = FileJsonRowList.fileJsonRowList(tmpFile, None, false)(query)
+    val thrown = intercept[FileNotFoundException]{
+      jsonRowList.withLifeCycle {
 
-        }
       }
-      assert(thrown.getMessage === "/blah (Permission denied)" || thrown.getMessage === "/blah (Read-only file system)")
     }
+    assert(thrown.getMessage === "/dummy/dir (No such file or directory)")
   }
 
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
