@@ -5,7 +5,7 @@ shared:
   annotations:
     screwdriver.cd/cpu: TURBO
     screwdriver.cd/ram: TURBO
-  image: maven:3.6.3-jdk-8
+  image: goyalzz/ubuntu-java-8-maven-docker-image
   environment:
     #Fetches history so Sonar can assign blame.
     GIT_SHALLOW_CLONE: false
