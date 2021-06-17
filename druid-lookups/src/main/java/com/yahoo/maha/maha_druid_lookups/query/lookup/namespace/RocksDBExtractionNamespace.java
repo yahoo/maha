@@ -155,6 +155,11 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     }
 
     @Override
+    public boolean isDynamicSchemaLookup() {
+        return cacheActionRunner.getSchemaType() == ExtractionNameSpaceSchemaType.DynamicSchema;
+    }
+
+    @Override
     public ExtractionNameSpaceSchemaType getSchemaType() {
         return this.cacheActionRunner.getSchemaType();
     }

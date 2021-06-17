@@ -26,7 +26,7 @@ public class DynamicCacheActionRunner implements BaseCacheActionRunner {
             , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
             , RocksDB db
-            , ProtobufSchemaFactory protobufSchemaFactory
+            , DynamicLookupSchemaManager schemaManager
             , LookupService lookupService
             , ServiceEmitter emitter
             , RocksDBExtractionNamespace extractionNamespace) {
@@ -117,12 +117,12 @@ public class DynamicCacheActionRunner implements BaseCacheActionRunner {
 
     @Override
     public ExtractionNameSpaceSchemaType getSchemaType() {
-        return ExtractionNameSpaceSchemaType.Protobuf;
+        return ExtractionNameSpaceSchemaType.DynamicSchema;
     }
 
     @Override
     public String toString() {
-        return "CacheActionRunner{}";
+        return "DynamicCacheActionRunner{}";
     }
 
 }

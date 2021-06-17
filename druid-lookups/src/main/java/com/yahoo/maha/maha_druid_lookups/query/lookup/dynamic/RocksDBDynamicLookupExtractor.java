@@ -14,19 +14,19 @@ public class RocksDBDynamicLookupExtractor<U> extends BaseRocksDBLookupExtractor
 
     private static final Logger LOG = new Logger(com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.RocksDBDynamicLookupExtractor.class);
     private CacheActionRunner cacheActionRunner;
-    private ProtobufSchemaFactory schemaFactory;
+    private DynamicLookupSchemaManager schemaManager;
 
     public RocksDBDynamicLookupExtractor(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
                                   LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
-                                  ProtobufSchemaFactory schemaFactory, ServiceEmitter serviceEmitter,
+                                  DynamicLookupSchemaManager schemaManager, ServiceEmitter serviceEmitter,
                                   CacheActionRunner cacheActionRunner) {
         super(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, serviceEmitter);
         this.cacheActionRunner = cacheActionRunner;
-        this.schemaFactory = schemaFactory;
+        this.schemaManager = schemaManager;
     }
 
     @Override
     public byte[] getCacheByteValue(String key, String valueColumn, Optional<DecodeConfig> decodeConfigOptional, RocksDB db) {
-        return cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, schemaFactory, lookupService, serviceEmitter, extractionNamespace);
+        return cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, schemaManager, lookupService, serviceEmitter, extractionNamespace);
     }
 }
