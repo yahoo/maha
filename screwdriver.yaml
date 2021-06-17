@@ -5,7 +5,7 @@ shared:
   annotations:
     screwdriver.cd/cpu: TURBO
     screwdriver.cd/ram: TURBO
-  image: jtim/maven-non-root:3.5.4-jdk-8-alpine
+  image: maven:3.6.3-jdk-8
   environment:
     #Fetches history so Sonar can assign blame.
     GIT_SHALLOW_CLONE: false
@@ -27,6 +27,12 @@ jobs:
       - OSSRH_TOKEN
     requires: [~tag, ~release, ~commit]
     steps:
+      - createUser:
+         - adduser --disabled-password --gecos "" ciuser
+         - CIUSER_BUILD_DIR=/home/ciuser/build
+         - cp -r $SHIPPABLE_BUILD_DIR $CIUSER_BUILD_DIR
+         - chown -R ciuser:ciuser $CIUSER_BUILD_DIR
+         - su -c "cd $CIUSER_BUILD_DIR" ciuser
       - install: sudo apt-get install postgresql
       - prepare: "screwdriver/release_prepare.sh"
       - build: mvn -B clean install
