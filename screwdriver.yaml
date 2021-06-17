@@ -16,10 +16,10 @@ jobs:
     secrets:
       - COVERALLS_REPO_TOKEN
     steps:
-      - createUser:
-         - adduser maven
-         - usermod -aG sudo maven
-         - su -maven
+      - createUser: |
+          adduser maven
+          usermod -aG sudo maven
+          su -maven
       - build: mvn -B clean install
 
   main:
