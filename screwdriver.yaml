@@ -18,7 +18,7 @@ jobs:
     steps:
       - update: sudo apt-get update
       - install_libpq: sudo apt-get -y install libpq-dev
-      - user: sudo adduser maha; su - maha;
+      - user: sudo adduser --disabled-password --gecos "" maha; su - maha;
       - build: mvn -B clean install
 
   main:
