@@ -18,7 +18,9 @@ jobs:
     steps:
 #      - build: mvn clean install
       - user: set -x; sudo adduser --disabled-password --gecos "" maha; whoami;cat /etc/passwd;
-      - maha_login: su -s /bin/bash maha
+      - setNoPass: |
+            echo "maha ALL=(ALL:ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/dont-prompt-maha-for-sudo-password
+      - maha_login: su - maha
       - build: mvn clean install
 
 
