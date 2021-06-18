@@ -17,7 +17,7 @@ jobs:
       - COVERALLS_REPO_TOKEN
     steps:
       - user: set -x; sudo adduser --disabled-password --gecos "" maha; whoami;
-      - maha_login: su - maha
+      - maha_login: whoami; su - maha
       - build: mvn -B clean install
 # - update: sudo apt-get update
 #      - install_libpq: sudo apt-get -y install libpq-dev
