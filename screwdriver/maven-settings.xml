@@ -1,7 +1,4 @@
 <settings>
-
-    <localRepository>maha</localRepository>
-
     <servers>
         <server>
             <id>ossrh</id>
@@ -9,19 +6,4 @@
             <password>${env.OSSRH_TOKEN}</password>
         </server>
     </servers>
-
-
-    <profiles>
-        <profile>
-            <id>ossrh</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <gpg.executable>pubring.gpg</gpg.executable>
-                <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
-            </properties>
-        </profile>
-    </profiles>
-
 </settings>
