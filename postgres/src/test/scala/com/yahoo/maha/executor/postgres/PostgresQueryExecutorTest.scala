@@ -24,11 +24,12 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.druid.common.config.NullHandling
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfterAll, Ignore}
 
 /**
  * Created by hiral on 1/25/16.
  */
+@Ignore // Blocked: embedded pg does not work on the containers with root user
 class PostgresQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
 
   override protected def defaultFactEngine: Engine = PostgresEngine

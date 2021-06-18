@@ -16,10 +16,12 @@ jobs:
     secrets:
       - COVERALLS_REPO_TOKEN
     steps:
-      - user: set -x; sudo adduser --disabled-password --gecos "" maha; whoami;cat /etc/passwd;
-      - maha_login: su -s /bin/bash -c screwdriver/build_maha.sh maha
+      - build: mvn clean install
+#      - user: set -x; sudo adduser --disabled-password --gecos "" maha; whoami;cat /etc/passwd;
+#      - maha_login: su -s /bin/bash -c screwdriver/build_maha.sh maha
 # - update: sudo apt-get update
 #      - install_libpq: sudo apt-get -y install libpq-dev
+
 
   main:
     secrets:
@@ -30,14 +32,14 @@ jobs:
       - OSSRH_TOKEN
     requires: [~tag, ~release, ~commit]
     steps:
-      - createUser: |
-          adduser --disabled-password --gecos "" ciuser
-          CIUSER_BUILD_DIR=/home/ciuser/build
-          cp -r $SHIPPABLE_BUILD_DIR $CIUSER_BUILD_DIR
-          chown -R ciuser:ciuser $CIUSER_BUILD_DIR
-          su -c "cd $CIUSER_BUILD_DIR" ciuser
-      - install: sudo apt-get install postgresql
-      - install_libpq: sudo apt-get install libpq-dev
+#      - createUser: |
+#          adduser --disabled-password --gecos "" ciuser
+#          CIUSER_BUILD_DIR=/home/ciuser/build
+#          cp -r $SHIPPABLE_BUILD_DIR $CIUSER_BUILD_DIR
+#          chown -R ciuser:ciuser $CIUSER_BUILD_DIR
+#          su -c "cd $CIUSER_BUILD_DIR" ciuser
+#      - install: sudo apt-get install postgresql
+#      - install_libpq: sudo apt-get install libpq-dev
       - prepare: "screwdriver/release_prepare.sh"
       - build: mvn -B clean install
       - publish: "screwdriver/publish_to_maven.sh"

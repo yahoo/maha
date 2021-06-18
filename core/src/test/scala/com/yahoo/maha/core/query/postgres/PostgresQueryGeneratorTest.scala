@@ -18,6 +18,7 @@ import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockPostgresQueryExecuto
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.commons.lang3.StringUtils
+import org.scalatest.Ignore
 
 import scala.util.Try
 
@@ -25,6 +26,7 @@ import scala.util.Try
 /**
  * Created by jians on 11/12/15.
  */
+@Ignore // Blocked: embedded pg does not work on the containers with root user
 class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
   lazy val defaultRegistry = getDefaultRegistry()
   private var dataSource: Option[HikariDataSource] = None
