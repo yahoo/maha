@@ -24,7 +24,7 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.druid.common.config.NullHandling
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfterAll}
 
 /**
  * Created by hiral on 1/25/16.
