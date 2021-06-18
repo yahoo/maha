@@ -6,13 +6,12 @@ import com.opentable.db.postgres.embedded.EmbeddedPostgres
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.commons.lang3.StringUtils
-import org.scalatest.{BeforeAndAfterAll, Ignore}
+import org.scalatest.{BeforeAndAfterAll}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.io.Source
 
-@Ignore // Blocked: embedded pg does not work on the containers with root user
 class PostgresDDLDumperTest extends AnyFunSuite with Matchers with BeforeAndAfterAll {
   private var dataSource: Option[HikariDataSource] = None
   private var jdbcConnection: Option[JdbcConnection] = None
