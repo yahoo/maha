@@ -5,7 +5,7 @@ shared:
   annotations:
     screwdriver.cd/cpu: TURBO
     screwdriver.cd/ram: TURBO
-  image: goyalzz/ubuntu-java-8-maven-docker-image
+  image: pranavbhole/pbs-docker-images:latest
   environment:
     #Fetches history so Sonar can assign blame.
     GIT_SHALLOW_CLONE: false
@@ -16,13 +16,7 @@ jobs:
     secrets:
       - COVERALLS_REPO_TOKEN
     steps:
-#      - build: mvn clean install
-      - user: set -x; sudo adduser --disabled-password --gecos "" maha; whoami;cat /etc/passwd;
-      - setNoPass: |
-            echo "maha ALL=(ALL:ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/dont-prompt-maha-for-sudo-password
-      - maha_login: su - maha
       - build: mvn clean install
-
 
   main:
     secrets:
