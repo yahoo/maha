@@ -5,7 +5,7 @@ shared:
   annotations:
     screwdriver.cd/cpu: TURBO
     screwdriver.cd/ram: TURBO
-  image: pranavbhole/pbs-docker-images:latest
+  image: pranavbhole/pbs-docker-images:ubuntu_focal_jdk8_maven
 # maha core has embedded postgres module which does not run on the root user, this image is built to run with custom maha user
   environment:
     #Fetches history so Sonar can assign blame.
