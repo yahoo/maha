@@ -316,6 +316,10 @@
                         </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <outputDirectory>${project.build.directory}</outputDirectory>
+                    <detectLinks>true</detectLinks>
+                </configuration>
             </plugin>
         </plugins>
     </build>
