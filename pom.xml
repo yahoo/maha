@@ -651,21 +651,21 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>org.kohsuke</groupId>
-                    <artifactId>pgp-maven-plugin</artifactId>
+                    <groupId>org.simplify4u.plugins</groupId>
+                    <artifactId>sign-maven-plugin</artifactId>
+                    <version>0.3.1</version>
                     <executions>
                         <execution>
                             <goals>
                                 <goal>sign</goal>
                             </goals>
+                            <configuration>
+                                <keyId>${KEY_ID}</keyId>
+                                <keyPass>${KEY_PASS}</keyPass>
+                                <keyFile>${KEY_PATH}</keyFile>
+                            </configuration>
                         </execution>
                     </executions>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-gpg-plugin</artifactId>
-                    <configuration>
-                        <skip>true</skip>
-                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.scoverage</groupId>
@@ -794,21 +794,21 @@
         </pluginManagement>
         <plugins>
             <plugin>
-                <groupId>org.kohsuke</groupId>
-                <artifactId>pgp-maven-plugin</artifactId>
+                <groupId>org.simplify4u.plugins</groupId>
+                <artifactId>sign-maven-plugin</artifactId>
+                <version>0.3.1</version>
                 <executions>
                     <execution>
                         <goals>
                             <goal>sign</goal>
                         </goals>
+                        <configuration>
+                            <keyId>${KEY_ID}</keyId>
+                            <keyPass>${KEY_PASS}</keyPass>
+                            <keyFile>${KEY_PATH}</keyFile>
+                        </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.scoverage</groupId>
