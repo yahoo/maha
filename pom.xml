@@ -659,11 +659,6 @@
                             <goals>
                                 <goal>sign</goal>
                             </goals>
-                            <configuration>
-                                <keyId>${KEY_ID}</keyId>
-                                <keyPass>${KEY_PASS}</keyPass>
-                                <keyFile>${KEY_PATH}</keyFile>
-                            </configuration>
                         </execution>
                     </executions>
                 </plugin>
@@ -802,11 +797,6 @@
                         <goals>
                             <goal>sign</goal>
                         </goals>
-                        <configuration>
-                            <keyId>${KEY_ID}</keyId>
-                            <keyPass>${KEY_PASS}</keyPass>
-                            <keyFile>${KEY_PATH}</keyFile>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
