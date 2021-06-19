@@ -5,7 +5,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>6.52</version>
+        <version>6.53</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
