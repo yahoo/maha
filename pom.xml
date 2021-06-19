@@ -70,6 +70,7 @@
         <bigquery.version>1.126.3</bigquery.version>
         <google.http.client.version>1.38.0</google.http.client.version>
         <scala.sql.formatter.version>1.0.1</scala.sql.formatter.version>
+        <gpg.skip>true</gpg.skip>
     </properties>
 
 
@@ -787,6 +788,9 @@
                             </goals>
                         </execution>
                     </executions>
+                    <configuration>
+                        <skip>${gpg.skip}</skip>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -871,6 +875,9 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <skip>${gpg.skip}</skip>
+                </configuration>
             </plugin>
         </plugins>
         <extensions>
