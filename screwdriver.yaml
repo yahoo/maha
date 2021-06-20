@@ -21,11 +21,9 @@ jobs:
 
   main:
     secrets:
-      - GPG_KEYNAME
-      - GPG_PASSPHRASE
-      - GPG_ENCPHRASE
       - OSSRH_USER
       - OSSRH_TOKEN
+      - PASS_PHRASE
     requires: [~tag, ~release, ~commit]
     steps:
       - prepare: "screwdriver/release_prepare.sh"
