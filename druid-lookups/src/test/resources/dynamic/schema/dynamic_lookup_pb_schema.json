@@ -1,0 +1,9 @@
+{
+  "type": "PROTOBUF",
+  "version" : "2021061800",
+  "name" : "product_ad_pb_dym_lookup",
+  "coreSchema": {
+    "descFilePath": "/project/nads/lookups/internal_dim_campaign/dynamic-schema.json"
+  }
+
+}

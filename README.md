@@ -4,6 +4,8 @@
 
 [Maha Release Notes](RELEASE_NOTES.md)
 
+[Maha Release Pipeline](https://cd.screwdriver.cd/pipelines/7538/events/636686)
+
 # Maha
 A centralised library for building reporting APIs on top of multiple data stores to exploit them for what they do best.
 
@@ -48,27 +50,14 @@ A centralised library for building reporting APIs on top of multiple data stores
 
 #### Installing Maha API Library 
 
-- We have published the packages in bintry distribution, you can have look at the latest version in https://bintray.com/yahoo/maven/maha-api-jersey/ 
+- We have published the packages in Maven Central distribution, you can have look at the latest version at https://mvnrepository.com/artifact/com.yahoo.maha/maha-api-jersey
 
 ```
 <dependency>
   <groupId>com.yahoo.maha</groupId>
   <artifactId>maha-api-jersey</artifactId>
-  <version>5.316</version>
-  <type>pom</type>
+  <version>6.53</version>
 </dependency>
-```
-
-- Make sure you also add yahoo bintray maven repository to your pom
-
-```
-    <repositories>
-        <repository>
-            <id>bintray-yahoo-maven</id>
-            <name>bintray</name>
-            <url>http://yahoo.bintray.com/maven</url>
-        </repository>
-    </repositories>
 ```
 
 - maha-api-jersey includes all the dependencies of other modules 

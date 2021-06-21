@@ -1,0 +1,31 @@
+cache:
+  pipeline: ["~/.m2"]
+
+shared:
+  annotations:
+    screwdriver.cd/cpu: TURBO
+    screwdriver.cd/ram: TURBO
+  image: pranavbhole/pbs-docker-images:ubuntu_focal_jdk8_maven_with_cache
+# maha core has embedded postgres module which does not run on the root user, this image is built to run with custom maha user
+  environment:
+    #Fetches history so Sonar can assign blame.
+    GIT_SHALLOW_CLONE: false
+
+jobs:
+  pull-request:
+    requires: [~pr]
+    secrets:
+      - COVERALLS_REPO_TOKEN
+    steps:
+      - build: mvn -B clean install
+
+  main:
+    secrets:
+      - OSSRH_USER
+      - OSSRH_TOKEN
+      - PASS_PHRASE
+    requires: [~tag, ~release, ~commit]
+    steps:
+      - prepare: "screwdriver/release_prepare.sh"
+      - build: mvn -B clean install
+      - publish: "screwdriver/publish_to_maven.sh"

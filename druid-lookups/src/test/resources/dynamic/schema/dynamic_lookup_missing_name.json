@@ -1,0 +1,8 @@
+{
+  "type": "PROTOBUF",
+  "version" : "2021061800",
+  "coreSchema": {
+    "descFilePath": "/project/nads/lookups/internal_dim_campaign/dynamic-schema.json"
+  }
+
+}

@@ -5,12 +5,12 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>6.51-SNAPSHOT</version>
+    <version>6.54-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
     <url>http://maven.apache.org</url>
-
+    <description>Maha: A framework for rapid reporting API development; with out of the box support for high cardinality dimension lookups with druid. More info at https://github.com/yahoo/maha </description>
 
     <properties>
         <redirectLogsToFileSilently>true</redirectLogsToFileSilently>
@@ -65,11 +65,13 @@
         <akka.version>2.6.10</akka.version>
         <mongo-java-driver.version>3.3.0</mongo-java-driver.version>
         <twitter.chill.version>0.9.5</twitter.chill.version>
-        <pg.embedded.version>0.13.1</pg.embedded.version>
+        <pg.embedded.version>0.13.4</pg.embedded.version>
         <postgres.jdbc.version>42.2.18</postgres.jdbc.version>
         <bigquery.version>1.126.3</bigquery.version>
         <google.http.client.version>1.38.0</google.http.client.version>
         <scala.sql.formatter.version>1.0.1</scala.sql.formatter.version>
+        <gpg.skip>true</gpg.skip>
+        <nexus.release.autoclose>true</nexus.release.autoclose>
     </properties>
 
 
@@ -97,6 +99,18 @@
             <name>Yahoo Inc.</name>
             <url>https://github.com/yahoo</url>
         </developer>
+        <developer>
+            <name>Pranav Bhole</name>
+            <url>https://github.com/pranavbhole</url>
+        </developer>
+        <developer>
+            <name>Ritvik Jaiswal</name>
+            <url>https://github.com/ritvikjaiswal</url>
+        </developer>
+        <developer>
+            <name>Hiral Patel</name>
+            <url>https://github.com/patelh</url>
+        </developer>
     </developers>
 
     <scm>
@@ -104,6 +118,27 @@
         <url>https://github.com/yahoo/maha.git</url>
         <tag>HEAD</tag>
     </scm>
+
+    <organization>
+        <name>Yahoo! Inc.</name>
+        <url>http://www.yahoo.com/</url>
+    </organization>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/yahoo/maha/issues</url>
+    </issueManagement>
+
+
+    <inceptionYear>2016</inceptionYear>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <dependencyManagement>
         <dependencies>
@@ -399,6 +434,7 @@
                 <artifactId>jcl-over-slf4j</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>jul-to-slf4j</artifactId>
@@ -667,6 +703,7 @@
                     <configuration>
                         <source>${maven.compiler.target}</source>
                         <target>${maven.compiler.target}</target>
+                        <encoding>UTF-8</encoding>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -739,6 +776,34 @@
                         <pushChanges>false</pushChanges>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>3.0.1</version>
+                    <executions>
+                        <execution>
+                            <id>sign-artifacts</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>sign</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <skip>${gpg.skip}</skip>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.sonatype.plugins</groupId>
+                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <version>1.6.7</version>
+                    <extensions>true</extensions>
+                    <configuration>
+                        <serverId>ossrh</serverId>
+                        <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                        <autoReleaseAfterClose>${nexus.release.autoclose}</autoReleaseAfterClose>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -809,6 +874,34 @@
                     </properties>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <skip>${gpg.skip}</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.7</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
         </plugins>
         <extensions>
             <extension>
@@ -818,10 +911,16 @@
             </extension>
         </extensions>
     </build>
+
     <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
         <repository>
-          <id>bintray-maha-parent-repo</id>
-          <url>https://api.bintray.com/maven/yahoo/maven/maha-parent/;publish=1</url>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
+
 </project>
