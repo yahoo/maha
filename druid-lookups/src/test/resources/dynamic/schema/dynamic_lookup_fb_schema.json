@@ -1,0 +1,10 @@
+{
+  "type": "flatbuffer",
+  "version" : "2021061800",
+  "name" : "product_ad_dym_lookup",
+  "coreSchema": {
+    "fieldColumn1": "4",
+    "fieldColumn2": "6"
+  }
+
+}

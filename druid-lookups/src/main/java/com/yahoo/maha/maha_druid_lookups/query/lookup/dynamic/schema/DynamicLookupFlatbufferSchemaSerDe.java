@@ -9,9 +9,9 @@ import java.util.Map;
 public class DynamicLookupFlatbufferSchemaSerDe implements  DynamicLookupCoreSchema{
 
     //WIP
-    JsonNode coreSchema;
+    private JsonNode coreSchema;
 
-    public DynamicLookupFlatbufferSchemaSerDe(JsonNode coreSchema){ // check if the JsonNode is the best way to pass coreSchema
+    public DynamicLookupFlatbufferSchemaSerDe(JsonNode coreSchema){
         this.coreSchema = coreSchema;
     }
 
@@ -27,11 +27,16 @@ public class DynamicLookupFlatbufferSchemaSerDe implements  DynamicLookupCoreSch
     */
 
 
-    public Map<String, Integer> getSchema(){ // Is it ok to return HashMap here and what needs to be returned in Protobuf?
-        //WIP
+    public Map<String, Integer> getSchema(){
+
 
 
         return new HashMap<String, Integer>();
+    }
+
+    @Override
+    public String toString(){
+        return "";
     }
 
 

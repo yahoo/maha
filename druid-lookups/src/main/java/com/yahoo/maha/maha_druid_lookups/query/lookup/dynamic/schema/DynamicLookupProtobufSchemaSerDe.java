@@ -7,9 +7,10 @@ import java.util.Map;
 
 public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema {
 
+    private JsonNode coreSchema;
     //WIP
     public DynamicLookupProtobufSchemaSerDe(JsonNode coreSchema){
-
+        this.coreSchema = coreSchema;
     }
 
     public SCHEMA_TYPE getSchemaType(){
@@ -20,6 +21,11 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
     public Map<String, Integer> getSchema(){
         //WIP
         return new HashMap<String, Integer>();
+    }
+
+    @Override
+    public String toString(){
+        return "";
     }
 
 }

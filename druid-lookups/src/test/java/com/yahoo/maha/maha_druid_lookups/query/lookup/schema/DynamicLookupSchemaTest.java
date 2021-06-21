@@ -30,9 +30,9 @@ public class DynamicLookupSchemaTest {
 
 
     @Test
-    public void DynamicLookupSchemaBuilderTest() throws IOException {
+    public void DynamicLookupSchemaBuilderTestPB() throws IOException {
         DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaBuilder
-                .setSchemaFilePath(classLoader.getResource(dir + "dynamic_lookup_schema.json").getPath())
+                .setSchemaFilePath(classLoader.getResource(dir + "dynamic_lookup_pb_schema.json").getPath())
                 .build();
         Assert.assertEquals(dynamicLookupSchema.getName() , "product_ad_pb_dym_lookup");
         Assert.assertEquals(dynamicLookupSchema.getVersion(), "2021061800");
@@ -40,30 +40,40 @@ public class DynamicLookupSchemaTest {
     }
 
 
-    @Test (expectedExceptions = NullPointerException.class)
+    @Test (expectedExceptions = IllegalArgumentException.class)
     public void DynamicLookupSchemaBuilderMissingVersion() throws IOException {
         dynamicLookupSchemaBuilder.setSchemaFilePath(classLoader.getResource(dir + "dynamic_lookup_missing_version.json").getPath());
     }
 
 
-    @Test (expectedExceptions = NullPointerException.class)
+    @Test (expectedExceptions = IllegalArgumentException.class)
     public void DynamicLookupSchemaBuilderMissingName() throws IOException {
         dynamicLookupSchemaBuilder.setSchemaFilePath(classLoader.getResource(dir + "dynamic_lookup_missing_name.json").getPath());
     }
 
 
-    @Test (expectedExceptions = NullPointerException.class)
+    @Test (expectedExceptions = IllegalArgumentException.class)
     public void DynamicLookupSchemaBuilderMissingType() throws IOException {
         dynamicLookupSchemaBuilder.setSchemaFilePath(classLoader.getResource(dir + "dynamic_lookup_missing_type.json").getPath());
     }
 
-    @Test (expectedExceptions = NullPointerException.class)
+    @Test (expectedExceptions = IllegalArgumentException.class)
     public void DynamicLookupSchemaBuilderMissingCoreSchema() throws IOException {
         dynamicLookupSchemaBuilder.setSchemaFilePath(classLoader.getResource(dir + "dynamic_lookup_missing_core_schema.json").getPath());
     }
     @Test (expectedExceptions = IllegalArgumentException.class)
     public void DynamicLookupSchemaBuilderBadCoreSchema() throws IOException {
         dynamicLookupSchemaBuilder.setSchemaFilePath(classLoader.getResource(dir + "dynamic_lookup_unknown_schema_type.json").getPath());
+    }
+
+    @Test
+    public void DynamicLookupSchemaBuilderTestFB() throws IOException {
+        DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaBuilder
+                .setSchemaFilePath(classLoader.getResource(dir + "dynamic_lookup_fb_schema.json").getPath())
+                .build();
+        Assert.assertEquals(dynamicLookupSchema.getName() , "product_ad_dym_lookup");
+        Assert.assertEquals(dynamicLookupSchema.getVersion(), "2021061800");
+        Assert.assertEquals(dynamicLookupSchema.getSchemaType(), SCHEMA_TYPE.FLATBUFFER);
     }
 }
 

@@ -33,7 +33,7 @@ public class DynamicLookupSchema {
                 "name = " + name +
                 ", type = " + type.toString() +
                 ", version = " + version +
-                ", coreSchema = " + dynamicLookupCoreSchema.toString() + // is printing dynamicLookupCoreSchema required
+                ", coreSchema = " + dynamicLookupCoreSchema.toString() +
                 " }";
     }
 
@@ -93,7 +93,7 @@ public class DynamicLookupSchema {
 
         private void parseJson() throws IOException {
             ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode json = null;
+            JsonNode json ;
 
             try {
                 String schemaContent = getSchemaContent();
@@ -112,17 +112,17 @@ public class DynamicLookupSchema {
             if(json.has("coreSchema")){
                 buildDynamicLookupCoreSchema(type,json.get("coreSchema"));
             } else {
-                throw new NullPointerException("Field coreSchema not present in schema file " + schemaFilePath);
+                throw new IllegalArgumentException("Field coreSchema not present in schema file " + schemaFilePath);
             }
         }
 
 
-        private String getField(JsonNode json , String fieldName) throws NullPointerException{
-            if(json.has(fieldName)){
+        private String getField(JsonNode json , String fieldName) throws IllegalArgumentException{
+            if(json != null && json.has(fieldName)){
                 return json.get(fieldName).textValue();
             }
             else {
-                throw new NullPointerException("Field " + fieldName + " not present in schema file " + schemaFilePath);
+                throw new IllegalArgumentException("Field " + fieldName + " not present in schema file " + schemaFilePath);
             }
         }
 
