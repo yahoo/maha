@@ -7,7 +7,7 @@ export GPG_TTY=$(tty)
 mkdir -p screwdriver/deploy
 chmod 0700 screwdriver/deploy
 
-openssl aes-256-cbc -pass pass:$PASS_PHRASE -in screwdriver/sec.key.enc -out screwdriver/deploy/sec.key -d
+openssl aes-256-cbc -pass pass:$PASS_PHRASE -in screwdriver/sec.key.enc -out screwdriver/deploy/sec.key -pbkdf2 -d
 gpg --batch --import screwdriver/deploy/sec.key
 
 ls -l screwdriver/deploy
