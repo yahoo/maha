@@ -10,7 +10,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>6.52-SNAPSHOT</version>
+        <version>6.54-SNAPSHOT</version>
     </parent>
 
     <name>maha postgres executor</name>
@@ -197,6 +197,10 @@
                         </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <outputDirectory>${project.build.directory}</outputDirectory>
+                    <detectLinks>true</detectLinks>
+                </configuration>
             </plugin>
         </plugins>
     </build>

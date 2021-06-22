@@ -6,7 +6,7 @@ import com.opentable.db.postgres.embedded.EmbeddedPostgres
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.commons.lang3.StringUtils
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfterAll}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
