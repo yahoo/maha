@@ -40,7 +40,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
             if(fin != null){
                 try {
                     fin.close();
-                } catch(IOException ex){
+                } catch(Exception ex){
                     LOG.error("Failed closing FileInputStream for path " + path  + ex);
                 }
             }
