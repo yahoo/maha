@@ -19,13 +19,11 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
     private static final Logger LOG = new Logger(DynamicLookupProtobufSchemaSerDe.class);
 
     private final JsonNode coreSchema;
-    private Map<String,String> schemaPathAsMap ;
     private Descriptors.Descriptor protobufMessageDescriptor;
 
 
     public DynamicLookupProtobufSchemaSerDe(JsonNode coreSchema) throws IOException, Descriptors.DescriptorValidationException {
         this.coreSchema = coreSchema;
-        schemaPathAsMap =  new HashMap<String, String>();
         DescriptorProtos.FileDescriptorSet set = null;
         FileInputStream fin = null;
         String path ="";
@@ -35,11 +33,8 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
             fin = new FileInputStream(path);
             set = DescriptorProtos.FileDescriptorSet.parseFrom(fin);
             protobufMessageDescriptor = Descriptors.FileDescriptor.buildFrom(set.getFile(0), new Descriptors.FileDescriptor[]{}).getMessageTypes().get(0);
-        }catch (IOException ex){
-            LOG.error("failed to read the binary coreSchema as protobuf Message at path " + path  + ex);
-            throw ex;
-        }catch(Descriptors.DescriptorValidationException ex){
-            LOG.error("failed to build FileDescriptor from path " + path  + ex);
+        }catch (Exception ex){
+            LOG.error("failed to read the binary coreSchema as protobuf Message or build FileDescriptor at path " + path  + ex);
             throw ex;
         } finally{
             if(fin != null){
@@ -103,11 +98,8 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
 
     @Override
     public String toString(){
-        if(!schemaPathAsMap.isEmpty() && schemaPathAsMap.containsKey("descFilePath")){
             return "DynamicLookupProtobufSchemaSerDe{" +
-                    "name = " + schemaPathAsMap.get("descFilePath") + "}" ;
-        }
-        return "DynamicLookupProtobufSchemaSerDe{ + name =  }";
+                    "name = " + getSchema() + "}" ;
     }
 
 }
