@@ -68,6 +68,7 @@ public class CacheActionRunner implements BaseCacheActionRunner {
                 Descriptors.FieldDescriptor columnIfValueNotMatched = descriptor.findFieldByName(decodeConfig.getColumnIfValueNotMatched());
                 return Strings.emptyToNull(parsedMessage.getField(columnIfValueNotMatched).toString());
             }
+
         } catch (Exception e ) {
             LOG.error(e, "Caught exception while handleDecode");
             throw e;
