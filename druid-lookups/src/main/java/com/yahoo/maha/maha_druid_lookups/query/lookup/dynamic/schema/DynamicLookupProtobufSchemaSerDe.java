@@ -22,15 +22,17 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
     private Map<String,String> schemaPathAsMap ;
     private Descriptors.Descriptor protobufMessageDescriptor;
 
+
     public DynamicLookupProtobufSchemaSerDe(JsonNode coreSchema) throws IOException, Descriptors.DescriptorValidationException {
         this.coreSchema = coreSchema;
         schemaPathAsMap =  new HashMap<String, String>();
         DescriptorProtos.FileDescriptorSet set = null;
+        FileInputStream fin = null;
         String path ="";
 
         try {
             path = getSchema();
-            FileInputStream fin = new FileInputStream(path);
+            fin = new FileInputStream(path);
             set = DescriptorProtos.FileDescriptorSet.parseFrom(fin);
             protobufMessageDescriptor = Descriptors.FileDescriptor.buildFrom(set.getFile(0), new Descriptors.FileDescriptor[]{}).getMessageTypes().get(0);
         }catch (IOException ex){
@@ -39,15 +41,24 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         }catch(Descriptors.DescriptorValidationException ex){
             LOG.error("failed to build FileDescriptor from path " + path  + ex);
             throw ex;
+        } finally{
+            if(fin != null){
+                try {
+                    fin.close();
+                } catch(IOException ex){
+                    LOG.error("Failed closing FileInputStream for path " + path  + ex);
+                }
+            }
         }
     }
+
 
     public SCHEMA_TYPE getSchemaType(){
         return SCHEMA_TYPE.PROTOBUF;
     }
 
 
-    public String getSchema() throws IllegalArgumentException{ //does this method need to to exposed?
+    public String getSchema() throws IllegalArgumentException{
         if(coreSchema != null && coreSchema.has("descFilePath")){
             return coreSchema.get("descFilePath").textValue();
         } else {
@@ -62,11 +73,32 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         } catch (InvalidProtocolBufferException e) {
             LOG.error("failed to parse as generic protobuf Message " + dataBytes + e);
         }
-        Descriptors.FieldDescriptor fieldDescriptor =  protobufMessageDescriptor.findFieldByName(fieldName);
-        String fieldValue = (String) genericMessage.getField(fieldDescriptor);
-        Descriptors.FieldDescriptor lastUpdatedDescriptor =  protobufMessageDescriptor.findFieldByName(extractionNamespace.getTsColumn());
-        Long lastUpdated = Long.valueOf(genericMessage.getField(lastUpdatedDescriptor).toString());
-        return new ImmutablePair<>(fieldValue,Optional.of(lastUpdated));
+        Descriptors.FieldDescriptor fieldDescriptor;
+        String fieldValue = "";
+        Optional<Long> lastUpdated = Optional.of(0L);
+        try{
+            fieldDescriptor =  protobufMessageDescriptor.findFieldByName(fieldName);
+            if(genericMessage.hasField(fieldDescriptor)) {
+                fieldValue = (String) genericMessage.getField(fieldDescriptor);
+            } else {
+                LOG.error("Field missing in protobuf Message Descriptor for field: "
+                        + fieldName +   " in " + extractionNamespace.getLookupName());
+            }
+            Descriptors.FieldDescriptor lastUpdatedDescriptor =  protobufMessageDescriptor.findFieldByName(extractionNamespace.getTsColumn());
+
+            if(genericMessage.hasField(lastUpdatedDescriptor)){
+                lastUpdated = Optional.of(Long.valueOf(genericMessage.getField(lastUpdatedDescriptor).toString()));
+            }else{
+                LOG.error("Last updated field missing in protobuf Message Descriptor for field: "
+                        + fieldName +  " and last updated column : " + extractionNamespace.getTsColumn() + " in " + extractionNamespace.getLookupName() );
+
+            }
+        } catch (Exception ex){
+            LOG.error("Caught error while getValue from protobufMessageDescriptor"  + ex);
+            throw ex;
+        }
+
+        return new ImmutablePair<>(fieldValue,lastUpdated);
     }
 
     @Override

@@ -4,6 +4,7 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Descriptors;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.json.simple.JSONObject;
@@ -57,7 +58,7 @@ public class DynamicLookupSchema {
         return new JSONObject();
     } // will get back to serialization later
 
-    public ImmutablePair getValue(String fieldName, byte[] dataBytes, String extractionNamespace){
+    public ImmutablePair getValue(String fieldName, byte[] dataBytes, RocksDBExtractionNamespace extractionNamespace){
         return dynamicLookupCoreSchema.getValue(fieldName, dataBytes,extractionNamespace);
     }
 
