@@ -16,6 +16,7 @@ import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.MapBinder;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.MahaLookupExtractorFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.MahaRegisteredLookupExtractionFn;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.OnHeapMahaNamespaceExtractionCacheManager;
@@ -149,6 +150,7 @@ public class MahaNamespaceExtractionModule implements DruidModule
         binder.bind(ProtobufSchemaFactory.class).toProvider(ProtobufSchemaFactoryProvider.class);
 
         binder.bind(FlatBufferSchemaFactory.class).toProvider(FlatBufferSchemaFactoryProvider.class);
+        binder.bind(DynamicLookupSchemaManager.class).toProvider(DynamicLookupSchemaManagerProvider.class);
 
         binder.bind(AuthHeaderFactory.class).toProvider(AuthHeaderFactoryProvider.class);
 

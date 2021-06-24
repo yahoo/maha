@@ -226,7 +226,7 @@ public class RocksDBManager {
                     extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime, DYNAMIC_SCHEMA_JSON_FILE);
             if (isFilePresentOnHdfs(schemaHdfsPath)) {
                 LOG.info("Downloading Dynamic Lookup Schema json from [%s] to [%s]", schemaHdfsPath, localPath);
-                fileSystem.copyToLocalFile(new Path(hdfsPath), new Path(localPath));
+                fileSystem.copyToLocalFile(new Path(schemaHdfsPath), new Path(localPath));
                 LOG.info("Downloaded Dynamic Lookup Schema json from [%s] to [%s]", schemaHdfsPath, localPath);
 
                 String localSchemaPath = String.format("%s/%s", localPath, DYNAMIC_SCHEMA_JSON_FILE);
