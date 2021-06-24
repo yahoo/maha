@@ -1,12 +1,11 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema;
 
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 
+import java.util.*;
 
-public interface DynamicLookupCoreSchema<K, V> {
-    public SCHEMA_TYPE getSchemaType();
-    public String getSchema();
-    public ImmutablePair<K, V> getValue(String fieldName, byte[] dataBytes, RocksDBExtractionNamespace extractionNamespace);
-
+public interface DynamicLookupCoreSchema {
+    ExtractionNameSpaceSchemaType getSchemaType();
+    String getValue(String fieldName, byte[] dataBytes, Optional<DecodeConfig> decodeConfigOptional, RocksDBExtractionNamespace extractionNamespace);
 }

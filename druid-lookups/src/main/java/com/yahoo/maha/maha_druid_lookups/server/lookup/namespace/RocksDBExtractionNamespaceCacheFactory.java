@@ -81,7 +81,7 @@ public class RocksDBExtractionNamespaceCacheFactory
                             final Map<String, String> cache, final String key, final byte[] value) {
 
         RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
-        if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
+        if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER) {
             ((CacheActionRunnerFlatBuffer)extractionNamespace.getCacheActionRunner()).updateCache(flatBufferSchemaFactory, key, value, db, emitter, extractionNamespace);
         } else {
             ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).updateCache(protobufSchemaFactory, key, value, db, emitter, extractionNamespace);
@@ -91,7 +91,7 @@ public class RocksDBExtractionNamespaceCacheFactory
     @Override
     public byte[] getCacheValue(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
         RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
-        if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
+        if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER) {
             return ((CacheActionRunnerFlatBuffer) extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, flatBufferSchemaFactory, lookupService, emitter, extractionNamespace);
         } else {
             return ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
@@ -126,7 +126,7 @@ public class RocksDBExtractionNamespaceCacheFactory
     public void updateCacheWithDb(final RocksDBExtractionNamespace extractionNamespace,
                             RocksDB db, final String key, final byte[] value) {
 
-        if(extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
+        if(extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER) {
             ((CacheActionRunnerFlatBuffer)extractionNamespace.getCacheActionRunner()).updateCache(flatBufferSchemaFactory, key, value, db, emitter, extractionNamespace);
         } else {
             ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).updateCache(protobufSchemaFactory, key, value, db, emitter, extractionNamespace);
@@ -134,7 +134,7 @@ public class RocksDBExtractionNamespaceCacheFactory
     }
 
     private BaseSchemaFactory getSchemaFactory(ExtractionNamespace extractionNamespace) {
-        if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
+        if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER) {
            return flatBufferSchemaFactory;
         } else {
             return protobufSchemaFactory;

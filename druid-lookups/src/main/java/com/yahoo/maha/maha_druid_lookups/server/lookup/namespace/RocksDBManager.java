@@ -8,12 +8,13 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.*;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.*;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStart;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStop;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import org.apache.druid.guice.ManageLifecycle;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -229,8 +230,19 @@ public class RocksDBManager {
                 LOG.info("Downloaded Dynamic Lookup Schema json from [%s] to [%s]", schemaHdfsPath, localPath);
 
                 String localSchemaPath = String.format("%s/%s", localPath, DYNAMIC_SCHEMA_JSON_FILE);
-                // TODO Read Schema and update it to dynamicLookupSchemaManager
-
+                DynamicLookupSchema dynamicLookupSchema = new DynamicLookupSchema.Builder()
+                        .setSchemaFilePath(localSchemaPath)
+                        .build();
+                if (dynamicLookupSchema.getSchemaType() == ExtractionNameSpaceSchemaType.PROTOBUF) {
+                    String descFileName = ((DynamicLookupProtobufSchemaSerDe)dynamicLookupSchema.getCoreSchema()).getDescFileName();
+                    String localDescFilePath = String.format("%s/%s", localPath, descFileName);
+                    String hdfsDescFilePath = String.format("%s/load_time=%s/%s",
+                            extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime, descFileName);
+                    LOG.info("Downloading Dynamic Lookup Desc file from [%s] to [%s]", hdfsDescFilePath, localDescFilePath);
+                    fileSystem.copyToLocalFile(new Path(hdfsDescFilePath), new Path(localDescFilePath));
+                    LOG.info("Downloaded Dynamic Lookup Desc file from [%s] to [%s]", hdfsDescFilePath, localDescFilePath);
+                }
+                dynamicLookupSchemaManager.updateSchema(extractionNamespace, dynamicLookupSchema);
             } else {
                 LOG.error("Failed to find the Dynamic Lookup Schema json at hdfs path "+schemaHdfsPath);
             }

@@ -26,13 +26,14 @@ public class DynamicLookupProtobufSchemaSerDeTest {
     public void setup() throws Exception {
         String path = Thread.currentThread().getContextClassLoader()
                 .getResource("./dynamic/schema/Ad.desc").getPath();
-        String coreSchema = "{\"descFilePath\" : \""  + path+ "\" }"; // works in local
+        String coreSchema = "{\"descFilePath\" : \"" + path + "\" }"; // works in local
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode node = objectMapper.readTree(coreSchema);
         dynamicLookupProtobufSchemaSerDe = spy(new DynamicLookupProtobufSchemaSerDe(node));
 
-        rocksDBExtractionNamespace  = mock(RocksDBExtractionNamespace.class);
+        rocksDBExtractionNamespace = mock(RocksDBExtractionNamespace.class);
         when(rocksDBExtractionNamespace.getTsColumn()).thenReturn("last_updated");
+        when(rocksDBExtractionNamespace.getLookupName()).thenReturn("ad_lookup");
     }
 
     @Test
@@ -40,36 +41,32 @@ public class DynamicLookupProtobufSchemaSerDeTest {
 
         Message adMessage = AdProtos.Ad.newBuilder().setStatus("ON").setLastUpdated("2021062220").build();
 
-        byte[] byteArr =  adMessage.toByteArray();
-        ImmutablePair<String, Optional<Long>>  pair = dynamicLookupProtobufSchemaSerDe.getValue("status", byteArr,rocksDBExtractionNamespace);
+        byte[] byteArr = adMessage.toByteArray();
+        String statusValue = dynamicLookupProtobufSchemaSerDe.getValue("status", byteArr, Optional.empty(), rocksDBExtractionNamespace);
+        Assert.assertEquals(statusValue, "ON");
 
-        Assert.assertEquals(pair.getLeft(), "ON");
-        Assert.assertEquals(pair.getRight(),Optional.of(2021062220L));
+        String last_updatedValue = dynamicLookupProtobufSchemaSerDe.getValue("last_updated", byteArr, Optional.empty(), rocksDBExtractionNamespace);
+        Assert.assertEquals(last_updatedValue, "2021062220");
+
     }
 
 
     @Test
-    public void DynamicLookupProtobufSchemaSerDeTestgetValueFailed(){
+    public void DynamicLookupProtobufSchemaSerDeTestgetValueFailed() {
 
         Message adMessage = AdProtos.Ad.newBuilder().setStatus("OFF").build();
 
-        byte[] byteArr =  adMessage.toByteArray();
+        byte[] byteArr = adMessage.toByteArray();
 
-        ImmutablePair<String, Optional<Long>>  pair = dynamicLookupProtobufSchemaSerDe.getValue("title", byteArr,rocksDBExtractionNamespace);
+        String titleValue = dynamicLookupProtobufSchemaSerDe.getValue("title", byteArr, Optional.empty(), rocksDBExtractionNamespace);
 
-        Assert.assertNotEquals(pair.getLeft(), "ON");
-        Assert.assertEquals(pair.getRight(),Optional.of(0L));
+        Assert.assertEquals(titleValue, "");
     }
 
     @Test(expectedExceptions = NullPointerException.class)
-    public void DynamicLookupProtobufSchemaSerDeTestgetValueFailedNoField(){
-
+    public void DynamicLookupProtobufSchemaSerDeTestgetValueFailedNoField() {
         Message adMessage = AdProtos.Ad.newBuilder().setStatus("OFF").build();
-
-        byte[] byteArr =  adMessage.toByteArray();
-        ImmutablePair<String, Optional<Long>>  pair = dynamicLookupProtobufSchemaSerDe.getValue("random", byteArr,rocksDBExtractionNamespace);
-
-        Assert.assertNotEquals(pair.getLeft(), "ON");
-        Assert.assertEquals(pair.getRight(),Optional.of(0L));
+        byte[] byteArr = adMessage.toByteArray();
+        dynamicLookupProtobufSchemaSerDe.getValue("random", byteArr, Optional.empty(), rocksDBExtractionNamespace);
     }
 }

@@ -5,11 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Descriptors;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.*;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import java.io.File;
 import java.io.IOException;
 
 public class DynamicLookupCoreSchemaFactoryTest {
@@ -27,13 +26,13 @@ public class DynamicLookupCoreSchemaFactoryTest {
 
     @Test
     public void DynamicLookupCoreSchemaFactoryTestProtobuf() throws IOException, Descriptors.DescriptorValidationException {
-        DynamicLookupCoreSchema dynamicLookupCoreSchema = DynamicLookupCoreSchemaFactory.buildSchema(SCHEMA_TYPE.PROTOBUF, jsonNode);
+        DynamicLookupCoreSchema dynamicLookupCoreSchema = DynamicLookupCoreSchemaFactory.buildSchema(ExtractionNameSpaceSchemaType.PROTOBUF, jsonNode);
         Assert.assertTrue(dynamicLookupCoreSchema instanceof DynamicLookupProtobufSchemaSerDe);
     }
 
     @Test
     public void DynamicLookupCoreSchemaFactoryTestFlatbuffer() throws IOException, Descriptors.DescriptorValidationException {
-        DynamicLookupCoreSchema dynamicLookupCoreSchema = DynamicLookupCoreSchemaFactory.buildSchema(SCHEMA_TYPE.FLATBUFFER, jsonNode);
+        DynamicLookupCoreSchema dynamicLookupCoreSchema = DynamicLookupCoreSchemaFactory.buildSchema(ExtractionNameSpaceSchemaType.FLAT_BUFFER, jsonNode);
         Assert.assertTrue(dynamicLookupCoreSchema instanceof DynamicLookupFlatbufferSchemaSerDe);
     }
 }

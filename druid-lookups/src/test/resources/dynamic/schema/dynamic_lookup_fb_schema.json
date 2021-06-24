@@ -1,5 +1,5 @@
 {
-  "type": "flatbuffer",
+  "type": "flat_buffer",
   "version" : "2021061800",
   "name" : "product_ad_dym_lookup",
   "coreSchema": {

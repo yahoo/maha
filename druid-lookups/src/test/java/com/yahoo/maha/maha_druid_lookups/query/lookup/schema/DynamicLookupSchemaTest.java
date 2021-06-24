@@ -2,18 +2,11 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.schema;
 
 import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.DynamicLookupSchema;
 
-import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.SCHEMA_TYPE;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-
 import java.io.IOException;
-
-
-
-import static org.mockito.Mockito.spy;
-
 
 public class DynamicLookupSchemaTest {
 
@@ -36,7 +29,7 @@ public class DynamicLookupSchemaTest {
                 .build();
         Assert.assertEquals(dynamicLookupSchema.getName() , "product_ad_pb_dym_lookup");
         Assert.assertEquals(dynamicLookupSchema.getVersion(), "2021061800");
-        Assert.assertEquals(dynamicLookupSchema.getSchemaType(), SCHEMA_TYPE.PROTOBUF);
+        Assert.assertEquals(dynamicLookupSchema.getSchemaType(), ExtractionNameSpaceSchemaType.PROTOBUF);
     }
 
 
@@ -73,7 +66,7 @@ public class DynamicLookupSchemaTest {
                 .build();
         Assert.assertEquals(dynamicLookupSchema.getName() , "product_ad_dym_lookup");
         Assert.assertEquals(dynamicLookupSchema.getVersion(), "2021061800");
-        Assert.assertEquals(dynamicLookupSchema.getSchemaType(), SCHEMA_TYPE.FLATBUFFER);
+        Assert.assertEquals(dynamicLookupSchema.getSchemaType(), ExtractionNameSpaceSchemaType.FLAT_BUFFER);
     }
 }
 

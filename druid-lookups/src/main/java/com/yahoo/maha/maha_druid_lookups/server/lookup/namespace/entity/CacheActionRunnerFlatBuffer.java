@@ -102,7 +102,7 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunner {
 
     @Override
     public ExtractionNameSpaceSchemaType getSchemaType() {
-        return ExtractionNameSpaceSchemaType.FlatBuffer;
+        return ExtractionNameSpaceSchemaType.FLAT_BUFFER;
     }
 
     @Override

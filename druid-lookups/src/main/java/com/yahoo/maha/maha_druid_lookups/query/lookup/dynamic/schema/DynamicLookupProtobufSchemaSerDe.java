@@ -4,18 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import org.apache.druid.java.util.common.logger.Logger;
-
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
-public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema<String,Optional<Long>> {
+public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema {
     private static final Logger LOG = new Logger(DynamicLookupProtobufSchemaSerDe.class);
 
     private final JsonNode coreSchema;
@@ -29,31 +25,31 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         String path ="";
 
         try {
-            path = getSchema();
+            path = getDescFileName();
             fin = new FileInputStream(path);
             set = DescriptorProtos.FileDescriptorSet.parseFrom(fin);
             protobufMessageDescriptor = Descriptors.FileDescriptor.buildFrom(set.getFile(0), new Descriptors.FileDescriptor[]{}).getMessageTypes().get(0);
-        }catch (Exception ex){
-            LOG.error("failed to read the binary coreSchema as protobuf Message or build FileDescriptor at path " + path  + ex);
+        } catch (Exception ex) {
+            LOG.error("failed to read the binary coreSchema as protobuf Message or build FileDescriptor at path {} ", path, ex);
             throw ex;
-        } finally{
+        } finally {
             if(fin != null){
                 try {
                     fin.close();
                 } catch(Exception ex){
-                    LOG.error("Failed closing FileInputStream for path " + path  + ex);
+                    LOG.error("Failed closing FileInputStream for path {} ", path , ex);
                 }
             }
         }
     }
 
 
-    public SCHEMA_TYPE getSchemaType(){
-        return SCHEMA_TYPE.PROTOBUF;
+    public ExtractionNameSpaceSchemaType getSchemaType(){
+        return ExtractionNameSpaceSchemaType.PROTOBUF;
     }
 
 
-    public String getSchema() throws IllegalArgumentException{
+    public String getDescFileName() throws IllegalArgumentException {
         if(coreSchema != null && coreSchema.has("descFilePath")){
             return coreSchema.get("descFilePath").textValue();
         } else {
@@ -61,45 +57,62 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         }
     }
 
-    public ImmutablePair<String, Optional<Long>> getValue(String fieldName, byte[] dataBytes, RocksDBExtractionNamespace extractionNamespace){
-        DynamicMessage genericMessage = null;
+    private Optional<DynamicMessage> getDynamicMessage(byte[] dataBytes, RocksDBExtractionNamespace extractionNamespace) {
         try {
-            genericMessage = DynamicMessage.parseFrom(protobufMessageDescriptor, dataBytes);
-        } catch (InvalidProtocolBufferException e) {
-            LOG.error("failed to parse as generic protobuf Message " + dataBytes + e);
+            return Optional.of(DynamicMessage.parseFrom(protobufMessageDescriptor, dataBytes));
+        } catch (Exception e) {
+            LOG.error("failed to parse as generic protobuf Message, namespace {} ",extractionNamespace.getLookupName(), e);
         }
-        Descriptors.FieldDescriptor fieldDescriptor;
-        String fieldValue = "";
-        Optional<Long> lastUpdated = Optional.of(0L);
-        try{
-            fieldDescriptor =  protobufMessageDescriptor.findFieldByName(fieldName);
-            if(genericMessage.hasField(fieldDescriptor)) {
-                fieldValue = (String) genericMessage.getField(fieldDescriptor);
-            } else {
-                LOG.error("Field missing in protobuf Message Descriptor for field: "
-                        + fieldName +   " in " + extractionNamespace.getLookupName());
-            }
-            Descriptors.FieldDescriptor lastUpdatedDescriptor =  protobufMessageDescriptor.findFieldByName(extractionNamespace.getTsColumn());
-
-            if(genericMessage.hasField(lastUpdatedDescriptor)){
-                lastUpdated = Optional.of(Long.valueOf(genericMessage.getField(lastUpdatedDescriptor).toString()));
-            }else{
-                LOG.error("Last updated field missing in protobuf Message Descriptor for field: "
-                        + fieldName +  " and last updated column : " + extractionNamespace.getTsColumn() + " in " + extractionNamespace.getLookupName() );
-
-            }
-        } catch (Exception ex){
-            LOG.error("Caught error while getValue from protobufMessageDescriptor"  + ex);
-            throw ex;
-        }
-
-        return new ImmutablePair<>(fieldValue,lastUpdated);
+        return Optional.empty();
     }
+
+    @Override
+    public String getValue(String fieldName, byte[] dataBytes, Optional<DecodeConfig> decodeConfigOptional, RocksDBExtractionNamespace extractionNamespace) {
+        Optional<DynamicMessage> dynamicMessageOptional = getDynamicMessage(dataBytes, extractionNamespace);
+
+        if (!dynamicMessageOptional.isPresent()) {
+           return "";
+        }
+        DynamicMessage dynamicMessage = dynamicMessageOptional.get();
+        String fieldValue = getValueForField(fieldName, dynamicMessage, extractionNamespace);
+        if (decodeConfigOptional.isPresent()) {
+            return handleDecode(decodeConfigOptional.get(), dynamicMessage, extractionNamespace);
+        } else {
+            return fieldValue;
+        }
+    }
+
+    private String getValueForField(String fieldName, DynamicMessage dynamicMessage, ExtractionNamespace extractionNamespace) {
+        Descriptors.FieldDescriptor fieldDescriptor =  protobufMessageDescriptor.findFieldByName(fieldName);
+        if (dynamicMessage.hasField(fieldDescriptor)) {
+            String fieldValue = (String) dynamicMessage.getField(fieldDescriptor);
+            return fieldValue != null ? fieldValue : "";
+        } else {
+            LOG.error("Field missing in protobuf Message Descriptor for field: {}  in  {}", fieldName,  extractionNamespace.getLookupName());
+        }
+        return "";
+    }
+
+    public String handleDecode(DecodeConfig decodeConfig, DynamicMessage dynamicMessage, ExtractionNamespace extractionNamespace) {
+        try {
+            String columnToCheck = getValueForField(decodeConfig.getColumnToCheck(), dynamicMessage, extractionNamespace);
+
+            if (decodeConfig.getValueToCheck().equals(columnToCheck)) {
+                return getValueForField(decodeConfig.getColumnIfValueMatched(), dynamicMessage, extractionNamespace);
+            } else {
+                return getValueForField(decodeConfig.getColumnIfValueNotMatched(), dynamicMessage, extractionNamespace);
+            }
+        } catch (Exception e) {
+            LOG.error(e, "Caught exception while handleDecode");
+            throw e;
+        }
+    }
+
 
     @Override
     public String toString(){
             return "DynamicLookupProtobufSchemaSerDe{" +
-                    "name = " + getSchema() + "}" ;
+                    "name = " + getDescFileName() + "}" ;
     }
 
 }

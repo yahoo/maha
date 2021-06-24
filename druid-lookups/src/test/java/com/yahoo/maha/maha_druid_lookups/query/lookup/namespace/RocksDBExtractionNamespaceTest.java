@@ -96,7 +96,7 @@ public class RocksDBExtractionNamespaceTest {
         assertEquals(namespace.getPollMs(), 30000);
         assertEquals(namespace.isCacheEnabled(), true);
         assertEquals(namespace.getLookupName(), "advertiser_lookup");
-        assertEquals(namespace.getCacheActionRunner().getSchemaType(), ExtractionNameSpaceSchemaType.FlatBuffer);
+        assertEquals(namespace.getCacheActionRunner().getSchemaType(), ExtractionNameSpaceSchemaType.FLAT_BUFFER);
         assertEquals(namespace.getCacheActionRunnerName(), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer");
         assertTrue(namespace.getCacheActionRunner() instanceof CacheActionRunnerFlatBuffer);
     }

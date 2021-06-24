@@ -74,6 +74,8 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
     ProtobufSchemaFactory protobufSchemaFactory;
     @Inject
     FlatBufferSchemaFactory flatBufferSchemaFactory;
+    @Inject
+    DynamicLookupSchemaManager dynamicLookupSchemaManager;
 
     public MahaNamespaceExtractionCacheManager(
             Lifecycle lifecycle,
@@ -395,7 +397,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
             if (isFlatBuffSerDe(extractionNamespace)) {
                 return new RocksDBLookupExtractorWithFlatBuffer(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, flatBufferSchemaFactory, serviceEmitter, (CacheActionRunnerFlatBuffer) rocksDBExtractionNamespace.getCacheActionRunner());
             } else if (extractionNamespace.isDynamicSchemaLookup()) {
-                return new RocksDBDynamicLookupExtractor(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, flatBufferSchemaFactory, serviceEmitter, (CacheActionRunnerFlatBuffer) rocksDBExtractionNamespace.getCacheActionRunner());
+                return new RocksDBDynamicLookupExtractor(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, dynamicLookupSchemaManager, serviceEmitter, (DynamicCacheActionRunner) rocksDBExtractionNamespace.getCacheActionRunner());
             } else if (extractionNamespace.isCacheEnabled()) {
                 return new RocksDBLookupExtractor(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter, (CacheActionRunner) rocksDBExtractionNamespace.getCacheActionRunner());
             } else {
@@ -414,7 +416,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
         return extractionNamespace instanceof RocksDBExtractionNamespace;
     }
     private boolean isFlatBuffSerDe(ExtractionNamespace extractionNamespace) {
-        return extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FlatBuffer;
+        return extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER;
     }
 
     public LookupExtractor getLookupExtractor(final String id) {
