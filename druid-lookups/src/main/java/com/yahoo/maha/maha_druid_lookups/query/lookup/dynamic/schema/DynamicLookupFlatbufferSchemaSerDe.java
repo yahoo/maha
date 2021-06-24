@@ -27,6 +27,10 @@ public class DynamicLookupFlatbufferSchemaSerDe implements  DynamicLookupCoreSch
 
     @Override
     public String getValue(String fieldName, byte[] dataBytes, Optional<DecodeConfig> decodeConfigOptional, RocksDBExtractionNamespace extractionNamespace) {
+        // get the index for field
+        // init Generic Table from DataBytes; GenericFlatBufferTable
+        // getValue with index;
+        // handleDecode;
         return null;
     }
 
