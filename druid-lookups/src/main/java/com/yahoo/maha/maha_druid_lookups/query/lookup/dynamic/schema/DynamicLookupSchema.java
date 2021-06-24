@@ -3,6 +3,9 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.Descriptors;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.json.simple.JSONObject;
 
@@ -55,6 +58,9 @@ public class DynamicLookupSchema {
         return new JSONObject();
     } // will get back to serialization later
 
+    public ImmutablePair getValue(String fieldName, byte[] dataBytes, RocksDBExtractionNamespace extractionNamespace){
+        return dynamicLookupCoreSchema.getValue(fieldName, dataBytes,extractionNamespace);
+    }
 
     public static class Builder {
         protected SCHEMA_TYPE type;
@@ -82,9 +88,10 @@ public class DynamicLookupSchema {
         }
 
 
-        private void buildDynamicLookupCoreSchema(SCHEMA_TYPE type,JsonNode coreSchema){
+        private void buildDynamicLookupCoreSchema(SCHEMA_TYPE type,JsonNode coreSchema) throws IOException, Descriptors.DescriptorValidationException {
             this.dynamicLookupCoreSchema = DynamicLookupCoreSchemaFactory.buildSchema(type, coreSchema);
         }
+
         public Builder setSchemaFilePath(String schemaFilePath) throws IOException {
             this.schemaFilePath = schemaFilePath;
             parseJson();
@@ -110,7 +117,11 @@ public class DynamicLookupSchema {
             buildType(getField(json,"type"));
 
             if(json.has("coreSchema")){
-                buildDynamicLookupCoreSchema(type,json.get("coreSchema"));
+                try {
+                    buildDynamicLookupCoreSchema(type, json.get("coreSchema"));
+                }catch (IOException | Descriptors.DescriptorValidationException ex){
+                    LOG.error("Failed while building buildDynamicLookupCoreSchema" + ex);
+                }
             } else {
                 throw new IllegalArgumentException("Field coreSchema not present in schema file " + schemaFilePath);
             }
