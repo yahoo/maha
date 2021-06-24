@@ -17,7 +17,6 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
     private final JsonNode coreSchema;
     private Descriptors.Descriptor protobufMessageDescriptor;
 
-
     public DynamicLookupProtobufSchemaSerDe(JsonNode coreSchema) throws IOException, Descriptors.DescriptorValidationException {
         this.coreSchema = coreSchema;
         DescriptorProtos.FileDescriptorSet set = null;

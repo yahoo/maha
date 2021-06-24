@@ -43,7 +43,8 @@ public class DynamicCacheActionRunner implements BaseCacheActionRunner {
                 if (cacheByteValue == null) {
                     return new byte[0];
                 }
-                return dynamicLookupSchema.getCoreSchema().getValue(valueColumn.get(),cacheByteValue, decodeConfigOptional, extractionNamespace).getBytes();
+                return "".getBytes();
+                //return dynamicLookupSchema.getCoreSchema().getValue(valueColumn.get(),cacheByteValue, decodeConfigOptional, extractionNamespace).getBytes();
             }
         } catch (Exception e) {
             LOG.error(e, "Caught exception while getting cache value");
@@ -66,7 +67,8 @@ public class DynamicCacheActionRunner implements BaseCacheActionRunner {
                 if(!dynamicLookupSchemaOption.isPresent()) return;
                 DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaOption.get();
 
-                String newLastUpdatedStr = dynamicLookupSchema.getCoreSchema().getValue(extractionNamespace.getTsColumn(), value, Optional.empty(), extractionNamespace);
+                //String newLastUpdatedStr = dynamicLookupSchema.getCoreSchema().getValue(extractionNamespace.getTsColumn(), value, Optional.empty(), extractionNamespace);
+                String newLastUpdatedStr = "";
                 Long newLastUpdated = Long.parseLong(newLastUpdatedStr);
 
                 byte[] cacheValue = db.get(key.getBytes());
@@ -76,7 +78,8 @@ public class DynamicCacheActionRunner implements BaseCacheActionRunner {
                     updatedCache = true;
                 }
 
-                String oldLastUpdatedStr = dynamicLookupSchema.getCoreSchema().getValue(extractionNamespace.getTsColumn(), cacheValue, Optional.empty(), extractionNamespace);
+                //String oldLastUpdatedStr = dynamicLookupSchema.getCoreSchema().getValue(extractionNamespace.getTsColumn(), cacheValue, Optional.empty(), extractionNamespace);
+                String oldLastUpdatedStr= "";
                 Long oldLastUpdated = Long.parseLong(oldLastUpdatedStr);
                 if (newLastUpdated > oldLastUpdated) {
                     db.put(key.getBytes(), value);

@@ -230,19 +230,11 @@ public class RocksDBManager {
                 LOG.info("Downloaded Dynamic Lookup Schema json from [%s] to [%s]", schemaHdfsPath, localPath);
 
                 String localSchemaPath = String.format("%s/%s", localPath, DYNAMIC_SCHEMA_JSON_FILE);
-                DynamicLookupSchema dynamicLookupSchema = new DynamicLookupSchema.Builder()
-                        .setSchemaFilePath(localSchemaPath)
-                        .build();
-                if (dynamicLookupSchema.getSchemaType() == ExtractionNameSpaceSchemaType.PROTOBUF) {
-                    String descFileName = ((DynamicLookupProtobufSchemaSerDe)dynamicLookupSchema.getCoreSchema()).getDescFileName();
-                    String localDescFilePath = String.format("%s/%s", localPath, descFileName);
-                    String hdfsDescFilePath = String.format("%s/load_time=%s/%s",
-                            extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime, descFileName);
-                    LOG.info("Downloading Dynamic Lookup Desc file from [%s] to [%s]", hdfsDescFilePath, localDescFilePath);
-                    fileSystem.copyToLocalFile(new Path(hdfsDescFilePath), new Path(localDescFilePath));
-                    LOG.info("Downloaded Dynamic Lookup Desc file from [%s] to [%s]", hdfsDescFilePath, localDescFilePath);
+                Optional<DynamicLookupSchema> dynamicLookupSchemaOptional = DynamicLookupSchema.parseFrom(new File(localSchemaPath));
+                if(dynamicLookupSchemaOptional.isPresent()) {
+                    DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaOptional.get();
+                    dynamicLookupSchemaManager.updateSchema(extractionNamespace, dynamicLookupSchema);
                 }
-                dynamicLookupSchemaManager.updateSchema(extractionNamespace, dynamicLookupSchema);
             } else {
                 LOG.error("Failed to find the Dynamic Lookup Schema json at hdfs path "+schemaHdfsPath);
             }

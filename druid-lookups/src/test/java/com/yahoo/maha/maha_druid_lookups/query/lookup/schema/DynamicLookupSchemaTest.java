@@ -6,32 +6,37 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import java.io.IOException;
+import org.zeroturnaround.zip.commons.*;
+
+import java.io.*;
+import java.util.*;
 
 public class DynamicLookupSchemaTest {
 
     private final String dir = "./dynamic/schema/";
     private  ClassLoader classLoader ;
-    private  DynamicLookupSchema.Builder dynamicLookupSchemaBuilder;
 
 
     @BeforeClass
     public void setup() throws Exception {
         classLoader = Thread.currentThread().getContextClassLoader();
-        dynamicLookupSchemaBuilder = new DynamicLookupSchema.Builder(); // can this be set multiple times.
     }
 
 
     @Test
     public void DynamicLookupSchemaBuilderTestPB() throws IOException {
-        DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaBuilder
-                .setSchemaFilePath(classLoader.getResource(dir + "dynamic_lookup_pb_schema.json").getPath())
-                .build();
+
+        File schemaFile = new File(classLoader.getResource(dir + "dynamic_lookup_pb_schema.json").getPath());
+        Optional<DynamicLookupSchema> dynamicLookupSchemaOptional = DynamicLookupSchema.parseFrom(schemaFile);
+        Assert.assertTrue(dynamicLookupSchemaOptional.isPresent());
+        DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaOptional.get();
         Assert.assertEquals(dynamicLookupSchema.getName() , "product_ad_pb_dym_lookup");
         Assert.assertEquals(dynamicLookupSchema.getVersion(), "2021061800");
-        Assert.assertEquals(dynamicLookupSchema.getSchemaType(), ExtractionNameSpaceSchemaType.PROTOBUF);
+        Assert.assertEquals(dynamicLookupSchema.getType(), ExtractionNameSpaceSchemaType.PROTOBUF);
+        Assert.assertEquals(dynamicLookupSchema.getSchemaFieldList().size(), 2);
     }
 
+    /*
 
     @Test (expectedExceptions = IllegalArgumentException.class)
     public void DynamicLookupSchemaBuilderMissingVersion() throws IOException {
@@ -68,5 +73,7 @@ public class DynamicLookupSchemaTest {
         Assert.assertEquals(dynamicLookupSchema.getVersion(), "2021061800");
         Assert.assertEquals(dynamicLookupSchema.getSchemaType(), ExtractionNameSpaceSchemaType.FLAT_BUFFER);
     }
+    */
+
 }
 
