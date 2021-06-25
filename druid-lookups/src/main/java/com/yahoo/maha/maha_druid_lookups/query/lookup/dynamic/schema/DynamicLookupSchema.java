@@ -90,7 +90,7 @@ public class DynamicLookupSchema {
             return parseFrom(FileUtils.readFileToString(schemaFile));
         } catch (Exception e) {
             e.printStackTrace();
-            LOG.error("Failed to read the Schema file ", e);
+            LOG.error("Failed to read the Schema file %s "+e.getMessage(), schemaFile.getAbsolutePath(), e);
         }
         return Optional.empty();
     }
