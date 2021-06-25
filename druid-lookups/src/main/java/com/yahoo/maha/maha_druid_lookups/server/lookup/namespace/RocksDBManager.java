@@ -175,7 +175,7 @@ public class RocksDBManager {
                                        final String localPath,
                                        final File snapShotFile) throws IOException, RocksDBException {
 
-        LOG.error("Snapshot file [%s%s] exists and hence using it", localPath, SNAPSHOT_FILE_NAME);
+        LOG.info("Snapshot file [%s%s] exists and hence using it", localPath, SNAPSHOT_FILE_NAME);
         RocksDBSnapshot rocksDBSnapshot = OBJECT_MAPPER.readValue(snapShotFile, RocksDBSnapshot.class);
         rocksDBSnapshot.dbPath = localPath;
         rocksDBSnapshot.rocksDB = openRocksDB(rocksDBSnapshot.dbPath);
