@@ -188,6 +188,10 @@ public class RocksDBManager {
             LOG.info("useSnapshotInstance: adding Listener...");
             kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, true);
         }
+        if (extractionNamespace.isDynamicSchemaLookup()) {
+            LOG.info("Looking for dynamic lookup schema file in existing snapshot %s", extractionNamespace.getLookupName());
+            initDynamicLookupSchema(extractionNamespace, localPath);
+        }
         return loadTime;
     }
 
@@ -228,13 +232,7 @@ public class RocksDBManager {
                 LOG.info("Downloading Dynamic Lookup Schema json from [%s] to [%s]", schemaHdfsPath, localPath);
                 fileSystem.copyToLocalFile(new Path(schemaHdfsPath), new Path(localPath));
                 LOG.info("Downloaded Dynamic Lookup Schema json from [%s] to [%s]", schemaHdfsPath, localPath);
-
-                String localSchemaPath = String.format("%s/%s", localPath, DYNAMIC_SCHEMA_JSON_FILE);
-                Optional<DynamicLookupSchema> dynamicLookupSchemaOptional = DynamicLookupSchema.parseFrom(new File(localSchemaPath));
-                if(dynamicLookupSchemaOptional.isPresent()) {
-                    DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaOptional.get();
-                    dynamicLookupSchemaManager.updateSchema(extractionNamespace, dynamicLookupSchema);
-                }
+                initDynamicLookupSchema(extractionNamespace, localPath);
             } else {
                 LOG.error("Failed to find the Dynamic Lookup Schema json at hdfs path "+schemaHdfsPath);
             }
@@ -270,6 +268,16 @@ public class RocksDBManager {
         }
 
         return loadTime;
+    }
+
+    private void initDynamicLookupSchema(ExtractionNamespace extractionNamespace, String localPath) {
+        String localSchemaPath = String.format("%s/%s", localPath, DYNAMIC_SCHEMA_JSON_FILE);
+        Optional<DynamicLookupSchema> dynamicLookupSchemaOptional = DynamicLookupSchema.parseFrom(new File(localSchemaPath));
+        if (dynamicLookupSchemaOptional.isPresent()) {
+            DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaOptional.get();
+            dynamicLookupSchemaManager.updateSchema(extractionNamespace, dynamicLookupSchema);
+            LOG.info("Updated dynamic lookup schema for %s into schemaManager", extractionNamespace.getLookupName());
+        }
     }
 
     private RocksDB openRocksDB(String localPath) throws RocksDBException {

@@ -3,6 +3,7 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.google.inject.Inject;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNameSpaceSchemaType;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
@@ -41,6 +42,8 @@ public class RocksDBExtractionNamespaceCacheFactory
     FlatBufferSchemaFactory flatBufferSchemaFactory;
     @Inject
     ServiceEmitter emitter;
+    @Inject
+    DynamicLookupSchemaManager dynamicLookupSchemaManager;
 
 
     @Override
@@ -93,6 +96,9 @@ public class RocksDBExtractionNamespaceCacheFactory
         RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
         if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER) {
             return ((CacheActionRunnerFlatBuffer) extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, flatBufferSchemaFactory, lookupService, emitter, extractionNamespace);
+        }
+        if(extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.DynamicSchema) {
+            return ((DynamicCacheActionRunner) extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, dynamicLookupSchemaManager, lookupService, emitter, extractionNamespace);
         } else {
             return ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
         }

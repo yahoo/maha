@@ -11,25 +11,20 @@ public class DynamicLookupCoreSchemaFactory {
 
     private static final Logger LOG = new Logger(DynamicLookupCoreSchemaFactory.class);
 
-    public static DynamicLookupCoreSchema buildSchema(ExtractionNameSpaceSchemaType schemaType, JsonNode coreSchema) throws IOException , Descriptors.DescriptorValidationException {
-        DynamicLookupCoreSchema dynamicLookupCoreSchema = null;
+    public static DynamicLookupCoreSchema buildSchema(DynamicLookupSchema dynamicLookupSchema) throws Descriptors.DescriptorValidationException {
 
-        switch (schemaType) {
+        switch (dynamicLookupSchema.getType()) {
             case PROTOBUF:
-                dynamicLookupCoreSchema = new DynamicLookupProtobufSchemaSerDe(coreSchema);
-                break;
-
+                return new DynamicLookupProtobufSchemaSerDe(dynamicLookupSchema);
             case FLAT_BUFFER:
-                dynamicLookupCoreSchema = new DynamicLookupFlatbufferSchemaSerDe(coreSchema);
-                break;
+                //dynamicLookupCoreSchema = new DynamicLookupFlatbufferSchemaSerDe(coreSchema);
+                return new DynamicLookupFlatbufferSchemaSerDe(null);
             default:
                 //should never reach this code
-                LOG.error("Schema_type is not currently supported" + schemaType.toString());
-                throw new IllegalArgumentException("Schema_type " + schemaType.toString() + "is not currently supported");
-
+                String error = String.format("Unsupported Schema Type %s for in DynamicLookup schema ", dynamicLookupSchema.getType());
+                LOG.error(error);
+                throw new IllegalArgumentException(error);
         }
-
-        return dynamicLookupCoreSchema;
     }
 }
 

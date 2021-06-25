@@ -15,6 +15,7 @@ public class DynamicLookupSchemaManager {
     private Map<String, DynamicLookupSchema> schemaMap;
 
     public DynamicLookupSchemaManager() {
+        LOG.info("Creating DynamicLookupSchemaManager instance!!");
         schemaMap = new ConcurrentHashMap<>();
     }
 
@@ -22,7 +23,7 @@ public class DynamicLookupSchemaManager {
      Called by Rockdb Manager to update Schema
      */
     public void updateSchema(ExtractionNamespace extractionNamespace, DynamicLookupSchema schema) {
-        LOG.info("Initializing dynamic schema for lookup {}, schema: {}", extractionNamespace.getLookupName(), schema);
+        LOG.info("Initializing dynamic schema for lookup %s, schema: %s", extractionNamespace.getLookupName(), schema.getName());
         schemaMap.put(extractionNamespace.getLookupName(), schema);
     }
 
@@ -31,7 +32,7 @@ public class DynamicLookupSchemaManager {
         if (schemaMap.containsKey(lookupName)) {
             return Optional.of(schemaMap.get(lookupName));
         } else {
-            LOG.error("Failed to find the schema for dynamic lookup {}", extractionNamespace.getLookupName());
+            LOG.error("Failed to find the schema for dynamic lookup %s", extractionNamespace.getLookupName());
         }
         return Optional.empty();
     }

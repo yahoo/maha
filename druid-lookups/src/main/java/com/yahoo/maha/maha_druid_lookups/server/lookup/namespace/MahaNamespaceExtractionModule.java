@@ -150,7 +150,9 @@ public class MahaNamespaceExtractionModule implements DruidModule
         binder.bind(ProtobufSchemaFactory.class).toProvider(ProtobufSchemaFactoryProvider.class);
 
         binder.bind(FlatBufferSchemaFactory.class).toProvider(FlatBufferSchemaFactoryProvider.class);
-        binder.bind(DynamicLookupSchemaManager.class).toProvider(DynamicLookupSchemaManagerProvider.class);
+        binder.bind(DynamicLookupSchemaManager.class)
+                .toProvider(DynamicLookupSchemaManagerProvider.class)
+                .in(LazySingleton.class);
 
         binder.bind(AuthHeaderFactory.class).toProvider(AuthHeaderFactoryProvider.class);
 

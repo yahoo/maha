@@ -1,12 +1,8 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic;
 
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.Message;
-import com.google.protobuf.Parser;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.*;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
@@ -17,6 +13,7 @@ import org.rocksdb.RocksDB;
 
 import java.util.Optional;
 //com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.DynamicCacheActionRunner
+
 public class DynamicCacheActionRunner implements BaseCacheActionRunner {
 
     private static final Logger LOG = new Logger(com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.DynamicCacheActionRunner.class);
@@ -38,13 +35,11 @@ public class DynamicCacheActionRunner implements BaseCacheActionRunner {
 
             if (db != null && dynamicLookupSchemaOption.isPresent()) {
                 DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaOption.get();
-
                 byte[] cacheByteValue = db.get(key.getBytes());
                 if (cacheByteValue == null) {
                     return new byte[0];
                 }
-                return "".getBytes();
-                //return dynamicLookupSchema.getCoreSchema().getValue(valueColumn.get(),cacheByteValue, decodeConfigOptional, extractionNamespace).getBytes();
+                return dynamicLookupSchema.getCoreSchema().getValue(valueColumn.get(),cacheByteValue, decodeConfigOptional, extractionNamespace).getBytes();
             }
         } catch (Exception e) {
             LOG.error(e, "Caught exception while getting cache value");
@@ -67,8 +62,7 @@ public class DynamicCacheActionRunner implements BaseCacheActionRunner {
                 if(!dynamicLookupSchemaOption.isPresent()) return;
                 DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaOption.get();
 
-                //String newLastUpdatedStr = dynamicLookupSchema.getCoreSchema().getValue(extractionNamespace.getTsColumn(), value, Optional.empty(), extractionNamespace);
-                String newLastUpdatedStr = "";
+                String newLastUpdatedStr = dynamicLookupSchema.getCoreSchema().getValue(extractionNamespace.getTsColumn(), value, Optional.empty(), extractionNamespace);
                 Long newLastUpdated = Long.parseLong(newLastUpdatedStr);
 
                 byte[] cacheValue = db.get(key.getBytes());

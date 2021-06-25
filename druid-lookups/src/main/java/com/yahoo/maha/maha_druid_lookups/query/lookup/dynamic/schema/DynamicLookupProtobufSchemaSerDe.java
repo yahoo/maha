@@ -1,45 +1,55 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import org.apache.druid.java.util.common.logger.Logger;
-import java.io.FileInputStream;
-import java.io.IOException;
+
+import java.io.*;
 import java.util.Optional;
 
 public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema {
     private static final Logger LOG = new Logger(DynamicLookupProtobufSchemaSerDe.class);
 
-    private final JsonNode coreSchema;
     private Descriptors.Descriptor protobufMessageDescriptor;
 
-    public DynamicLookupProtobufSchemaSerDe(JsonNode coreSchema) throws IOException, Descriptors.DescriptorValidationException {
-        this.coreSchema = coreSchema;
-        DescriptorProtos.FileDescriptorSet set = null;
-        FileInputStream fin = null;
-        String path ="";
-
+    public DynamicLookupProtobufSchemaSerDe(DynamicLookupSchema dynamicLookupSchema) throws Descriptors.DescriptorValidationException {
+        DescriptorProtos.FileDescriptorProto.Builder  fileDescProtoBuilder = DescriptorProtos.FileDescriptorProto
+                .newBuilder();
         try {
-            path = getDescFileName();
-            fin = new FileInputStream(path);
-            set = DescriptorProtos.FileDescriptorSet.parseFrom(fin);
-            protobufMessageDescriptor = Descriptors.FileDescriptor.buildFrom(set.getFile(0), new Descriptors.FileDescriptor[]{}).getMessageTypes().get(0);
+            DescriptorProtos.DescriptorProto.Builder builder = DescriptorProtos.DescriptorProto.newBuilder();
+
+            builder.setName(dynamicLookupSchema.getName());
+            dynamicLookupSchema.getSchemaFieldList().forEach(field-> {
+                builder.addField(DescriptorProtos.FieldDescriptorProto.newBuilder()
+                        .setName(field.getField())
+                        .setNumber(field.getIndex())
+                        .setType(mapType(field.getDataType()))
+                        .build());
+            });
+            DescriptorProtos.FileDescriptorProto fileDescriptorProto = fileDescProtoBuilder.addMessageType(builder.build()).build();
+            protobufMessageDescriptor = Descriptors.FileDescriptor
+                    .buildFrom(fileDescriptorProto,
+                            new Descriptors.FileDescriptor[0])
+                    .findMessageTypeByName(dynamicLookupSchema.getName());
         } catch (Exception ex) {
-            LOG.error("failed to read the binary coreSchema as protobuf Message or build FileDescriptor at path {} ", path, ex);
+            LOG.error("failed to build protobufMessageDescriptor for schema: %s", dynamicLookupSchema, ex);
             throw ex;
-        } finally {
-            if(fin != null){
-                try {
-                    fin.close();
-                } catch(Exception ex){
-                    LOG.error("Failed closing FileInputStream for path {} ", path , ex);
-                }
-            }
         }
+    }
+
+    private DescriptorProtos.FieldDescriptorProto.Type mapType(FieldDataType fieldDataType) {
+        // TODO Add Support for other types
+        if (fieldDataType == FieldDataType.INT32) {
+            return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32;
+        }
+        if (fieldDataType == FieldDataType.BOOL) {
+            return DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL;
+        }
+
+        return DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING;
     }
 
 
@@ -48,19 +58,12 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
     }
 
 
-    public String getDescFileName() throws IllegalArgumentException {
-        if(coreSchema != null && coreSchema.has("descFilePath")){
-            return coreSchema.get("descFilePath").textValue();
-        } else {
-            throw new IllegalArgumentException("Field coreSchema not present in schema file ");
-        }
-    }
-
     private Optional<DynamicMessage> getDynamicMessage(byte[] dataBytes, RocksDBExtractionNamespace extractionNamespace) {
         try {
             return Optional.of(DynamicMessage.parseFrom(protobufMessageDescriptor, dataBytes));
         } catch (Exception e) {
-            LOG.error("failed to parse as generic protobuf Message, namespace {} ",extractionNamespace.getLookupName(), e);
+            e.printStackTrace();
+            LOG.error("failed to parse as generic protobuf Message, namespace %s ",extractionNamespace.getLookupName(), e);
         }
         return Optional.empty();
     }
@@ -107,12 +110,9 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         }
     }
 
-
     @Override
-    public String toString(){
-            return "DynamicLookupProtobufSchemaSerDe{" +
-                    "name = " + getDescFileName() + "}" ;
+    public String toString() {
+        return "DynamicLookupProtobufSchemaSerDe()";
     }
-
 }
 

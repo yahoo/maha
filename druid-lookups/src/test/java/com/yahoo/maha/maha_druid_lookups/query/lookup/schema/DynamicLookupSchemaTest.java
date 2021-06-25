@@ -1,41 +1,60 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup.schema;
 
+import com.google.protobuf.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.DynamicLookupSchema;
 
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.*;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import org.zeroturnaround.zip.commons.*;
 
 import java.io.*;
 import java.util.*;
+import org.mockito.Mockito.*;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DynamicLookupSchemaTest {
 
     private final String dir = "./dynamic/schema/";
     private  ClassLoader classLoader ;
-
+    DynamicLookupSchema dynamicLookupSchema;
+    RocksDBExtractionNamespace extractionNamespace;
 
     @BeforeClass
     public void setup() throws Exception {
         classLoader = Thread.currentThread().getContextClassLoader();
+        File schemaFile = new File(classLoader.getResource(dir + "dynamic_lookup_pb_schema.json").getPath());
+        Optional<DynamicLookupSchema> dynamicLookupSchemaOptional = DynamicLookupSchema.parseFrom(schemaFile);
+        Assert.assertTrue(dynamicLookupSchemaOptional.isPresent());
+        dynamicLookupSchema = dynamicLookupSchemaOptional.get();
+        extractionNamespace = mock(RocksDBExtractionNamespace.class);
+        when(extractionNamespace.getLookupName()).thenReturn("product_ad_pb_dym_lookup");
     }
 
 
     @Test
     public void DynamicLookupSchemaBuilderTestPB() throws IOException {
-
-        File schemaFile = new File(classLoader.getResource(dir + "dynamic_lookup_pb_schema.json").getPath());
-        Optional<DynamicLookupSchema> dynamicLookupSchemaOptional = DynamicLookupSchema.parseFrom(schemaFile);
-        Assert.assertTrue(dynamicLookupSchemaOptional.isPresent());
-        DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaOptional.get();
         Assert.assertEquals(dynamicLookupSchema.getName() , "product_ad_pb_dym_lookup");
         Assert.assertEquals(dynamicLookupSchema.getVersion(), "2021061800");
         Assert.assertEquals(dynamicLookupSchema.getType(), ExtractionNameSpaceSchemaType.PROTOBUF);
-        Assert.assertEquals(dynamicLookupSchema.getSchemaFieldList().size(), 2);
+        Assert.assertEquals(dynamicLookupSchema.getSchemaFieldList().size(), 4);
     }
 
+    @Test
+    public void getValueDynamicMessageTest() {
+        Message msg = AdProtos.Ad.newBuilder()
+                .setId("32309719080")
+                .setTitle("some title")
+                .setStatus("ON")
+                .setLastUpdated("1470733203505")
+                .build();
+
+        String value = dynamicLookupSchema.getCoreSchema().getValue("status", msg.toByteArray(), Optional.empty(), extractionNamespace);
+        Assert.assertEquals(value, "ON");
+    }
     /*
 
     @Test (expectedExceptions = IllegalArgumentException.class)

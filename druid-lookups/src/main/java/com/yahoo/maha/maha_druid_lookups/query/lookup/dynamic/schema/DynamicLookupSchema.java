@@ -3,6 +3,7 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema;
 
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.*;
+import com.google.protobuf.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.zeroturnaround.zip.commons.*;
@@ -33,8 +34,12 @@ public class DynamicLookupSchema {
     }
 
     // Init Core Schema
-    public void init() {
+    public void init() throws Descriptors.DescriptorValidationException {
+        coreSchema = DynamicLookupCoreSchemaFactory.buildSchema(this);
+    }
 
+    public DynamicLookupCoreSchema getCoreSchema() {
+        return coreSchema;
     }
 
     public ExtractionNameSpaceSchemaType getType() {
@@ -71,6 +76,7 @@ public class DynamicLookupSchema {
         try {
             ObjectMapper mapper = new ObjectMapper();
             DynamicLookupSchema dynamicLookupSchema = mapper.readValue(json, DynamicLookupSchema.class);
+            dynamicLookupSchema.init();
             return Optional.of(dynamicLookupSchema);
         } catch (Exception e) {
             e.printStackTrace();

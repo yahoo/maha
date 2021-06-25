@@ -9,9 +9,19 @@
       "index": 1
     },
     {
-      "field": "status",
+      "field": "title",
       "dataType": "STRING",
       "index": 2
+    },
+    {
+      "field": "status",
+      "dataType": "STRING",
+      "index": 3
+    },
+    {
+      "field": "last_updated",
+      "dataType": "STRING",
+      "index": 4
     }
   ]
 }
