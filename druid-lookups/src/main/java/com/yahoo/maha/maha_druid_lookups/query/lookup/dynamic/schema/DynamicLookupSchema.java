@@ -68,7 +68,7 @@ public class DynamicLookupSchema {
                 "type=" + type +
                 ", version='" + version + '\'' +
                 ", name='" + name + '\'' +
-                ", schemaFieldList=" + schemaFieldList +
+                ", schemaFieldList=" + Arrays.toString(schemaFieldList.toArray()) +
                 '}';
     }
 

@@ -42,7 +42,7 @@ public class DynamicCacheActionRunner implements BaseCacheActionRunner {
                 return dynamicLookupSchema.getCoreSchema().getValue(valueColumn.get(),cacheByteValue, decodeConfigOptional, extractionNamespace).getBytes();
             }
         } catch (Exception e) {
-            LOG.error(e, "Caught exception while getting cache value");
+            LOG.error(e, "Caught exception while getting cache value "+e.getMessage());
             emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
         }
         return null;
@@ -72,8 +72,7 @@ public class DynamicCacheActionRunner implements BaseCacheActionRunner {
                     updatedCache = true;
                 }
 
-                //String oldLastUpdatedStr = dynamicLookupSchema.getCoreSchema().getValue(extractionNamespace.getTsColumn(), cacheValue, Optional.empty(), extractionNamespace);
-                String oldLastUpdatedStr= "";
+                String oldLastUpdatedStr = dynamicLookupSchema.getCoreSchema().getValue(extractionNamespace.getTsColumn(), cacheValue, Optional.empty(), extractionNamespace);
                 Long oldLastUpdated = Long.parseLong(oldLastUpdatedStr);
                 if (newLastUpdated > oldLastUpdated) {
                     db.put(key.getBytes(), value);
@@ -83,11 +82,11 @@ public class DynamicCacheActionRunner implements BaseCacheActionRunner {
                     extractionNamespace.setLastUpdatedTime(newLastUpdated);
                 }
 
-                if(updatedCache) {
+                if (updatedCache) {
                     serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_SUCCESS, 1));
                 }
             } catch (Exception e) {
-                LOG.error(e, "Caught exception while updating cache");
+                LOG.error(e, "Caught exception while updating cache "+e.getMessage());
                 serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_FAILURE, 1));
             }
         }

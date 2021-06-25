@@ -29,7 +29,17 @@ public class SchemaField {
         return index;
     }
 
+    @Override
+    public String toString() {
+        return "SchemaField{" +
+                "field='" + field + '\'' +
+                ", dataType=" + dataType +
+                ", index=" + index +
+                '}';
+    }
+
     public void setIndex(int index) {
         this.index = index;
     }
+
 }

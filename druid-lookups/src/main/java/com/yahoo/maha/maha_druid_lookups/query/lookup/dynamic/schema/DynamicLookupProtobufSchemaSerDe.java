@@ -6,8 +6,6 @@ import com.google.protobuf.DynamicMessage;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import org.apache.druid.java.util.common.logger.Logger;
-
-import java.io.*;
 import java.util.Optional;
 
 public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema {
@@ -62,8 +60,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         try {
             return Optional.of(DynamicMessage.parseFrom(protobufMessageDescriptor, dataBytes));
         } catch (Exception e) {
-            e.printStackTrace();
-            LOG.error("failed to parse as generic protobuf Message, namespace %s ",extractionNamespace.getLookupName(), e);
+            LOG.error("failed to parse as generic protobuf Message, namespace %s %s ",extractionNamespace.getLookupName(), e.getMessage(), e);
         }
         return Optional.empty();
     }
@@ -90,7 +87,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
             String fieldValue = (String) dynamicMessage.getField(fieldDescriptor);
             return fieldValue != null ? fieldValue : "";
         } else {
-            LOG.error("Field missing in protobuf Message Descriptor for field: {}  in  {}", fieldName,  extractionNamespace.getLookupName());
+            LOG.error("Field missing in protobuf Message Descriptor for field: %s  in  %s", fieldName,  extractionNamespace.getLookupName());
         }
         return "";
     }
@@ -105,14 +102,14 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
                 return getValueForField(decodeConfig.getColumnIfValueNotMatched(), dynamicMessage, extractionNamespace);
             }
         } catch (Exception e) {
-            LOG.error(e, "Caught exception while handleDecode");
+            LOG.error(e, "Caught exception while handleDecode "+e.getMessage());
             throw e;
         }
     }
 
     @Override
     public String toString() {
-        return "DynamicLookupProtobufSchemaSerDe()";
+        return "DynamicLookupProtobufSchemaSerDe() : ";
     }
 }
 
