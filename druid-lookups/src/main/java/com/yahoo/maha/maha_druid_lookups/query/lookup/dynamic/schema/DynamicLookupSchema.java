@@ -87,7 +87,9 @@ public class DynamicLookupSchema {
 
     public static Optional<DynamicLookupSchema> parseFrom(File schemaFile) {
         try {
-            return parseFrom(FileUtils.readFileToString(schemaFile));
+            String schemaJson = FileUtils.readFileToString(schemaFile);
+            LOG.info("Got the schema json as "+schemaJson);
+            return parseFrom(schemaJson);
         } catch (Exception e) {
             e.printStackTrace();
             LOG.error("Failed to read the Schema file %s "+e.getMessage(), schemaFile.getAbsolutePath(), e);

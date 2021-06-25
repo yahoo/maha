@@ -23,7 +23,7 @@ public class DynamicLookupSchemaManager {
      Called by Rockdb Manager to update Schema
      */
     public void updateSchema(ExtractionNamespace extractionNamespace, DynamicLookupSchema schema) {
-        LOG.info("Initializing dynamic schema for lookup %s, schema: %s", extractionNamespace.getLookupName(), schema.getName());
+        LOG.info("Initializing dynamic schema for lookup %s, schema: %s", extractionNamespace.getLookupName(), schema);
         schemaMap.put(extractionNamespace.getLookupName(), schema);
     }
 
