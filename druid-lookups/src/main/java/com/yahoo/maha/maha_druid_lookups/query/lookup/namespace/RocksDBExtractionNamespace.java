@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.BaseCacheActionRunner;
 import org.apache.druid.java.util.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
@@ -58,6 +59,9 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     private String overrideLookupServiceHosts = null;
     private List<String> overrideLookupServiceHostsList = null;
 
+    @JsonProperty
+    private boolean enableDynamicLookup = false;
+
 
     @JsonCreator
     public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
@@ -74,7 +78,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @NotNull @JsonProperty(value = "missingLookupConfig", required = false) final MissingLookupConfig missingLookupConfig,
                                       @JsonProperty(value = "cacheActionRunner", required = false) final String cacheActionRunnerName,
                                       @JsonProperty(value = "overrideLookupServiceHosts", required = false) final String overrideLookupServiceHosts,
-                                      @JsonProperty(value = "randomLocalPathSuffixEnabled", required = false) final boolean randomLocalPathSuffixEnabled) {
+                                      @JsonProperty(value = "randomLocalPathSuffixEnabled", required = false) final boolean randomLocalPathSuffixEnabled,
+                                      @JsonProperty(value = "enableDynamicLookup", required = false) final boolean enableDynamicLookup) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
@@ -89,17 +94,23 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
         //cacheActionRunner = "."
         try {
-            if(StringUtils.isBlank(cacheActionRunnerName)) //no runner is passed, use Default Class String
-                this.cacheActionRunnerName = CacheActionRunner.class.getName();
-            else {
-                //Check if the passed in runner is valid, else throw an exception to stop the program.
-                Object actionRunner = Class.forName(cacheActionRunnerName).newInstance();
-                Preconditions.checkArgument(actionRunner instanceof BaseCacheActionRunner,
-                        "Passed in runner should be a CacheActionRunner, but got a " + cacheActionRunnerName + " of class " + actionRunner.getClass().getName());
-                this.cacheActionRunnerName =  cacheActionRunnerName;
+            this.enableDynamicLookup = enableDynamicLookup;
+            if (enableDynamicLookup) {
+                LOG.info("Got Dynamic lookup namespace %s, setting DynamicCacheActionRunner", lookupName);
+                this.cacheActionRunner = new DynamicCacheActionRunner();
+            } else {
+                if (StringUtils.isBlank(cacheActionRunnerName)) //no runner is passed, use Default Class String
+                    this.cacheActionRunnerName = CacheActionRunner.class.getName();
+                else {
+                    //Check if the passed in runner is valid, else throw an exception to stop the program.
+                    Object actionRunner = Class.forName(cacheActionRunnerName).newInstance();
+                    Preconditions.checkArgument(actionRunner instanceof BaseCacheActionRunner,
+                            "Passed in runner should be a CacheActionRunner, but got a " + cacheActionRunnerName + " of class " + actionRunner.getClass().getName());
+                    this.cacheActionRunnerName =  cacheActionRunnerName;
+                }
+                this.cacheActionRunner = BaseCacheActionRunner.class.cast(
+                        Class.forName(this.cacheActionRunnerName).newInstance());
             }
-            this.cacheActionRunner = BaseCacheActionRunner.class.cast(
-                Class.forName(this.cacheActionRunnerName).newInstance());
         } catch (Throwable t) {
             LOG.error(t, "Found a blank or invalid CacheActionRunner, logging error and throwing Runtime ");
             throw new RuntimeException("Found invalid passed in CacheActionRunner with String " + cacheActionRunner, t);
@@ -216,6 +227,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 ", cacheActionRunner=" + cacheActionRunner +
                 ", overrideLookupServiceHosts=" + overrideLookupServiceHosts +
                 ", randomLocalPathSuffixEnabled=" + randomLocalPathSuffixEnabled +
+                ", enableDynamicLookup=" + enableDynamicLookup +
                 '}';
     }
 

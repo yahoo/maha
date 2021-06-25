@@ -7,11 +7,13 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import org.apache.druid.java.util.common.logger.Logger;
 import java.util.Optional;
+import java.util.stream.*;
 
 public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema {
     private static final Logger LOG = new Logger(DynamicLookupProtobufSchemaSerDe.class);
 
     private Descriptors.Descriptor protobufMessageDescriptor;
+    private String fieldsCsv;
 
     public DynamicLookupProtobufSchemaSerDe(DynamicLookupSchema dynamicLookupSchema) throws Descriptors.DescriptorValidationException {
         DescriptorProtos.FileDescriptorProto.Builder  fileDescProtoBuilder = DescriptorProtos.FileDescriptorProto
@@ -32,6 +34,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
                     .buildFrom(fileDescriptorProto,
                             new Descriptors.FileDescriptor[0])
                     .findMessageTypeByName(dynamicLookupSchema.getName());
+            fieldsCsv = protobufMessageDescriptor.getFields().stream().map(s-> s.getName()).collect(Collectors.joining(", "));
         } catch (Exception ex) {
             LOG.error("failed to build protobufMessageDescriptor for schema: %s", dynamicLookupSchema, ex);
             throw ex;
@@ -83,6 +86,10 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
 
     private String getValueForField(String fieldName, DynamicMessage dynamicMessage, ExtractionNamespace extractionNamespace) {
         Descriptors.FieldDescriptor fieldDescriptor =  protobufMessageDescriptor.findFieldByName(fieldName);
+        if (fieldDescriptor == null) {
+            LOG.error("Failed to find the field '%s' in schema: [%s], namespace: %s", fieldName, fieldsCsv, extractionNamespace.getLookupName());
+           return "";
+        }
         if (dynamicMessage.hasField(fieldDescriptor)) {
             String fieldValue = (String) dynamicMessage.getField(fieldDescriptor);
             return fieldValue != null ? fieldValue : "";
