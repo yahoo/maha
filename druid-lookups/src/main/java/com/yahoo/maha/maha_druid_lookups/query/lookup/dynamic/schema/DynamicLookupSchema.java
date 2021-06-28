@@ -1,151 +1,101 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema;
 
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.Descriptors;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.databind.*;
+import com.google.protobuf.*;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import org.apache.druid.java.util.common.logger.Logger;
-import org.json.simple.JSONObject;
+import org.zeroturnaround.zip.commons.*;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
+import java.io.*;
+import java.util.*;
 
 public class DynamicLookupSchema {
     private static final Logger LOG = new Logger(DynamicLookupSchema.class);
 
-    private final SCHEMA_TYPE type ;
-    private final String version;
-    private final String name;
-    private final DynamicLookupCoreSchema dynamicLookupCoreSchema;
+    private ExtractionNameSpaceSchemaType type ;
+    private String version;
+    private String name;
+    private List<SchemaField> schemaFieldList;
 
-    private DynamicLookupSchema(Builder builder){
-        this.type = builder.type;
-        this.version = builder.version;
-        this.name = builder.name;
-        this.dynamicLookupCoreSchema = builder.dynamicLookupCoreSchema;
+    @JsonIgnore
+    private DynamicLookupCoreSchema coreSchema;
+
+    public DynamicLookupSchema(ExtractionNameSpaceSchemaType type, String version, String name, List<SchemaField> schemaFieldList) {
+        this.type = type;
+        this.version = version;
+        this.name = name;
+        this.schemaFieldList = schemaFieldList;
     }
 
-
-    @Override
-    public String toString(){
-        return "DynamicLookupSchema{" +
-                "name = " + name +
-                ", type = " + type.toString() +
-                ", version = " + version +
-                ", coreSchema = " + dynamicLookupCoreSchema.toString() +
-                " }";
+    public DynamicLookupSchema() {
+        schemaFieldList = new ArrayList<>();
     }
 
-
-    public String getName(){
-        return name;
+    // Init Core Schema
+    public void init() throws Descriptors.DescriptorValidationException {
+        coreSchema = DynamicLookupCoreSchemaFactory.buildSchema(this);
     }
 
-    public String getVersion(){
-        return version;
+    public DynamicLookupCoreSchema getCoreSchema() {
+        return coreSchema;
     }
 
-    public SCHEMA_TYPE getSchemaType(){
+    public ExtractionNameSpaceSchemaType getType() {
         return type;
     }
 
-
-    public JSONObject toJson(){
-        return new JSONObject();
-    } // will get back to serialization later
-
-    public ImmutablePair getValue(String fieldName, byte[] dataBytes, RocksDBExtractionNamespace extractionNamespace){
-        return dynamicLookupCoreSchema.getValue(fieldName, dataBytes,extractionNamespace);
+    public String getVersion() {
+        return version;
     }
 
-    public static class Builder {
-        protected SCHEMA_TYPE type;
-        protected String version;
-        protected String schemaFilePath;
-        protected String name;
-        protected DynamicLookupCoreSchema dynamicLookupCoreSchema;
-
-        private void buildType(String type) {
-            type = type.toUpperCase();
-            try{
-                this.type = SCHEMA_TYPE.valueOf(type);
-            } catch (IllegalArgumentException  ex){
-                LOG.error("Unknown Schema type:  " + type + ex);
-                throw new IllegalArgumentException(ex);
-            }
-        }
-
-        private void buildVersion(String  version) {
-            this.version = version;
-        }
-
-        private void buildName(String  name) {
-            this.name = name;
-        }
-
-
-        private void buildDynamicLookupCoreSchema(SCHEMA_TYPE type,JsonNode coreSchema) throws IOException, Descriptors.DescriptorValidationException {
-            this.dynamicLookupCoreSchema = DynamicLookupCoreSchemaFactory.buildSchema(type, coreSchema);
-        }
-
-        public Builder setSchemaFilePath(String schemaFilePath) throws IOException {
-            this.schemaFilePath = schemaFilePath;
-            parseJson();
-            return this;
-        }
-
-        private void parseJson() throws IOException {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode json ;
-
-            try {
-                String schemaContent = getSchemaContent();
-                json = objectMapper.readTree(schemaContent);
-
-            } catch (IOException ex){
-                LOG.error("Cannot Read schema file for path " + schemaFilePath );
-                throw ex;
-            }
-
-
-            buildVersion(getField(json,"version"));
-            buildName(getField(json,"name"));
-            buildType(getField(json,"type"));
-
-            if(json.has("coreSchema")){
-                try {
-                    buildDynamicLookupCoreSchema(type, json.get("coreSchema"));
-                }catch (IOException | Descriptors.DescriptorValidationException ex){
-                    LOG.error("Failed while building buildDynamicLookupCoreSchema" + ex);
-                }
-            } else {
-                throw new IllegalArgumentException("Field coreSchema not present in schema file " + schemaFilePath);
-            }
-        }
-
-
-        private String getField(JsonNode json , String fieldName) throws IllegalArgumentException{
-            if(json != null && json.has(fieldName)){
-                return json.get(fieldName).textValue();
-            }
-            else {
-                throw new IllegalArgumentException("Field " + fieldName + " not present in schema file " + schemaFilePath);
-            }
-        }
-
-        private String getSchemaContent() throws IOException{
-            return new String(Files.readAllBytes(Paths.get(schemaFilePath)));
-        }
-
-
-        public DynamicLookupSchema build(){
-            return new DynamicLookupSchema(this);
-
-        }
-
+    public String getName() {
+        return name;
     }
+
+    public List<SchemaField> getSchemaFieldList() {
+        return schemaFieldList;
+    }
+
+    public void setSchemaFieldList(List<SchemaField> schemaFieldList) {
+        this.schemaFieldList = schemaFieldList;
+    }
+
+    @Override
+    public String toString() {
+        return "DynamicLookupSchema{" +
+                "type=" + type +
+                ", version='" + version + '\'' +
+                ", name='" + name + '\'' +
+                ", schemaFieldList=" + Arrays.toString(schemaFieldList.toArray()) +
+                '}';
+    }
+
+    public static Optional<DynamicLookupSchema> parseFrom(String json) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS);
+            DynamicLookupSchema dynamicLookupSchema = mapper.readValue(json, DynamicLookupSchema.class);
+            dynamicLookupSchema.init();
+            return Optional.of(dynamicLookupSchema);
+        } catch (Exception e) {
+            e.printStackTrace();
+
+        }
+        return Optional.empty();
+    }
+
+    public static Optional<DynamicLookupSchema> parseFrom(File schemaFile) {
+        try {
+            String schemaJson = FileUtils.readFileToString(schemaFile);
+            LOG.info("Got the schema json as "+schemaJson);
+            return parseFrom(schemaJson);
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.error("Failed to read the Schema file %s "+e.getMessage(), schemaFile.getAbsolutePath(), e);
+        }
+        return Optional.empty();
+    }
+
 }

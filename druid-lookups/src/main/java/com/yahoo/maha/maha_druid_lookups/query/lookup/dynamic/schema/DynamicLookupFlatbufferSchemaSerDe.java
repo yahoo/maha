@@ -2,14 +2,13 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema;
 
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.*;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
-public class DynamicLookupFlatbufferSchemaSerDe implements  DynamicLookupCoreSchema<String,Optional<Long>>{
+public class DynamicLookupFlatbufferSchemaSerDe implements  DynamicLookupCoreSchema {
 
     //WIP
     private JsonNode coreSchema;
@@ -18,34 +17,32 @@ public class DynamicLookupFlatbufferSchemaSerDe implements  DynamicLookupCoreSch
         this.coreSchema = coreSchema;
     }
 
-    public SCHEMA_TYPE getSchemaType(){
-        return SCHEMA_TYPE.FLATBUFFER;
+    public ExtractionNameSpaceSchemaType getSchemaType(){
+        return ExtractionNameSpaceSchemaType.FLAT_BUFFER;
     }
 
-
-    /*
-    public JSONObject toJson(){
-
-    }
-    */
-
-
-    public String getSchema(){
-
-
-
+    public String getSchemaPath() {
         return "";
-    }
-
-
-    public ImmutablePair<String ,Optional<Long>>  getValue(String fieldName, byte[] dataBytes, RocksDBExtractionNamespace extractionNamespace){
-        return new ImmutablePair<>("",Optional.empty());
     }
 
     @Override
-    public String toString(){
-        return "";
+    public String getValue(String fieldName, byte[] dataBytes, Optional<DecodeConfig> decodeConfigOptional, RocksDBExtractionNamespace extractionNamespace) {
+        // get the index for field
+        // init Generic Table from DataBytes; GenericFlatBufferTable
+        // getValue with index;
+        // handleDecode;
+        return null;
+    }
+
+    private GenericFlatBufferTable getDynamicTable(String fieldName, byte[] dataBytes, RocksDBExtractionNamespace extractionNamespace) {
+        return null;
     }
 
 
+    @Override
+    public String toString() {
+        return "DynamicLookupFlatbufferSchemaSerDe{" +
+                "coreSchema=" + coreSchema +
+                '}';
+    }
 }

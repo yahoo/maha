@@ -117,7 +117,7 @@ public class CacheActionRunner implements BaseCacheActionRunner {
 
     @Override
     public ExtractionNameSpaceSchemaType getSchemaType() {
-        return ExtractionNameSpaceSchemaType.Protobuf;
+        return ExtractionNameSpaceSchemaType.PROTOBUF;
     }
 
     @Override

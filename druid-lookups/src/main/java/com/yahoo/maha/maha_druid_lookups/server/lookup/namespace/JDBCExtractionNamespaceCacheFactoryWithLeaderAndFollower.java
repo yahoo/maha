@@ -3,6 +3,7 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.google.inject.Inject;
+import org.apache.commons.lang3.tuple.*;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
@@ -17,11 +18,9 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.joda.time.DateTime;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
-import scala.Tuple2;
 
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
@@ -194,9 +193,9 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
                 long consumerPollPeriod = extractionNamespace.getPollMs();
 
-                Tuple2<Integer, Timestamp> runRowsWithTS = pollKafkaTopicForUpdates(consumerPollPeriod, kafkaProducerTopic, extractionNamespace, cache);
-                Integer totalNumRowsUpdated = runRowsWithTS._1;
-                Timestamp polledLastUpdatedTS = runRowsWithTS._2;
+                Pair<Integer, Timestamp> runRowsWithTS = pollKafkaTopicForUpdates(consumerPollPeriod, kafkaProducerTopic, extractionNamespace, cache);
+                Integer totalNumRowsUpdated = runRowsWithTS.getKey();
+                Timestamp polledLastUpdatedTS = runRowsWithTS.getValue();
 
                 populateLastUpdatedTime(polledLastUpdatedTS, extractionNamespace);
 
@@ -210,10 +209,10 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
     }
 
-    private Tuple2<Integer, Timestamp> pollKafkaTopicForUpdates(long consumerPollPeriod,
-                                                                String kafkaProducerTopic,
-                                                                final JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace,
-                                                                final Map<String, List<String>> cache
+    private Pair<Integer, Timestamp> pollKafkaTopicForUpdates(long consumerPollPeriod,
+                                                              String kafkaProducerTopic,
+                                                              final JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace,
+                                                              final Map<String, List<String>> cache
     ) {
         long tenPercentPollPeriod = consumerPollPeriod / 10;
 
@@ -246,7 +245,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             throw e;
         }
 
-        return new Tuple2<>(i, latestTSFromRows);
+        return Pair.of(i, latestTSFromRows);
     }
 
     /**

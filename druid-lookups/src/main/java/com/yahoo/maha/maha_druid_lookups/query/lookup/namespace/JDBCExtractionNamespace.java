@@ -131,6 +131,11 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     }
 
     @Override
+    public boolean isDynamicSchemaLookup() {
+        return false;
+    }
+
+    @Override
     public ExtractionNameSpaceSchemaType getSchemaType() {
         return ExtractionNameSpaceSchemaType.None;
     }

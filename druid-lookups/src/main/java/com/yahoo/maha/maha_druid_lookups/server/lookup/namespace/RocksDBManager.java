@@ -7,12 +7,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.*;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.*;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStart;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStop;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import org.apache.druid.guice.ManageLifecycle;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -49,6 +51,7 @@ public class RocksDBManager {
     private static final int BOUND = 6 * 60 * 60 * 1000;
     private static final String STATS_KEY = "rocksdb.stats";
     private static final long DEFAULT_BLOCK_CACHE_SIZE = (long)2 * 1024 * 1024 * 1024;
+    private static final Object DYNAMIC_SCHEMA_JSON_FILE = "dynamic-schema.json";
 
     private String localStorageDirectory;
     private long blockCacheSize;
@@ -58,6 +61,8 @@ public class RocksDBManager {
     KafkaManager kafkaExtractionManager;
     @Inject
     ServiceEmitter serviceEmitter;
+    @Inject
+    DynamicLookupSchemaManager dynamicLookupSchemaManager;
 
     static {
         RocksDB.loadLibrary();
@@ -97,14 +102,14 @@ public class RocksDBManager {
 
         LOG.info(String.format("successMarkerPath [%s], lastUpdate [%s]", successMarkerPath, lastUpdate));
 
-        if (!isSuccessMarkerPresent(successMarkerPath)) {
+        if (!isFilePresentOnHdfs(successMarkerPath)) {
             if(lastUpdate == 0) {
                 LOG.error(String.format("RocksDB instance not present for namespace [%s] loadTime [%s], will check for previous loadTime", extractionNamespace.getNamespace(), loadTime));
                 loadTime = LocalDateTime.now().minus(2, ChronoUnit.DAYS)
                         .format(DateTimeFormatter.ofPattern("yyyyMMdd0000"));
                 successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
                         extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
-                if (!isSuccessMarkerPresent(successMarkerPath)) {
+                if (!isFilePresentOnHdfs(successMarkerPath)) {
                     LOG.error(String.format("RocksDB instance not present for previous loadTime [%s] too for namespace [%s]", loadTime, extractionNamespace.getNamespace()));
                     serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_INSTANCE_NOT_PRESENT, 1));
                     return String.valueOf(lastUpdate);
@@ -131,7 +136,7 @@ public class RocksDBManager {
 
         final String localZippedFileNameWithPath = String.format("%s/%s/%s/rocksdb%s.zip",
                 localStorageDirectory, extractionNamespace.getNamespace(), loadTime, getLocalPathSuffix(extractionNamespace.isRandomLocalPathSuffixEnabled()));
-        LOG.error(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
+        LOG.info(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
 
         final String localPath = FilenameUtils.removeExtension(localZippedFileNameWithPath);
 
@@ -170,7 +175,7 @@ public class RocksDBManager {
                                        final String localPath,
                                        final File snapShotFile) throws IOException, RocksDBException {
 
-        LOG.error("Snapshot file [%s%s] exists and hence using it", localPath, SNAPSHOT_FILE_NAME);
+        LOG.info("Snapshot file [%s%s] exists and hence using it", localPath, SNAPSHOT_FILE_NAME);
         RocksDBSnapshot rocksDBSnapshot = OBJECT_MAPPER.readValue(snapShotFile, RocksDBSnapshot.class);
         rocksDBSnapshot.dbPath = localPath;
         rocksDBSnapshot.rocksDB = openRocksDB(rocksDBSnapshot.dbPath);
@@ -182,6 +187,10 @@ public class RocksDBManager {
         if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
             LOG.info("useSnapshotInstance: adding Listener...");
             kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, true);
+        }
+        if (extractionNamespace.isDynamicSchemaLookup()) {
+            LOG.info("Looking for dynamic lookup schema file in existing snapshot %s", extractionNamespace.getLookupName());
+            initDynamicLookupSchema(extractionNamespace, localPath);
         }
         return loadTime;
     }
@@ -216,6 +225,18 @@ public class RocksDBManager {
             LOG.info("startNewInstance: adding Listener...");
             kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, false);
         }
+        if (extractionNamespace.isDynamicSchemaLookup()) {
+            final String schemaHdfsPath = String.format("%s/load_time=%s/%s",
+                    extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime, DYNAMIC_SCHEMA_JSON_FILE);
+            if (isFilePresentOnHdfs(schemaHdfsPath)) {
+                LOG.info("Downloading Dynamic Lookup Schema json from [%s] to [%s]", schemaHdfsPath, localPath);
+                fileSystem.copyToLocalFile(new Path(schemaHdfsPath), new Path(localPath));
+                LOG.info("Downloaded Dynamic Lookup Schema json from [%s] to [%s]", schemaHdfsPath, localPath);
+                initDynamicLookupSchema(extractionNamespace, localPath);
+            } else {
+                LOG.error("Failed to find the Dynamic Lookup Schema json at hdfs path "+schemaHdfsPath);
+            }
+        }
 
         final String key = extractionNamespace.getNamespace();
         RocksDB oldDb = null;
@@ -247,6 +268,16 @@ public class RocksDBManager {
         }
 
         return loadTime;
+    }
+
+    private void initDynamicLookupSchema(ExtractionNamespace extractionNamespace, String localPath) {
+        String localSchemaPath = String.format("%s/%s", localPath, DYNAMIC_SCHEMA_JSON_FILE);
+        Optional<DynamicLookupSchema> dynamicLookupSchemaOptional = DynamicLookupSchema.parseFrom(new File(localSchemaPath));
+        if (dynamicLookupSchemaOptional.isPresent()) {
+            DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaOptional.get();
+            dynamicLookupSchemaManager.updateSchema(extractionNamespace, dynamicLookupSchema);
+            LOG.info("Updated dynamic lookup schema for %s into schemaManager", extractionNamespace.getLookupName());
+        }
     }
 
     private RocksDB openRocksDB(String localPath) throws RocksDBException {
@@ -323,7 +354,7 @@ public class RocksDBManager {
         return false;
     }
 
-    private boolean isSuccessMarkerPresent(final String successMarkerPath) {
+    private boolean isFilePresentOnHdfs(final String successMarkerPath) {
         try {
             Path path = new Path(successMarkerPath);
             if (fileSystem.exists(path)) {
@@ -368,7 +399,7 @@ public class RocksDBManager {
 
                 LOG.info("dirToZip: [%s], exists: [%s]", dirToZip, dirToZip.exists());
 
-                if (dirToZip.exists() && !isSuccessMarkerPresent(successMarkerPath)) {
+                if (dirToZip.exists() && !isFilePresentOnHdfs(successMarkerPath)) {
 
                     final File file = new File(String.format("%s/%s/%s", localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace()));
                     if (!file.exists()) {
@@ -392,7 +423,7 @@ public class RocksDBManager {
                 LOG.error(e, "Caught exception while uploading lookups to HDFS for auditing");
                 try {
                     cleanup(String.format("%s/%s/%s", localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace()));
-                    if (!isSuccessMarkerPresent(successMarkerPath)) {
+                    if (!isFilePresentOnHdfs(successMarkerPath)) {
                         fileSystem.delete(new Path(String.format("%s/load_time=%s/rocksdb.zip",
                                 extractionNamespace.getLookupAuditingHDFSPath(), loadTime)), false);
                     }
