@@ -66,7 +66,7 @@ public class DynamicLookupSchemaTest {
     }
 
     @Test
-    public void testToJson() throws IOException {
+    public void testToJson() {
         DefaultProtobufSchemaFactory defaultProtobufSchemaFactory = new DefaultProtobufSchemaFactory(ImmutableMap.<String, GeneratedMessageV3>of("Ad", AdProtos.Ad.getDefaultInstance()));
         String resourcePath = classLoader.getResource(dir).getPath();
         String outputName = "ad_pb_dyn_lookup";

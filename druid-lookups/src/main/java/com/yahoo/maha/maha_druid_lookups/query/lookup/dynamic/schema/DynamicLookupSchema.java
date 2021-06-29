@@ -83,7 +83,6 @@ public class DynamicLookupSchema {
 
     public static Optional<DynamicLookupSchema> parseFrom(String json) {
         try {
-            ObjectMapper mapper = new ObjectMapper();
             mapper.enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS);
             DynamicLookupSchema dynamicLookupSchema = mapper.readValue(json, DynamicLookupSchema.class);
             dynamicLookupSchema.init();
