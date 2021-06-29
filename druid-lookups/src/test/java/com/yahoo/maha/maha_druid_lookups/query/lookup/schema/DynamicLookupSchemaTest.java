@@ -1,17 +1,20 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup.schema;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.DynamicLookupSchema;
 
+import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.FieldDataType;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.*;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.DefaultProtobufSchemaFactory;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.io.*;
 import java.util.*;
-import org.mockito.Mockito.*;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -32,6 +35,12 @@ public class DynamicLookupSchemaTest {
         dynamicLookupSchema = dynamicLookupSchemaOptional.get();
         extractionNamespace = mock(RocksDBExtractionNamespace.class);
         when(extractionNamespace.getLookupName()).thenReturn("product_ad_pb_dym_lookup");
+    }
+
+    @AfterClass
+    public void clean() throws Exception {
+        File rmFile = new File(classLoader.getResource(dir + "ad_pb_dyn_lookup.json").getPath());
+        rmFile.delete();
     }
 
 
@@ -55,6 +64,31 @@ public class DynamicLookupSchemaTest {
         String value = dynamicLookupSchema.getCoreSchema().getValue("status", msg.toByteArray(), Optional.empty(), extractionNamespace);
         Assert.assertEquals(value, "ON");
     }
+
+    @Test
+    public void testToJson() {
+        DefaultProtobufSchemaFactory defaultProtobufSchemaFactory = new DefaultProtobufSchemaFactory(ImmutableMap.<String, GeneratedMessageV3>of("Ad", AdProtos.Ad.getDefaultInstance()));
+        String resourcePath = classLoader.getResource(dir).getPath();
+        String outputName = "ad_pb_dyn_lookup";
+        DynamicLookupSchema.toJson("Ad", defaultProtobufSchemaFactory, "ad_pb_dyn_lookup", resourcePath);
+
+        File output = new File(resourcePath + outputName + ".json");
+        Assert.assertTrue(output.exists());
+
+        Optional<DynamicLookupSchema> dynamicLookupSchemaOptional = DynamicLookupSchema.parseFrom(output);
+        Assert.assertTrue(dynamicLookupSchemaOptional.isPresent());
+        DynamicLookupSchema resSchema = dynamicLookupSchemaOptional.get();
+        Assert.assertEquals(resSchema.getName() , "ad_pb_dyn_lookup");
+        Assert.assertEquals(resSchema.getType(), ExtractionNameSpaceSchemaType.PROTOBUF);
+        Assert.assertEquals(resSchema.getSchemaFieldList().size(), 4);
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(0).getField(), "id");
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(0).getIndex(), 1);
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(0).getDataType(), FieldDataType.STRING);
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(3).getField(), "lastUpdated");
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(3).getIndex(), 4);
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(3).getDataType(), FieldDataType.STRING);
+    }
+
     /*
 
     @Test (expectedExceptions = IllegalArgumentException.class)

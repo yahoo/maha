@@ -16,7 +16,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
     private String fieldsCsv;
 
     public DynamicLookupProtobufSchemaSerDe(DynamicLookupSchema dynamicLookupSchema) throws Descriptors.DescriptorValidationException {
-        DescriptorProtos.FileDescriptorProto.Builder  fileDescProtoBuilder = DescriptorProtos.FileDescriptorProto
+        DescriptorProtos.FileDescriptorProto.Builder fileDescProtoBuilder = DescriptorProtos.FileDescriptorProto
                 .newBuilder();
         try {
             DescriptorProtos.DescriptorProto.Builder builder = DescriptorProtos.DescriptorProto.newBuilder();
