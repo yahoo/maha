@@ -117,7 +117,7 @@ public class DynamicLookupSchema {
                 List<Descriptors.FieldDescriptor> fieldDescriptors = ((ProtobufSchemaFactory) schemaFactory).getProtobufDescriptor(messageType).getFields();
                 for(Descriptors.FieldDescriptor d: fieldDescriptors) {
                     SchemaField schemaField = new SchemaField(
-                            d.getJsonName(),
+                            d.getName(),
                             FieldDataType.valueOf(d.getType().toString().toUpperCase()), //throw exception if unsupported type
                             d.getIndex() + 1 //Field numbers must be positive integers
                     );

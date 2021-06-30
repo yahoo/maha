@@ -84,7 +84,7 @@ public class DynamicLookupSchemaTest {
         Assert.assertEquals(resSchema.getSchemaFieldList().get(0).getField(), "id");
         Assert.assertEquals(resSchema.getSchemaFieldList().get(0).getIndex(), 1);
         Assert.assertEquals(resSchema.getSchemaFieldList().get(0).getDataType(), FieldDataType.STRING);
-        Assert.assertEquals(resSchema.getSchemaFieldList().get(3).getField(), "lastUpdated");
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(3).getField(), "last_updated");
         Assert.assertEquals(resSchema.getSchemaFieldList().get(3).getIndex(), 4);
         Assert.assertEquals(resSchema.getSchemaFieldList().get(3).getDataType(), FieldDataType.STRING);
     }
