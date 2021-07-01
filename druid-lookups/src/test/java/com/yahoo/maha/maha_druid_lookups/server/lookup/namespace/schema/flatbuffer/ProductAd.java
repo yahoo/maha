@@ -50,7 +50,6 @@ public final class ProductAd extends Table {
       int titleOffset,
       int last_updatedOffset) {
     builder.startTable(8);
-    ProductAd.addLastUpdated(builder, last_updatedOffset);
     ProductAd.addTitle(builder, titleOffset);
     ProductAd.addSourceId(builder, source_idOffset);
     ProductAd.addImageUrlLarge(builder, image_url_largeOffset);
@@ -58,6 +57,7 @@ public final class ProductAd extends Table {
     ProductAd.addStatus(builder, statusOffset);
     ProductAd.addDescription(builder, descriptionOffset);
     ProductAd.addId(builder, idOffset);
+    ProductAd.addLastUpdated(builder, last_updatedOffset);
     return ProductAd.endProductAd(builder);
   }
 

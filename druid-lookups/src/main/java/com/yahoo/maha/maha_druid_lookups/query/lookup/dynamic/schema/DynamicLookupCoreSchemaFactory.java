@@ -18,7 +18,7 @@ public class DynamicLookupCoreSchemaFactory {
                 return new DynamicLookupProtobufSchemaSerDe(dynamicLookupSchema);
             case FLAT_BUFFER:
                 //dynamicLookupCoreSchema = new DynamicLookupFlatbufferSchemaSerDe(coreSchema);
-                return new DynamicLookupFlatbufferSchemaSerDe(null);
+                return new DynamicLookupFlatbufferSchemaSerDe(dynamicLookupSchema);
             default:
                 //should never reach this code
                 String error = String.format("Unsupported Schema Type %s for in DynamicLookup schema ", dynamicLookupSchema.getType());

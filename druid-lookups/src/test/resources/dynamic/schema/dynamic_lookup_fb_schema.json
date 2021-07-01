@@ -1,10 +1,27 @@
 {
-  "type": "flat_buffer",
+  "type": "FLAT_BUFFER",
   "version" : "2021061800",
-  "name" : "product_ad_dym_lookup",
-  "coreSchema": {
-    "fieldColumn1": "4",
-    "fieldColumn2": "6"
-  }
-
+  "name" : "product_ad_pb_dym_lookup",
+  "schemaFieldList": [
+    {
+      "field": "id",
+      "dataType": "STRING",
+      "index": 1
+    },
+    {
+      "field": "title",
+      "dataType": "STRING",
+      "index": 2
+    },
+    {
+      "field": "status",
+      "dataType": "STRING",
+      "index": 3
+    },
+    {
+      "field": "last_updated",
+      "dataType": "STRING",
+      "index": 4
+    }
+  ]
 }

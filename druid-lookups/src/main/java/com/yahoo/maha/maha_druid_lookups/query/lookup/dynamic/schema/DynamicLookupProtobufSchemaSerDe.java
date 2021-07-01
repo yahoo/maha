@@ -99,6 +99,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         return "";
     }
 
+
     public String handleDecode(DecodeConfig decodeConfig, DynamicMessage dynamicMessage, ExtractionNamespace extractionNamespace) {
         try {
             String columnToCheck = getValueForField(decodeConfig.getColumnToCheck(), dynamicMessage, extractionNamespace);
