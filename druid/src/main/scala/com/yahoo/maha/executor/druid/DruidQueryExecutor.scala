@@ -413,11 +413,7 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
       && latestDate.isBeforeNow()
       && response.getHeaders().contains(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)
       && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)) {
-      logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)}")
-      if(response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(s""""uncoveredIntervalsOverflowed":true""")) {
-        val exception = new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
-        throw exception // will add-back in a week, assuming few enough intervals are found.
-      }
+      logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)} in source table : ${query.tableName}")
     }
   }
 
