@@ -263,4 +263,32 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assertThrows[SqlParseException](defaultMahaCalciteSqlParser.parse(sql3, StudentSchema, "er"))
   }
 
+  test("test base sql parsing with table schema") {
+
+    val sql = s"""
+              select * from maha.student_performance
+              where 'Student ID' = 123
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.selectFields.size == 12)
+    assert(request.filterExpressions.nonEmpty)
+    assert(request.cube == "student_performance")
+
+    assert(request.filterExpressions.toString contains "EqualityFilter(Student ID,123,false,false)")
+  }
+
+  test("test Describe table with table schema") {
+    val sql = s"""
+              DESCRIBE maha.student_performance
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[DescribeSqlNode])
+    val describeSqlNode = mahaSqlNode.asInstanceOf[DescribeSqlNode]
+    assert(describeSqlNode.cube == "student_performance")
+  }
 }

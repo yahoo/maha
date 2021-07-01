@@ -87,8 +87,9 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
 
       sqlNode match {
         case sqlSelect: SqlSelect =>
-          val publicFact = getCube(sqlSelect.getFrom, registry)
-          require(publicFact.isDefined,MahaCalciteSqlParserError(s"Failed to find the cube ${sqlSelect.getFrom}", sql))
+          val (fromTable, tableSchema): (String, Option[String]) = getFromTableAndTableSchema(sqlSelect.getFrom)
+          val publicFact = getCube(fromTable, registry)
+          require(publicFact.isDefined,MahaCalciteSqlParserError(s"Failed to find the cube $fromTable", sql))
           val columnAliasToColumnMap:Map[String, PublicColumn] = publicFact.get.getAllDomainColumnAliasToPublicColumnMap(registry)
           val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get, columnAliasToColumnMap)
           val (filterExpression, dayFilterOption, hourFilterOption, minuteFilterOption, numDays) = getFilterList(sqlSelect.getWhere, publicFact.get)
@@ -117,8 +118,9 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
             )
           )
         case sqlDescribeTable: SqlDescribeTable =>
-          val cubeOption = getCube(sqlDescribeTable.getTable, registry)
-          require (cubeOption.isDefined, s"Failed to find the table ${sqlDescribeTable.getTable} in the registry")
+          val (fromTable, tableSchema): (String, Option[String]) = getFromTableAndTableSchema(sqlDescribeTable.getTable)
+          val cubeOption = getCube(fromTable, registry)
+          require (cubeOption.isDefined, s"Failed to find the table $fromTable in the registry")
           DescribeSqlNode(cubeOption.get.name)
         case e=>
           throw new IllegalArgumentException(s"Query type ${e.getKind} is not supported by Maha-Calcite")
@@ -132,12 +134,22 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     }
   }
 
-  def getCube(sqlNode: SqlNode, registry:Registry) : Option[PublicFact] = {
+  def getCube(fromTable: String, registry:Registry) : Option[PublicFact] = {
+    registry.getFact(fromTable)
+  }
+
+  def getFromTableAndTableSchema(sqlNode: SqlNode): (String, Option[String]) = {
     sqlNode match {
       case sqlIdentifier: SqlIdentifier =>
-        registry.getFact(sqlIdentifier.getSimple.toLowerCase)
-      case e=>
-        throw new IllegalArgumentException(s"missing case ${e} in get cube method")
+        val fromTableAndTableSchema = sqlIdentifier.toString.toLowerCase.split("\\.")
+        if (fromTableAndTableSchema.size == 1)
+          (fromTableAndTableSchema(0), None)
+        else if (fromTableAndTableSchema.size == 2)
+          (fromTableAndTableSchema(1), Some(fromTableAndTableSchema(0)))
+        else
+          throw new IllegalArgumentException(s"Incorrect FROM table name or schema.")
+      case _ =>
+        throw new IllegalArgumentException(s"Incorrect FROM clause.")
     }
   }
 
