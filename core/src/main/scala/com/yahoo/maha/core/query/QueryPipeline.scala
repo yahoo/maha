@@ -125,10 +125,6 @@ case class QueryPipelineWithFallback(queryChain: QueryChain
     val stats = new EngineQueryStats
     Try {
       val result = queryChain.execute(executorContext, rowListFn, QueryAttributes.empty, stats)
-      if(result.rowList.isEmpty){
-        throw new IllegalStateException(s"Primary query returned empty rowList, attempting to fall back on ${fallbackQueryChain.drivingQuery.engine.toString}.")
-      }
-
       QueryPipelineResult(this, queryChain, result.rowList, result.queryAttributes, result.pagination)
     }.recover {
       case throwable =>
@@ -142,10 +138,6 @@ case class QueryPipelineWithFallback(queryChain: QueryChain
     val stats = new EngineQueryStats
     Try {
       val result = queryChain.execute(executorContext, rowListFn, queryAttributes, stats)
-      if(result.rowList.isEmpty){
-        throw new IllegalStateException(s"Primary query returned empty rowList, attempting to fall back on ${fallbackQueryChain.drivingQuery.engine.toString}.")
-      }
-
       QueryPipelineResult(this, queryChain, result.rowList, result.queryAttributes, result.pagination)
     }.recover {
       case throwable =>
