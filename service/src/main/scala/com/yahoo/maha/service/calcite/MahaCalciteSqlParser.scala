@@ -147,9 +147,9 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
         else if (fromTableAndTableSchema.size == 2)
           (fromTableAndTableSchema.get(1).toLowerCase, Some(fromTableAndTableSchema.get(0).toLowerCase))
         else
-          throw new IllegalArgumentException(s"Incorrect FROM clause. Expected `FROM table` or `FROM schema.table`")
+          throw new IllegalArgumentException(s"Incorrect FROM clause. Expected FROM table or FROM schema.table")
       case _ =>
-        throw new IllegalArgumentException(s"Incorrect FROM clause. Expected `FROM table` or `FROM schema.table`")
+        throw new IllegalArgumentException(s"Incorrect FROM clause. Expected FROM table or FROM schema.table")
     }
   }
 
