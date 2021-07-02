@@ -1,9 +1,8 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema;
 
 import com.google.protobuf.Descriptors;
-import org.apache.druid.java.util.common.logger.Logger;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
-import org.slf4j.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class DynamicLookupCoreSchemaFactory {

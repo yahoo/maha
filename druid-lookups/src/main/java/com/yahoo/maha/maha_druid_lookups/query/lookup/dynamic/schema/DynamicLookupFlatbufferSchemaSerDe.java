@@ -4,7 +4,8 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
-import org.apache.druid.java.util.common.logger.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -12,7 +13,7 @@ import java.util.stream.Collectors;
 
 
 public class DynamicLookupFlatbufferSchemaSerDe implements  DynamicLookupCoreSchema {
-    private static final Logger LOG = new Logger(DynamicLookupFlatbufferSchemaSerDe.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DynamicLookupFlatbufferSchemaSerDe.class);
 
     private DynamicLookupSchema dynamicLookupSchema;
     private String fieldsCsv;
@@ -76,7 +77,7 @@ public class DynamicLookupFlatbufferSchemaSerDe implements  DynamicLookupCoreSch
                 return getValueForField(decodeConfig.getColumnIfValueNotMatched(), genericFlatBufferTable, extractionNamespace);
             }
         } catch (Exception e) {
-            LOG.error(e, "Caught exception while handleDecode " + e.getMessage());
+            LOG.error("Caught exception while handleDecode " + e.getMessage() + e);
             throw e;
         }
     }
