@@ -9,7 +9,7 @@
       "index": 4
     },
     {
-      "field": "title",
+      "field": "description",
       "dataType": "STRING",
       "index": 6
     },
@@ -19,9 +19,29 @@
       "index": 8
     },
     {
-      "field": "last_updated",
+      "field": "image_url_hq",
       "dataType": "STRING",
       "index": 10
+    },
+    {
+      "field": "image_url_large",
+      "dataType": "STRING",
+      "index": 12
+    },
+    {
+      "field": "source_id",
+      "dataType": "STRING",
+      "index": 14
+    },
+    {
+      "field": "title",
+      "dataType": "STRING",
+      "index": 16
+    },
+    {
+      "field": "last_updated",
+      "dataType": "STRING",
+      "index": 18
     }
   ]
 }

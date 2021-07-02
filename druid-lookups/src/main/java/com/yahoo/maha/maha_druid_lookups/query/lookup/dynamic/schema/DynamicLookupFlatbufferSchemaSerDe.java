@@ -16,18 +16,23 @@ public class DynamicLookupFlatbufferSchemaSerDe implements  DynamicLookupCoreSch
 
     private DynamicLookupSchema dynamicLookupSchema;
     private String fieldsCsv;
+    private Map<String, Integer> schemaFieldMap;
 
 
 
     public DynamicLookupFlatbufferSchemaSerDe(DynamicLookupSchema dynamicLookupSchema){
         this.dynamicLookupSchema = dynamicLookupSchema;
         fieldsCsv = dynamicLookupSchema.getSchemaFieldList().stream().map(s-> s.getField()).collect(Collectors.joining(", "));
+        schemaFieldMap = convertFieldListToMap(dynamicLookupSchema.getSchemaFieldList());
     }
 
     public ExtractionNameSpaceSchemaType getSchemaType(){
         return ExtractionNameSpaceSchemaType.FLAT_BUFFER;
     }
 
+    private Map<String, Integer> convertFieldListToMap(List<SchemaField> schemaFieldList){
+        return schemaFieldList.stream().collect(Collectors.toMap(SchemaField::getField, SchemaField::getIndex));
+    }
 
     @Override
     public String getValue(String fieldName, byte[] dataBytes, Optional<DecodeConfig> decodeConfigOptional, RocksDBExtractionNamespace extractionNamespace) {
@@ -42,13 +47,10 @@ public class DynamicLookupFlatbufferSchemaSerDe implements  DynamicLookupCoreSch
         }
     }
 
-
     // get the index for field
     private Optional<Integer> getSchemaFieldIndex(String fieldName){
-        List<SchemaField> fieldList = dynamicLookupSchema.getSchemaFieldList();
-        Optional<SchemaField> schemaField = fieldList.stream().filter(e -> fieldName.equals(e.getField())).findFirst();
-        if(schemaField.isPresent()) return Optional.of(schemaField.get().getIndex());
-
+        if(schemaFieldMap.containsKey(fieldName))
+            return Optional.of(schemaFieldMap.get(fieldName));
         return Optional.empty();
     }
 

@@ -4,8 +4,6 @@ import com.google.flatbuffers.FlatBufferBuilder;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.DynamicLookupFlatbufferSchemaSerDe;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.DynamicLookupSchema;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.FieldDataType;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.SchemaField;
 
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferValue;
@@ -14,6 +12,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.*;
 
@@ -25,6 +24,8 @@ public class DynamicLookupFlatbufferSchemaSerDeTest {
     DynamicLookupSchema dynamicLookupSchema;
     Optional<DecodeConfig> decodeConfigOptional ;
     RocksDBExtractionNamespace extractionNamespace;
+    private final String dir = "./dynamic/schema/";
+    private  ClassLoader classLoader ;
 
     ByteBuffer buf;
     byte[] bytes;
@@ -32,7 +33,11 @@ public class DynamicLookupFlatbufferSchemaSerDeTest {
     @BeforeClass
     public void setup() throws Exception {
         decodeConfigOptional = Optional.of(mock(DecodeConfig.class));
-        dynamicLookupSchema = mock(DynamicLookupSchema.class);
+        classLoader = Thread.currentThread().getContextClassLoader();
+        File schemaFile = new File(classLoader.getResource(dir + "dynamic_lookup_fb_schema.json").getPath());
+        Optional<DynamicLookupSchema> dynamicLookupSchemaOptional = DynamicLookupSchema.parseFrom(schemaFile);
+        Assert.assertTrue(dynamicLookupSchemaOptional.isPresent());
+        dynamicLookupSchema = dynamicLookupSchemaOptional.get();
         dynamicLookupFlatbufferSchemaSerDe = new DynamicLookupFlatbufferSchemaSerDe(dynamicLookupSchema);
         extractionNamespace = mock(RocksDBExtractionNamespace.class);
 
@@ -52,39 +57,15 @@ public class DynamicLookupFlatbufferSchemaSerDeTest {
 
         bytes = productAdWrapper.toByteArr(flatBufferBuilder.dataBuffer());
 
-        List<SchemaField> fieldList = new ArrayList<SchemaField>();
-        SchemaField schemaField = new SchemaField();
-        schemaField.setIndex(4); // flatbuffer index starts at 4 and increments by 2
-        schemaField.setField("id");
-        schemaField.setDataType(FieldDataType.STRING);
-        fieldList.add(schemaField);
-        SchemaField schemaField1 = new SchemaField();
-        schemaField1.setIndex(6);
-        schemaField1.setField("description");
-        schemaField1.setDataType(FieldDataType.STRING);
-        fieldList.add(schemaField1);
-        SchemaField schemaField2 = new SchemaField();
-        schemaField2.setIndex(8);
-        schemaField2.setField("status");
-        schemaField2.setDataType(FieldDataType.STRING);
-        fieldList.add(schemaField2);
-        SchemaField schemaField3 = new SchemaField();
-        schemaField3.setIndex(16);
-        schemaField3.setField("title");
-        schemaField3.setDataType(FieldDataType.STRING);
-        fieldList.add(schemaField3);
-        when(dynamicLookupSchema.getSchemaFieldList()).thenReturn(fieldList);
     }
 
 
     @Test
     public void DynamicLookupFlatbufferSchemaSerDeTestSuccess(){
         String str = dynamicLookupFlatbufferSchemaSerDe.getValue("id", bytes, Optional.empty(), extractionNamespace);
-        System.out.println(" str " + str);
         Assert.assertEquals("32309719080", str);
 
         String str1 = dynamicLookupFlatbufferSchemaSerDe.getValue("title", bytes, Optional.empty(), extractionNamespace);
-        System.out.println(" str1 " + str1);
         Assert.assertEquals("some title", str1);
     }
 
@@ -108,26 +89,26 @@ public class DynamicLookupFlatbufferSchemaSerDeTest {
     public void DynamicLookupFlatbufferSchemaSerDeTestDecodeConfigValueNotMatched(){
         when(decodeConfigOptional.get().getColumnToCheck()).thenReturn("title"); //if getColumn to check is "title"
         when(decodeConfigOptional.get().getValueToCheck()).thenReturn("title"); // if value of getColumn to check is not  "some title"
-        when(decodeConfigOptional.get().getColumnIfValueNotMatched()).thenReturn("description"); // then return "description" column value
+        when(decodeConfigOptional.get().getColumnIfValueNotMatched()).thenReturn("last_updated"); // then return "last_updated" column value
         String str = dynamicLookupFlatbufferSchemaSerDe.getValue("title", bytes,decodeConfigOptional, extractionNamespace);
-        Assert.assertEquals("test desc", str);
+        Assert.assertEquals("1480733203505", str);
     }
 
     @Test
     public void DynamicLookupFlatbufferSchemaSerDeTestDecodeConfigColumnNotpresent(){
         when(decodeConfigOptional.get().getColumnToCheck()).thenReturn("random"); //if getColumn to check is not valid
         when(decodeConfigOptional.get().getValueToCheck()).thenReturn("title"); // if value of getColumn to check is not  "some title"
-        when(decodeConfigOptional.get().getColumnIfValueNotMatched()).thenReturn("description"); // then return "description" column value
+        when(decodeConfigOptional.get().getColumnIfValueNotMatched()).thenReturn("last_updated"); // then return "last_updated" column value
         String str = dynamicLookupFlatbufferSchemaSerDe.getValue("title", bytes,decodeConfigOptional, extractionNamespace);
-        Assert.assertEquals("test desc", str);
+        Assert.assertEquals("1480733203505", str);
     }
 
     @Test
     public void DynamicLookupFlatbufferSchemaSerDeTestDecodeConfigGetValueToCheckIsEmpty(){
         when(decodeConfigOptional.get().getColumnToCheck()).thenReturn("title"); //if getColumn to check is "title
         when(decodeConfigOptional.get().getValueToCheck()).thenReturn(""); // if value of getColumn to check is not  "some title"
-        when(decodeConfigOptional.get().getColumnIfValueNotMatched()).thenReturn("description"); // then return "description" column value
+        when(decodeConfigOptional.get().getColumnIfValueNotMatched()).thenReturn("last_updated"); // then return "last_updated" column value
         String str = dynamicLookupFlatbufferSchemaSerDe.getValue("title", bytes,decodeConfigOptional, extractionNamespace);
-        Assert.assertEquals("test desc", str);
+        Assert.assertEquals("1480733203505", str);
     }
 }
