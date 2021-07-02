@@ -9,6 +9,12 @@ public class SchemaField {
 
     }
 
+    public SchemaField(String field, FieldDataType fieldDataType, int index) {
+        this.field = field;
+        this.dataType = fieldDataType;
+        this.index = index;
+    }
+
     public String getField() {
         return field;
     }

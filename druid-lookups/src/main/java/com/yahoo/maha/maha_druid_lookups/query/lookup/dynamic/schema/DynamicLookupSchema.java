@@ -5,14 +5,24 @@ import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.*;
 import com.google.protobuf.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
+
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferSchemaFactory;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.zeroturnaround.zip.commons.*;
 
 import java.io.*;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class DynamicLookupSchema {
     private static final Logger LOG = new Logger(DynamicLookupSchema.class);
+    private static ObjectMapper mapper = new ObjectMapper();
+    private static final DateTimeFormatter VERSION_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHH");
 
     private ExtractionNameSpaceSchemaType type ;
     private String version;
@@ -50,6 +60,7 @@ public class DynamicLookupSchema {
         return version;
     }
 
+
     public String getName() {
         return name;
     }
@@ -74,7 +85,7 @@ public class DynamicLookupSchema {
 
     public static Optional<DynamicLookupSchema> parseFrom(String json) {
         try {
-            ObjectMapper mapper = new ObjectMapper();
+            mapper.enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS);
             DynamicLookupSchema dynamicLookupSchema = mapper.readValue(json, DynamicLookupSchema.class);
             dynamicLookupSchema.init();
             return Optional.of(dynamicLookupSchema);
@@ -95,6 +106,35 @@ public class DynamicLookupSchema {
             LOG.error("Failed to read the Schema file %s "+e.getMessage(), schemaFile.getAbsolutePath(), e);
         }
         return Optional.empty();
+    }
+
+    public static void toJson(String messageType, BaseSchemaFactory schemaFactory, String outputName, String outputDir) {
+        String outputJsonSchemaPath = outputDir + outputName + ".json";
+        DynamicLookupSchema dynamicLookupSchema = new DynamicLookupSchema();
+        dynamicLookupSchema.version = LocalDateTime.now(ZoneId.of("UTC")).format(VERSION_TIME_FORMAT);
+        dynamicLookupSchema.name = outputName;
+        try {
+            if(schemaFactory instanceof ProtobufSchemaFactory) {
+                dynamicLookupSchema.type = ExtractionNameSpaceSchemaType.PROTOBUF;
+                List<Descriptors.FieldDescriptor> fieldDescriptors = ((ProtobufSchemaFactory) schemaFactory).getProtobufDescriptor(messageType).getFields();
+                for(Descriptors.FieldDescriptor d: fieldDescriptors) {
+                    SchemaField schemaField = new SchemaField(
+                            d.getName(),
+                            FieldDataType.valueOf(d.getType().toString().toUpperCase()), //throw exception if unsupported type
+                            d.getIndex() + 1 //Field numbers must be positive integers
+                    );
+                    dynamicLookupSchema.schemaFieldList.add(schemaField);
+                }
+            } else if (schemaFactory instanceof FlatBufferSchemaFactory) {
+                // implementation for flatbuffer
+            } else {
+                throw new Exception("unsupported schemaFactory Type: " + schemaFactory.getClass().getName());
+            }
+            mapper.writeValue(new File(outputJsonSchemaPath), dynamicLookupSchema);
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.error("Failed to create json Schema file for %s" + e.getMessage(), messageType, e);
+        }
     }
 
 }

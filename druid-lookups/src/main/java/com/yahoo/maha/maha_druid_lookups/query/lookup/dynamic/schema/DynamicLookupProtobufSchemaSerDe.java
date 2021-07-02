@@ -16,6 +16,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
     private String fieldsCsv;
 
     public DynamicLookupProtobufSchemaSerDe(DynamicLookupSchema dynamicLookupSchema) throws Descriptors.DescriptorValidationException {
+
         DescriptorProtos.FileDescriptorProto.Builder  fileDescProtoBuilder = DescriptorProtos.FileDescriptorProto
                 .newBuilder();
         try {
@@ -54,6 +55,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
     }
 
 
+
     public ExtractionNameSpaceSchemaType getSchemaType(){
         return ExtractionNameSpaceSchemaType.PROTOBUF;
     }
@@ -63,7 +65,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         try {
             return Optional.of(DynamicMessage.parseFrom(protobufMessageDescriptor, dataBytes));
         } catch (Exception e) {
-            LOG.error("failed to parse as generic protobuf Message, namespace %s %s ",extractionNamespace.getLookupName(), e.getMessage(), e);
+            LOG.error("failed to parse as generic protobuf Message, namespace %s %s ", extractionNamespace.getLookupName(), e.getMessage(), e);
         }
         return Optional.empty();
     }
@@ -98,7 +100,6 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         }
         return "";
     }
-
 
     public String handleDecode(DecodeConfig decodeConfig, DynamicMessage dynamicMessage, ExtractionNamespace extractionNamespace) {
         try {

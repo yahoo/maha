@@ -93,10 +93,49 @@ public class DynamicLookupProtobufSchemaSerDeTestRandom {
         when(decodeConfigOptional.get().getColumnToCheck()).thenReturn("title"); //if getColumn to check is "title"
         when(decodeConfigOptional.get().getValueToCheck()).thenReturn("sometitle"); // if value of getColumn to check is "some title"
         when(decodeConfigOptional.get().getColumnIfValueMatched()).thenReturn("status"); // then return "status" column value
-        String str = dynamicLookupProtobufSchemaSerDe.getValue("title", byteArr, Optional.empty(), extractionNamespace);
+        String str = dynamicLookupProtobufSchemaSerDe.getValue("title", byteArr, decodeConfigOptional, extractionNamespace);
         Assert.assertEquals("ON", str);
 
     }
 
+
+    @Test
+    public void DynamicLookupProtobufSchemaSerDeTestDecodeConfigValueNotMatched(){
+        Message adMessage = AdProtos.Ad.newBuilder().setTitle("sometitle").setStatus("ON").setLastUpdated("2021062220").build();
+
+        byte[] byteArr = adMessage.toByteArray();
+        when(decodeConfigOptional.get().getColumnToCheck()).thenReturn("title"); //if getColumn to check is "title"
+        when(decodeConfigOptional.get().getValueToCheck()).thenReturn("sometitle"); // if value of getColumn to check is "some title"
+        when(decodeConfigOptional.get().getColumnIfValueMatched()).thenReturn("status"); // then return "status" column value
+        String str = dynamicLookupProtobufSchemaSerDe.getValue("title", byteArr, decodeConfigOptional, extractionNamespace);
+        Assert.assertEquals("ON", str);
+
+    }
+
+    @Test
+    public void DynamicLookupProtobufSchemaSerDeTestDecodeConfigColumnNotpresent(){
+        Message adMessage = AdProtos.Ad.newBuilder().setTitle("sometitle").setStatus("ON").setLastUpdated("2021062220").build();
+
+        byte[] byteArr = adMessage.toByteArray();
+        when(decodeConfigOptional.get().getColumnToCheck()).thenReturn("title"); //if getColumn to check is "title"
+        when(decodeConfigOptional.get().getValueToCheck()).thenReturn("sometitle"); // if value of getColumn to check is "some title"
+        when(decodeConfigOptional.get().getColumnIfValueMatched()).thenReturn("status"); // then return "status" column value
+        String str = dynamicLookupProtobufSchemaSerDe.getValue("title", byteArr, decodeConfigOptional, extractionNamespace);
+        Assert.assertEquals("ON", str);
+
+    }
+
+    @Test
+    public void DynamicLookupProtobufSchemaSerDeTestDecodeConfigValueToCheckIsEmpty(){
+        Message adMessage = AdProtos.Ad.newBuilder().setTitle("sometitle").setStatus("ON").setLastUpdated("2021062220").build();
+
+        byte[] byteArr = adMessage.toByteArray();
+        when(decodeConfigOptional.get().getColumnToCheck()).thenReturn("title"); //if getColumn to check is "title"
+        when(decodeConfigOptional.get().getValueToCheck()).thenReturn("sometitle"); // if value of getColumn to check is "some title"
+        when(decodeConfigOptional.get().getColumnIfValueMatched()).thenReturn("status"); // then return "status" column value
+        String str = dynamicLookupProtobufSchemaSerDe.getValue("title", byteArr, decodeConfigOptional, extractionNamespace);
+        Assert.assertEquals("ON", str);
+
+    }
 
 }

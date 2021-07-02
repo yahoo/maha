@@ -10,11 +10,13 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
 
+
 public class DynamicLookupFlatbufferSchemaSerDe implements  DynamicLookupCoreSchema {
     private static final Logger LOG = new Logger(DynamicLookupFlatbufferSchemaSerDe.class);
 
     private DynamicLookupSchema dynamicLookupSchema;
     private String fieldsCsv;
+
 
 
     public DynamicLookupFlatbufferSchemaSerDe(DynamicLookupSchema dynamicLookupSchema){

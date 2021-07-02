@@ -36,7 +36,6 @@ public class DynamicLookupCoreSchemaFactoryTest {
         Assert.assertTrue(dynamicLookupCoreSchema instanceof DynamicLookupProtobufSchemaSerDe);
     }
 
-
     @Test
     public void DynamicLookupCoreSchemaFactoryTestFlatbuffer() throws IOException, Descriptors.DescriptorValidationException {
         DynamicLookupCoreSchema dynamicLookupCoreSchema = DynamicLookupCoreSchemaFactory.buildSchema(dynamicLookupSchemaFlatbuffer);
