@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.org/yahoo/maha.svg?branch=master)](https://travis-ci.org/yahoo/maha) [![Join the chat at https://gitter.im/yahoo-maha/community](https://badges.gitter.im/yahoo-maha/community.svg)](https://gitter.im/yahoo-maha/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+
+[![Pipeline Status](https://api.screwdriver.cd/v4/pipelines/7538/badge)](https://api.screwdriver.cd/v4/pipelines/7538)
 
 [Google Group: Maha-Users](https://groups.google.com/forum/#!forum/maha-users) 
 
