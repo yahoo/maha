@@ -9,9 +9,8 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
-import org.apache.druid.java.util.common.logger.Logger;
+import org.slf4j.*;
 import org.zeroturnaround.zip.commons.*;
-
 import java.io.*;
 
 import java.time.LocalDateTime;
@@ -20,7 +19,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class DynamicLookupSchema {
-    private static final Logger LOG = new Logger(DynamicLookupSchema.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DynamicLookupSchema.class);
+
     private static ObjectMapper mapper = new ObjectMapper();
     private static final DateTimeFormatter VERSION_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHH");
 
@@ -114,7 +114,7 @@ public class DynamicLookupSchema {
         dynamicLookupSchema.version = LocalDateTime.now(ZoneId.of("UTC")).format(VERSION_TIME_FORMAT);
         dynamicLookupSchema.name = outputName;
         try {
-            if(schemaFactory instanceof ProtobufSchemaFactory) {
+            if (schemaFactory instanceof ProtobufSchemaFactory) {
                 dynamicLookupSchema.type = ExtractionNameSpaceSchemaType.PROTOBUF;
                 List<Descriptors.FieldDescriptor> fieldDescriptors = ((ProtobufSchemaFactory) schemaFactory).getProtobufDescriptor(messageType).getFields();
                 for(Descriptors.FieldDescriptor d: fieldDescriptors) {
