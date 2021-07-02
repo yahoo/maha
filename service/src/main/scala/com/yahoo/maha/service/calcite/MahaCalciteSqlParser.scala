@@ -141,15 +141,15 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
   def getFromTableAndTableSchema(sqlNode: SqlNode): (String, Option[String]) = {
     sqlNode match {
       case sqlIdentifier: SqlIdentifier =>
-        val fromTableAndTableSchema = sqlIdentifier.toString.toLowerCase.split("\\.")
+        val fromTableAndTableSchema = sqlIdentifier.names
         if (fromTableAndTableSchema.size == 1)
-          (fromTableAndTableSchema(0), None)
+          (fromTableAndTableSchema.get(0).toLowerCase, None)
         else if (fromTableAndTableSchema.size == 2)
-          (fromTableAndTableSchema(1), Some(fromTableAndTableSchema(0)))
+          (fromTableAndTableSchema.get(1).toLowerCase, Some(fromTableAndTableSchema.get(0).toLowerCase))
         else
-          throw new IllegalArgumentException(s"Incorrect FROM table name or schema.")
+          throw new IllegalArgumentException(s"Incorrect FROM clause. Expected `FROM table` or `FROM schema.table`")
       case _ =>
-        throw new IllegalArgumentException(s"Incorrect FROM clause.")
+        throw new IllegalArgumentException(s"Incorrect FROM clause. Expected `FROM table` or `FROM schema.table`")
     }
   }
 
