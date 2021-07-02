@@ -64,6 +64,7 @@ class HttpUtils(config:AsyncHttpClientConfig, enableRetryOn500: Boolean, retryDe
           tryExecute = execute()
           retry = true
         } else {
+          error(s"Got 500 response, exhausted retries with $count/$maxRetry : ${tryExecute.getResponseBody}")
           retry = false
         }
       } else {

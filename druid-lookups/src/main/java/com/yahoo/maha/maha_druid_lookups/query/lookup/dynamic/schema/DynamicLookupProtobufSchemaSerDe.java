@@ -5,12 +5,12 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
-import org.apache.druid.java.util.common.logger.Logger;
 import java.util.Optional;
 import java.util.stream.*;
+import org.slf4j.*;
 
 public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema {
-    private static final Logger LOG = new Logger(DynamicLookupProtobufSchemaSerDe.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DynamicLookupProtobufSchemaSerDe.class);
 
     private Descriptors.Descriptor protobufMessageDescriptor;
     private String fieldsCsv;
@@ -109,7 +109,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
                 return getValueForField(decodeConfig.getColumnIfValueNotMatched(), dynamicMessage, extractionNamespace);
             }
         } catch (Exception e) {
-            LOG.error(e, "Caught exception while handleDecode "+e.getMessage());
+            LOG.error("Caught exception while handleDecode "+e.getMessage());
             throw e;
         }
     }
