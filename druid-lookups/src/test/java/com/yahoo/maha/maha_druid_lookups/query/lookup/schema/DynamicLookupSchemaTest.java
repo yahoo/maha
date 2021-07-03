@@ -34,7 +34,7 @@ public class DynamicLookupSchemaTest {
         Assert.assertTrue(dynamicLookupSchemaOptional.isPresent());
         dynamicLookupSchema = dynamicLookupSchemaOptional.get();
         extractionNamespace = mock(RocksDBExtractionNamespace.class);
-        when(extractionNamespace.getLookupName()).thenReturn("product_ad_pb_dym_lookup");
+        when(extractionNamespace.getLookupName()).thenReturn("ad_pb_dym_lookup");
     }
 
     @AfterClass
@@ -46,7 +46,7 @@ public class DynamicLookupSchemaTest {
 
     @Test
     public void DynamicLookupSchemaBuilderTestPB() throws IOException {
-        Assert.assertEquals(dynamicLookupSchema.getName() , "product_ad_pb_dym_lookup");
+        Assert.assertEquals(dynamicLookupSchema.getName() , "ad_pb_dym_lookup");
         Assert.assertEquals(dynamicLookupSchema.getVersion(), "2021061800");
         Assert.assertEquals(dynamicLookupSchema.getType(), ExtractionNameSpaceSchemaType.PROTOBUF);
         Assert.assertEquals(dynamicLookupSchema.getSchemaFieldList().size(), 4);

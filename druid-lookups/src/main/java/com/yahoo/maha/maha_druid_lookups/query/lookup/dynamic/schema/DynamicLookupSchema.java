@@ -27,7 +27,6 @@ public class DynamicLookupSchema {
     private String name;
     private List<SchemaField> schemaFieldList;
 
-
     @JsonIgnore
     private DynamicLookupCoreSchema coreSchema;
 

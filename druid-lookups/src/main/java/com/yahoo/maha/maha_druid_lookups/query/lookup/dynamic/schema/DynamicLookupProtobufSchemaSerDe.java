@@ -71,7 +71,6 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
     @Override
     public String getValue(String fieldName, byte[] dataBytes, Optional<DecodeConfig> decodeConfigOptional, RocksDBExtractionNamespace extractionNamespace) {
         Optional<DynamicMessage> dynamicMessageOptional = getDynamicMessage(dataBytes, extractionNamespace);
-
         if (!dynamicMessageOptional.isPresent()) {
            return "";
         }
