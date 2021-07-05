@@ -135,7 +135,7 @@ public class RocksDBExtractionNamespaceCacheFactory
 
         if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER) {
             ((CacheActionRunnerFlatBuffer)extractionNamespace.getCacheActionRunner()).updateCache(flatBufferSchemaFactory, key, value, db, emitter, extractionNamespace);
-        } if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.DynamicSchema) {
+        } else if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.DynamicSchema) {
             ((DynamicCacheActionRunner)extractionNamespace.getCacheActionRunner()).updateCache(dynamicLookupSchemaManager, key, value, db, emitter, extractionNamespace);
         } else {
             ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).updateCache(protobufSchemaFactory, key, value, db, emitter, extractionNamespace);
