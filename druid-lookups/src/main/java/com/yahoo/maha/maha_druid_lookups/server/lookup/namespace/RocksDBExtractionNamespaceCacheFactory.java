@@ -86,7 +86,7 @@ public class RocksDBExtractionNamespaceCacheFactory
         RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
         if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER) {
             ((CacheActionRunnerFlatBuffer)extractionNamespace.getCacheActionRunner()).updateCache(flatBufferSchemaFactory, key, value, db, emitter, extractionNamespace);
-        } if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.DynamicSchema) {
+        } else if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.DynamicSchema) {
             ((DynamicCacheActionRunner)extractionNamespace.getCacheActionRunner()).updateCache(dynamicLookupSchemaManager, key, value, db, emitter, extractionNamespace);
         } else {
             ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).updateCache(protobufSchemaFactory, key, value, db, emitter, extractionNamespace);
@@ -98,8 +98,7 @@ public class RocksDBExtractionNamespaceCacheFactory
         RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
         if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER) {
             return ((CacheActionRunnerFlatBuffer) extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, flatBufferSchemaFactory, lookupService, emitter, extractionNamespace);
-        }
-        if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.DynamicSchema) {
+        } else if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.DynamicSchema) {
             return ((DynamicCacheActionRunner) extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, dynamicLookupSchemaManager, lookupService, emitter, extractionNamespace);
         } else {
             return ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
