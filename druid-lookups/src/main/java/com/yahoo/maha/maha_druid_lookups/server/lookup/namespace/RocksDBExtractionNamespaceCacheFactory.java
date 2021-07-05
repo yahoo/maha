@@ -70,7 +70,7 @@ public class RocksDBExtractionNamespaceCacheFactory
                     emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_SUCCESS, 1));
                     return loadTime;
                 } catch(Exception e) {
-                    LOG.error(e, "Caught exception while RocksDB creation, lastVersion: [%s]", lastVersion);
+                    LOG.wtf(e, "Caught exception while RocksDB creation, error: %s, lastVersion: [%s]", e.getMessage(), lastVersion);
                     emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_FAILURE, 1));
                     return lastVersion;
                 }
@@ -86,6 +86,8 @@ public class RocksDBExtractionNamespaceCacheFactory
         RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
         if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER) {
             ((CacheActionRunnerFlatBuffer)extractionNamespace.getCacheActionRunner()).updateCache(flatBufferSchemaFactory, key, value, db, emitter, extractionNamespace);
+        } else if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.DynamicSchema) {
+            ((DynamicCacheActionRunner)extractionNamespace.getCacheActionRunner()).updateCache(dynamicLookupSchemaManager, key, value, db, emitter, extractionNamespace);
         } else {
             ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).updateCache(protobufSchemaFactory, key, value, db, emitter, extractionNamespace);
         }
@@ -96,8 +98,7 @@ public class RocksDBExtractionNamespaceCacheFactory
         RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
         if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER) {
             return ((CacheActionRunnerFlatBuffer) extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, flatBufferSchemaFactory, lookupService, emitter, extractionNamespace);
-        }
-        if(extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.DynamicSchema) {
+        } else if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.DynamicSchema) {
             return ((DynamicCacheActionRunner) extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, dynamicLookupSchemaManager, lookupService, emitter, extractionNamespace);
         } else {
             return ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
@@ -132,8 +133,10 @@ public class RocksDBExtractionNamespaceCacheFactory
     public void updateCacheWithDb(final RocksDBExtractionNamespace extractionNamespace,
                             RocksDB db, final String key, final byte[] value) {
 
-        if(extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER) {
+        if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER) {
             ((CacheActionRunnerFlatBuffer)extractionNamespace.getCacheActionRunner()).updateCache(flatBufferSchemaFactory, key, value, db, emitter, extractionNamespace);
+        } else if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.DynamicSchema) {
+            ((DynamicCacheActionRunner)extractionNamespace.getCacheActionRunner()).updateCache(dynamicLookupSchemaManager, key, value, db, emitter, extractionNamespace);
         } else {
             ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).updateCache(protobufSchemaFactory, key, value, db, emitter, extractionNamespace);
         }
