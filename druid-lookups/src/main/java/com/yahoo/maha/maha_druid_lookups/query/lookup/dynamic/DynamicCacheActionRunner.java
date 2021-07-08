@@ -70,23 +70,23 @@ public class DynamicCacheActionRunner implements BaseCacheActionRunner {
                 if (cacheValue == null) {
                     db.put(key.getBytes(), value);
                     updatedCache = true;
-                }
+                } else {
+                    String oldLastUpdatedStr = dynamicLookupSchema.getCoreSchema().getValue(extractionNamespace.getTsColumn(), cacheValue, Optional.empty(), extractionNamespace);
+                    Long oldLastUpdated = Long.parseLong(oldLastUpdatedStr);
+                    if (newLastUpdated > oldLastUpdated) {
+                        db.put(key.getBytes(), value);
+                        updatedCache = true;
+                    }
 
-                String oldLastUpdatedStr = dynamicLookupSchema.getCoreSchema().getValue(extractionNamespace.getTsColumn(), cacheValue, Optional.empty(), extractionNamespace);
-                Long oldLastUpdated = Long.parseLong(oldLastUpdatedStr);
-                if (newLastUpdated > oldLastUpdated) {
-                    db.put(key.getBytes(), value);
-                    updatedCache = true;
                 }
                 if (newLastUpdated > extractionNamespace.getLastUpdatedTime()) {
                     extractionNamespace.setLastUpdatedTime(newLastUpdated);
                 }
-
                 if (updatedCache) {
                     serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_SUCCESS, 1));
                 }
             } catch (Exception e) {
-                LOG.error(e, "Caught exception while updating cache "+e.getMessage());
+                LOG.error(e, "Caught exception while updating cache " + e.getMessage());
                 serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_FAILURE, 1));
             }
         }
