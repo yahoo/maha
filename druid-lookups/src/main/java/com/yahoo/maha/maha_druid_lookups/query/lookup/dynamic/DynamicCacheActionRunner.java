@@ -70,6 +70,7 @@ public class DynamicCacheActionRunner implements BaseCacheActionRunner {
                 if (cacheValue == null) {
                     db.put(key.getBytes(), value);
                     updatedCache = true;
+                    return;
                 }
 
                 String oldLastUpdatedStr = dynamicLookupSchema.getCoreSchema().getValue(extractionNamespace.getTsColumn(), cacheValue, Optional.empty(), extractionNamespace);
