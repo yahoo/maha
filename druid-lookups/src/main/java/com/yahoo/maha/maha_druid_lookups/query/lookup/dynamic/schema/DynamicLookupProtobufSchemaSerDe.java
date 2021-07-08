@@ -64,7 +64,6 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
             return Optional.of(DynamicMessage.parseFrom(protobufMessageDescriptor, dataBytes));
         } catch (Exception e) {
             LOG.error("Failed to parse as generic protobuf Message, namespace {}",extractionNamespace.getLookupName(), e);
-            LOG.error("DataBytes: {}", dataBytes);
         }
         return Optional.empty();
     }
