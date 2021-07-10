@@ -5,6 +5,7 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
+
 import java.util.Optional;
 import java.util.stream.*;
 import org.slf4j.*;
@@ -87,14 +88,15 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
     private String getValueForField(String fieldName, DynamicMessage dynamicMessage, ExtractionNamespace extractionNamespace) {
         Descriptors.FieldDescriptor fieldDescriptor =  protobufMessageDescriptor.findFieldByName(fieldName);
         if (fieldDescriptor == null) {
-            LOG.error("Failed to find the field '{}' in schema: [{}], namespace: {}}", fieldName, fieldsCsv, extractionNamespace.getLookupName());
+            LOG.error("Failed to find fieldDescriptor for field: '{}' in schema: [{}], namespace: {}}", fieldName, fieldsCsv, extractionNamespace.getLookupName());
            return "";
         }
         if (dynamicMessage.hasField(fieldDescriptor)) {
             String fieldValue = (String) dynamicMessage.getField(fieldDescriptor);
             return fieldValue != null ? fieldValue : "";
         } else {
-            LOG.error("Field missing in protobuf Message Descriptor for field: {} in {}", fieldName,  extractionNamespace.getLookupName());
+            //if empty value for specific field, decoded dynamic message won't have the fieldDescriptor for that field
+            LOG.info("Failed to find value for field: {} namespace: {}", fieldName, extractionNamespace.getLookupName());
         }
         return "";
     }
