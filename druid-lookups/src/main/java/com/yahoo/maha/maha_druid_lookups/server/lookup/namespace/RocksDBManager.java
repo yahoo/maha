@@ -144,12 +144,12 @@ public class RocksDBManager {
             // this is non deployment time and kafka is configured to get real time updates, so rocksdb instance download can be delayed
             try {
                 int waitTime = RANDOM.nextInt(BOUND);
-                LOG.info("Going to sleep for [%s] ms before RocksDB instance is downloaded and kafka messages are applied for [%s]", waitTime, extractionNamespace.getNamespace());
+                LOG.info(String.format("Going to sleep for [%s] ms before RocksDB instance is downloaded and kafka messages are applied for [%s]", waitTime, extractionNamespace.getNamespace()));
                 Thread.sleep(waitTime);
             } catch (InterruptedException e) {
                 LOG.error(e, "Interrupted while sleeping for RocksDB downloading.");
             }
-            LOG.info("non-deployment time: starting a new RocksDB instance after sleep for namespace[%s]...", extractionNamespace.getNamespace());
+            LOG.info(String.format("non-deployment time: starting a new RocksDB instance after sleep for namespace[%s]...", extractionNamespace.getNamespace()));
             return startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath);
         }
 
@@ -184,13 +184,13 @@ public class RocksDBManager {
         rocksDBSnapshotMap.put(extractionNamespace.getNamespace(), rocksDBSnapshot);
 
         if (extractionNamespace.isDynamicSchemaLookup()) {
-            LOG.info("Looking for dynamic lookup schema file in existing snapshot for namespace: {}", extractionNamespace.getLookupName());
+            LOG.info("Looking for dynamic lookup schema file in existing snapshot for namespace: %s", extractionNamespace.getLookupName());
             initDynamicLookupSchema(extractionNamespace, localPath);
         }
 
         // kafka topic is not empty then add listener for the topic
         if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
-            LOG.info("useSnapshotInstance: adding Listener for namespace: {}...", extractionNamespace.getLookupName());
+            LOG.info("useSnapshotInstance: adding Listener for namespace: %s...", extractionNamespace.getLookupName());
             kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, true);
         }
 
@@ -228,7 +228,7 @@ public class RocksDBManager {
         if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
             rocksDBSnapshot.kafkaConsumerGroupId = UUID.randomUUID().toString();
             rocksDBSnapshot.kafkaPartitionOffset = new ConcurrentHashMap<Integer, Long>();
-            LOG.info("startNewInstance: applying change since beginning for namespace {}...", extractionNamespace.getLookupName());
+            LOG.info("startNewInstance: applying change since beginning for namespace: %s...", extractionNamespace.getLookupName());
             kafkaExtractionManager.applyChangesSinceBeginning(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.rocksDB, rocksDBSnapshot.kafkaPartitionOffset);
             LOG.info(rocksDBSnapshot.rocksDB.getProperty(STATS_KEY));
 
@@ -237,7 +237,7 @@ public class RocksDBManager {
                 int retryCount = 0;
                 lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, retryCount);
             }
-            LOG.info("startNewInstance: adding Listener for namespace: {}...", extractionNamespace.getLookupName());
+            LOG.info("startNewInstance: adding Listener for namespace: %s...", extractionNamespace.getLookupName());
             kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, false);
         }
 
