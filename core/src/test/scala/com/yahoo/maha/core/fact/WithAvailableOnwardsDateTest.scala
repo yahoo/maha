@@ -570,4 +570,32 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
     assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === true)
     assert(bcOption.get.facts.values.find( f => f.fact.name == "fact2").get.fact.forceFilters.isEmpty)
   }
+
+  test("withAvailableOnwardsDate: column alias should be preserved") {
+    val fact = factWithColumnAliasing
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, HiveEngine,
+        overrideDimCols =  Set.empty,
+        overrideFactCols = Set.empty,
+        availableOnwardsDate = Option("2017-09-25")
+      ).toPublicFact("temp",
+        Set(
+          PubCol("account_id", "Advertiser Id", InEquality),
+          PubCol("stats_source", "Source", Equality),
+          PubCol("price_type", "Pricing Type", In),
+          PubCol("landing_page_url", "Destination URL", Set.empty)
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InEquality)
+        ),
+        Set.empty,
+        getMaxDaysWindow, getMaxDaysLookBack
+      )
+
+    }
+    val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts("fact1").fact.dimCols.count(d => d.name.equals("cmp_id_alias") && d.alias.get.equals("campaign_id")) == 1)
+    assert(bcOption.get.facts("fact2").fact.dimCols.count(d => d.name.equals("cmp_id_alias") && d.alias.get.equals("campaign_id")) == 1)
+  }
 }
