@@ -144,12 +144,12 @@ public class RocksDBManager {
             // this is non deployment time and kafka is configured to get real time updates, so rocksdb instance download can be delayed
             try {
                 int waitTime = RANDOM.nextInt(BOUND);
-                LOG.info(String.format("Going to sleep for [%s] ms before RocksDB instance is downloaded and kafka messages are applied for [%s]", waitTime, extractionNamespace.getNamespace()));
+                LOG.info("Going to sleep for [%s] ms before RocksDB instance is downloaded and kafka messages are applied for [%s]", waitTime, extractionNamespace.getNamespace());
                 Thread.sleep(waitTime);
             } catch (InterruptedException e) {
                 LOG.error(e, "Interrupted while sleeping for RocksDB downloading.");
             }
-            LOG.info(String.format("non-deployment time: starting a new RocksDB instance after sleep for namespace[%s]...", extractionNamespace.getNamespace()));
+            LOG.info("non-deployment time: starting a new RocksDB instance after sleep for namespace[%s]...", extractionNamespace.getNamespace());
             return startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath);
         }
 
