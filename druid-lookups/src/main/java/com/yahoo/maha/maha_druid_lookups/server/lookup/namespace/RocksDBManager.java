@@ -100,17 +100,17 @@ public class RocksDBManager {
         String successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
                 extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
 
-        LOG.info(String.format("successMarkerPath [%s], lastUpdate [%s]", successMarkerPath, lastUpdate));
+        LOG.debug(String.format("successMarkerPath [%s], lastUpdate [%s]", successMarkerPath, lastUpdate));
 
         if (!isFilePresentOnHdfs(successMarkerPath)) {
             if(lastUpdate == 0) {
-                LOG.error(String.format("RocksDB instance not present for namespace [%s] loadTime [%s], will check for previous loadTime", extractionNamespace.getNamespace(), loadTime));
+                LOG.warn(String.format("RocksDB instance not present for namespace [%s] loadTime [%s], will check for previous loadTime", extractionNamespace.getNamespace(), loadTime));
                 loadTime = LocalDateTime.now().minus(2, ChronoUnit.DAYS)
                         .format(DateTimeFormatter.ofPattern("yyyyMMdd0000"));
                 successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
                         extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
                 if (!isFilePresentOnHdfs(successMarkerPath)) {
-                    LOG.error(String.format("RocksDB instance not present for previous loadTime [%s] too for namespace [%s]", loadTime, extractionNamespace.getNamespace()));
+                    LOG.warn(String.format("RocksDB instance not present for previous loadTime [%s] too for namespace [%s]", loadTime, extractionNamespace.getNamespace()));
                     serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_INSTANCE_NOT_PRESENT, 1));
                     return String.valueOf(lastUpdate);
                 }
@@ -122,7 +122,7 @@ public class RocksDBManager {
         final String hdfsPath = String.format("%s/load_time=%s/rocksdb.zip",
                 extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
 
-        LOG.error(String.format("hdfsPath [%s]", hdfsPath));
+        LOG.debug(String.format("hdfsPath [%s]", hdfsPath));
 
         if(!isRocksDBInstanceCreated(hdfsPath)) {
             serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_INSTANCE_NOT_PRESENT, 1));
@@ -136,7 +136,7 @@ public class RocksDBManager {
 
         final String localZippedFileNameWithPath = String.format("%s/%s/%s/rocksdb%s.zip",
                 localStorageDirectory, extractionNamespace.getNamespace(), loadTime, getLocalPathSuffix(extractionNamespace.isRandomLocalPathSuffixEnabled()));
-        LOG.info(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
+        LOG.debug(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
 
         final String localPath = FilenameUtils.removeExtension(localZippedFileNameWithPath);
 
@@ -144,7 +144,7 @@ public class RocksDBManager {
             // this is non deployment time and kafka is configured to get real time updates, so rocksdb instance download can be delayed
             try {
                 int waitTime = RANDOM.nextInt(BOUND);
-                LOG.error("Going to sleep for [%s] ms before RocksDB instance is downloaded and kafka messages are applied for [%s]", waitTime, extractionNamespace.getNamespace());
+                LOG.info("Going to sleep for [%s] ms before RocksDB instance is downloaded and kafka messages are applied for [%s]", waitTime, extractionNamespace.getNamespace());
                 Thread.sleep(waitTime);
             } catch (InterruptedException e) {
                 LOG.error(e, "Interrupted while sleeping for RocksDB downloading.");
@@ -183,15 +183,17 @@ public class RocksDBManager {
 
         rocksDBSnapshotMap.put(extractionNamespace.getNamespace(), rocksDBSnapshot);
 
-        // kafka topic is not empty then add listener for the topic
-        if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
-            LOG.info("useSnapshotInstance: adding Listener...");
-            kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, true);
-        }
         if (extractionNamespace.isDynamicSchemaLookup()) {
-            LOG.info("Looking for dynamic lookup schema file in existing snapshot %s", extractionNamespace.getLookupName());
+            LOG.info("Looking for dynamic lookup schema file in existing snapshot for namespace: %s", extractionNamespace.getLookupName());
             initDynamicLookupSchema(extractionNamespace, localPath);
         }
+
+        // kafka topic is not empty then add listener for the topic
+        if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
+            LOG.info("useSnapshotInstance: adding Listener for namespace: %s...", extractionNamespace.getLookupName());
+            kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, true);
+        }
+
         return loadTime;
     }
 
@@ -209,22 +211,6 @@ public class RocksDBManager {
         rocksDBSnapshot.rocksDB = openRocksDB(rocksDBSnapshot.dbPath);
         rocksDBSnapshot.isRandomLocalPathSuffixEnabled = extractionNamespace.isRandomLocalPathSuffixEnabled();
 
-        // kafka topic is not empty then add listener for the topic
-        if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
-            rocksDBSnapshot.kafkaConsumerGroupId = UUID.randomUUID().toString();
-            rocksDBSnapshot.kafkaPartitionOffset = new ConcurrentHashMap<Integer, Long>();
-            LOG.info("startNewInstance: applying change since beginning...");
-            kafkaExtractionManager.applyChangesSinceBeginning(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.rocksDB, rocksDBSnapshot.kafkaPartitionOffset);
-            LOG.info(rocksDBSnapshot.rocksDB.getProperty(STATS_KEY));
-
-            if (extractionNamespace.isLookupAuditingEnabled()) {
-                long sleepTime = 30000;
-                int retryCount = 0;
-                lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, retryCount);
-            }
-            LOG.info("startNewInstance: adding Listener...");
-            kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, false);
-        }
         if (extractionNamespace.isDynamicSchemaLookup()) {
             final String schemaHdfsPath = String.format("%s/load_time=%s/%s",
                     extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime, DYNAMIC_SCHEMA_JSON_FILE);
@@ -236,6 +222,23 @@ public class RocksDBManager {
             } else {
                 LOG.error("Failed to find the Dynamic Lookup Schema json at hdfs path "+schemaHdfsPath);
             }
+        }
+
+        // kafka topic is not empty then add listener for the topic
+        if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
+            rocksDBSnapshot.kafkaConsumerGroupId = UUID.randomUUID().toString();
+            rocksDBSnapshot.kafkaPartitionOffset = new ConcurrentHashMap<Integer, Long>();
+            LOG.info("startNewInstance: applying change since beginning for namespace: %s...", extractionNamespace.getLookupName());
+            kafkaExtractionManager.applyChangesSinceBeginning(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.rocksDB, rocksDBSnapshot.kafkaPartitionOffset);
+            LOG.info(rocksDBSnapshot.rocksDB.getProperty(STATS_KEY));
+
+            if (extractionNamespace.isLookupAuditingEnabled()) {
+                long sleepTime = 30000;
+                int retryCount = 0;
+                lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, retryCount);
+            }
+            LOG.info("startNewInstance: adding Listener for namespace: %s...", extractionNamespace.getLookupName());
+            kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, false);
         }
 
         final String key = extractionNamespace.getNamespace();
