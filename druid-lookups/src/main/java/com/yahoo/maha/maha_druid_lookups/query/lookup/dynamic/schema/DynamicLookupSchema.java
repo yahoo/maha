@@ -1,12 +1,11 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema;
 
-
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.*;
 import com.google.protobuf.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferSchemaFactory;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 import org.slf4j.*;
 import org.zeroturnaround.zip.commons.*;
@@ -15,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.*;
 
 public class DynamicLookupSchema {
     private static final Logger LOG = LoggerFactory.getLogger(DynamicLookupSchema.class);
@@ -123,7 +123,12 @@ public class DynamicLookupSchema {
                     dynamicLookupSchema.schemaFieldList.add(schemaField);
                 }
             } else if (schemaFactory instanceof FlatBufferSchemaFactory) {
-                // implementation for flatbuffer
+                FlatBufferSchemaFactory flatBufferSchemaFactory = (FlatBufferSchemaFactory) schemaFactory;
+                FlatBufferWrapper flatBufferWrapper  = flatBufferSchemaFactory.getFlatBuffer(messageType);
+                dynamicLookupSchema.type = ExtractionNameSpaceSchemaType.FLAT_BUFFER;
+               List<SchemaField> schemaFieldList =  flatBufferWrapper.getFieldNameToFieldOffsetMap().entrySet().stream()
+                        .map(e-> new SchemaField(e.getKey(),FieldDataType.STRING, (e.getValue()*2+4))).collect(Collectors.toList());
+               dynamicLookupSchema.setSchemaFieldList(schemaFieldList);
             } else {
                 throw new Exception("unsupported schemaFactory Type: " + schemaFactory.getClass().getName());
             }
