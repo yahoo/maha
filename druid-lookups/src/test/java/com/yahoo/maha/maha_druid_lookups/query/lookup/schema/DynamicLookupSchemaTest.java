@@ -7,6 +7,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.DynamicLook
 import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.FieldDataType;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.*;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.DefaultProtobufSchemaFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -41,8 +42,10 @@ public class DynamicLookupSchemaTest {
     public void clean() throws Exception {
         File rmFile = new File(classLoader.getResource(dir + "ad_pb_dyn_lookup.json").getPath());
         rmFile.delete();
-    }
 
+        File dynFile = new File(classLoader.getResource(dir + "product_ad_dyn_lookup.json").getPath());
+        dynFile.delete();
+    }
 
     @Test
     public void DynamicLookupSchemaBuilderTestPB() throws IOException {
@@ -87,6 +90,31 @@ public class DynamicLookupSchemaTest {
         Assert.assertEquals(resSchema.getSchemaFieldList().get(3).getField(), "last_updated");
         Assert.assertEquals(resSchema.getSchemaFieldList().get(3).getIndex(), 4);
         Assert.assertEquals(resSchema.getSchemaFieldList().get(3).getDataType(), FieldDataType.STRING);
+    }
+
+
+    @Test
+    public void testToJsonFlatBuffer() {
+        FlatBufferSchemaFactory flatBufferSchemaFactory = new TestFlatBufferSchemaFactory();
+        String resourcePath = classLoader.getResource(dir).getPath();
+        String outputName = "product_ad_dyn_lookup";
+        DynamicLookupSchema.toJson("product_ad_fb_lookup", flatBufferSchemaFactory, outputName, resourcePath);
+
+        File output = new File(resourcePath + outputName + ".json");
+        Assert.assertTrue(output.exists());
+
+        Optional<DynamicLookupSchema> dynamicLookupSchemaOptional = DynamicLookupSchema.parseFrom(output);
+        Assert.assertTrue(dynamicLookupSchemaOptional.isPresent());
+        DynamicLookupSchema resSchema = dynamicLookupSchemaOptional.get();
+        Assert.assertEquals(resSchema.getName() , "product_ad_dyn_lookup");
+        Assert.assertEquals(resSchema.getType(), ExtractionNameSpaceSchemaType.FLAT_BUFFER);
+        Assert.assertEquals(resSchema.getSchemaFieldList().size(), 8);
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(0).getField(), "id");
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(0).getIndex(), 4);
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(0).getDataType(), FieldDataType.STRING);
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(7).getField(), "last_updated");
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(7).getIndex(), 18);
+        Assert.assertEquals(resSchema.getSchemaFieldList().get(7).getDataType(), FieldDataType.STRING);
     }
 
     /*
