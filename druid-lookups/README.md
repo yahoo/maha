@@ -174,7 +174,8 @@ We have added serialization and de-serialization of dynamic-schema.json in class
 ```
  enableDynamicLookup flag enables dynamic schema lookup and prepares the ProtoBuf Descriptors on instantiating dynamic lookups.
  For Flatbuffer lookups, create similar json with indices starting from 4,6,8 onwards.
- We do not need any probuf jar to be deployed to druid, If you want to add column then just add field into json and upload new zip in latest load time dir and field will be picked by dynamic lookups.
+ We do not need any protobuf/flatbuffer jar to be deployed to druid, If you want to add column then just add field into json and upload new zip in latest load time dir and field will be picked by dynamic lookups in next scan.
+ 
 4. You can test the lookup with namespace curl given in the following readme. 
 5. Dynamic schema lookups also support any new type of serialization, you can extend DynamicLookupCoreSchema interface and contribute to maha. 
 
