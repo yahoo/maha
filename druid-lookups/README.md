@@ -12,15 +12,17 @@ An extension to druid which provides for MongoDB, JDBC and RocksDB (for high car
 * The dataset is snapshot of all dimension data at some interval. E.g. daily snapshot. Each how has the last updated timestamp column.
 * You have a Kafka topic with a TTL at slightly larger then the snapshot interval. E.g. snapshot is every 24 hours, the Kafka topic retains messages for 26 hours.
 * You have updates to the dimensions which you can publish to a kafka topic in the same key/value format you create the rocksdb instance (see below) with a valid last updated timestamp from your source of truth system.
+* Dynamic lookups - Adding and removing column from existing rocksdb based lookup is now complete dynamic, no need to deploying rocksdb jar to druid. Currently it supports protobuf/flatbuffer SerDe, it is easy to add support for new type of SerDe.
 
 #### Steps:
 * Define your protobuf message format. Remember to include the last updated timestamp column. Create a jar library which has the java protobuf definitions so you can copy it to the druid historical nodes and put it in the druid libs folder.
+ If your lookup id dynamic then you do not need protobuf jar included in the lib, you just need to upload dynamic-schema.json file along with rocksdb zip instance.
 * Create a application which reads your dataset from HDFS and creates a rocksdb instance and inserts all the rows into the rocksdb instance in the same format as you expect to read it in maha druid lookups. E.g. the key would just be the String.getBytes() and the value would be the serialized protobuf bytes. Once all rows are inserted close the rocksDb instance, zip it up and upload it to HDFS path.
 * Schedule your application to run every day after your dimension snapshots are available.
 * Configure maha druid lookup extension on your historicals.
 * Register your lookup via the API
 
-## Guide for Protobuf/FlatBuffer based RocksDB lookups as example project
+## Guide for Protobuf/FlatBuffer based RocksDB lookups as example project, as well as Dynamic Lookup Customer example
 * https://github.com/pranavbhole/maha-druid-lookups-example
  
 ## Getting Started
@@ -128,6 +130,53 @@ exec "$JAVA_BIN"/java `cat "$CONFDIR"/"$WHATAMI"/jvm.config | xargs` \
   -cp "$CONFDIR"/"$WHATAMI":"$CONFDIR"/_common:"$CONFDIR"/_common/hadoop-xml:"$CONFDIR"/../_common:"$CONFDIR"/../_common/hadoop-xml:"$WHEREAMI/../lib/*":hadoop-dependencies/hadoop-client/2.8.5/* \
   `cat "$CONFDIR"/$WHATAMI/main.config | xargs`
 ```
+
+### Set up Dynamic Schema Lookups:
+
+Steps:
+1. Create Rocksdb zip with protobuf/flatbuffer and upload it to location with load_time=yyyyMMdd0000 for example load_time=202106270000 
+2. Upload dynamic-schema.json to above location along with zip and _SUCCESS file. 
+ You can take look detailed example here [maha druid lookups example](https://github.com/pranavbhole/maha-druid-lookups-example)
+ ```$xslt
+{
+  "type": "PROTOBUF",
+  "version" : "2021061800",
+  "name" : "customer_dyn_lookup",
+  "schemaFieldList": [
+    {"field":"id","dataType":"STRING","index":1},
+    {"field":"name","dataType":"STRING","index":2},
+    {"field":"address","dataType":"STRING","index":3},
+    {"field":"status","dataType":"STRING","index":4},
+    {"field":"last_updated","dataType":"STRING","index":5}
+  ]
+}
+```
+We have added serialization and de-serialization of dynamic-schema.json in class "DynamicLookupSchema"
+3. Create lookups on historical tier 
+```$xslt
+{
+  "type": "cachedNamespace",
+  "extractionNamespace": {
+    "type": "maharocksdb",
+    "lookupName": "customer_dyn_lookup",
+    "namespace": "customer_dyn_lookup",
+    "rocksDbInstanceHDFSPath": "/lookups/customer_dyn_lookup/",
+    "lookupAuditingHDFSPath": "/lookups/lookup_auditing/customer_dyn_lookup/",
+    "lookupAuditingEnabled": false,
+    "tsColumn": "last_updated",
+    "kafkaTopic": "",
+    "pollPeriod": "PT5M",
+    "cacheEnabled": false,
+    "enableDynamicLookup": true
+  },
+  "firstCacheTimeout": 600000
+}
+```
+ enableDynamicLookup flag enables dynamic schema lookup and prepares the ProtoBuf Descriptors on instantiating dynamic lookups.
+ For Flatbuffer lookups, create similar json with indices starting from 4,6,8 onwards.
+ We do not need any probuf jar to be deployed to druid, If you want to add column then just add field into json and upload new zip in latest load time dir and field will be picked by dynamic lookups.
+4. You can test the lookup with namespace curl given in the following readme. 
+5. Dynamic schema lookups also support any new type of serialization, you can extend DynamicLookupCoreSchema interface and contribute to maha. 
 
 ### Registering Druid Lookups
 Druid lookups are managed using APIs on coordinators.  Refer [here](http://druid.io/docs/latest/querying/lookups.html).
