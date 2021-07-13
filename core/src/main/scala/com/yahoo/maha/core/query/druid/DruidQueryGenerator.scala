@@ -59,6 +59,7 @@ object DruidQueryOptimizer {
   val GROUP_BY_STRATEGY = "groupByStrategy"
   val UNCOVERED_INTERVALS_LIMIT = "uncoveredIntervalsLimit"
   val UNCOVERED_INTERVALS_LIMIT_VALUE = 1.asInstanceOf[AnyRef]
+  val UNCOVERED_INTERVALS_ZERO_LIMIT = 0.asInstanceOf[AnyRef]
   val APPLY_LIMIT_PUSH_DOWN = "applyLimitPushDown"
   val ASYNC_QUERY_PRIORITY = -1
   val TIMEOUT = "timeout"
@@ -129,14 +130,15 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
 
     val hasSingleHourFilter =
       queryContext.requestModel.localTimeHourFilter.isDefined &&
-      queryContext.requestModel.localTimeHourFilter.get.asValues.split(",").distinct.size == 1
+      queryContext.requestModel.localTimeHourFilter.get.asValues.split(",").distinct.size == 1 &&
+      queryContext.factBestCandidate.fact.grain == HourlyGrain
     val hasSingleDayFilter =
       queryContext.requestModel.utcTimeDayFilter.asValues.split(",").distinct.size == 1 &&
       queryContext.factBestCandidate.fact.grain == DailyGrain
 
     context.put(TIMEOUT, timeout.asInstanceOf[AnyRef])
     if(hasSingleDayFilter || hasSingleHourFilter){
-      context.put(UNCOVERED_INTERVALS_LIMIT, 0)
+      context.put(UNCOVERED_INTERVALS_LIMIT, UNCOVERED_INTERVALS_ZERO_LIMIT)
     } else {
       context.put(UNCOVERED_INTERVALS_LIMIT, UNCOVERED_INTERVALS_LIMIT_VALUE)
     }
