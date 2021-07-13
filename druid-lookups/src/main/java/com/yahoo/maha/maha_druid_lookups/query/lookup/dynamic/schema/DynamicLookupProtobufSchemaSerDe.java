@@ -5,6 +5,7 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
+
 import java.util.Optional;
 import java.util.stream.*;
 import org.slf4j.*;
@@ -36,7 +37,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
                     .findMessageTypeByName(dynamicLookupSchema.getName());
             fieldsCsv = protobufMessageDescriptor.getFields().stream().map(s-> s.getName()).collect(Collectors.joining(", "));
         } catch (Exception ex) {
-            LOG.error("failed to build protobufMessageDescriptor for schema: %s", dynamicLookupSchema, ex);
+            LOG.error("failed to build protobufMessageDescriptor for schema: {}", dynamicLookupSchema, ex);
             throw ex;
         }
     }
@@ -63,7 +64,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         try {
             return Optional.of(DynamicMessage.parseFrom(protobufMessageDescriptor, dataBytes));
         } catch (Exception e) {
-            LOG.error("failed to parse as generic protobuf Message, namespace %s %s ",extractionNamespace.getLookupName(), e.getMessage(), e);
+            LOG.error("Failed to parse as generic protobuf Message, namespace {}",extractionNamespace.getLookupName(), e);
         }
         return Optional.empty();
     }
@@ -72,7 +73,8 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
     public String getValue(String fieldName, byte[] dataBytes, Optional<DecodeConfig> decodeConfigOptional, RocksDBExtractionNamespace extractionNamespace) {
         Optional<DynamicMessage> dynamicMessageOptional = getDynamicMessage(dataBytes, extractionNamespace);
         if (!dynamicMessageOptional.isPresent()) {
-           return "";
+            LOG.error("Failed to getValue for field '{}' in schema: [{}], namespace: {}}", fieldName, fieldsCsv, extractionNamespace.getLookupName());
+           throw new RuntimeException("dynamicMessageOptional is empty");
         }
         DynamicMessage dynamicMessage = dynamicMessageOptional.get();
         String fieldValue = getValueForField(fieldName, dynamicMessage, extractionNamespace);
@@ -86,14 +88,15 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
     private String getValueForField(String fieldName, DynamicMessage dynamicMessage, ExtractionNamespace extractionNamespace) {
         Descriptors.FieldDescriptor fieldDescriptor =  protobufMessageDescriptor.findFieldByName(fieldName);
         if (fieldDescriptor == null) {
-            LOG.error("Failed to find the field '%s' in schema: [%s], namespace: %s", fieldName, fieldsCsv, extractionNamespace.getLookupName());
+            LOG.error("Failed to find fieldDescriptor for field: '{}' in schema: [{}], namespace: {}}", fieldName, fieldsCsv, extractionNamespace.getLookupName());
            return "";
         }
         if (dynamicMessage.hasField(fieldDescriptor)) {
             String fieldValue = (String) dynamicMessage.getField(fieldDescriptor);
             return fieldValue != null ? fieldValue : "";
         } else {
-            LOG.error("Field missing in protobuf Message Descriptor for field: %s  in  %s", fieldName,  extractionNamespace.getLookupName());
+            //if empty value for specific field, decoded dynamic message won't have the fieldDescriptor for that field
+            LOG.info("Failed to find value for field: {} namespace: {}", fieldName, extractionNamespace.getLookupName());
         }
         return "";
     }
@@ -108,7 +111,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
                 return getValueForField(decodeConfig.getColumnIfValueNotMatched(), dynamicMessage, extractionNamespace);
             }
         } catch (Exception e) {
-            LOG.error("Caught exception while handleDecode "+e.getMessage());
+            LOG.error("Caught exception while handleDecode: {}", e.getMessage(), e);
             throw e;
         }
     }

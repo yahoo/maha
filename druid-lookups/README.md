@@ -25,47 +25,26 @@ An extension to druid which provides for MongoDB, JDBC and RocksDB (for high car
 * https://github.com/pranavbhole/maha-druid-lookups-example
  
 ## Getting Started
-Here is tutorial of how to set up maha-druid-lookups as an extensions of Druid in your local box.  
-For convenience, we use `/druid` as our druid root path for the following document.
+Here is tutorial of how to set up maha-druid-lookups as an extensions of Druid in your local box.
+
 ### Requirement
 * [druid-0.17.1](http://druid.io/docs/0.17.1/tutorials/quickstart.html)
-* zookeeper
 * your local datasource (mysql, oracle, etc.)
 
-### Zookeeper setup
-#### Download:
+### Use **maha-druid-lookups** package
+Add maha druid lookups package to druid extension directory.  
+1. create zip with all the required jars under target directory using following command:
 ```
-wget http://www.gtlib.gatech.edu/pub/apache/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz
-tar -xzf zookeeper-3.4.14.tar.gz
-cd zookeeper-3.4.14
-cp conf/zoo_sample.cfg conf/zoo.cfg
-```
-#### Starting up zookeeper:
-```
-cd zookeeper-3.4.14
-./bin/zkServer.sh start
+$ mvn clean install 
+//zip will be under ex: <path-to-maha-druid-lookups>/target/maha-druid-lookups-<some-version>-SNAPSHOT.zip
 ```
 
-_NOTE: for shutting down the zoopkeeper, please use `./bin/zkServer.sh stop`_
-
-### Using **maha-druid-lookups** package
-Adding maha druid lookups to druid is simple.  The command below will produce a zip file with all the jars in target directory which you can include in your druid installation's class path.
-
-```
-$ mvn clean install //this builds the jar and then assembles the zip file with all dependent jars
-
-$ ls -l target/maha-druid-lookups-* //the zip file can be found with this
--rw-r--r--  1 patelh  user  16084081 Feb 25 12:35 target/maha-druid-lookups-5.242-SNAPSHOT.zip
-```
-
-Now unzip assembled zip file and move all the jars to a new repo for your package under`/druid/extensions/`. 
-The path will be something like:
-```/druid/extensions/maha-druid-lookups/some-jar-file.jar```
+2. create a new repo `maha-cdw-lookups` under `<druid_root>/extensions/` and move all the jars to there, eg. `<druid_root>/extensions/maha-druid-lookups/*`
 
 ### Configuration: using micro-quickstart for quick setup
-Here we take advantage of config files under `/druid/conf/druid/single-server/micro-quickstart/`, which is originally for druid tutorial, for our local setup, there are multiple files we need to modify:
+We are going to reuse config files under `<druid_root>/conf/druid/single-server/micro-quickstart/`, which is originally used for druid tutorial. For our maha lookup setup, here are files that we need to change:
 
-#### /druid/conf/druid/single-server/micro-quickstart/_common/common.runtime.properties
+#### <druid_root>/conf/druid/single-server/micro-quickstart/_common/common.runtime.properties
 1. add package name **maha-druid-lookups** to druid.extensions.loadList:
 
 ```druid.extensions.loadList=["extension1", "extension2" , … , "maha-druid-lookups"]```
@@ -94,16 +73,19 @@ druid.lookup.maha.namespace.rocksdb.localStorageDirectory=/tmp
 druid.lookup.maha.namespace.rocksdb.blockCacheSize=1048576
 ```
 
-#### /druid/conf/druid/single-server/micro-quickstart/historical/runtime.properties
-add a line for historical lookup tier:
+#### <druid_root>/conf/druid/single-server/micro-quickstart/historical/runtime.properties
+specify historical lookup tier:
+
 ```druid.lookup.lookupTier=historicalLookupTier```
 
-####/druid/conf/druid/single-server/micro-quickstart/broker/runtime.properties (Optional)
-add a line for broker lookup tier:
+#### <druid_root>/conf/druid/single-server/micro-quickstart/broker/runtime.properties (Optional)
+specify broker lookup tier:
+
 ```druid.lookup.lookupTier=brokerLookupTier```
 
 _NOTE: skip this setp if you just want to check the functionality of a lookup and don't need to query it via broker._
 
+<<<<<<< HEAD
 #### Include hadoop dependencies in `bin/run-druid`
 Add `hadoop-dependencies/hadoop-client/2.8.5/*` into -cp list
 ```
@@ -158,11 +140,14 @@ We have added serialization and de-serialization of dynamic-schema.json in class
 4. You can test the lookup with namespace curl given in the following readme. 
 5. Dynamic schema lookups also support any new type of serialization, you can extend DynamicLookupCoreSchema interface and contribute to maha. 
 
+=======
+>>>>>>> ef7039ebdde9a9ea8b91ff2de662440c8d8586ef
 ### Starting up Druid
 #### Start Druid services: 
-```./bin/start-micro-quickstart```
 
-_NOTE: to reset druid for a clean start, do`rm -rf var/* && rm -rf log && ./bin/start-micro-quickstart`_
+``` <druid_root>/bin/start-micro-quickstart```
+
+_NOTE: to reset druid for a clean start, do `rm -rf <druid_root>/var/* && rm -rf <druid_root>/log && <druid_root>/bin/start-micro-quickstart`_
 
 ### Troubleshooting
 * JDBC Driver
@@ -173,8 +158,8 @@ org.skife.jdbi.v2.exceptions.UnableToObtainConnectionException: java.sql.SQLExce
 
 **Solution:** 
 
-Instead of putting the jar under your package repo, you need to include the jdbc connector for your local datasource to  /druid/lib, for example:
-`/druid/lib/mysql-connector-java-8.0.16.jar`
+Instead of putting the jar under your package repo, you need to include the jdbc connector for your local datasource to  /<druid_root>/lib, for example:
+`/<druid_root>/lib/mysql-connector-java-8.0.16.jar`
 
 * HDFS Configuration
 If encounter the following error:
@@ -188,7 +173,19 @@ This is caused by lack of Hadoop dependency.
 
 **Solution:** 
 
-For Druid-0.17.1, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.8.5/*`.  Just make sure you have included the path in `bin/run-druid`
+For Druid-0.17.1, it already includes hadoop client jars under `<druid_root>/hadoop-dependencies/hadoop-client/2.8.5/*`.  All you need to do is to inlclude the jar in class path.  To be specific, modify the line of `<druid_root>/bin/run-druid`
+from
+```
+exec "$JAVA_BIN"/java `cat "$CONFDIR"/"$WHATAMI"/jvm.config | xargs` \
+  -cp "$CONFDIR"/"$WHATAMI":"$CONFDIR"/_common:"$CONFDIR"/_common/hadoop-xml:"$CONFDIR"/../_common:"$CONFDIR"/../_common/hadoop-xml:"$WHEREAMI/../lib/*" \
+  `cat "$CONFDIR"/$WHATAMI/main.config | xargs`
+```
+to
+```
+exec "$JAVA_BIN"/java `cat "$CONFDIR"/"$WHATAMI"/jvm.config | xargs` \
+  -cp "$CONFDIR"/"$WHATAMI":"$CONFDIR"/_common:"$CONFDIR"/_common/hadoop-xml:"$CONFDIR"/../_common:"$CONFDIR"/../_common/hadoop-xml:"$WHEREAMI/../lib/*":hadoop-dependencies/hadoop-client/2.8.5/* \
+  `cat "$CONFDIR"/$WHATAMI/main.config | xargs`
+```
 
 ### Registering Druid Lookups
 Druid lookups are managed using APIs on coordinators.  Refer [here](http://druid.io/docs/latest/querying/lookups.html).
