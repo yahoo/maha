@@ -127,8 +127,19 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
       }
     }
 
+    val hasSingleHourFilter =
+      queryContext.requestModel.localTimeHourFilter.isDefined &&
+      queryContext.requestModel.localTimeHourFilter.get.asValues.split(",").distinct.size == 1
+    val hasSingleDayFilter =
+      queryContext.requestModel.utcTimeDayFilter.asValues.split(",").distinct.size == 1 &&
+      queryContext.factBestCandidate.fact.grain == DailyGrain
+
     context.put(TIMEOUT, timeout.asInstanceOf[AnyRef])
-    context.put(UNCOVERED_INTERVALS_LIMIT, UNCOVERED_INTERVALS_LIMIT_VALUE)
+    if(hasSingleDayFilter || hasSingleHourFilter){
+      context.put(UNCOVERED_INTERVALS_LIMIT, 0)
+    } else {
+      context.put(UNCOVERED_INTERVALS_LIMIT, UNCOVERED_INTERVALS_LIMIT_VALUE)
+    }
     context.put(APPLY_LIMIT_PUSH_DOWN, "false")
   }
 }
