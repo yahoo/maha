@@ -145,7 +145,7 @@ case class OuterFilter(filters: List[Filter]) extends Filter {
 
 case class BetweenFilter(field: String, from: String, to: String) extends Filter {
   override def operator = BetweenFilterOperation
-  val asValues: String = s"$from-$to"
+  val asValues: String = s"$from,$to"
 }
 
 trait DateTimeFilter extends Filter {
@@ -160,7 +160,7 @@ trait DateTimeFilter extends Filter {
 case class DateTimeBetweenFilter(field: String, from: String, to: String, format: String) extends DateTimeFilter {
   override def operator = DateTimeBetweenFilterOperation
 
-  val asValues: String = s"$from-$to"
+  val asValues: String = s"$from,$to"
   val fromDateTime: DateTime = try {
     dateTimeFormatter.parseDateTime(from)
   } catch {

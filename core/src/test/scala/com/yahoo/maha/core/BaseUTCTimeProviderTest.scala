@@ -528,9 +528,9 @@ class BaseUTCTimeProviderTest extends AnyFunSuite {
     } ;
     val localHourFilter = new BetweenFilter("Hour", hourStr, hourStr)
     val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter),  None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[BetweenFilter], Option[BetweenFilter]]]
-    assertEquals("2016-03-08-2016-03-09", utcDayFilter.asValues)
+    assertEquals("2016-03-08,2016-03-09", utcDayFilter.asValues)
 
-    assertEquals("00-00", utcHourFilter.get.asValues)
+    assertEquals("00,00", utcHourFilter.get.asValues)
   }
 
   test("Case: Shift backward by invalid filter") {
