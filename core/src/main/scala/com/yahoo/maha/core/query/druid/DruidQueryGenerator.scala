@@ -131,7 +131,8 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
     val hasSingleHourFilter =
       queryContext.requestModel.localTimeHourFilter.isDefined &&
       queryContext.requestModel.localTimeHourFilter.get.asValues.split(",").distinct.size == 1 &&
-      queryContext.factBestCandidate.fact.grain == HourlyGrain
+      queryContext.factBestCandidate.fact.grain == HourlyGrain &&
+      queryContext.requestModel.utcTimeDayFilter.asValues.split(",").distinct.size == 1
     val hasSingleDayFilter =
       queryContext.requestModel.utcTimeDayFilter.asValues.split(",").distinct.size == 1 &&
       queryContext.factBestCandidate.fact.grain == DailyGrain

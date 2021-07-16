@@ -3823,5 +3823,104 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     result should fullyMatch regex expectedQuery
 
   }
+
+  test("Query on one hour of one day") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"},
+                              {"field": "Hour", "operator": "between", "from": "00", "to": "00"}
+
+                          ],
+                          "sortBy": [
+                              { "field": "Advertiser ID", "order": "Asc"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+
+    val requestModel = getRequestModel(request, getDefaultRegistry())
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val expectedContents = s""""applyLimitPushDown":"false","uncoveredIntervalsLimit":0,"groupByIsSingleThreaded":true,"timeout":5000"""
+    assert(result.contains(expectedContents))
+
+  }
+
+  test("Query on two hours of one day") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"},
+                              {"field": "Hour", "operator": "between", "from": "00", "to": "01"}
+
+                          ],
+                          "sortBy": [
+                              { "field": "Advertiser ID", "order": "Asc"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+
+    val requestModel = getRequestModel(request, getDefaultRegistry())
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val expectedContents = s""""applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000"""
+    assert(result.contains(expectedContents))
+
+  }
+
+  test("Query on one hour of two days") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDateMinusOne", "to": "$toDate"},
+                              {"field": "Hour", "operator": "between", "from": "00", "to": "00"}
+
+                          ],
+                          "sortBy": [
+                              { "field": "Advertiser ID", "order": "Asc"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+
+    val requestModel = getRequestModel(request, getDefaultRegistry())
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val expectedContents = s""""applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000"""
+    assert(result.contains(expectedContents))
+
+  }
 }
 
