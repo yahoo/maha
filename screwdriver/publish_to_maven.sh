@@ -12,7 +12,7 @@ gpg --batch --import screwdriver/deploy/sec.key
 
 ls -l screwdriver/deploy
 
-# Print deploy failure step, exit with failure.
+# Print deploy failure step, exit without thrown failure.
 error_exit()
 {
 	echo "Error, step failed to deploy: $1"
