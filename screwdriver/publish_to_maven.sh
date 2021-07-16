@@ -16,7 +16,7 @@ ls -l screwdriver/deploy
 error_exit()
 {
 	echo "Error, step failed to deploy: $1"
-	exit 1
+	exit 0
 }
 
 
