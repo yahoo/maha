@@ -336,4 +336,23 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
 
     assert(request.filterExpressions.toString contains "EqualityFilter(Student ID,123,false,false)")
   }
+
+  test("test filter: not equals") {
+
+    val sql =
+      s"""
+              select * from student_performance
+              where 'Student ID' != 123
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.filterExpressions.size == 1)
+    assert(request.filterExpressions.head.operator.toString.equals("<>"))
+    assert(request.filterExpressions.head.field.equals("Student ID"))
+    assert(request.filterExpressions.head.asValues.equals("123"))
+    assert(request.filterExpressions.toString contains "NotEqualToFilter(Student ID,123,false,false)")
+  }
 }
