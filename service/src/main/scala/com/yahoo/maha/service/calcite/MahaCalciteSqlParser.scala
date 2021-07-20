@@ -223,6 +223,9 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     sqlBasicCall.getOperator.kind match {
       case SqlKind.AND =>
         constructFilters(operands(0)) ++ constructFilters(operands(1))
+      case SqlKind.NOT_IN =>
+        val notInList: List[String] = operands(1).asInstanceOf[SqlNodeList].toArray.toList.map(sqlNode => toLiteral(sqlNode))
+        ArrayBuffer.empty += NotInFilter(toLiteral(operands(0)), notInList).asInstanceOf[Filter]
       case SqlKind.OR =>
         val mergeBuffer: ArrayBuffer[Filter] = constructFilters(operands(0)) ++ constructFilters(operands(1))
         ArrayBuffer.empty += OrFilter(mergeBuffer.toList).asInstanceOf[Filter]
