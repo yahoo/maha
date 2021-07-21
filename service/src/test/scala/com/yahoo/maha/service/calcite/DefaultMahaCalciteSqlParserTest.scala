@@ -394,6 +394,38 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.filterExpressions.toString contains "NotEqualToFilter(Student Name,abc,false,false)")
   }
 
+  test("test filter: like - wrapping value in '") {
+
+    val sql =
+      s"""
+              select * from student_performance
+              where 'Student ID' like '123%'
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.filterExpressions.size > 0)
+    assert(request.filterExpressions.toString contains "LikeFilter(Student ID,123%,false,false)")
+  }
+
+  test("test filter: like - wrapping value in \"") {
+
+    val sql =
+      s"""
+              select * from student_performance
+              where 'Student ID' like "123%"
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.filterExpressions.size > 0)
+    assert(request.filterExpressions.toString contains "LikeFilter(Student ID,123%,false,false)")
+  }
+
   test("test filter: having") {
 
     val sql =
