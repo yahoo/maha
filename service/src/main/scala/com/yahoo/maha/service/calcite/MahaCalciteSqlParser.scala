@@ -212,23 +212,22 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
         filterList = filterList ++ constructFilters(sqlBasicCall)
       case others: AnyRef =>
         logger.error(s"sqlNode type ${sqlNode.getKind} in getSelectList is not yet supported")
-        (IndexedSeq.empty, None, None, None, 1)
+        return (IndexedSeq.empty, None, None, None, 1)
       case null =>
         logger.error("Empty WHERE clause.")
-        (IndexedSeq.empty, None, None, None, 1)
+        return (IndexedSeq.empty, None, None, None, 1)
     }
 
     sqlHaving match {
       case sqlBasicCall: SqlBasicCall =>
         filterList = filterList ++ constructFilters(sqlBasicCall)
-        validate(filterList)
       case others: AnyRef =>
         logger.error(s"sqlNode type ${sqlNode.getKind} in getSelectList is not yet supported")
         (IndexedSeq.empty, None, None, None, 1)
       case null =>
         logger.debug("Empty HAVING clause.")
-        validate(filterList)
     }
+    validate(filterList)
   }
 
   def constructFilters(sqlNode: SqlNode): ArrayBuffer[Filter] = {
