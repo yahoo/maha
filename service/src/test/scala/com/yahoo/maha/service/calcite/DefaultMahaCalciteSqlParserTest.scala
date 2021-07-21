@@ -349,9 +349,8 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     assert(request.requestType === SyncRequest)
     assert(request.filterExpressions.size == 1)
-    assert(request.filterExpressions.head.field.equals("Student Name"))
-    assert(request.filterExpressions.head.asValues.equals("123"))
+    assert(request.filterExpressions.head.field.equals("Student ID"))
 
-    assert(request.filterExpressions.toString contains "NotInFilter(Student ID,null,false,false)")
+    assert(request.filterExpressions.toString contains "NotInFilter(Student ID,List(123),false,false)")
   }
 }
