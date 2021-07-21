@@ -426,6 +426,51 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.filterExpressions.toString contains "LikeFilter(Student ID,123%,false,false)")
   }
 
+  test("test filter: not like - string value") {
+
+    val sql = s"""
+              select * from "maha"."student_performance"
+              where 'Student ID' NOT LIKE '%s123'
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.filterExpressions.size > 0)
+    assert(request.filterExpressions.toString contains "NotLikeFilter(Student ID,%s123,false,false)")
+  }
+
+  test("test filter: not like - int value") {
+
+    val sql = s"""
+              select * from "maha"."student_performance"
+              where 'Student ID' NOT LIKE 123
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.filterExpressions.size > 0)
+    assert(request.filterExpressions.toString contains "NotLikeFilter(Student ID,123,false,false)")
+  }
+
+  test("test filter: not like - case insensitive operator") {
+
+    val sql = s"""
+              select * from "maha"."student_performance"
+              where 'Student ID' nOt LiKe '%s123'
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.filterExpressions.size > 0)
+    assert(request.filterExpressions.toString contains "NotLikeFilter(Student ID,%s123,false,false)")
+  }
+
   test("test filter: having") {
 
     val sql =
