@@ -307,21 +307,6 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.filterExpressions.toString contains "EqualityFilter(Student ID,123,false,false)")
   }
 
-  test("test Describe table with double quotes around schema name") {
-
-    val sql = s"""
-              select * from "maha".student_performance
-              where 'Student ID' = 123
-              """
-
-    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
-    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
-    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
-    assert(request.cube == "student_performance")
-
-    assert(request.filterExpressions.toString contains "EqualityFilter(Student ID,123,false,false)")
-  }
-
   test("test Describe table with double quotes around table and schema name") {
 
     val sql = s"""
@@ -335,5 +320,22 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.cube == "student_performance")
 
     assert(request.filterExpressions.toString contains "EqualityFilter(Student ID,123,false,false)")
+  }
+
+  test("less than") {
+
+    val sql =
+      s"""
+              select * from student_performance
+              where 'Student ID' < 123
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.filterExpressions.size == 1)
+    assert(request.filterExpressions.head.field.equals("Student Name"))
+    assert(request.filterExpressions.toString contains "LessThanFilter(Student Name,123,false,false)")
   }
 }
