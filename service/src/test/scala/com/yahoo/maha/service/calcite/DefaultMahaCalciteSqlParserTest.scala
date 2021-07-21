@@ -341,7 +341,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
 
     val sql = s"""
               select * from "maha"."student_performance"
-              where 'Student ID' NOT IN ('123')
+              where 'Student ID' NOT IN ('123','1234')
               """
 
     val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
@@ -351,13 +351,13 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.filterExpressions.size == 1)
     assert(request.filterExpressions.head.field.equals("Student ID"))
 
-    assert(request.filterExpressions.toString contains "NotInFilter(Student ID,List(123),false,false)")
+    assert(request.filterExpressions.toString contains "NotInFilter(Student ID,List(123, 1234),false,false)")
   }
   test("test NOT IN double qoutes") {
 
     val sql = s"""
               select * from "maha"."student_performance"
-              where 'Student ID' NOT IN ("123")
+              where 'Student ID' NOT IN ("123","1234")
               """
 
     val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
@@ -367,6 +367,6 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.filterExpressions.size == 1)
     assert(request.filterExpressions.head.field.equals("Student ID"))
 
-    assert(request.filterExpressions.toString contains "NotInFilter(Student ID,List(123),false,false)")
+    assert(request.filterExpressions.toString contains "NotInFilter(Student ID,List(123, 1234),false,false)")
   }
 }
