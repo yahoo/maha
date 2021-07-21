@@ -8,6 +8,7 @@ import com.yahoo.maha.service.MahaServiceConfig
 import com.yahoo.maha.service.error.MahaCalciteSqlParserError
 import grizzled.slf4j.Logging
 import org.apache.calcite.sql._
+import org.apache.calcite.sql.fun.SqlLikeOperator
 import org.apache.calcite.sql.parser.{SqlParseException, SqlParser}
 import org.apache.calcite.sql.validate.{SqlConformance, SqlConformanceEnum}
 import org.apache.commons.lang.StringUtils
@@ -252,7 +253,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
       case SqlKind.BETWEEN =>
         ArrayBuffer.empty += BetweenFilter(toLiteral(operands(0)), toLiteral(operands(1)), toLiteral(operands(2))).asInstanceOf[Filter]
       case SqlKind.LIKE =>
-        if (sqlBasicCall.getOperator.getName.toLowerCase.contains("not"))
+        if (sqlBasicCall.getOperator.asInstanceOf[SqlLikeOperator].isNegated)
           ArrayBuffer.empty += NotLikeFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
         else
           ArrayBuffer.empty += LikeFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
