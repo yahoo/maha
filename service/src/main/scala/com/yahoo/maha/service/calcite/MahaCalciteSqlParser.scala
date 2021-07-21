@@ -252,7 +252,10 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
       case SqlKind.BETWEEN =>
         ArrayBuffer.empty += BetweenFilter(toLiteral(operands(0)), toLiteral(operands(1)), toLiteral(operands(2))).asInstanceOf[Filter]
       case SqlKind.LIKE =>
-        ArrayBuffer.empty += LikeFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
+        if (sqlBasicCall.getOperator.getName.contains("NOT"))
+          ArrayBuffer.empty += NotLikeFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
+        else
+          ArrayBuffer.empty += LikeFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
       case SqlKind.IS_NULL =>
         ArrayBuffer.empty += IsNullFilter(toLiteral(operands(0))).asInstanceOf[Filter]
     }
