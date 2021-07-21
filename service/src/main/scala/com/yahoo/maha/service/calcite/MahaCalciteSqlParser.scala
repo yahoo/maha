@@ -228,12 +228,16 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
         ArrayBuffer.empty += OrFilter(mergeBuffer.toList).asInstanceOf[Filter]
       case SqlKind.EQUALS =>
         ArrayBuffer.empty += EqualityFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
+      case SqlKind.NOT_EQUALS =>
+        ArrayBuffer.empty += NotEqualToFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
       case SqlKind.GREATER_THAN =>
         ArrayBuffer.empty += GreaterThanFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
       case SqlKind.IN =>
         val inList: List[String] = operands(1).asInstanceOf[SqlNodeList].toArray.toList.map(sqlNode => toLiteral(sqlNode))
         ArrayBuffer.empty += InFilter(toLiteral(operands(0)), inList).asInstanceOf[Filter]
-      case SqlKind.LESS_THAN =>
+      case SqlKind.BETWEEN =>
+        ArrayBuffer.empty += BetweenFilter(toLiteral(operands(0)), toLiteral(operands(1)), toLiteral(operands(2))).asInstanceOf[Filter]
+      case SqlKind.LESS_THAN=>
         ArrayBuffer.empty += LessThanFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
     }
   }

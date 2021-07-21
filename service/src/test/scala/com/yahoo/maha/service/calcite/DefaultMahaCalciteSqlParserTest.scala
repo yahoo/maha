@@ -338,4 +338,78 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.filterExpressions.head.field.equals("Student Name"))
     assert(request.filterExpressions.toString contains "LessThanFilter(Student Name,123,false,false)")
   }
+
+  test("test filter: not equals") {
+
+    val sql =
+      s"""
+              select * from student_performance
+              where 'Student ID' != 123
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.filterExpressions.size == 1)
+    assert(request.filterExpressions.head.operator.toString.equals("<>"))
+    assert(request.filterExpressions.head.field.equals("Student ID"))
+    assert(request.filterExpressions.head.asValues.equals("123"))
+    assert(request.filterExpressions.toString contains "NotEqualToFilter(Student ID,123,false,false)")
+  }
+
+  test("test filter: not equals string") {
+
+    val sql =
+      s"""
+              select * from student_performance
+              where 'Student Name' != "abc"
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.filterExpressions.size == 1)
+    assert(request.filterExpressions.head.operator.toString.equals("<>"))
+    assert(request.filterExpressions.head.field.equals("Student Name"))
+    assert(request.filterExpressions.head.asValues.equals("abc"))
+    assert(request.filterExpressions.toString contains "NotEqualToFilter(Student Name,abc,false,false)")
+  }
+
+  test("test filter: not equals string (single-quotes)") {
+
+    val sql =
+      s"""
+              select * from student_performance
+              where 'Student Name' != 'abc'
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.filterExpressions.size == 1)
+    assert(request.filterExpressions.head.operator.toString.equals("<>"))
+    assert(request.filterExpressions.head.field.equals("Student Name"))
+    assert(request.filterExpressions.head.asValues.equals("abc"))
+    assert(request.filterExpressions.toString contains "NotEqualToFilter(Student Name,abc,false,false)")
+  }
+  
+    test("test filter: less than") {
+
+    val sql =
+      s"""
+              select * from student_performance
+              where 'Student Name' < '123'
+              """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.filterExpressions.size == 1)
+    assert(request.filterExpressions.head.field.equals("Student Name"))
+    assert(request.filterExpressions.toString contains "LessThanFilter(Student Name,123,false,false)")
+  }
 }
