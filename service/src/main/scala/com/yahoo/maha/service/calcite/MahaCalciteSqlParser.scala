@@ -92,7 +92,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
           require(publicFact.isDefined,MahaCalciteSqlParserError(s"Failed to find the cube $fromTable", sql))
           val columnAliasToColumnMap:Map[String, PublicColumn] = publicFact.get.getAllDomainColumnAliasToPublicColumnMap(registry)
           val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get, columnAliasToColumnMap)
-          val (filterExpression, dayFilterOption, hourFilterOption, minuteFilterOption, numDays) = getFilterList(sqlSelect.getWhere, publicFact.get)
+          val (filterExpression, dayFilterOption, hourFilterOption, minuteFilterOption, numDays) = getFilterList(sqlSelect, publicFact.get)
           SelectSqlNode(
             new ReportingRequest(
               cube=publicFact.get.name,
@@ -203,17 +203,31 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
   }
 
   def getFilterList(sqlNode: SqlNode, publicFact: PublicFact) : (IndexedSeq[Filter], Option[Filter], Option[Filter], Option[Filter], Int) = {
-    sqlNode match {
+    val sqlWhere = sqlNode.asInstanceOf[SqlSelect].getWhere
+    val sqlHaving = sqlNode.asInstanceOf[SqlSelect].getHaving
+    var filterList = ArrayBuffer.empty[Filter]
+
+    sqlWhere match {
       case sqlBasicCall: SqlBasicCall =>
-        val filterList = constructFilters(sqlBasicCall)
-        validate(filterList)
+        filterList = filterList ++ constructFilters(sqlBasicCall)
+      case others: AnyRef =>
+        logger.error(s"sqlNode type ${sqlNode.getKind} in getSelectList is not yet supported")
+        return (IndexedSeq.empty, None, None, None, 1)
+      case null =>
+        logger.error("Empty WHERE clause.")
+        return (IndexedSeq.empty, None, None, None, 1)
+    }
+
+    sqlHaving match {
+      case sqlBasicCall: SqlBasicCall =>
+        filterList = filterList ++ constructFilters(sqlBasicCall)
       case others: AnyRef =>
         logger.error(s"sqlNode type ${sqlNode.getKind} in getSelectList is not yet supported")
         (IndexedSeq.empty, None, None, None, 1)
       case null =>
-        logger.error("sqlNode is null in getFilterList")
-        (IndexedSeq.empty, None, None, None, 1)
+        logger.debug("Empty HAVING clause.")
     }
+    validate(filterList)
   }
 
   def constructFilters(sqlNode: SqlNode): ArrayBuffer[Filter] = {
@@ -239,6 +253,8 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
         ArrayBuffer.empty += BetweenFilter(toLiteral(operands(0)), toLiteral(operands(1)), toLiteral(operands(2))).asInstanceOf[Filter]
       case SqlKind.LESS_THAN=>
         ArrayBuffer.empty += LessThanFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
+      case SqlKind.LIKE =>
+        ArrayBuffer.empty += LikeFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
     }
   }
 
