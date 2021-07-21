@@ -425,36 +425,28 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.filterExpressions.size > 0)
     assert(request.filterExpressions.toString contains "LikeFilter(Student ID,123%,false,false)")
   }
-  test("test NOT IN single qoutes") {
 
-    val sql = s"""
-              select * from "maha"."student_performance"
-              where 'Student ID' NOT IN ('123','1234')
+  test("test filter: having") {
+
+    val sql =
+      s"""
+              select 'Student ID', 'Total Marks' from student_performance
+              where 'Student ID' != 123
+              having 'Total Marks' > 0
               """
 
     val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     assert(request.requestType === SyncRequest)
-    assert(request.filterExpressions.size == 1)
+    assert(request.filterExpressions.size == 2)
+    assert(request.filterExpressions.head.operator.toString.equals("<>"))
     assert(request.filterExpressions.head.field.equals("Student ID"))
-
-    assert(request.filterExpressions.toString contains "NotInFilter(Student ID,List(123, 1234),false,false)")
-  }
-  test("test NOT IN double qoutes") {
-
-    val sql = s"""
-              select * from "maha"."student_performance"
-              where 'Student ID' NOT IN ("123","1234")
-              """
-
-    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
-    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
-    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
-    assert(request.requestType === SyncRequest)
-    assert(request.filterExpressions.size == 1)
-    assert(request.filterExpressions.head.field.equals("Student ID"))
-
-    assert(request.filterExpressions.toString contains "NotInFilter(Student ID,List(123, 1234),false,false)")
+    assert(request.filterExpressions.head.asValues.equals("123"))
+    assert(request.filterExpressions.last.operator.toString.equals(">"))
+    assert(request.filterExpressions.last.field.equals("Total Marks"))
+    assert(request.filterExpressions.last.asValues.equals("0"))
+    assert(request.filterExpressions.toString contains "NotEqualToFilter(Student ID,123,false,false)")
+    assert(request.filterExpressions.toString contains "GreaterThanFilter(Total Marks,0,false,false)")
   }
 }
