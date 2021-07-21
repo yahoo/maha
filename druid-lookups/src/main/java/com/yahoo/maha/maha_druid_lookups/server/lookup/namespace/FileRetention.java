@@ -31,9 +31,9 @@ public class FileRetention {
                     {
                         try {
                             FileDeleteStrategy.FORCE.delete(filePath.toFile());
-                            LOG.info("File " + filePath.toFile().getName() + "deleted at path " + filePath.toFile().getAbsolutePath());
+                            LOG.info("File [%s] deleted at path [%s] "  ,filePath.toFile().getName(),filePath.toFile().getAbsolutePath());
                         } catch (IOException e) {
-                            LOG.error("exception when trying to delete " + filePath.toFile().getName() + e);
+                            LOG.error(e,"exception when trying to delete [%s] " ,filePath.toFile().getName());
                         }
 
                     }
@@ -42,7 +42,7 @@ public class FileRetention {
         }
         catch (Exception e)
         {
-            LOG.error("Exception while trying to clean up "+ e);
+            LOG.error(e,"Exception while trying to clean up ");
         }
     }
 }
