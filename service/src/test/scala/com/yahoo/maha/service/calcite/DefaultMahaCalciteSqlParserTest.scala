@@ -439,8 +439,6 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.requestType === SyncRequest)
     assert(request.filterExpressions.size > 0)
 
-
-    println("request " +  request.filterExpressions.toString)
     assert(request.filterExpressions.toString contains "IsNullFilter(Student ID,false,false)")
   }
 
