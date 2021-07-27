@@ -25,6 +25,7 @@ import org.apache.commons.codec.digest.DigestUtils
 abstract class MahaAvaticaService extends Service {
 
 }
+
 class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaService) => QueryRowList,
                                 calciteSqlParser: MahaCalciteSqlParser,
                                 mahaService: MahaService,
@@ -70,8 +71,9 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
     val tableRequestFrame: Frame = {
         val rows = new util.ArrayList[Object]()
         allFactMap.foreach {
-            case ((name, version), publicFact: PublicFact) =>
-                val row = Array(name, "fact", s"""version: ${version} ,${publicFact.description}""") //name, type, remarks(description)
+            case ((tableName, version), publicFact: PublicFact) =>
+                val tableRemarks = s"""version: ${version} ,${publicFact.description}"""
+                val row = Array(TABLE_CAT, TABLE_SCHEM, tableName, TABLE_TYPE, tableRemarks, TYPE_CAT, TYPE_SCHEM, TYPE_NAME, SELF_REFERENCING_COL_NAME, REF_GENERATION)
                 rows.add(row)
         }
         Frame.create(0, true, rows)
@@ -355,7 +357,15 @@ object MahaAvaticaServiceHelper extends Logging {
         }
     }
 
-    val tableMetaArray: Array[String] = Array("TABLE_NAME", "TABLE_TYPE", "REMARKS")
+    val tableMetaArray: Array[String] = Array("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "TABLE_TYPE", "REMARKS", "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "SELF_REFERENCING_COL_NAME", "REF_GENERATION")
+    val TABLE_CAT = null
+    val TABLE_SCHEM = "maha"
+    val TABLE_TYPE = "fact"
+    val TYPE_CAT = null
+    val TYPE_SCHEM = null
+    val TYPE_NAME = null
+    val SELF_REFERENCING_COL_NAME = null
+    val REF_GENERATION = null
 
     val columnMetaArray: Array[String] = Array("COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "REMARKS")
 
