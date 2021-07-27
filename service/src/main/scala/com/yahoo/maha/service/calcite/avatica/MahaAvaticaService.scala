@@ -18,6 +18,7 @@ import com.yahoo.maha.service.{MahaRequestContext, MahaService, RegistryConfig}
 import com.yahoo.maha.service.calcite.{DescribeSqlNode, MahaCalciteSqlParser, SelectSqlNode}
 import grizzled.slf4j.Logging
 import org.apache.commons.codec.digest.DigestUtils
+import org.apache.commons.lang.StringUtils
 
 /*
  Maha Avatica service implementation of JDBC Request Handler with calcite parsers and executors as input
@@ -358,14 +359,14 @@ object MahaAvaticaServiceHelper extends Logging {
     }
 
     val tableMetaArray: Array[String] = Array("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "TABLE_TYPE", "REMARKS", "TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "SELF_REFERENCING_COL_NAME", "REF_GENERATION")
-    val TABLE_CAT = null
+    val TABLE_CAT = StringUtils.EMPTY
     val TABLE_SCHEM = "maha"
     val TABLE_TYPE = "fact"
-    val TYPE_CAT = null
-    val TYPE_SCHEM = null
-    val TYPE_NAME = null
-    val SELF_REFERENCING_COL_NAME = null
-    val REF_GENERATION = null
+    val TYPE_CAT = StringUtils.EMPTY
+    val TYPE_SCHEM = StringUtils.EMPTY
+    val TYPE_NAME = StringUtils.EMPTY
+    val SELF_REFERENCING_COL_NAME = StringUtils.EMPTY
+    val REF_GENERATION = StringUtils.EMPTY
 
     val columnMetaArray: Array[String] = Array("COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "REMARKS")
 
