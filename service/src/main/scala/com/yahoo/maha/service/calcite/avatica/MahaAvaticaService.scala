@@ -80,7 +80,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         allFactMap.foreach {
             case ((tableName, version), publicFact: PublicFact) =>
 
-                if (allLatestVersionFactSet.contains(tableName, version)) {
+                if (allLatestVersionFactSet.contains((tableName, version))) {
                     val tableRemarks = s"""version: ${version} ,${publicFact.description}"""
                     val row = Array(TABLE_CAT, TABLE_SCHEM, tableName, TABLE_TYPE, tableRemarks, TYPE_CAT, TYPE_SCHEM, TYPE_NAME, SELF_REFERENCING_COL_NAME, REF_GENERATION)
                     rows.add(row)
