@@ -157,7 +157,8 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
     val factMaps = mahaServiceConfig.registry.values.map{
       case registryConfig: RegistryConfig => registryConfig.registry.factMap
     }
-    val expected_count = factMaps.map(map => map.size).reduce((x, y) => x+y)
+
+    val expected_count = factMaps.flatten.map(_._1).map(_._1).asInstanceOf[List[String]].distinct.size
     assert(count == expected_count)
   }
 
