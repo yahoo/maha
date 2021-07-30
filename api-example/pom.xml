@@ -302,7 +302,7 @@
                     <systemProperties>
                         <systemProperty>
                             <name>org.slf4j.simpleLogger.defaultLogLevel</name>
-                            <value>info</value>
+                            <value>debug</value>
                         </systemProperty>
                     </systemProperties>
                 </configuration>
