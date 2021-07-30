@@ -46,6 +46,12 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
     require(registryConfigMap.contains(defaultRegistry), s"Failed to find the ${defaultRegistry} in registry config")
     val registry: Registry = registryConfigMap.get(defaultRegistry).get.registry
 
+    val allLatestVersionFactSet = mahaService.getMahaServiceConfig.registry.map {
+        case (regName, registryConfig: RegistryConfig) => {
+            registryConfig.registry.factMap
+        }
+    }.flatten.map(_._1).groupBy(_._1).mapValues(_.map(_._2).max).toSet
+
     val allFactMap = mahaService.getMahaServiceConfig.registry.map {
         case (regName, registryConfig: RegistryConfig) => {
             registryConfig.registry.factMap
@@ -73,9 +79,12 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val rows = new util.ArrayList[Object]()
         allFactMap.foreach {
             case ((tableName, version), publicFact: PublicFact) =>
-                val tableRemarks = s"""version: ${version} ,${publicFact.description}"""
-                val row = Array(TABLE_CAT, TABLE_SCHEM, tableName, TABLE_TYPE, tableRemarks, TYPE_CAT, TYPE_SCHEM, TYPE_NAME, SELF_REFERENCING_COL_NAME, REF_GENERATION)
-                rows.add(row)
+
+                if (allLatestVersionFactSet.contains(tableName, version)) {
+                    val tableRemarks = s"""version: ${version} ,${publicFact.description}"""
+                    val row = Array(TABLE_CAT, TABLE_SCHEM, tableName, TABLE_TYPE, tableRemarks, TYPE_CAT, TYPE_SCHEM, TYPE_NAME, SELF_REFERENCING_COL_NAME, REF_GENERATION)
+                    rows.add(row)
+                }
         }
         Frame.create(0, true, rows)
     }
