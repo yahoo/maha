@@ -140,14 +140,13 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
   }
 
   def getFromTableAndTableSchema(sqlNode: SqlNode): (String, Option[String]) = {
-    var sqlFromNode = sqlNode
-    sqlFromNode match {
+    val sqlFromNode = sqlNode match {
       case sqlBasicCall: SqlBasicCall =>
         sqlBasicCall.getOperator.kind match {
-          case SqlKind.AS =>
-            sqlFromNode = sqlBasicCall.getOperands() (0)
-      }
-      case _ => logger.debug("From sqlNode is not an sqlBasicCall type")
+          case SqlKind.AS => sqlBasicCall.getOperands()(0)
+          case _ => sqlNode
+        }
+      case _ => sqlNode
     }
     sqlFromNode match {
       case sqlIdentifier: SqlIdentifier =>
