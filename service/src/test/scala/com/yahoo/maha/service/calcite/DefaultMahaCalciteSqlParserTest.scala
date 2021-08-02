@@ -558,4 +558,17 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
 
     assert(request.filterExpressions.toString contains "NotInFilter(Student ID,List(123, 1234),false,false)")
   }
+
+  test("test table aliasing") {
+    val sql = s"""
+              select * from "maha"."student_performance" as sp where 'Student ID' = 123
+              """
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.cube == "student_performance")
+    assert(request.filterExpressions.toString contains "EqualityFilter(Student ID,123,false,false)")
+    assert(request.cube contains "student_performance")
+    request.toString shouldNot contain ("sp")
+    }
 }
