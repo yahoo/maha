@@ -228,15 +228,69 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         require(pubFactOption.isDefined, s"Failed to find the cube ${cube} in the registry fact map")
         val publicFact = pubFactOption.get
         val rows = new util.ArrayList[Object]()
+        var ordinalPos = 1
         publicFact.dimCols.foreach {
             dimCol=>
-                val row = Array(dimCol.alias, getSqlDataType(dimCol, publicFact), getDataType(dimCol, publicFact) , toComment(dimCol))
+                val row = Array(
+                    TABLE_CAT,
+                    TABLE_SCHEM,
+                    publicFact.name,
+                    dimCol.alias,
+                    getSqlDataType(dimCol, publicFact),
+                    getDataType(dimCol, publicFact),
+                    COLUMN_SIZE,
+                    BUFFER_LENGTH,
+                    if(getDataType(dimCol, publicFact).equals("DecType")) 38 else null, //DECIMAL_DIGITS
+                    NUM_PREC_RADIX,
+                    NULLABLE,
+                    toComment(dimCol),
+                    toComment(dimCol),
+                    getSqlDataType(dimCol, publicFact),
+                    SQL_DATETIME_SUB,
+                    CHAR_OCTET_LENGTH,
+                    ordinalPos, //ORDINAL_POSITION
+                    IS_NULLABLE,
+                    SCOPE_CATALOG,
+                    SCOPE_SCHEMA,
+                    SCOPE_TABLE,
+                    SOURCE_DATA_TYPE,
+                    IS_AUTOINCREMENT,
+                    IS_GENERATEDCOLUMN
+                )
                 rows.add(row)
+                ordinalPos += 1
         }
         publicFact.factCols.foreach {
             factCol=>
-                val row = Array(factCol.alias, getSqlDataType(factCol, publicFact), getDataType(factCol, publicFact) , toComment(factCol))
+                val row = Array(
+                    TABLE_CAT,
+                    TABLE_SCHEM,
+                    publicFact.name,
+                    factCol.alias,
+                    getSqlDataType(factCol, publicFact),
+                    getDataType(factCol, publicFact),
+                    COLUMN_SIZE,
+                    BUFFER_LENGTH,
+                    if(getDataType(factCol, publicFact).equals("DecType")) 38 else null, //DECIMAL_DIGITS
+                    NUM_PREC_RADIX,
+                    NULLABLE,
+                    toComment(factCol),
+                    toComment(factCol),
+                    getSqlDataType(factCol, publicFact),
+                    SQL_DATETIME_SUB,
+                    CHAR_OCTET_LENGTH,
+                    ordinalPos, //ORDINAL_POSITION
+                    IS_NULLABLE,
+                    SCOPE_CATALOG,
+                    SCOPE_SCHEMA,
+                    SCOPE_TABLE,
+                    SOURCE_DATA_TYPE,
+                    IS_AUTOINCREMENT,
+                    IS_GENERATEDCOLUMN
+                )
                 rows.add(row)
+                ordinalPos+=1
+
         }
         publicFact.foreignKeySources.foreach {
             dimensionCube =>
@@ -246,8 +300,34 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                     dim=>
                         dim.columnsByAliasMap.foreach {
                             case (alias, dimCol)=>
-                                val row = Array(dimCol.alias, getSqlDataTypeFromDim(dimCol, dim), getDataTypeFromDim(dimCol, dim) , toComment(dimCol))
+                                val row = Array(
+                                    TABLE_CAT,
+                                    TABLE_SCHEM,
+                                    publicFact.name,
+                                    dimCol.alias,
+                                    getSqlDataType(dimCol, publicFact),
+                                    getDataType(dimCol, publicFact),
+                                    COLUMN_SIZE,
+                                    BUFFER_LENGTH,
+                                    if(getDataType(dimCol, publicFact).equals("DecType")) 38 else null, //DECIMAL_DIGITS
+                                    NUM_PREC_RADIX,
+                                    NULLABLE,
+                                    toComment(dimCol),
+                                    toComment(dimCol),
+                                    getSqlDataType(dimCol, publicFact),
+                                    SQL_DATETIME_SUB,
+                                    CHAR_OCTET_LENGTH,
+                                    ordinalPos, //ORDINAL_POSITION
+                                    IS_NULLABLE,
+                                    SCOPE_CATALOG,
+                                    SCOPE_SCHEMA,
+                                    SCOPE_TABLE,
+                                    SOURCE_DATA_TYPE,
+                                    IS_AUTOINCREMENT,
+                                    IS_GENERATEDCOLUMN
+                                )
                                 rows.add(row)
+                                ordinalPos+=1
                         }
                 }
         }
@@ -377,6 +457,18 @@ object MahaAvaticaServiceHelper extends Logging {
     val SELF_REFERENCING_COL_NAME = StringUtils.EMPTY
     val REF_GENERATION = StringUtils.EMPTY
 
-    val columnMetaArray: Array[String] = Array("COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "REMARKS")
-
+    val columnMetaArray: Array[String] = Array("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS", "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE", "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN")
+    val COLUMN_SIZE = 0
+    val BUFFER_LENGTH = 0 //unused
+    val NUM_PREC_RADIX = 10
+    val NULLABLE = java.sql.ResultSetMetaData.columnNullableUnknown
+    val SQL_DATETIME_SUB = 0 //unused
+    val CHAR_OCTET_LENGTH = 0 //unlimited bypes
+    val IS_NULLABLE = StringUtils.EMPTY
+    val SCOPE_CATALOG = StringUtils.EMPTY
+    val SCOPE_SCHEMA = StringUtils.EMPTY
+    val SCOPE_TABLE = StringUtils.EMPTY
+    val SOURCE_DATA_TYPE = null //short type: null if the DATA_TYPE isn't REF
+    val IS_AUTOINCREMENT = StringUtils.EMPTY
+    val IS_GENERATEDCOLUMN = StringUtils.EMPTY
 }

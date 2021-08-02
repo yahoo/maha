@@ -180,7 +180,7 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
     val rows = result.firstFrame.rows
     var count = 0
     rows.iterator().forEachRemaining(s=> {
-      println(s)
+      assert(s.asInstanceOf[Array[Object]].size == 24)
       count+=1
     })
     assert(count > 19)
