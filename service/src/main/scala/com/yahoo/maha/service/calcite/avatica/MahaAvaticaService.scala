@@ -458,8 +458,8 @@ object MahaAvaticaServiceHelper extends Logging {
     val REF_GENERATION = StringUtils.EMPTY
 
     val columnMetaArray: Array[String] = Array("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS", "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE", "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN")
-    val COLUMN_SIZE = 0
-    val BUFFER_LENGTH = 0 //unused
+    val COLUMN_SIZE = 20
+    val BUFFER_LENGTH = 10 //unused
     val NUM_PREC_RADIX = 10
     val NULLABLE = java.sql.ResultSetMetaData.columnNullableUnknown
     val SQL_DATETIME_SUB = 0 //unused
