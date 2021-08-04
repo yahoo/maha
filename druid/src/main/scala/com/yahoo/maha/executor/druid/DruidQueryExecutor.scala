@@ -416,13 +416,14 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
         requestModel.utcTimeDayFilter.asValues.split(",").distinct.length == 1
     val hasSingleDayFilter =
       requestModel.utcTimeDayFilter.asValues.split(",").distinct.length == 1
+    val grain: String = if(requestModel.queryGrain.isDefined) requestModel.queryGrain.get.toString else "UNDEFINED"
 
 
     if (config.enableFallbackOnUncoveredIntervals
       && latestDate.isBeforeNow()
       && response.getHeaders().contains(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)
       && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)) {
-      logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)} in source table : ${query.tableName}, query on single hour: $hasSingleHourFilter, query on single day: $hasSingleDayFilter")
+      logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)} in source table : ${query.tableName}, query on single hour: $hasSingleHourFilter, query on single day: $hasSingleDayFilter, query grain: $grain")
     }
   }
 
