@@ -13,7 +13,6 @@ public class FileRetentionTest {
 
     @Test
     public void testCleanup() throws Exception {
-        FileRetention FileRenention = new FileRetention();
         String[] pathnames;
         new File("target/rocksdbcleanup").mkdirs();
 
@@ -28,7 +27,7 @@ public class FileRetentionTest {
         file1.setLastModified(Retention_date_epoch);
         file2.setLastModified(Retention_date_epoch);
 
-        FileRenention.cleanup("target/rocksdbcleanup",10);
+        FileRetention.cleanup("target/rocksdbcleanup",10);
 
         File f = new File("target/rocksdbcleanup");
         pathnames = f.list();

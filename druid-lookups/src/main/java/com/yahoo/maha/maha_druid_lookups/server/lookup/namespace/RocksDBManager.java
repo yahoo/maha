@@ -205,7 +205,6 @@ public class RocksDBManager {
 
         downloadRocksDBInstanceFromHDFS(hdfsPath, localZippedFileNameWithPath);
         unzipFile(localZippedFileNameWithPath);
-
         RocksDBSnapshot rocksDBSnapshot = new RocksDBSnapshot();
         rocksDBSnapshot.dbPath = localPath;
         rocksDBSnapshot.rocksDB = openRocksDB(rocksDBSnapshot.dbPath);
@@ -257,6 +256,7 @@ public class RocksDBManager {
                 Thread.sleep(10000);
                 oldDb.close();
                 cleanup(oldDbPath);
+
             } catch (InterruptedException ie) {
                 LOG.error(ie, "Exception while cleaning old instance");
             }
@@ -264,10 +264,7 @@ public class RocksDBManager {
 
         //delete old db instances with random local path older than 5 days from today
         if (rocksDBSnapshot.isRandomLocalPathSuffixEnabled) {
-            String deletingLoadTime = LocalDateTime.now().minus(5, ChronoUnit.DAYS)
-                .format(DateTimeFormatter.ofPattern("yyyyMMdd0000"));
-            String staleDbPath = localPath.replace(loadTime, deletingLoadTime);
-            cleanup(staleDbPath);
+            FileRetention.cleanup(localPath,5);
         }
 
         return loadTime;

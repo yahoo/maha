@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 public class FileRetention {
     private static final Logger LOG = new Logger(FileRetention.class);
 
-    public void cleanup(String dir_path,int num_of_rentention_days){
+    public static void cleanup(String dir_path,int num_of_rentention_days){
 
         Date Retention_date = DateUtils.addDays(new Date(), num_of_rentention_days * -1);
         long Retention_date_epoch = Retention_date.getTime() / 1000L;
