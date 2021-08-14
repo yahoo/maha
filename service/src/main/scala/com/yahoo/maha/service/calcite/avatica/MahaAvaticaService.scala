@@ -220,7 +220,11 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val cursorFactory = CursorFactory.create(Style.LIST, classOf[String], util.Arrays.asList())
         columnMetaArray.zipWithIndex.foreach {
             case (columnName, index) => {
-                columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
+                columnMetaTypeMap.getOrElse(columnName, None) match {
+                    case "Int" => columns.add(MetaImpl.columnMetaData(columnName, index, classOf[Int], true))
+                    case "String" => columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
+                    case _ => columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
+                }
             }
         }
         val signature: Signature = Signature.create(columns, "", params, cursorFactory, StatementType.SELECT)
@@ -458,6 +462,32 @@ object MahaAvaticaServiceHelper extends Logging {
     val REF_GENERATION = StringUtils.EMPTY
 
     val columnMetaArray: Array[String] = Array("TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS", "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE", "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN")
+    val columnMetaTypeMap: Map[String, String] = Map(
+        "TABLE_CAT" -> "String",
+        "TABLE_SCHEM" -> "String",
+        "TABLE_NAME" -> "String",
+        "COLUMN_NAME" -> "String",
+        "DATA_TYPE" -> "Int",
+        "TYPE_NAME" -> "String",
+        "COLUMN_SIZE" -> "Int",
+        "BUFFER_LENGTH" -> "String",
+        "DECIMAL_DIGITS" -> "Int",
+        "NUM_PREC_RADIX" -> "String",
+        "NULLABLE" -> "Int",
+        "REMARKS" -> "String",
+        "COLUMN_DEF" -> "String",
+        "SQL_DATA_TYPE" -> "String",
+        "SQL_DATETIME_SUB" -> "String",
+        "CHAR_OCTET_LENGTH" -> "String",
+        "ORDINAL_POSITION" -> "String",
+        "IS_NULLABLE" -> "String",
+        "SCOPE_CATALOG" -> "String",
+        "SCOPE_SCHEMA" -> "String",
+        "SCOPE_TABLE" -> "String",
+        "SOURCE_DATA_TYPE" -> "String",
+        "IS_AUTOINCREMENT" -> "String",
+        "IS_GENERATEDCOLUMN" -> "String"
+    )
     val COLUMN_SIZE = 20
     val BUFFER_LENGTH = 10 //unused
     val NUM_PREC_RADIX = 10
