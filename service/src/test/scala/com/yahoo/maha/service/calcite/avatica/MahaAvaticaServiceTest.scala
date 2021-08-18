@@ -2,6 +2,7 @@ package com.yahoo.maha.service.calcite.avatica
 
 import com.google.common.collect.Maps
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
+import com.yahoo.maha.core.helper.jdbc.ColumnMetadata
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryRowList}
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.service.calcite.DefaultMahaCalciteSqlParser
@@ -9,6 +10,7 @@ import com.yahoo.maha.service.example.ExampleSchema
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext, MahaService, RegistryConfig}
+import org.apache.calcite.avatica.ColumnMetaData
 import org.apache.calcite.avatica.proto.Requests.TablesRequest
 import org.apache.calcite.avatica.remote.Service
 import org.apache.calcite.avatica.remote.Service.{FetchRequest, OpenConnectionRequest, PrepareAndExecuteRequest}
@@ -177,6 +179,13 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
     val result =  mahaAvaticaService(new Service.ColumnsRequest(connectionID, "", "", "student_performance", null))
     //println(result)
     assert(result != null && result.signature != null && result.firstFrame != null)
+    val columnsMetaDataList = result.signature.columns
+
+    assert(columnsMetaDataList.get(4).`type`.name.equals("INTEGER")) //DATA_TYPE
+    assert(columnsMetaDataList.get(6).`type`.name.equals("INTEGER")) //COLUMN_SIZE
+    assert(columnsMetaDataList.get(8).`type`.name.equals("INTEGER")) //DECIMAL_DIGITS
+    assert(columnsMetaDataList.get(10).`type`.name.equals("INTEGER")) //NULLABLE
+
     val rows = result.firstFrame.rows
     var count = 0
     rows.iterator().forEachRemaining(s=> {
