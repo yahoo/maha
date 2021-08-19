@@ -14,15 +14,16 @@ import java.util.stream.Stream;
  * FileRetention to be used to clean up files older than last modifed date.
  * dir_path refers to the directory
  * num_of_rentention_days refers to the number of date from sysdate the files should be retained.
- * All files older than rentention date would be deleted
+ * All files older than retention date would be deleted.
+ * Sub Directory is not deleted.
  **/
 public class FileRetention {
     private static final Logger LOG = new Logger(FileRetention.class);
 
-    public void cleanup(String dir_path,int num_of_rentention_days){
+    public static void cleanup(String dir_path,int num_of_rentention_days){
 
         Date Retention_date = DateUtils.addDays(new Date(), num_of_rentention_days * -1);
-        long Retention_date_epoch = Retention_date.getTime() / 1000L;
+        long Retention_date_epoch = Retention_date.getTime();
 
         try (Stream<Path> filePathStream = Files.walk(Paths.get(dir_path))) {
             filePathStream.forEach(filePath -> {
