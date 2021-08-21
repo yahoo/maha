@@ -65,7 +65,8 @@ public class KafkaManager {
                         final MahaNamespaceExtractionConfig mahaNamespaceExtractionConfig,
                         ProtobufSchemaFactory protobufSchemaFactory) {
         //this.kafkaProperties.putAll(mahaNamespaceExtractionConfig.getKafkaProperties());
-        String bootstrapServers = mahaNamespaceExtractionConfig.getKafkaProperties().getProperty("bootstrap_servers", "");
+        Properties kafkaProperties = mahaNamespaceExtractionConfig.getKafkaProperties();
+        String bootstrapServers = kafkaProperties.getProperty("bootstrap_servers", kafkaProperties.getProperty("bootstrapServers",""));
         log.info("bootstrap.servers : [%s]", bootstrapServers);
         this.kafkaProperties.put("bootstrap.servers", bootstrapServers);
         this.namespaceExtractionCacheManager = namespaceExtractionCacheManager;
