@@ -13,7 +13,7 @@ import com.yahoo.maha.core.fact.FactColumn
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid._
 import grizzled.slf4j.Logging
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeZone}
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.json4s.DefaultFormats
 import org.json4s.JsonAST._
@@ -416,13 +416,21 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
         requestModel.utcTimeDayFilter.asValues.split(",").distinct.length == 1
     val hasSingleDayFilter =
       requestModel.utcTimeDayFilter.asValues.split(",").distinct.length == 1
-
+    val grain: String = if(requestModel.queryGrain.isDefined) requestModel.queryGrain.get.toString else "UNDEFINED"
+    val isFutureQuery: Boolean = latestDate.isAfter(DateTime.now(DateTimeZone.UTC).getMillis)
 
     if (config.enableFallbackOnUncoveredIntervals
       && latestDate.isBeforeNow()
       && response.getHeaders().contains(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)
       && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)) {
-      logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)} in source table : ${query.tableName}, query on single hour: $hasSingleHourFilter, query on single day: $hasSingleDayFilter")
+      logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)} in source table : ${query.tableName}, " +
+        s"query on single hour: $hasSingleHourFilter, query on single day: $hasSingleDayFilter, query grain: $grain, isQueriedTodayOrFuture: $isFutureQuery")
+    } else if (config.enableFallbackOnUncoveredIntervals
+      && isFutureQuery
+      && response.getHeaders().contains(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)
+      && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)) {
+      logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)} in source table : ${query.tableName}, " +
+        s"query on single hour: $hasSingleHourFilter, query on single day: $hasSingleDayFilter, query grain: $grain, isQueriedTodayOrFuture: $isFutureQuery")
     }
   }
 
