@@ -105,6 +105,7 @@ trait RowList extends RowListLifeCycle {
   def getTotalRowCount : Int = {
     0
   }
+  def setTotalRowCount(respLen : Int) = {}
 
   def length: Int = {
     0
@@ -212,6 +213,17 @@ trait InMemRowList extends QueryRowList {
   }
 
   def size: Int = list.size
+
+  override def setTotalRowCount(respLen : Int) = {
+    val listAttempt = Try {
+      val firstRow = list.head
+      val totalrow_col = firstRow.aliasMap(ROW_COUNT_ALIAS)
+      firstRow.cols(totalrow_col) = respLen
+    }
+    if (!listAttempt.isSuccess) {
+      logger.warn("Failed to modify total row count.\n" + listAttempt)
+    }
+  }
 
   //def javaForeach(fn: ParCallable)
   override def getTotalRowCount: Int = {

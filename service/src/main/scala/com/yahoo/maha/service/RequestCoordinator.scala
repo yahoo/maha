@@ -237,6 +237,7 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
                           .map(_.asInstanceOf[CombinableRequest[RequestResult]]).toList.asJava
                         pse.combineListEither(futures)
                       }
+                      var responseLength = 0
                       combinedRequestResultList.map("combinedRequestResultListMap",
                         ParFunction.fromScala {
                           javaRequestResult =>
@@ -270,6 +271,7 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
                                 }
                               } else {
                                 val result = errorOrResult.right.get
+                                responseLength = curatorMap(curatorResult.curator.name).checkCuratorResponse(responseLength, result)
                                 if(!successResults.contains(curatorResult.curator.name)) {
                                   val newList = new scala.collection.mutable.ArrayBuffer[CuratorAndRequestResult]()
                                   newList += CuratorAndRequestResult(curatorResult, result)
