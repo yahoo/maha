@@ -3,9 +3,11 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 import com.google.common.base.Strings;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
+import com.google.protobuf.Option;
 import com.google.protobuf.Parser;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNameSpaceSchemaType;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
+import org.apache.commons.lang.StringUtils;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
@@ -15,6 +17,7 @@ import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConst
 import org.apache.druid.java.util.common.logger.Logger;
 import org.rocksdb.RocksDB;
 
+import java.util.Base64;
 import java.util.Optional;
 
 public class CacheActionRunner implements BaseCacheActionRunner {
@@ -38,6 +41,8 @@ public class CacheActionRunner implements BaseCacheActionRunner {
                 Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
                 byte[] cacheByteValue = db.get(key.getBytes());
                 if(cacheByteValue == null) {
+                    // Emit yamas metric of value being null in rocksDB
+                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getLookupName(), 1));
                     return new byte[0];
                 }
                 Message message = parser.parseFrom(cacheByteValue);
@@ -45,33 +50,53 @@ public class CacheActionRunner implements BaseCacheActionRunner {
                 Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
                 if (!decodeConfigOptional.isPresent()) {
                     Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn.get());
-                    return (field == null) ? new byte[0] : message.getField(field).toString().getBytes();
+                    if (field == null) {
+                        emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getLookupName(), 1));
+                        return new byte[0];
+                    }
+                    return message.getField(field).toString().getBytes();
                 } else { //handle decodeConfig
-                    return handleDecode(decodeConfigOptional.get(), message, descriptor).getBytes();
+                    return handleDecode(decodeConfigOptional.get(), message, descriptor, key, valueColumn, lookupService, emitter, extractionNamespace).getBytes();
                 }
+            }
+            else {
+                emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
+                LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
+                return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), decodeConfigOptional));
             }
         } catch (Exception e) {
             LOG.error(e, "Caught exception while getting cache value");
             emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
+            LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
+            return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), decodeConfigOptional));
         }
-        return null;
     }
 
-    public String handleDecode(DecodeConfig decodeConfig, Message parsedMessage, Descriptors.Descriptor descriptor) throws Exception {
+    public String handleDecode(DecodeConfig decodeConfig, Message parsedMessage, Descriptors.Descriptor descriptor,
+                               final String key, Optional<String> valueColumn, LookupService lookupService,
+                               ServiceEmitter emitter, RocksDBExtractionNamespace extractionNamespace) {
 
         try {
             Descriptors.FieldDescriptor columnToCheckField = descriptor.findFieldByName(decodeConfig.getColumnToCheck());
             if (decodeConfig.getValueToCheck().equals(parsedMessage.getField(columnToCheckField).toString())) {
                 Descriptors.FieldDescriptor columnIfValueMatchedField = descriptor.findFieldByName(decodeConfig.getColumnIfValueMatched());
+                if (StringUtils.isBlank(parsedMessage.getField(columnIfValueMatchedField).toString())) {
+                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getLookupName(), 1));
+                }
                 return Strings.emptyToNull(parsedMessage.getField(columnIfValueMatchedField).toString());
             } else {
                 Descriptors.FieldDescriptor columnIfValueNotMatched = descriptor.findFieldByName(decodeConfig.getColumnIfValueNotMatched());
+                if (StringUtils.isBlank(parsedMessage.getField(columnIfValueNotMatched).toString())) {
+                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getLookupName(), 1));
+                }
                 return Strings.emptyToNull(parsedMessage.getField(columnIfValueNotMatched).toString());
             }
 
         } catch (Exception e ) {
             LOG.error(e, "Caught exception while handleDecode");
-            throw e;
+            LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
+            byte[] lookupBytes = lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), Optional.of(decodeConfig)));
+            return Base64.getEncoder().encodeToString(lookupBytes);
         }
     }
 
