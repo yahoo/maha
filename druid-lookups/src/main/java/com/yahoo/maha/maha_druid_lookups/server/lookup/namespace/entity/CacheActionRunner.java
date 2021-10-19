@@ -41,8 +41,7 @@ public class CacheActionRunner implements BaseCacheActionRunner {
                 Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
                 byte[] cacheByteValue = db.get(key.getBytes());
                 if(cacheByteValue == null) {
-                    // Emit yamas metric of value being null in rocksDB
-                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getLookupName(), 1));
+                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getNamespace(), 1));
                     return new byte[0];
                 }
                 Message message = parser.parseFrom(cacheByteValue);
@@ -51,7 +50,7 @@ public class CacheActionRunner implements BaseCacheActionRunner {
                 if (!decodeConfigOptional.isPresent()) {
                     Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn.get());
                     if (field == null) {
-                        emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getLookupName(), 1));
+                        emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getNamespace(), 1));
                         return new byte[0];
                     }
                     return message.getField(field).toString().getBytes();
@@ -81,13 +80,13 @@ public class CacheActionRunner implements BaseCacheActionRunner {
             if (decodeConfig.getValueToCheck().equals(parsedMessage.getField(columnToCheckField).toString())) {
                 Descriptors.FieldDescriptor columnIfValueMatchedField = descriptor.findFieldByName(decodeConfig.getColumnIfValueMatched());
                 if (StringUtils.isBlank(parsedMessage.getField(columnIfValueMatchedField).toString())) {
-                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getLookupName(), 1));
+                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getNamespace(), 1));
                 }
                 return Strings.emptyToNull(parsedMessage.getField(columnIfValueMatchedField).toString());
             } else {
                 Descriptors.FieldDescriptor columnIfValueNotMatched = descriptor.findFieldByName(decodeConfig.getColumnIfValueNotMatched());
                 if (StringUtils.isBlank(parsedMessage.getField(columnIfValueNotMatched).toString())) {
-                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getLookupName(), 1));
+                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getNamespace(), 1));
                 }
                 return Strings.emptyToNull(parsedMessage.getField(columnIfValueNotMatched).toString());
             }
@@ -95,6 +94,7 @@ public class CacheActionRunner implements BaseCacheActionRunner {
         } catch (Exception e ) {
             LOG.error(e, "Caught exception while handleDecode");
             LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
+            emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
             byte[] lookupBytes = lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), Optional.of(decodeConfig)));
             return Base64.getEncoder().encodeToString(lookupBytes);
         }

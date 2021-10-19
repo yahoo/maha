@@ -92,7 +92,7 @@ public class RocksDBLookupExtractorTest {
         Assert.assertNull(lookupValue);
         RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         verify(kafkaManager, times(1)).handleMissingLookup(any(byte[].class), anyString(), anyString());
-        verify(serviceEmitter, times(1)).emit(any(ServiceEventBuilder.class));
+        verify(serviceEmitter, times(3)).emit(any(ServiceEventBuilder.class));
     }
 
     @Test
@@ -116,7 +116,7 @@ public class RocksDBLookupExtractorTest {
         String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         verify(kafkaManager, times(0)).handleMissingLookup(any(byte[].class), anyString(), anyString());
         Assert.assertNull(lookupValue);
-        verify(serviceEmitter, times(0)).emit(any(ServiceEventBuilder.class));
+        verify(serviceEmitter, times(1)).emit(any(ServiceEventBuilder.class));
     }
 
     @Test
