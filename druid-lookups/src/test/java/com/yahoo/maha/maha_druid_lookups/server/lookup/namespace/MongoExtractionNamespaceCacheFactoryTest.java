@@ -185,9 +185,8 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
         Assert.assertEquals(cache.get("5ad10906fc7b6ecac8d41080").get(0), "advertiser3");
         Assert.assertEquals(cache.get("5ad10906fc7b6ecac8d41081").get(2), "OFF");
         updateTestData("mongo_advertiser_addition.json");
-        Date currDate = new Date();
         version = command.call();
-        Assert.assertTrue(Integer.parseInt(version) >= currDate.getTime() / 1000, String.format("%s not > %d", version, currDate.getTime() / 1000));
+        Assert.assertEquals(version, "1633651008");
         Assert.assertTrue(cache.containsKey("5ad10906fc7b6ecac8d41083"));
     }
 
