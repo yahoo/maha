@@ -96,7 +96,7 @@ public class CacheActionRunner implements BaseCacheActionRunner {
             LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
             emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
             byte[] lookupBytes = lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), Optional.of(decodeConfig)));
-            return Base64.getEncoder().encodeToString(lookupBytes);
+            return new String(lookupBytes);
         }
     }
 
