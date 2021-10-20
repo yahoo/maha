@@ -59,14 +59,14 @@ public class CacheActionRunner implements BaseCacheActionRunner {
                 }
             }
             else {
-                emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
                 LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
+                emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE + "_" + extractionNamespace.getNamespace(), 1));
                 return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), decodeConfigOptional));
             }
         } catch (Exception e) {
             LOG.error(e, "Caught exception while getting cache value");
-            emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
             LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
+            emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE + "_" + extractionNamespace.getNamespace(), 1));
             return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), decodeConfigOptional));
         }
     }
@@ -94,7 +94,7 @@ public class CacheActionRunner implements BaseCacheActionRunner {
         } catch (Exception e ) {
             LOG.error(e, "Caught exception while handleDecode");
             LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
-            emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
+            emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE + "_" + extractionNamespace.getNamespace(), 1));
             byte[] lookupBytes = lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), Optional.of(decodeConfig)));
             return new String(lookupBytes);
         }
