@@ -37,31 +37,24 @@ public class CacheActionRunner implements BaseCacheActionRunner {
                 return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), decodeConfigOptional));
             }
 
-            if (db != null) {
-                Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
-                byte[] cacheByteValue = db.get(key.getBytes());
-                if(cacheByteValue == null) {
+            Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+            byte[] cacheByteValue = db.get(key.getBytes());
+            if(cacheByteValue == null) {
+                emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getNamespace(), 1));
+                return new byte[0];
+            }
+            Message message = parser.parseFrom(cacheByteValue);
+            LOG.debug("parsed message: %s", message.toString());
+            Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
+            if (!decodeConfigOptional.isPresent()) {
+                Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn.get());
+                if (field == null) {
                     emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getNamespace(), 1));
                     return new byte[0];
                 }
-                Message message = parser.parseFrom(cacheByteValue);
-                LOG.debug("parsed message: %s", message.toString());
-                Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
-                if (!decodeConfigOptional.isPresent()) {
-                    Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn.get());
-                    if (field == null) {
-                        emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_NULL_VALUE + extractionNamespace.getNamespace(), 1));
-                        return new byte[0];
-                    }
-                    return message.getField(field).toString().getBytes();
-                } else { //handle decodeConfig
-                    return handleDecode(decodeConfigOptional.get(), message, descriptor, key, valueColumn, lookupService, emitter, extractionNamespace).getBytes();
-                }
-            }
-            else {
-                LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
-                emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE + "_" + extractionNamespace.getNamespace(), 1));
-                return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), decodeConfigOptional));
+                return message.getField(field).toString().getBytes();
+            } else { //handle decodeConfig
+                return handleDecode(decodeConfigOptional.get(), message, descriptor, key, valueColumn, lookupService, emitter, extractionNamespace).getBytes();
             }
         } catch (Exception e) {
             LOG.error(e, "Caught exception while getting cache value");
