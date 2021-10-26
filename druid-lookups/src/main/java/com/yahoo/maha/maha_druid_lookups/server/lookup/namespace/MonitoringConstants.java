@@ -21,4 +21,5 @@ public class MonitoringConstants {
     public static final String MAHA_LOOKUP_MONGO_DATABASE_OR_COLLECTION_FAILURE = "maha_lookup/mongo_database_or_collection_failure";
     public static final String MAHA_LOOKUP_MONGO_DOCUMENT_PROCESS_FAILURE = "maha_lookup/mongo_document_process_failure";
     public static final String MAHA_LOOKUP_NAME = "maha_lookup_name";
+    public static final String MAHA_LOOKUP_NULL_VALUE = "maha_lookup_null_value_";
 }

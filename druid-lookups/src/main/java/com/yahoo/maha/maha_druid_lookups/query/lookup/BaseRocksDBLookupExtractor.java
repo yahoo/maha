@@ -120,7 +120,9 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
                 final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
                 if (db == null) {
                     LOG.error("RocksDB instance is null");
-                    return null;
+                    LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
+                    serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE + "_" + extractionNamespace.getNamespace(), 1));
+                    return new String(lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional)));
                 }
                 byte[] cacheByteValue = getCacheByteValue(key, valueColumn, decodeConfigOptional, db);
 

@@ -92,7 +92,7 @@ public class RocksDBLookupExtractorTest {
         Assert.assertNull(lookupValue);
         RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         verify(kafkaManager, times(1)).handleMissingLookup(any(byte[].class), anyString(), anyString());
-        verify(serviceEmitter, times(1)).emit(any(ServiceEventBuilder.class));
+        verify(serviceEmitter, times(3)).emit(any(ServiceEventBuilder.class));
     }
 
     @Test
@@ -116,7 +116,7 @@ public class RocksDBLookupExtractorTest {
         String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         verify(kafkaManager, times(0)).handleMissingLookup(any(byte[].class), anyString(), anyString());
         Assert.assertNull(lookupValue);
-        verify(serviceEmitter, times(0)).emit(any(ServiceEventBuilder.class));
+        verify(serviceEmitter, times(1)).emit(any(ServiceEventBuilder.class));
     }
 
     @Test
@@ -391,5 +391,115 @@ public class RocksDBLookupExtractorTest {
         }
     }
 
+    @Test
+    public void testFallbackLookupService() throws Exception {
 
+        LookupService lookupService = mock(LookupService.class);
+        RocksDBManager rocksDBManager = mock(RocksDBManager.class);
+        KafkaManager kafkaManager = mock(KafkaManager.class);
+        ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
+        Options options = null;
+        RocksDB db = null;
+        File tempFile = null;
+        try {
+
+            tempFile = new File(Files.createTempDir(), "rocksdblookup");
+            options = new Options().setCreateIfMissing(true);
+            db = RocksDB.open(options, tempFile.getAbsolutePath());
+
+            Message msg = AdProtos.Ad.newBuilder()
+                    .setId("32309719080")
+                    .setTitle("some title")
+                    .setStatus("ON")
+                    .setLastUpdated("1470733203505")
+                    .build();
+
+            db.put("32309719080".getBytes(), msg.toByteArray());
+
+            when(rocksDBManager.getDB(anyString())).thenReturn(db);
+            when(lookupService.lookup(any())).thenReturn("lookupValueMock".getBytes());
+
+            MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
+            RocksDBExtractionNamespace extractionNamespace =
+                    new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), null, null, false, false);
+            Map<String, List<String>> map = new HashMap<>();
+            map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
+            RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, new TestProtobufSchemaFactory(), serviceEmitter, (CacheActionRunner) extractionNamespace.getCacheActionRunner());
+
+            Map<String, String> dimensionOverrideMap = new HashMap<>();
+            dimensionOverrideMap.put("123", "something-123");
+            dimensionOverrideMap.put("6789", "something-6789");
+            dimensionOverrideMap.put("", "Unknown");
+
+            MahaLookupQueryElement mahaLookupQueryElement3 = new MahaLookupQueryElement();
+            mahaLookupQueryElement3.setDimension("32309719080");
+            mahaLookupQueryElement3.setValueColumn("title");
+            mahaLookupQueryElement3.setDimensionOverrideMap(dimensionOverrideMap);
+            DecodeConfig decodeConfig3 = new DecodeConfig();
+            decodeConfig3.setColumnToCheck("title");
+            decodeConfig3.setValueToCheck("some title");
+            decodeConfig3.setColumnIfValueMatched("fake_column");
+            decodeConfig3.setColumnIfValueNotMatched("status");
+            mahaLookupQueryElement3.setDecodeConfig(decodeConfig3);
+            String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement3));
+            Assert.assertEquals(lookupValue, "lookupValueMock");
+        } finally {
+            if(db != null) {
+                db.close();
+            }
+            if(tempFile.exists()) {
+                FileUtils.forceDelete(tempFile);
+            }
+        }
+    }
+
+    @Test
+    public void testFallbackLookupServiceWhenNullDB() throws Exception {
+
+        LookupService lookupService = mock(LookupService.class);
+        RocksDBManager rocksDBManager = mock(RocksDBManager.class);
+        KafkaManager kafkaManager = mock(KafkaManager.class);
+        ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
+        RocksDB db = null;
+        File tempFile = null;
+        try {
+
+            tempFile = new File(Files.createTempDir(), "rocksdblookup");
+
+            when(rocksDBManager.getDB(anyString())).thenReturn(db);
+            when(lookupService.lookup(any())).thenReturn("lookupValueMock".getBytes());
+
+            MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
+            RocksDBExtractionNamespace extractionNamespace =
+                    new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), null, null, false, false);
+            Map<String, List<String>> map = new HashMap<>();
+            map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
+            RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, new TestProtobufSchemaFactory(), serviceEmitter, (CacheActionRunner) extractionNamespace.getCacheActionRunner());
+
+            Map<String, String> dimensionOverrideMap = new HashMap<>();
+            dimensionOverrideMap.put("123", "something-123");
+            dimensionOverrideMap.put("6789", "something-6789");
+            dimensionOverrideMap.put("", "Unknown");
+
+            MahaLookupQueryElement mahaLookupQueryElement3 = new MahaLookupQueryElement();
+            mahaLookupQueryElement3.setDimension("32309719080");
+            mahaLookupQueryElement3.setValueColumn("title");
+            mahaLookupQueryElement3.setDimensionOverrideMap(dimensionOverrideMap);
+            DecodeConfig decodeConfig3 = new DecodeConfig();
+            decodeConfig3.setColumnToCheck("title");
+            decodeConfig3.setValueToCheck("some title");
+            decodeConfig3.setColumnIfValueMatched("fake_column");
+            decodeConfig3.setColumnIfValueNotMatched("status");
+            mahaLookupQueryElement3.setDecodeConfig(decodeConfig3);
+            String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement3));
+            Assert.assertEquals(lookupValue, "lookupValueMock");
+        } finally {
+            if(db != null) {
+                db.close();
+            }
+            if(tempFile.exists()) {
+                FileUtils.forceDelete(tempFile);
+            }
+        }
+    }
 }

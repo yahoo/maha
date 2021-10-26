@@ -101,6 +101,9 @@ public class LookupService {
                 @Override
                 public byte[] load(LookupData lookupData) {
                     byte[] value = new byte[0];
+                    if (Arrays.asList(serviceNodeList).contains(localHostName)) {
+                        return value;
+                    }
                     for(String serviceNode: serviceNodeList) {
                         try {
                             value = callService(lookupData);
