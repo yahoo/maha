@@ -143,6 +143,7 @@ case class DistinctValue(value: Boolean) extends ParameterValue[Boolean]
 case class JobNameValue(value: String) extends ParameterValue[String]
 case class RegistryNameValue(value: String) extends ParameterValue[String]
 case class HostNameValue(value: String) extends ParameterValue[String]
+case class AllowPushDownNameValue(value: String) extends ParameterValue[String]
 
 sealed abstract class Parameter(override val entryName: String) extends EnumEntry with Snakecase with Uppercase
 
@@ -164,6 +165,7 @@ object Parameter extends Enum[Parameter] with Logging {
   case object JobName extends Parameter("Job-Name")
   case object RegistryName extends Parameter("RegistryName")
   case object HostName extends Parameter("HostName")
+  case object AllowPushDownName extends Parameter("AllowPushDown")
 
   import syntax.validation._
   def deserializeParameters(json: JValue) : JsonScalaz.Result[Map[Parameter, ParameterValue[_]]] = {
@@ -206,6 +208,7 @@ object Parameter extends Enum[Parameter] with Logging {
           case JobName => fieldExtended[String](name)(json).map(ct => p -> JobNameValue(ct))
           case RegistryName => fieldExtended[String](name)(json).map(ct => p -> RegistryNameValue(ct))
           case HostName => fieldExtended[String](name)(json).map(ct => p -> HostNameValue(ct))
+          case AllowPushDownName => fieldExtended[String](name)(json).map(ct => p -> AllowPushDownNameValue(ct))
         }
         Option(result)
     }
@@ -234,7 +237,8 @@ object Parameter extends Enum[Parameter] with Logging {
       case JobName => p.entryName -> JString(v.asInstanceOf[JobNameValue].value)
       case RegistryName => p.entryName -> JString(v.asInstanceOf[RegistryNameValue].value)
       case HostName => p.entryName -> JString(v.asInstanceOf[HostNameValue].value)
-    }
+      case AllowPushDownName => p.entryName -> JString(v.asInstanceOf[AllowPushDownNameValue].value) 
+   }
     
   }
   

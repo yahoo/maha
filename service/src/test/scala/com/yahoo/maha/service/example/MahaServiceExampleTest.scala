@@ -2319,7 +2319,11 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
+<<<<<<< HEAD
   test("Test: Test new dims") {
+=======
+  test("Test: Test AllowPushDown Parameter") {
+>>>>>>> master
     val jsonString =
       s"""
          |{
@@ -2334,6 +2338,9 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
          |        },
          |        {
          |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
          |        }
          |    ],
          |    "filterExpressions": [
@@ -2354,12 +2361,16 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
          |            "value": "334"
          |        }
          |    ]
+         |    "additionalParameters" : {
+         |        "allowPushDown": "true"
+         |    }
          |}
          |""".stripMargin
 
-    val request: ReportingRequest = ReportingRequest.forceOracle(getReportingRequestSync(jsonString, StudentSchema))
+    val request = ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), StudentSchema)
     val registry = exampleRegistry
-    val res = getRequestModel(request, registry, revision = Some(3))
+    val res = getRequestModel(request.toOption.get, registry, revision = Some(3))
+    
     assert(res.isSuccess, s"Building request model failed.")
 
     val queryPipelineTry = generatePipeline(res.toOption.get)
@@ -2367,6 +2378,32 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val result = queryPipeline.queryChain.drivingQuery.asString
-    println(result)
+    val expected = s"""SELECT  *
+                      |      FROM (
+                      |          SELECT "Group Name", "Group ID", "Student Name", "Researcher Name", ROWNUM AS ROW_NUMBER
+                      |              FROM(SELECT g2.name "Group Name", g2.id "Group ID", sv1.name "Student Name", r0.name "Researcher Name"
+                      |                  FROM
+                      |               ( (SELECT  student_id, name, id
+                      |            FROM group
+                      |            WHERE (student_id = 213)
+                      |             ) g2
+                      |          INNER JOIN
+                      |            (SELECT  researcher_id, name, id
+                      |            FROM student_v1
+                      |            WHERE (researcher_id = 334) AND (id = 213)
+                      |             ) sv1
+                      |              ON( g2.student_id = sv1.id )
+                      |               INNER JOIN
+                      |            (SELECT  name, id
+                      |            FROM researcher
+                      |            WHERE (id = 334)
+                      |             ) r0
+                      |              ON( sv1.researcher_id = r0.id )
+                      |               )
+                      |
+                      |                  ))
+                      |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 }
