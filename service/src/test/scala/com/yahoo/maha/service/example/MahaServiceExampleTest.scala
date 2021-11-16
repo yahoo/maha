@@ -2319,11 +2319,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
-<<<<<<< HEAD
-  test("Test: Test new dims") {
-=======
   test("Test: Test AllowPushDown Parameter") {
->>>>>>> master
     val jsonString =
       s"""
          |{
