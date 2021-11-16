@@ -108,6 +108,7 @@ trait BaseQueryGeneratorTest {
       .internalBucketPercentage(Map(queryGenVersion -> 100)).build()
     val bucketingConfig = new DefaultBucketingConfig(Map.empty,
       Map(HiveEngine -> qgenBucketingConfig,
+        BigqueryEngine -> qgenBucketingConfig,
         OracleEngine -> qgenBucketingConfig,
         DruidEngine -> qgenBucketingConfig,
         PrestoEngine -> qgenBucketingConfig

@@ -12,59 +12,45 @@ An extension to druid which provides for MongoDB, JDBC and RocksDB (for high car
 * The dataset is snapshot of all dimension data at some interval. E.g. daily snapshot. Each how has the last updated timestamp column.
 * You have a Kafka topic with a TTL at slightly larger then the snapshot interval. E.g. snapshot is every 24 hours, the Kafka topic retains messages for 26 hours.
 * You have updates to the dimensions which you can publish to a kafka topic in the same key/value format you create the rocksdb instance (see below) with a valid last updated timestamp from your source of truth system.
+* Dynamic lookups - Adding and removing column from existing rocksdb based lookup is now complete dynamic, no need to deploying rocksdb jar to druid. Currently it supports protobuf/flatbuffer SerDe, it is easy to add support for new type of SerDe.
 
 #### Steps:
 * Define your protobuf message format. Remember to include the last updated timestamp column. Create a jar library which has the java protobuf definitions so you can copy it to the druid historical nodes and put it in the druid libs folder.
+ If your lookup id dynamic then you do not need protobuf jar included in the lib, you just need to upload dynamic-schema.json file along with rocksdb zip instance.
 * Create a application which reads your dataset from HDFS and creates a rocksdb instance and inserts all the rows into the rocksdb instance in the same format as you expect to read it in maha druid lookups. E.g. the key would just be the String.getBytes() and the value would be the serialized protobuf bytes. Once all rows are inserted close the rocksDb instance, zip it up and upload it to HDFS path.
 * Schedule your application to run every day after your dimension snapshots are available.
 * Configure maha druid lookup extension on your historicals.
 * Register your lookup via the API
 
-## Guide for Protobuf/FlatBuffer based RocksDB lookups as example project
+## Guide for Protobuf/FlatBuffer based RocksDB lookups as example project, as well as Dynamic Lookup Customer example
 * https://github.com/pranavbhole/maha-druid-lookups-example
  
 ## Getting Started
-Here is tutorial of how to set up maha-druid-lookups as an extensions of Druid in your local box.  
-For convenience, we use `/druid` as our druid root path for the following document.
+Here is tutorial of how to set up maha-druid-lookups as an extensions of Druid in your local box.
+
 ### Requirement
+<<<<<<< HEAD
 * [druid-0.20.0](http://druid.io/docs/0.20.0/tutorials/quickstart.html)
 * zookeeper
+=======
+* [druid-0.17.1](http://druid.io/docs/0.17.1/tutorials/quickstart.html)
+>>>>>>> master
 * your local datasource (mysql, oracle, etc.)
 
-### Zookeeper setup
-#### Download:
+### Use **maha-druid-lookups** package
+Add maha druid lookups package to druid extension directory.  
+1. create zip with all the required jars under target directory using following command:
 ```
-wget http://www.gtlib.gatech.edu/pub/apache/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz
-tar -xzf zookeeper-3.4.14.tar.gz
-cd zookeeper-3.4.14
-cp conf/zoo_sample.cfg conf/zoo.cfg
-```
-#### Starting up zookeeper:
-```
-cd zookeeper-3.4.14
-./bin/zkServer.sh start
+$ mvn clean install 
+//zip will be under ex: <path-to-maha-druid-lookups>/target/maha-druid-lookups-<some-version>-SNAPSHOT.zip
 ```
 
-_NOTE: for shutting down the zoopkeeper, please use `./bin/zkServer.sh stop`_
-
-### Using **maha-druid-lookups** package
-Adding maha druid lookups to druid is simple.  The command below will produce a zip file with all the jars in target directory which you can include in your druid installation's class path.
-
-```
-$ mvn clean install //this builds the jar and then assembles the zip file with all dependent jars
-
-$ ls -l target/maha-druid-lookups-* //the zip file can be found with this
--rw-r--r--  1 patelh  user  16084081 Feb 25 12:35 target/maha-druid-lookups-5.242-SNAPSHOT.zip
-```
-
-Now unzip assembled zip file and move all the jars to a new repo for your package under`/druid/extensions/`. 
-The path will be something like:
-```/druid/extensions/maha-druid-lookups/some-jar-file.jar```
+2. create a new repo `maha-cdw-lookups` under `<druid_root>/extensions/` and move all the jars to there, eg. `<druid_root>/extensions/maha-druid-lookups/*`
 
 ### Configuration: using micro-quickstart for quick setup
-Here we take advantage of config files under `/druid/conf/druid/single-server/micro-quickstart/`, which is originally for druid tutorial, for our local setup, there are multiple files we need to modify:
+We are going to reuse config files under `<druid_root>/conf/druid/single-server/micro-quickstart/`, which is originally used for druid tutorial. For our maha lookup setup, here are files that we need to change:
 
-#### /druid/conf/druid/single-server/micro-quickstart/_common/common.runtime.properties
+#### <druid_root>/conf/druid/single-server/micro-quickstart/_common/common.runtime.properties
 1. add package name **maha-druid-lookups** to druid.extensions.loadList:
 
 ```druid.extensions.loadList=["extension1", "extension2" , … , "maha-druid-lookups"]```
@@ -93,29 +79,24 @@ druid.lookup.maha.namespace.rocksdb.localStorageDirectory=/tmp
 druid.lookup.maha.namespace.rocksdb.blockCacheSize=1048576
 ```
 
-#### /druid/conf/druid/single-server/micro-quickstart/historical/runtime.properties
-add a line for historical lookup tier:
+#### <druid_root>/conf/druid/single-server/micro-quickstart/historical/runtime.properties
+specify historical lookup tier:
+
 ```druid.lookup.lookupTier=historicalLookupTier```
 
-####/druid/conf/druid/single-server/micro-quickstart/broker/runtime.properties (Optional)
-add a line for broker lookup tier:
+#### <druid_root>/conf/druid/single-server/micro-quickstart/broker/runtime.properties (Optional)
+specify broker lookup tier:
+
 ```druid.lookup.lookupTier=brokerLookupTier```
 
 _NOTE: skip this setp if you just want to check the functionality of a lookup and don't need to query it via broker._
 
-#### Include hadoop dependencies in `bin/run-druid`
-Add `hadoop-dependencies/hadoop-client/2.8.5/*` into -cp list
-```
-exec "$JAVA_BIN"/java `cat "$CONFDIR"/"$WHATAMI"/jvm.config | xargs` \
-  -cp "$CONFDIR"/"$WHATAMI":"$CONFDIR"/_common:"$CONFDIR"/_common/hadoop-xml:"$CONFDIR"/../_common:"$CONFDIR"/../_common/hadoop-xml:"$WHEREAMI/../lib/*":hadoop-dependencies/hadoop-client/2.8.5/* \
-  `cat "$CONFDIR"/$WHATAMI/main.config | xargs`
-```
-
 ### Starting up Druid
 #### Start Druid services: 
-```./bin/start-micro-quickstart```
 
-_NOTE: to reset druid for a clean start, do`rm -rf var/* && rm -rf log && ./bin/start-micro-quickstart`_
+``` <druid_root>/bin/start-micro-quickstart```
+
+_NOTE: to reset druid for a clean start, do `rm -rf <druid_root>/var/* && rm -rf <druid_root>/log && <druid_root>/bin/start-micro-quickstart`_
 
 ### Troubleshooting
 * JDBC Driver
@@ -126,8 +107,8 @@ org.skife.jdbi.v2.exceptions.UnableToObtainConnectionException: java.sql.SQLExce
 
 **Solution:** 
 
-Instead of putting the jar under your package repo, you need to include the jdbc connector for your local datasource to  /druid/lib, for example:
-`/druid/lib/mysql-connector-java-8.0.16.jar`
+Instead of putting the jar under your package repo, you need to include the jdbc connector for your local datasource to  /<druid_root>/lib, for example:
+`/<druid_root>/lib/mysql-connector-java-8.0.16.jar`
 
 * HDFS Configuration
 If encounter the following error:
@@ -141,7 +122,71 @@ This is caused by lack of Hadoop dependency.
 
 **Solution:** 
 
+<<<<<<< HEAD
 For Druid-0.20.0, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.8.5/*`.  Just make sure you have included the path in `bin/run-druid`
+=======
+For Druid-0.17.1, it already includes hadoop client jars under `<druid_root>/hadoop-dependencies/hadoop-client/2.8.5/*`.  All you need to do is to inlclude the jar in class path.  To be specific, modify the line of `<druid_root>/bin/run-druid`
+from
+```
+exec "$JAVA_BIN"/java `cat "$CONFDIR"/"$WHATAMI"/jvm.config | xargs` \
+  -cp "$CONFDIR"/"$WHATAMI":"$CONFDIR"/_common:"$CONFDIR"/_common/hadoop-xml:"$CONFDIR"/../_common:"$CONFDIR"/../_common/hadoop-xml:"$WHEREAMI/../lib/*" \
+  `cat "$CONFDIR"/$WHATAMI/main.config | xargs`
+```
+to
+```
+exec "$JAVA_BIN"/java `cat "$CONFDIR"/"$WHATAMI"/jvm.config | xargs` \
+  -cp "$CONFDIR"/"$WHATAMI":"$CONFDIR"/_common:"$CONFDIR"/_common/hadoop-xml:"$CONFDIR"/../_common:"$CONFDIR"/../_common/hadoop-xml:"$WHEREAMI/../lib/*":hadoop-dependencies/hadoop-client/2.8.5/* \
+  `cat "$CONFDIR"/$WHATAMI/main.config | xargs`
+```
+
+### Set up Dynamic Schema Lookups:
+
+Steps:
+1. Create Rocksdb zip with protobuf/flatbuffer and upload it to location with load_time=yyyyMMdd0000 for example load_time=202106270000 
+2. Upload dynamic-schema.json to above location along with zip and _SUCCESS file. 
+ You can take look detailed example here [maha druid lookups example](https://github.com/pranavbhole/maha-druid-lookups-example)
+ ```$xslt
+{
+  "type": "PROTOBUF",
+  "version" : "2021061800",
+  "name" : "customer_dyn_lookup",
+  "schemaFieldList": [
+    {"field":"id","dataType":"STRING","index":1},
+    {"field":"name","dataType":"STRING","index":2},
+    {"field":"address","dataType":"STRING","index":3},
+    {"field":"status","dataType":"STRING","index":4},
+    {"field":"last_updated","dataType":"STRING","index":5}
+  ]
+}
+```
+We have added serialization and de-serialization of dynamic-schema.json in class "DynamicLookupSchema"
+3. Create lookups on historical tier 
+```$xslt
+{
+  "type": "cachedNamespace",
+  "extractionNamespace": {
+    "type": "maharocksdb",
+    "lookupName": "customer_dyn_lookup",
+    "namespace": "customer_dyn_lookup",
+    "rocksDbInstanceHDFSPath": "/lookups/customer_dyn_lookup/",
+    "lookupAuditingHDFSPath": "/lookups/lookup_auditing/customer_dyn_lookup/",
+    "lookupAuditingEnabled": false,
+    "tsColumn": "last_updated",
+    "kafkaTopic": "",
+    "pollPeriod": "PT5M",
+    "cacheEnabled": false,
+    "enableDynamicLookup": true
+  },
+  "firstCacheTimeout": 600000
+}
+```
+ enableDynamicLookup flag enables dynamic schema lookup and prepares the ProtoBuf Descriptors on instantiating dynamic lookups.
+ For Flatbuffer lookups, create similar json with indices starting from 4,6,8 onwards.
+ We do not need any protobuf/flatbuffer jar to be deployed to druid, If you want to add column then just add field into json and upload new zip in latest load time dir and field will be picked by dynamic lookups in next scan.
+ 
+4. You can test the lookup with namespace curl given in the following readme. 
+5. Dynamic schema lookups also support any new type of serialization, you can extend DynamicLookupCoreSchema interface and contribute to maha. 
+>>>>>>> master
 
 ### Registering Druid Lookups
 Druid lookups are managed using APIs on coordinators.  Refer [here](http://druid.io/docs/latest/querying/lookups.html).

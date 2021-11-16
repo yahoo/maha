@@ -40,7 +40,7 @@ public class NoopCacheActionRunner extends CacheActionRunner {
 
     @Override
     public ExtractionNameSpaceSchemaType getSchemaType() {
-        return ExtractionNameSpaceSchemaType.Protobuf;
+        return ExtractionNameSpaceSchemaType.PROTOBUF;
     }
 
     @Override

@@ -58,6 +58,11 @@ case class PostgresCustomRollup(expression: PostgresDerivedExpression) extends C
   override lazy val sourceColumns: Set[String] = expression.sourceColumns
   override lazy val sourcePrimitiveColumns: Set[String] = expression.sourcePrimitiveColumns
 }
+case class BigqueryCustomRollup(expression: BigqueryDerivedExpression) extends CustomRollup with WithBigqueryEngine {
+  override val hasDerivedExpression: Boolean = true
+  override lazy val sourceColumns: Set[String] = expression.sourceColumns
+  override lazy val sourcePrimitiveColumns: Set[String] = expression.sourcePrimitiveColumns
+}
 case class DruidCustomRollup(expression: DruidDerivedExpression) extends CustomRollup with WithDruidEngine {
   override val hasDerivedExpression: Boolean = true
   override lazy val sourceColumns: Set[String] = expression.sourceColumns
@@ -72,6 +77,11 @@ case class DruidFilteredListRollup(filter: List[Filter], factCol: DruidExpressio
                                delegateAggregatorRollupExpression: RollupExpression) extends CustomRollup with WithDruidEngine {
   override val hasDerivedExpression: Boolean = true
   override lazy val sourceColumns: Set[String] = filter.map(fil => fil.field).toSet ++ delegateAggregatorRollupExpression.sourceColumns ++ Set(factCol.name)
+}
+
+case class DruidCardinalityRollup(fields: List[String], byRow: Boolean = false, round: Boolean = false) extends CustomRollup with WithDruidEngine {
+  override val hasDerivedExpression: Boolean = true
+  override lazy val sourceColumns: Set[String] = fields.toSet
 }
 
 case class DruidHyperUniqueRollup(column: String) extends CustomRollup with WithDruidEngine {

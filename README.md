@@ -1,8 +1,12 @@
-[![Build Status](https://travis-ci.org/yahoo/maha.svg?branch=master)](https://travis-ci.org/yahoo/maha) [![Join the chat at https://gitter.im/yahoo-maha/community](https://badges.gitter.im/yahoo-maha/community.svg)](https://gitter.im/yahoo-maha/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+
+[![Pipeline Status](https://api.screwdriver.cd/v4/pipelines/7538/badge)](https://api.screwdriver.cd/v4/pipelines/7538)
 
 [Google Group: Maha-Users](https://groups.google.com/forum/#!forum/maha-users) 
 
 [Maha Release Notes](RELEASE_NOTES.md)
+
+[Maha Release Pipeline](https://cd.screwdriver.cd/pipelines/7538/events/636686)
 
 # Maha
 A centralised library for building reporting APIs on top of multiple data stores to exploit them for what they do best.
@@ -48,27 +52,14 @@ A centralised library for building reporting APIs on top of multiple data stores
 
 #### Installing Maha API Library 
 
-- We have published the packages in bintry distribution, you can have look at the latest version in https://bintray.com/yahoo/maven/maha-api-jersey/ 
+- We have published the packages in Maven Central distribution, you can have look at the latest version at https://mvnrepository.com/artifact/com.yahoo.maha/maha-api-jersey
 
 ```
 <dependency>
   <groupId>com.yahoo.maha</groupId>
   <artifactId>maha-api-jersey</artifactId>
-  <version>5.316</version>
-  <type>pom</type>
+  <version>6.53</version>
 </dependency>
-```
-
-- Make sure you also add yahoo bintray maven repository to your pom
-
-```
-    <repositories>
-        <repository>
-            <id>bintray-yahoo-maven</id>
-            <name>bintray</name>
-            <url>http://yahoo.bintray.com/maven</url>
-        </repository>
-    </repositories>
 ```
 
 - maha-api-jersey includes all the dependencies of other modules 
@@ -191,7 +182,7 @@ Once your application context is ready, you are good to launch the war file on t
 ##### Run demo : 
   * Step 1: Checkout yahoo/maha repository 
   * Step 2: Run ``` mvn clean install ``` in maha
-  * Step 3: Go to ``` cd api-example ``` module and run ```mvn jerry:run```, you can run it with -X for debug logs. 
+  * Step 3: Go to ``` cd api-example ``` module and run ```mvn jetty:run```, you can run it with -X for debug logs. 
   * Step 4: Step 2 will launch jetty server in local and will deploy maha-api example war and you are good to play with it!
 
 ##### Playing with demo :

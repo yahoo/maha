@@ -119,6 +119,11 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
     }
 
     @Override
+    public boolean isDynamicSchemaLookup() {
+        return false;
+    }
+
+    @Override
     public ExtractionNameSpaceSchemaType getSchemaType() {
         return ExtractionNameSpaceSchemaType.None;
     }

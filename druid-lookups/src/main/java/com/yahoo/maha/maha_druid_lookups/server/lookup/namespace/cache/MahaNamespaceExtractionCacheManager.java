@@ -6,6 +6,7 @@ import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.*;
 import com.google.inject.Inject;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferSchemaFactory;
@@ -73,6 +74,8 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
     ProtobufSchemaFactory protobufSchemaFactory;
     @Inject
     FlatBufferSchemaFactory flatBufferSchemaFactory;
+    @Inject
+    DynamicLookupSchemaManager dynamicLookupSchemaManager;
 
     public MahaNamespaceExtractionCacheManager(
             Lifecycle lifecycle,
@@ -389,18 +392,31 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
             return new JDBCLookupExtractorWithLeaderAndFollower((JDBCExtractionNamespaceWithLeaderAndFollower) extractionNamespace, map, lookupService);
         } else if (extractionNamespace instanceof JDBCExtractionNamespace) {
             return new JDBCLookupExtractor((JDBCExtractionNamespace) extractionNamespace, map, lookupService);
-        } else if (extractionNamespace instanceof RocksDBExtractionNamespace && extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
+        } else if(isRocksDBLookup(extractionNamespace)) {
             RocksDBExtractionNamespace rocksDBExtractionNamespace = (RocksDBExtractionNamespace) extractionNamespace;
-            return new RocksDBLookupExtractorWithFlatBuffer(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, flatBufferSchemaFactory, serviceEmitter, (CacheActionRunnerFlatBuffer) rocksDBExtractionNamespace.getCacheActionRunner());
-        } else if (extractionNamespace instanceof RocksDBExtractionNamespace) {
-            RocksDBExtractionNamespace rocksDBExtractionNamespace = (RocksDBExtractionNamespace) extractionNamespace;
-            return new RocksDBLookupExtractor(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter, (CacheActionRunner) rocksDBExtractionNamespace.getCacheActionRunner());
+            if (isFlatBuffSerDe(extractionNamespace)) {
+                return new RocksDBLookupExtractorWithFlatBuffer(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, flatBufferSchemaFactory, serviceEmitter, (CacheActionRunnerFlatBuffer) rocksDBExtractionNamespace.getCacheActionRunner());
+            } else if (extractionNamespace.isDynamicSchemaLookup()) {
+                return new RocksDBDynamicLookupExtractor(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, dynamicLookupSchemaManager, serviceEmitter, (DynamicCacheActionRunner) rocksDBExtractionNamespace.getCacheActionRunner());
+            } else if (extractionNamespace.isCacheEnabled()) {
+                return new RocksDBLookupExtractor(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter, (CacheActionRunner) rocksDBExtractionNamespace.getCacheActionRunner());
+            } else {
+                return new RocksDBLookupExtractor(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter, (CacheActionRunner) rocksDBExtractionNamespace.getCacheActionRunner());
+            }
         } else if (extractionNamespace instanceof MongoExtractionNamespace) {
             return new MongoLookupExtractor((MongoExtractionNamespace) extractionNamespace, map, lookupService);
-        } else {
+        }
+        else {
 //            return new MapLookupExtractor(map, false);
             return null;
         }
+    }
+
+    private boolean isRocksDBLookup(ExtractionNamespace extractionNamespace) {
+        return extractionNamespace instanceof RocksDBExtractionNamespace;
+    }
+    private boolean isFlatBuffSerDe(ExtractionNamespace extractionNamespace) {
+        return extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FLAT_BUFFER;
     }
 
     public LookupExtractor getLookupExtractor(final String id) {

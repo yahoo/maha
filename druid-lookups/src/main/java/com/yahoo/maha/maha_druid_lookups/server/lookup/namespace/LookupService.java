@@ -67,9 +67,9 @@ public class LookupService {
         try {
 
             this.authHeaderFactory = authHeaderFactory;
-            serviceScheme = lookupServiceProperties.getProperty("service_scheme", "http");
-            servicePort = lookupServiceProperties.getProperty("service_port", "4080");
-            serviceNodeList = lookupServiceProperties.getProperty("service_nodes").split(",");
+            serviceScheme = lookupServiceProperties.getProperty("service_scheme", lookupServiceProperties.getProperty("serviceScheme", "http"));
+            servicePort = lookupServiceProperties.getProperty("service_port", lookupServiceProperties.getProperty("servicePort", "4080"));
+            serviceNodeList = lookupServiceProperties.getProperty("service_nodes", lookupServiceProperties.getProperty("serviceNodes")).split(",");
 
             currentHost.set(RANDOM.nextInt(serviceNodeList.length));
 
@@ -101,6 +101,9 @@ public class LookupService {
                 @Override
                 public byte[] load(LookupData lookupData) {
                     byte[] value = new byte[0];
+                    if (Arrays.asList(serviceNodeList).contains(localHostName)) {
+                        return value;
+                    }
                     for(String serviceNode: serviceNodeList) {
                         try {
                             value = callService(lookupData);

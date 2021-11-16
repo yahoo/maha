@@ -50,7 +50,7 @@ public class RocksDBLookupExtractorWithFlatBufferTest {
         ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-        , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
+        , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false, false);
         Map<String, String> map = new HashMap<>();
         RocksDBLookupExtractorWithFlatBuffer rocksDBLookupExtractor = new RocksDBLookupExtractorWithFlatBuffer(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, new TestFlatBufferSchemaFactory(), serviceEmitter, (CacheActionRunnerFlatBuffer) extractionNamespace.getCacheActionRunner());
         String lookupValue = rocksDBLookupExtractor.apply("");
@@ -65,7 +65,7 @@ public class RocksDBLookupExtractorWithFlatBufferTest {
         ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-        , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
+        , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false, false);
         Map<String, String> map = new HashMap<>();
         RocksDBLookupExtractorWithFlatBuffer rocksDBLookupExtractor = new RocksDBLookupExtractorWithFlatBuffer(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestFlatBufferSchemaFactory(), serviceEmitter, (CacheActionRunnerFlatBuffer) extractionNamespace.getCacheActionRunner());
         String lookupValue = rocksDBLookupExtractor.apply(null);
@@ -85,7 +85,7 @@ public class RocksDBLookupExtractorWithFlatBufferTest {
         MissingLookupConfig missingLookupConfig = new MissingLookupConfig(new MetadataStorageConnectorConfig(), "", "", "some_missing_topic");
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", missingLookupConfig
-        , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
+        , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false, false);
         Map<String, String> map = new HashMap<>();
         RocksDBLookupExtractorWithFlatBuffer rocksDBLookupExtractor = new RocksDBLookupExtractorWithFlatBuffer(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestFlatBufferSchemaFactory(), serviceEmitter, (CacheActionRunnerFlatBuffer)extractionNamespace.getCacheActionRunner());
         MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
@@ -111,7 +111,7 @@ public class RocksDBLookupExtractorWithFlatBufferTest {
 
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-        , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
+        , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false, false);
         Map<String, String> map = new HashMap<>();
         RocksDBLookupExtractorWithFlatBuffer rocksDBLookupExtractorWithFlatBuffer = new RocksDBLookupExtractorWithFlatBuffer(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestFlatBufferSchemaFactory(), serviceEmitter, (CacheActionRunnerFlatBuffer) extractionNamespace.getCacheActionRunner());
         MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
@@ -154,7 +154,7 @@ public class RocksDBLookupExtractorWithFlatBufferTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
+            , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false, false);
             Map<String, String> mapLookupExt = new HashMap<>();
             RocksDBLookupExtractorWithFlatBuffer rocksDBLookupExtractorWithFlatBuffer = new RocksDBLookupExtractorWithFlatBuffer(extractionNamespace, mapLookupExt, lookupService, rocksDBManager, kafkaManager,  new TestFlatBufferSchemaFactory(), serviceEmitter, (CacheActionRunnerFlatBuffer)extractionNamespace.getCacheActionRunner());
             MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
@@ -207,7 +207,7 @@ public class RocksDBLookupExtractorWithFlatBufferTest {
 
             MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
             RocksDBExtractionNamespace extractionNamespace =
-                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null, "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
+                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null, "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false, false);
             Map<String, List<String>> map = new HashMap<>();
             map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
             RocksDBLookupExtractorWithFlatBuffer rocksDBLookupExtractorWithFlatBuffer = new RocksDBLookupExtractorWithFlatBuffer(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestFlatBufferSchemaFactory(), serviceEmitter, (CacheActionRunnerFlatBuffer)extractionNamespace.getCacheActionRunner());
@@ -236,7 +236,7 @@ public class RocksDBLookupExtractorWithFlatBufferTest {
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = objectMapper.readValue("{ \"createTables\": false,\"connectURI\": \"jdbc:oracle:thin:@testdb\",\"user\": \"test_user\",\"password\":\"test_user.db.prod.pwd\"}", MetadataStorageConnectorConfig.class);
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic")
-        , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
+        , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false, false);
         objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         byte[] b = objectMapper.writeValueAsBytes(extractionNamespace);
         Map<String, String> map = new HashMap<>();
@@ -292,7 +292,7 @@ public class RocksDBLookupExtractorWithFlatBufferTest {
 
             MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
             RocksDBExtractionNamespace extractionNamespace =
-                new RocksDBExtractionNamespace("product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
+                new RocksDBExtractionNamespace("product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false, false);
             Map<String, List<String>> mapLookupExt = new HashMap<>();
             mapLookupExt.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
             RocksDBLookupExtractorWithFlatBuffer rocksDBLookupExtractorWithFlatBuffer = new RocksDBLookupExtractorWithFlatBuffer(extractionNamespace, mapLookupExt, lookupService, rocksDBManager, kafkaManager,  new TestFlatBufferSchemaFactory(), serviceEmitter, (CacheActionRunnerFlatBuffer)extractionNamespace.getCacheActionRunner());
@@ -367,7 +367,7 @@ public class RocksDBLookupExtractorWithFlatBufferTest {
 
             MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
             RocksDBExtractionNamespace extractionNamespace =
-                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
+                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false, false);
             Map<String, List<String>> map = new HashMap<>();
             map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
             RocksDBLookupExtractorWithFlatBuffer rocksDBLookupExtractorWithFlatBuffer = new RocksDBLookupExtractorWithFlatBuffer(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, new TestFlatBufferSchemaFactory(), serviceEmitter, (CacheActionRunnerFlatBuffer) extractionNamespace.getCacheActionRunner());

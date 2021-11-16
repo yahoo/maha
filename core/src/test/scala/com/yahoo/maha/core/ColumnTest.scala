@@ -3,7 +3,7 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol, HivePartDimCol}
-import com.yahoo.maha.core.fact.{ConstFactCol, DruidConstDerFactCol, HiveDerFactCol, NoopRollup}
+import com.yahoo.maha.core.fact.{ConstFactCol, DruidConstDerFactCol, HiveDerFactCol, NoopRollup, PostgresDerFactCol}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -66,6 +66,22 @@ class ColumnTest extends AnyFunSuite with Matchers {
       ColumnContext.withColumnContext {
         implicit cc:ColumnContext=>
           col.copyWith(cc, Map.empty, true)
+      }
+    }
+  }
+
+  test("PostgresDerFactCol test") {
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      import PostgresExpression._
+      DimCol("dimCol", IntType())
+      val col =  PostgresDerFactCol("postgres_ctr_copywith_test", DecType(), "{clicks}" /- "{impressions}" * "1000")
+      ColumnContext.withColumnContext {
+        implicit cc:ColumnContext=>
+          col.copyWith(cc, Map.empty, true)
+      }
+      ColumnContext.withColumnContext {
+        implicit cc:ColumnContext=>
+          col.copyWith(cc, Map.empty, false)
       }
     }
   }

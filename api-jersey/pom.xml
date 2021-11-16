@@ -10,14 +10,14 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>6.33-SNAPSHOT</version>
+        <version>6.75-SNAPSHOT</version>
     </parent>
 
     <name>maha api-jersey</name>
     <url>http://maven.apache.org</url>
 
     <properties>
-        <jersey.version>2.29.1</jersey.version>
+        <jersey.version>2.27</jersey.version>
         <jetty.version>9.4.35.v20201120</jetty.version>
     </properties>
 
@@ -261,6 +261,11 @@
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-bigquery</artifactId>
+            <version>${bigquery.version}</version>
+        </dependency>
     </dependencies>
 
     <profiles>
@@ -297,14 +302,37 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <doclint>none</doclint>
+                        </configuration>
+                    </execution>
+                </executions>
+                <configuration>
+                    <outputDirectory>${project.build.directory}</outputDirectory>
+                    <detectLinks>true</detectLinks>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
-  <distributionManagement>
-    <repository>
-      <id>bintray-maha-api-jersey-repo</id>
-      <url>https://api.bintray.com/maven/yahoo/maven/maha-api-jersey/;publish=1</url>
-    </repository>
-  </distributionManagement>
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
 </project>

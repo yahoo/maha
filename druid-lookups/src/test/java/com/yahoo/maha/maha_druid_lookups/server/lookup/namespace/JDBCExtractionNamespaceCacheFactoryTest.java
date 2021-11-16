@@ -2,6 +2,10 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doThrow;
+
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
@@ -17,6 +21,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import java.sql.Timestamp;
 import java.util.*;
 
 public class JDBCExtractionNamespaceCacheFactoryTest {
@@ -124,5 +129,17 @@ public class JDBCExtractionNamespaceCacheFactoryTest {
 
         //condition string should an empty string if there is no secondaryTsCol
         Assert.assertEquals(obj.getSecondaryTsWhereCondition("id", extractionNamespaceWithTsColOnly, cache), "");
+    }
+
+    @Test(description = "lastUpdates() should return previous timestamp when getMaxValFromColumn() throws exception")
+    public void testLastUpdates() {
+        MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
+        JDBCExtractionNamespace extractionNamespace =
+            new JDBCExtractionNamespace(
+                metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
+                "id", "", new Period(), true, "advertiser_lookup");
+        extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(123L));
+        doThrow(NullPointerException.class).when(obj).getMaxValFromColumn(anyString(), anyObject(), anyObject(), anyString(), anyString());
+        Assert.assertEquals(obj.lastUpdates("id", extractionNamespace, false).getTime(), 123L);
     }
 }

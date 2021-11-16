@@ -3,6 +3,7 @@
 package com.yahoo.maha.api.jersey
 
 import java.util.UUID
+import com.yahoo.maha.service.calcite.avatica.{AvaticaMahaJsonHandler, AvaticaMahaProtobufHandler, MahaAvaticaService}
 
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.container.{AsyncResponse, ContainerRequestContext, Suspended}
@@ -16,6 +17,9 @@ import com.yahoo.maha.service._
 import com.yahoo.maha.service.output.{DebugRenderer, NoopDebugRenderer}
 import com.yahoo.maha.service.utils.MahaConstants
 import grizzled.slf4j.Logging
+import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem
+import org.apache.calcite.avatica.proto.Common.WireMessage
+import org.apache.calcite.avatica.remote.{ProtobufHandler, ProtobufTranslationImpl}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.MDC
@@ -31,6 +35,7 @@ class MahaResource(mahaService: MahaService
                    , mahaRequestContextBuilder: MahaRequestContextBuilder
                    , debugRenderer: DebugRenderer = new NoopDebugRenderer
                    , debugUserListCSV: String = ""
+                   , mahaAvaticaService: MahaAvaticaService
                   ) extends Logging {
 
   private[this] val debugUsers: Set[String] = debugUserListCSV.split(",").toSet
@@ -112,6 +117,52 @@ class MahaResource(mahaService: MahaService
     } else {
       throw NotFoundException(Error(s"registry $registryName and cube $cube with revision $revision not found"))
     }
+  }
+
+  @GET
+  @Path("/{registryName}/fulldomain")
+  @Produces(Array(MediaType.APPLICATION_JSON))
+  def getRevisionedDomain(@PathParam("registryName") registryName: String): String = {
+    val domainjson: Option[String] = mahaService.getRevisionedDomain(registryName)
+    if(domainjson.isDefined) {
+      domainjson.get
+    } else {
+      throw NotFoundException(Error(s"registry $registryName not found"))
+    }
+  }
+
+  @POST
+  @Path("/{registryName}/schemas/{schema}/sql-avatica")
+  //@Produces(Array(MediaType.APPLICATION_JSON))
+  //@Consumes(Array(MediaType.APPLICATION_JSON))
+  def avatica(@PathParam("registryName") registryName: String,
+            @PathParam("schema") schema: String,
+            @QueryParam("debug") @DefaultValue("false") requestDebug: Boolean,
+            @Context httpServletRequest: HttpServletRequest,
+            @Context containerRequestContext: ContainerRequestContext,
+            @Suspended response: AsyncResponse) : Unit = {
+    val serialization = httpServletRequest.getParameter("serialization")
+    serialization match {
+      case "PROTOBUF" | "protobuf" =>
+        val translationer = new ProtobufTranslationImpl
+        val avaticaProtobufHandler = new AvaticaMahaProtobufHandler(mahaAvaticaService, translationer, NoopMetricsSystem.getInstance())
+        val wireMessage = WireMessage.parseFrom(httpServletRequest.getInputStream)
+        logger.info(s"wireMessage type: ${wireMessage.getName}")
+        val handlerResponse = avaticaProtobufHandler.apply(wireMessage.toByteArray)
+        response.resume(handlerResponse.getResponse)
+      case _ =>
+        val avaticaJsonHandler = new AvaticaMahaJsonHandler(mahaAvaticaService, NoopMetricsSystem.getInstance())
+        val rawString = IOUtils.toByteArray(httpServletRequest.getInputStream)
+        val json = new String(rawString)
+        logger.info(s"parsed json: " + json)
+        val handlerResponse = avaticaJsonHandler.apply(json)
+        logger.info(handlerResponse.getResponse)
+        response.resume(handlerResponse.getResponse)
+    }
+
+
+
+
   }
 
   @POST
@@ -209,6 +260,7 @@ class MahaResource(mahaService: MahaService
             case HiveEngine => ReportingRequest.forceHive(withDebug)
             case PrestoEngine => ReportingRequest.forcePresto(withDebug)
             case PostgresEngine => ReportingRequest.forcePostgres(withDebug)
+            case BigqueryEngine => ReportingRequest.forceBigquery(withDebug)
             case _ => withDebug
           }
         } else {

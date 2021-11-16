@@ -3251,6 +3251,37 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(json))
   }
 
+  test("Successfully generate a query with CardinalityRollup") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Average Bid"},
+                            {"field": "Ad IDs Cardinality"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Ad ID", "operator": "==", "compareTo": "Ad Group ID"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
+    val requestModel = getRequestModel(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+
+    val json = "{\"type\":\"cardinality\",\"name\":\"Ad IDs Cardinality\",\"fields\":[{\"type\":\"default\",\"dimension\":\"ad_id\",\"outputName\":\"ad_id\",\"outputType\":\"STRING\"}],\"byRow\":false,\"round\":true}"
+
+    assert(result.contains(json))
+  }
+
   test("Successfully set query priority for async request") {
     val jsonString =
       s"""{
@@ -3790,6 +3821,105 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val expectedQuery = """\{"queryType":"groupBy","dataSource":\{"type":"query","query":\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":.*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\},\{"type":"not","field":\{"type":"selector","dimension":"ad_format_id","value":"100"\}\},\{"type":"selector","dimension":"ad_format_id","value":"35"\},\{"type":"selector","dimension":"ad_format_id","value":"97"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"extraction","dimension":"ad_format_id","outputName":"Ad Format Name","outputType":"STRING","extractionFn":\{"type":"lookup","lookup":\{"type":"map","map":\{"98":"DPA View More","8":"Video with HTML Endcard","100":"DPA Single Image Ad","4":"Single image","9":"Carousel","99":"DPA Extended Carousel","35":"Product Ad","5":"Single image","6":"Single image","2":"Single image","101":"DPA Carousel Ad","7":"Video","97":"DPA Collection Ad","3":"Single image"\},"isOneToOne":false\},"retainMissingValue":false,"replaceMissingValueWith":"Other","injective":false,"optimize":true\}\},\{"type":"extraction","dimension":"ad_format_id","outputName":"Ad Format Sub Type","outputType":"STRING","extractionFn":\{"type":"lookup","lookup":\{"type":"map","map":\{"98":"DPA View More","100":"DPA Single Image Ad","99":"DPA Extended Carousel","35":"Product Ad","101":"DPA Carousel Ad","97":"DPA Collection Ad"\},"isOneToOne":false\},"retainMissingValue":false,"replaceMissingValueWith":"N/A","injective":false,"optimize":true\}\},\{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign Name","outputType":"STRING","extractionFn":\{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"MAHA_LOOKUP_EMPTY","injective":false,"optimize":true,"valueColumn":"name","dimensionOverrideMap":\{\},"useQueryLevelCache":false\}\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"NoopLimitSpec"\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"not","field":\{"type":"selector","dimension":"Campaign Name"\}\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"Advertiser ID","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"default","dimension":"Ad Format Name","outputName":"Ad Format Name","outputType":"STRING"\},\{"type":"default","dimension":"Ad Format Sub Type","outputName":"Ad Format Sub Type","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"Impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Advertiser ID","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Ad Format Name","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":400\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
     result should fullyMatch regex expectedQuery
+
+  }
+
+  test("Query on one hour of one day") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"},
+                              {"field": "Hour", "operator": "between", "from": "00", "to": "00"}
+
+                          ],
+                          "sortBy": [
+                              { "field": "Advertiser ID", "order": "Asc"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+
+    val requestModel = getRequestModel(request, getDefaultRegistry())
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val expectedContents = s""""applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000"""
+    assert(result.contains(expectedContents))
+
+  }
+
+  test("Query on two hours of one day") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"},
+                              {"field": "Hour", "operator": "between", "from": "00", "to": "01"}
+
+                          ],
+                          "sortBy": [
+                              { "field": "Advertiser ID", "order": "Asc"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+
+    val requestModel = getRequestModel(request, getDefaultRegistry())
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val expectedContents = s""""applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000"""
+    assert(result.contains(expectedContents))
+
+  }
+
+  test("Query on one hour of two days") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDateMinusOne", "to": "$toDate"},
+                              {"field": "Hour", "operator": "between", "from": "00", "to": "00"}
+
+                          ],
+                          "sortBy": [
+                              { "field": "Advertiser ID", "order": "Asc"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+
+    val requestModel = getRequestModel(request, getDefaultRegistry())
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val expectedContents = s""""applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000"""
+    assert(result.contains(expectedContents))
 
   }
 }

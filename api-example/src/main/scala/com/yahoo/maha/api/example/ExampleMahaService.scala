@@ -6,6 +6,7 @@ import java.util.UUID
 
 import com.google.common.base.Charsets
 import com.google.common.io.Resources
+import com.yahoo.maha.core.OracleEngine
 import com.yahoo.maha.core.ddl.OracleDDLGenerator
 import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.service.{DefaultMahaService, MahaService, MahaServiceConfig}
@@ -65,10 +66,18 @@ object ExampleMahaService extends Logging {
     val erRegistry= erRegistryConfig.registry
     erRegistry.factMap.values.foreach {
       publicFact =>
-        publicFact.factList.foreach {
-          fact=>
+        publicFact.factList.filter(_.engine == OracleEngine).foreach {
+          fact =>
             val ddl = ddlGenerator.toDDL(fact)
-            assert(jdbcConnection.get.executeUpdate(ddl).isSuccess)
+            assert (jdbcConnection.get.executeUpdate(ddl).isSuccess)
+        }
+    }
+    erRegistry.dimMap.values.foreach {
+      dim=>
+        dim.dimList.filter(_.engine == OracleEngine).foreach {
+          dimTable=>
+            val ddl = ddlGenerator.toDDL(dimTable)
+            assert (jdbcConnection.get.executeUpdate(ddl).isSuccess, s"failed to create table ${ddl}")
         }
     }
 
@@ -98,5 +107,14 @@ object ExampleMahaService extends Logging {
         }
     }
     assert(rows.size == count)
+
+    val insertDimSql =
+      """
+        INSERT INTO student (id, name, status, admitted_year, department_id)
+        VALUES (?, ?, ?, ?, ?)
+      """
+    val row = Seq(213, "Maha Student 1", "Full Time", 2015, 1)
+    val dimResult = jdbcConnection.get.executeUpdate(insertDimSql, row)
+    assert(dimResult.isSuccess, s"failed to execute the ${insertDimSql}, ${dimResult}")
   }
 }

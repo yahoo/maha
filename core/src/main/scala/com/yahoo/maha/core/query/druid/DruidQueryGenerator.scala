@@ -23,6 +23,7 @@ import org.apache.druid.java.util.common.granularity.PeriodGranularity
 import org.apache.druid.js.JavaScriptConfig
 import org.apache.druid.math.expr.ExprMacroTable
 import org.apache.druid.query.aggregation._
+import org.apache.druid.query.aggregation.cardinality.CardinalityAggregatorFactory
 import org.apache.druid.query.aggregation.datasketches.theta.{SketchMergeAggregatorFactory, SketchModule}
 import org.apache.druid.query.aggregation.hyperloglog.HyperUniquesAggregatorFactory
 import org.apache.druid.query.aggregation.post.{ArithmeticPostAggregator, FieldAccessPostAggregator}
@@ -58,6 +59,7 @@ object DruidQueryOptimizer {
   val GROUP_BY_STRATEGY = "groupByStrategy"
   val UNCOVERED_INTERVALS_LIMIT = "uncoveredIntervalsLimit"
   val UNCOVERED_INTERVALS_LIMIT_VALUE = 1.asInstanceOf[AnyRef]
+  val UNCOVERED_INTERVALS_ZERO_LIMIT = 0.asInstanceOf[AnyRef]
   val APPLY_LIMIT_PUSH_DOWN = "applyLimitPushDown"
   val ASYNC_QUERY_PRIORITY = -1
   val TIMEOUT = "timeout"
@@ -933,6 +935,15 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
+    def getCardinalityAggregatorFactory(dataType: DataType, outputFieldName: String, fieldNames: List[String], byRow: Boolean, round: Boolean): AggregatorFactory = {
+      dataType match {
+        case IntType(_, _, _, _, _) =>
+          new CardinalityAggregatorFactory(outputFieldName, fieldNames.asJava, null, byRow, round)
+        case any =>
+          throw new UnsupportedOperationException(s"Unhandled data type $any")
+      }
+    }
+
     def getHyperUniqueAggregatorFactory(dataType: DataType, outputFieldName:String, fieldName: String): AggregatorFactory = {
       dataType match {
         case IntType(_, _, _, _, _) =>
@@ -1055,6 +1066,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             columnAlias)
         case DruidFilteredListRollup(_, _, _) =>
           getFilteredListAggregatorFactory(dataType, rollup, alias)
+        case DruidCardinalityRollup(fieldNames, byRow, round) =>
+          getCardinalityAggregatorFactory(dataType, alias, fieldNames, byRow, round)
         case DruidHyperUniqueRollup(fieldName) =>
           getHyperUniqueAggregatorFactory(dataType, alias, fieldName)
         case DruidThetaSketchRollup =>

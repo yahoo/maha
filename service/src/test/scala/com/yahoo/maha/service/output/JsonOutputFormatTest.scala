@@ -161,8 +161,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     stringStream.close()
     val expected = s""""cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result",null]],"curators":{}}"""
     if (!result.contains(expected)) {
-      println(s"mahaRequestContext.mutableState : ${mahaRequestContext.mutableState}")
-      println(s"dimCardinalityEstimate : ${query.queryContext.requestModel.dimCardinalityEstimate}")
+      //println(s"mahaRequestContext.mutableState : ${mahaRequestContext.mutableState}")
+      //println(s"dimCardinalityEstimate : ${query.queryContext.requestModel.dimCardinalityEstimate}")
       jdbcConnection.get.queryForObject("select id, name from section") {
         rs =>
           while (rs.next()) {

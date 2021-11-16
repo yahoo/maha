@@ -2,13 +2,15 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.api.jersey
 
-import javax.ws.rs.core.MediaType
+import com.yahoo.maha.service.calcite.avatica.MahaAvaticaService
 
+import javax.ws.rs.core.MediaType
 import com.yahoo.maha.api.jersey.example.ExampleMahaService
 import com.yahoo.maha.service.utils.MahaConstants
 import junit.framework.TestCase.assertNotNull
+import org.apache.calcite.avatica.proto.Common.WireMessage
 import org.apache.http.client.methods.{HttpGet, HttpPost}
-import org.apache.http.entity.StringEntity
+import org.apache.http.entity.{ByteArrayEntity, StringEntity}
 import org.apache.http.impl.client.{CloseableHttpClient, HttpClientBuilder}
 import org.apache.http.util.EntityUtils
 import org.apache.http.{HttpEntity, HttpHeaders, HttpResponse}
@@ -21,7 +23,7 @@ import org.junit._
 class MahaResourceTest {
 
   @Test
-  def successfulCubesEndpoint(){
+  def successfulCubesEndpoint() {
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
     val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/academic/cubes")
@@ -29,6 +31,7 @@ class MahaResourceTest {
     assertEquals("should return status 200", 200, httpResponse.getStatusLine.getStatusCode)
     val cubesJson: String = EntityUtils.toString(httpResponse.getEntity)
     assert(cubesJson.equals("""["student_performance"]"""))
+
   }
 
   @Test
@@ -40,6 +43,19 @@ class MahaResourceTest {
     assertEquals("should return status 200", 200, httpResponse.getStatusLine.getStatusCode)
     val domainJson: String = EntityUtils.toString(httpResponse.getEntity)
     assert(domainJson.contains("""{"dimensions":[{"name":"student","fields":["Student ID","Student Name","Student Status"],"fieldsWithSchemas":[{"name":"Student ID","allowedSchemas":[]},{"name":"Student Name","allowedSchemas":[]},{"name":"Student Status","allowedSchemas":[]}]}],"schemas":{"student":["student_performance"]},"cubes":[{"name":"student_performance","mainEntityIds":{"student":"Student ID"},"maxDaysLookBack":[{"requestType":"SyncRequest","grain":"DailyGrain","days":30},{"requestType":"AsyncRequest","grain":"DailyGrain","days":30}],"maxDaysWindow":[{"requestType":"SyncRequest","grain":"DailyGrain","days":20},{"requestType":"AsyncRequest","grain":"DailyGrain","days":20},{"requestType":"SyncRequest","grain":"HourlyGrain","days":20},{"requestType":"AsyncRequest","grain":"HourlyGrain","days":20}],"fields":[{"field":"Class ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Day","type":"Dimension","dataType":{"type":"Date","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Remarks","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","=","LIKE"],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Section ID","type":"Dimension","dataType":{"type":"Number","constraint":"3"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Student ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"student","filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Year","type":"Dimension","dataType":{"type":"Enum","constraint":"Freshman|Junior|Sophomore|Senior"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Marks Obtained","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","BETWEEN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null},{"field":"Performance Factor","type":"Fact","dataType":{"type":"Number","constraint":"10"},"dimensionName":null,"filterable":true,"filterOperations":["IN","BETWEEN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null},{"field":"Total Marks","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","BETWEEN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null}]}]}"""))
+  }
+
+  @Test
+  def successfulVersionedDomainEndpoint(){
+    assertNotNull("jetty must be initialised", MahaResourceTest.server)
+    val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
+    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/academic/fulldomain")
+    val httpResponse: HttpResponse = httpClient.execute(httpGet)
+    assertEquals("should return status 200", 200, httpResponse.getStatusLine.getStatusCode)
+    val domainJson: String = EntityUtils.toString(httpResponse.getEntity)
+    assert(domainJson.contains(
+      """{"dimensions":[{"name":"student","fields":["Student ID","Student Name","Student Status"],"fieldsWithSchemas":[{"name":"Student ID","allowedSchemas":[]},{"name":"Student Name","allowedSchemas":[]},{"name":"Student Status","allowedSchemas":[]}],"revision":0}],"schemas":{"student":["student_performance"]},"cubes":[{"name":"student_performance","mainEntityIds":{"student":"Student ID"},"maxDaysLookBack":[{"requestType":"SyncRequest","grain":"DailyGrain","days":30},{"requestType":"AsyncRequest","grain":"DailyGrain","days":30}],"maxDaysWindow":[{"requestType":"SyncRequest","grain":"DailyGrain","days":20},{"requestType":"AsyncRequest","grain":"DailyGrain","days":20},{"requestType":"SyncRequest","grain":"HourlyGrain","days":20},{"requestType":"AsyncRequest","grain":"HourlyGrain","days":20}],"fields":[{"field":"Class ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Day","type":"Dimension","dataType":{"type":"Date","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Remarks","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","=","LIKE"],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Section ID","type":"Dimension","dataType":{"type":"Number","constraint":"3"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Student ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"student","filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Year","type":"Dimension","dataType":{"type":"Enum","constraint":"Freshman|Junior|Sophomore|Senior"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Marks Obtained","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","BETWEEN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null},{"field":"Performance Factor","type":"Fact","dataType":{"type":"Number","constraint":"10"},"dimensionName":null,"filterable":true,"filterOperations":["IN","BETWEEN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null},{"field":"Total Marks","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","BETWEEN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null}],"revision":0}]}"""
+    ))
   }
 
   @Test
@@ -192,6 +208,33 @@ class MahaResourceTest {
     httpPost.setHeader(HttpHeaders.ACCEPT,MediaType.APPLICATION_JSON)
     httpPost.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
     httpPost.setHeader("RequestId", "failedDruidRequest")
+    val httpResponse: HttpResponse = httpClient.execute(httpPost)
+    assertEquals(s"should return status 400, ${httpResponse.getStatusLine}", 400, httpResponse.getStatusLine.getStatusCode)
+  }
+
+  @Test
+  def failedBigqueryRequest() {
+    assertNotNull("jetty must be initialised", MahaResourceTest.server)
+    val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/query?debug=true&forceEngine=bigquery")
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "${ExampleMahaService.yesterday}", "to": "${ExampleMahaService.today}"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val httpEntity: HttpEntity = new StringEntity(jsonRequest)
+    httpPost.setEntity(httpEntity)
+    httpPost.setHeader(HttpHeaders.ACCEPT,MediaType.APPLICATION_JSON)
+    httpPost.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+    httpPost.setHeader("RequestId", "failedBigqueryRequest")
     val httpResponse: HttpResponse = httpClient.execute(httpPost)
     assertEquals(s"should return status 400, ${httpResponse.getStatusLine}", 400, httpResponse.getStatusLine.getStatusCode)
   }
@@ -436,6 +479,22 @@ class MahaResourceTest {
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
     
     assert(responseJson.contains("""{"errorMsg":"requirement failed: Failure(NonEmpty[UncategorizedError(Day,requirement failed: Day filter not found in list of filters!,List())])"}"""))
+  }
+
+  @Test
+  def testAvaticaNoopEndpointTest() {
+    assertNotNull("jetty must be initialised", MahaResourceTest.server)
+    val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/sql-avatica")
+    val jsonRequest = s"""{}"""
+    val httpEntity: HttpEntity = new StringEntity(jsonRequest)
+    httpPost.setEntity(httpEntity)
+    val httpResponse: HttpResponse = httpClient.execute(httpPost)
+
+    val httpPost2: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/sql-avatica?serialization=protobuf")
+    val httpEntity2: HttpEntity = new ByteArrayEntity(WireMessage.getDefaultInstance.toByteArray)
+    httpPost2.setEntity(httpEntity2)
+    val httpResponse2: HttpResponse = httpClient.execute(httpPost2)
   }
 
   @Test

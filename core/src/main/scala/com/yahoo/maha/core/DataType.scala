@@ -23,6 +23,8 @@ sealed trait DataType {
   def hasStaticMapping: Boolean
   def hasUniqueStaticMapping: Boolean
   def reverseStaticMapping: Map[String, Set[String]]
+  def sqlDataType: Int = java.sql.Types.OTHER
+
 
   private val jUtils = JsonUtils
 
@@ -68,6 +70,7 @@ case class IntType private(length: Int, staticMapping: Option[StaticMapping[Int]
   val reverseStaticMapping = staticMapping.map(_.stringToTMap).getOrElse(Map.empty)
   val jsonDataType = if (hasStaticMapping) "Enum" else "Number"
   val constraint: Option[String] = if (hasStaticMapping) Option.apply(reverseStaticMapping.keys.mkString("|")) else if (length > 0) Option.apply(length.toString) else None
+  override val sqlDataType = java.sql.Types.INTEGER
 
   override def asJSON: JObject =
     makeObj(
@@ -93,6 +96,8 @@ case class StrType private(length: Int, staticMapping: Option[StaticMapping[Stri
     if (length > 0) Option.apply(length.toString) else None
   }
 
+  override val sqlDataType = java.sql.Types.VARCHAR
+
   override def asJSON: JObject =
     makeObj(
       List(
@@ -110,6 +115,7 @@ case class DecType private(length: Int, scale:Int, default: Option[BigDecimal],
   val reverseStaticMapping : Map[String, Set[String]] = Map.empty
   val jsonDataType: String = "Number"
   val constraint: Option[String] = if (length > 0) Option.apply(length.toString) else None
+  override val sqlDataType = java.sql.Types.DECIMAL
 
   private val jUtils = JsonUtils
 
@@ -132,6 +138,7 @@ case class DateType private(format: Option[String]) extends DataType {
   val reverseStaticMapping : Map[String, Set[String]] = Map.empty
   val jsonDataType: String = "Date"
   val constraint: Option[String] = format
+  override val sqlDataType = java.sql.Types.DATE
 
   override def asJSON: JObject =
     makeObj(
@@ -147,6 +154,7 @@ case class TimestampType private(format: Option[String]) extends DataType {
   val reverseStaticMapping : Map[String, Set[String]] = Map.empty
   val jsonDataType: String = "Date"
   val constraint: Option[String] = format
+  override val sqlDataType = java.sql.Types.TIMESTAMP
 
   override def asJSON: JObject =
     makeObj(
@@ -312,6 +320,11 @@ case object DateType extends Logging {
   private[this] val ORACLE_HOUR_FORMAT = "hh"
   private[this] val HIVE_HOUR = "YYYYMMDDHH"
   private[this] val UTC_TIME_HOUR = "yyyyMMddHH"
+  private[this] val BIGQUERY_DATE_SHORT_FORMAT = "%F" // short for %Y-%m-%d (e.g. 2020-08-20)
+  private[this] val BIGQUERY_DATE_TIME_STRING_FORMAT = "%c" // short for %Y-%m-%d %H:%M:%S (e.g. 2020-08-20 18:30:00)
+  private[this] val BIGQUERY_DATE_FORMAT = "%Y-%m-%d"
+  private[this] val BIGQUERY_DATE_HOUR_FORMAT = "%Y-%m-%d %H"
+  private[this] val BIGQUERY_DATE_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
   private[this] val formatterMap: LoadingCache[String, DateTimeFormatter] = {
     val loader: CacheLoader[String, DateTimeFormatter] = new CacheLoader[String, DateTimeFormatter] {
       override def load(k: String): DateTimeFormatter = {
@@ -342,8 +355,27 @@ case object DateType extends Logging {
 
   def apply(format: String) : DateType = {
     require(format != null && format.nonEmpty, "DateType(format) : invalid argument : format cannot be null or empty")
-    val validFormats = Set(ORACLE_DATE_FORMAT, HIVE_DATE_FORMAT, DATE_FORMAT, DRUID_DATE_FORMAT, DRUID_HOUR_FORMAT, DRUID_MINUTE_FORMAT, UTC_TIME_FORMAT, HOUR_FORMAT, ORACLE_HOUR_FORMAT, HIVE_HOUR
-    ,HIVE_DATE_STRING_FORMAT, HIVE_DATE_HOUR_STRING_FORMAT,DRUID_DATE_HOUR_FORMAT,UTC_TIME_HOUR)
+    val validFormats = Set(
+      ORACLE_DATE_FORMAT,
+      HIVE_DATE_FORMAT,
+      DATE_FORMAT,
+      DRUID_DATE_FORMAT,
+      DRUID_HOUR_FORMAT,
+      DRUID_MINUTE_FORMAT,
+      UTC_TIME_FORMAT,
+      HOUR_FORMAT,
+      ORACLE_HOUR_FORMAT,
+      HIVE_HOUR,
+      HIVE_DATE_STRING_FORMAT,
+      HIVE_DATE_HOUR_STRING_FORMAT,
+      DRUID_DATE_HOUR_FORMAT,
+      UTC_TIME_HOUR,
+      BIGQUERY_DATE_SHORT_FORMAT,
+      BIGQUERY_DATE_TIME_STRING_FORMAT,
+      BIGQUERY_DATE_FORMAT,
+      BIGQUERY_DATE_HOUR_FORMAT,
+      BIGQUERY_DATE_TIME_FORMAT
+    )
     require(validFormats.contains(format), s"Invalid format for DateType($format)")
     new DateType(Option(format))
   }

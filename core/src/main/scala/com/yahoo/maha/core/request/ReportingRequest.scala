@@ -238,6 +238,10 @@ trait BaseRequest {
     reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.QueryEngine -> QueryEngineValue(PrestoEngine)))
   }
 
+  def forceBigquery(reportingRequest: ReportingRequest): ReportingRequest = {
+    reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.QueryEngine -> QueryEngineValue(BigqueryEngine)))
+  }
+
   def withHostname(reportingRequest: ReportingRequest, hostName: String) : ReportingRequest = {
     reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.HostName -> HostNameValue(hostName)))
   }

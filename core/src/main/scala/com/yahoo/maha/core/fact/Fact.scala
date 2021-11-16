@@ -8,6 +8,7 @@ import com.yahoo.maha.core.ddl.{DDLAnnotation, HiveDDLAnnotation}
 import com.yahoo.maha.core.dimension.{BaseFunctionDimCol, ConstDimCol, DimensionColumn, PublicDimColumn}
 import com.yahoo.maha.core.fact.Fact.ViewTable
 import com.yahoo.maha.core.lookup.{LongRange, LongRangeLookup}
+import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
 import grizzled.slf4j.Logging
 
@@ -88,6 +89,8 @@ case class FactCol(name: String,
         de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case PostgresCustomRollup(de) =>
         de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
+      case BigqueryCustomRollup(de) =>
+        de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case DruidCustomRollup(de) =>
         de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case DruidFilteredRollup(filter, de, delegateAggregatorRollupExpression) =>
@@ -101,6 +104,8 @@ case class FactCol(name: String,
           columnContext.render(filter.field, Map.empty)
         }
       case DruidThetaSketchRollup =>
+      case DruidCardinalityRollup(cols, _, _) =>
+        cols.foreach((col: String) => columnContext.render(col, Map.empty))
       case DruidHyperUniqueRollup(f) =>
       case customRollup: CustomRollup =>
         //error, we missed a check on custom rollup
@@ -286,6 +291,36 @@ object PostgresDerFactCol {
             rollupExpression: RollupExpression = SumRollup,
             filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : PostgresDerFactCol = {
     PostgresDerFactCol(name, alias, dataType, cc, derivedExpression, annotations, rollupExpression, filterOperationOverrides)
+  }
+}
+
+case class BigqueryDerFactCol(name: String,
+                              alias: Option[String],
+                              dataType: DataType,
+                              columnContext: ColumnContext,
+                              derivedExpression: BigqueryDerivedExpression,
+                              annotations: Set[ColumnAnnotation],
+                              rollupExpression: RollupExpression,
+                              filterOperationOverrides: Set[FilterOperation]
+                             ) extends BaseDerivedFactCol with WithBigqueryEngine {
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean): FactColumn = {
+    if (resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name), derivedExpression = derivedExpression.copyWith(columnContext))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias), derivedExpression = derivedExpression.copyWith(columnContext))
+    }
+  }
+}
+
+object BigqueryDerFactCol {
+  def apply(name: String,
+            dataType: DataType,
+            derivedExpression: BigqueryDerivedExpression,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            rollupExpression: RollupExpression = SumRollup,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext): BigqueryDerFactCol = {
+    BigqueryDerFactCol(name, alias, dataType, cc, derivedExpression, annotations, rollupExpression, filterOperationOverrides)
   }
 }
 
@@ -811,6 +846,23 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     mutableDiscardingSet.toSet
   }
 
+  private[this] def remapMultiplier(
+                                     costMultiplierMap: Map[RequestType, CostMultiplier]
+                                   , costMultiplier: Option[BigDecimal] = None): Map[RequestType, CostMultiplier] = {
+    costMultiplierMap.map(rTypeMult =>
+      rTypeMult._1 -> {
+        val adjustedLRL: LongRangeLookup[BigDecimal] =
+          LongRangeLookup(
+            rTypeMult._2.rows.list.map(
+              row => (row._1, row._2 * costMultiplier.getOrElse(1))
+            )
+          )
+        CostMultiplier(adjustedLRL)
+      }
+
+    )
+  }
+
   def withNewGrain(name: String
                    , from: String
                    , grain: Grain
@@ -1237,7 +1289,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , forceFilters: Set[ForceFilter] = Set.empty
                    , resetAliasIfNotPresent: Boolean = false
                    , availableOnwardsDate : Option[String] = None
-                   , underlyingTableName: Option[String] = None) : FactBuilder = {
+                   , underlyingTableName: Option[String] = None
+                   , costMultiplier: Option[BigDecimal] = None) : FactBuilder = {
     require(tableMap.nonEmpty, "no table to create subset from")
     require(tableMap.contains(from), s"from table not valid $from")
     require(!tableMap.contains(name), s"table $name already exists")
@@ -1297,6 +1350,9 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
         case _ =>
           ddlAnnotation
       }
+
+      val remappedMultiplier: Map[RequestType, CostMultiplier] = remapMultiplier(fromTable.costMultiplierMap, costMultiplier)
+
       tableMap = tableMap +
         (name -> new FactTable(
           name
@@ -1309,7 +1365,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
           , Option(fromTable)
           , fromTable.annotations
           , newDDLAnnotation
-          , fromTable.costMultiplierMap
+          , remappedMultiplier
           , newForceFilters
           , fromTable.defaultCardinality
           , fromTable.defaultRowCount
@@ -1410,6 +1466,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
 
       val newGrain = grain.getOrElse(fromTable.grain)
       val newForceFilters = if(forceFilters.isEmpty) fromTable.forceFilters else forceFilters
+      val remappedMultiplier: Map[RequestType, CostMultiplier] = remapMultiplier(fromTable.costMultiplierMap, costMultiplier)
 
       tableMap = tableMap +
         (name -> new FactTable(
@@ -1423,7 +1480,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
           , Option(fromTable)
           , fromTable.annotations ++ overrideAnnotations
           , ddlAnnotations
-          , fromTable.costMultiplierMap
+          , remappedMultiplier
           , newForceFilters
           , fromTable.defaultCardinality
           , fromTable.defaultRowCount
@@ -1528,6 +1585,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , dimToRevisionMap: Map[String, Int] = Map.empty
                    , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
                    , powerSetStorage: FkFactMapStorage = RoaringBitmapFkFactMapStorage()
+                   , description:String = ""
                    ) : PublicFact = {
     new PublicFactTable(name
       , baseFact
@@ -1546,6 +1604,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , dimToRevisionMap
       , requiredFilterColumns
       , powerSetStorage
+      , description:String
     )
   }
 
@@ -1577,6 +1636,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , publicFact.dimToRevisionMap ++ dimToRevisionOverrideMap
       , requiredFilterColumns
       , publicFact.getFkFactMapStorage
+      , publicFact.description
     )
   }
 }
@@ -1714,6 +1774,8 @@ trait PublicFact extends PublicTable {
   def requiredFilterColumns: Map[Schema, Set[String]]
   //def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[String]]
   def getFkFactMapStorage: FkFactMapStorage
+  def description:String
+  def getAllDomainColumnAliasToPublicColumnMap(registry: Registry): Map[String, PublicColumn]
 }
 
 case class PublicFactTable private[fact](name: String
@@ -1733,6 +1795,7 @@ case class PublicFactTable private[fact](name: String
                                          , dimToRevisionMap: Map[String, Int] = Map.empty
                                          , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
                                          , fkFactMapStorage: FkFactMapStorage
+                                         , description:String
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values
@@ -1792,6 +1855,20 @@ case class PublicFactTable private[fact](name: String
     }
     mutableMap.toMap
   }
+
+  override def getAllDomainColumnAliasToPublicColumnMap(registry: Registry): Map[String, PublicColumn] = {
+    foreignKeySources.map {
+      dimensionCube =>
+        val dimVersionOption = dimToRevisionMap.get(dimensionCube)
+        val dimCubeOption = registry.getDimension(dimensionCube, dimVersionOption)
+        require(dimCubeOption.isDefined, s"Failed to find the dimension cube ${dimensionCube} for version ${dimVersionOption} in registry")
+        dimCubeOption.get.columnsByAliasMap.map {
+          case (alias: String, dimCol: PublicColumn) =>
+            (alias -> dimCol)
+        }
+    }.flatMap(e=> e).toMap ++ columnsByAliasMap
+  }
+
 
   val columnsByAliasMap: Map[String, PublicColumn] =
     dimCols.map(pdc => pdc.alias -> pdc).toMap ++ factCols.map(pdc => pdc.alias -> pdc).toMap
@@ -1989,7 +2066,7 @@ case class PublicFactTable private[fact](name: String
               val forceFilterColumnNames: Set[String] = fact.forceFilters.map(f => aliasToNameColumnMap(f.filter.field))
               FactCandidate(fact, this, filterColumnNames ++ forceFilterColumnNames)
             }
-              
+
             Some(
               BestCandidates(
                 fkCols,

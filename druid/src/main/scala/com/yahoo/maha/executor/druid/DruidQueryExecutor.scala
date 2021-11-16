@@ -409,13 +409,20 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
   def checkUncoveredIntervals(query: Query, response: Response, config: DruidQueryExecutorConfig): Unit = {
     val requestModel = query.queryContext.requestModel
     val latestDate: DateTime = FilterDruid.getMaxDate(requestModel.utcTimeDayFilter, DailyGrain)
+
+    val hasSingleHourFilter =
+      requestModel.localTimeHourFilter.isDefined &&
+        requestModel.localTimeHourFilter.get.asValues.split(",").distinct.length == 1 &&
+        requestModel.utcTimeDayFilter.asValues.split(",").distinct.length == 1
+    val hasSingleDayFilter =
+      requestModel.utcTimeDayFilter.asValues.split(",").distinct.length == 1
+
+
     if (config.enableFallbackOnUncoveredIntervals
       && latestDate.isBeforeNow()
       && response.getHeaders().contains(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)
       && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)) {
-      //val exception = new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
-      logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)}")
-      //throw exception // will add-back in a week, assuming few enough intervals are found.
+      logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)} in source table : ${query.tableName}, query on single hour: $hasSingleHourFilter, query on single day: $hasSingleDayFilter")
     }
   }
 

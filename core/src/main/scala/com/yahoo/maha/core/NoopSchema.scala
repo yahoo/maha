@@ -1,4 +1,4 @@
-// Copyright 2019, Verizon Media.
+// Copyright 2021, Yahoo Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 

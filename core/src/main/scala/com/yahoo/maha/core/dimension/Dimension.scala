@@ -341,6 +341,64 @@ object PostgresDerDimCol {
   }
 }
 
+case class BigqueryDimCol(name: String,
+                          dataType: DataType,
+                          columnContext: ColumnContext,
+                          alias: Option[String],
+                          annotations: Set[ColumnAnnotation],
+                          filterOperationOverrides: Set[FilterOperation]) extends BaseDimCol with WithBigqueryEngine {
+  override val isDerivedColumn: Boolean = false
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean): DimensionColumn = {
+    if (resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias))
+    }
+  }
+}
+
+object BigqueryDimCol {
+  def apply(name: String,
+            dataType: DataType,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext): BigqueryDimCol = {
+    BigqueryDimCol(name, dataType, cc, alias, annotations, filterOperationOverrides)
+  }
+}
+
+
+case class BigqueryDerDimCol(name: String,
+                             dataType: DataType,
+                             columnContext: ColumnContext,
+                             derivedExpression: BigqueryDerivedExpression,
+                             alias: Option[String],
+                             annotations: Set[ColumnAnnotation],
+                             filterOperationOverrides: Set[FilterOperation]) extends BaseDerivedDimCol with WithBigqueryEngine {
+  require(derivedExpression != null,
+    s"Derived expression should be defined for a derived column $name")
+  require(!derivedExpression.expression.hasRollupExpression, s"Cannot have rollup expression for dimension column: $name - $derivedExpression")
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean): DimensionColumn = {
+    if (resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name), derivedExpression = derivedExpression.copyWith(columnContext))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias), derivedExpression = derivedExpression.copyWith(columnContext))
+    }
+  }
+}
+
+object BigqueryDerDimCol {
+  def apply(name: String,
+            dataType: DataType,
+            derivedExpression: BigqueryDerivedExpression,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : BigqueryDerDimCol = {
+    BigqueryDerDimCol(name, dataType, cc, derivedExpression, alias, annotations, filterOperationOverrides)
+  }
+}
+
+
 case class DruidFuncDimCol(name: String,
                            dataType: DataType,
                            columnContext: ColumnContext,
@@ -461,6 +519,33 @@ object PostgresPartDimCol {
   }
 }
 
+case class BigqueryPartDimCol(name: String,
+                              dataType: DataType,
+                              columnContext: ColumnContext,
+                              alias: Option[String],
+                              annotations: Set[ColumnAnnotation],
+                              partitionLevel: PartitionLevel) extends BaseDimCol with WithBigqueryEngine with PartitionColumn {
+  override val filterOperationOverrides: Set[FilterOperation] = Set.empty
+  override val isDerivedColumn: Boolean = false
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean): DimensionColumn = {
+    if (resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias))
+    }
+  }
+}
+
+object BigqueryPartDimCol {
+  def apply(name: String,
+            dataType: DataType,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            partitionLevel: PartitionLevel = NoPartitionLevel )(implicit cc: ColumnContext): BigqueryPartDimCol = {
+    BigqueryPartDimCol(name, dataType, cc, alias, annotations, partitionLevel)
+  }
+}
+
 case class HivePartDimCol(name: String,
                   dataType: DataType,
                   columnContext: ColumnContext,
@@ -522,6 +607,7 @@ object HivePartDimCol {
 trait Dimension extends BaseTable {
   def level: Int
   def dimLevel: DimLevel
+  def secondaryDimLevel: Option[Int]
   def schemaColFilterMap: Map[Schema, String]
   def engine: Engine
   def name: String
@@ -560,8 +646,10 @@ object Dimension {
                     , viewBaseTable : Option[String] = None
                     , isDerivedDimension: Boolean = false
                     , underlyingTableName : Option[String] = None
+                    , secondaryDimLevel: Option[Int] = Some(1)
                     ) : DimensionBuilder = {
-    val baseFact = new DimTable(name, 9999, engine, dimLevel, schemas, columns, None, schemaColMap, annotations, ddlAnnotation, isDerivedDimension, viewBaseTable, maxDaysLookBack, underlyingTableName)
+    require(secondaryDimLevel.isDefined, s"Failed to assign secondaryDimLevel")
+    val baseFact = new DimTable(name, 9999, engine, dimLevel, schemas, columns, None, schemaColMap, annotations, ddlAnnotation, isDerivedDimension, viewBaseTable, maxDaysLookBack, underlyingTableName, secondaryDimLevel)
     val map = Map(baseFact.name -> baseFact)
     DimensionBuilder(baseFact, map)
   }
@@ -581,6 +669,7 @@ case class DimTable private[dimension](name: String
                                        , viewBaseTable: Option[String]
                                        , maxDaysLookBack: Option[Map[RequestType, Int]]
                                        , underlyingTableName: Option[String]
+                                       , secondaryDimLevel: Option[Int] = Some(1)
                                       ) extends Dimension {
 
   val primaryKey: String = {
@@ -775,6 +864,7 @@ case class DimensionBuilder private[dimension](private val baseDim: Dimension, p
       , fromTable.viewBaseTable
       , maxDaysLookBack
       , underlyingTableName
+      , fromTable.secondaryDimLevel
     )
     tableMap += newAltDim.name -> newAltDim
     this
@@ -830,6 +920,7 @@ case class DimensionBuilder private[dimension](private val baseDim: Dimension, p
         , fromTable.viewBaseTable
         , fromTable.maxDaysLookBack
         , fromTable.underlyingTableName
+        , fromTable.secondaryDimLevel
       )
       tableMap += newAltDim.name -> newAltDim
     }
@@ -883,6 +974,8 @@ trait PublicDimension extends PublicTable {
   def grainKey: String
 
   def dimLevel: DimLevel
+
+  def secondaryDimLevel: Option[Int] = Some(1)
 
   def schemas: Set[Schema]
 
@@ -1083,6 +1176,8 @@ case class PublicDim (name: String
   override def schemaRequiredAlias(schema: Schema) : Option[RequiredAlias] = schemaRequiredAliasMap.get(schema)
 
   override def dimLevel: DimLevel = baseDim.dimLevel
+
+  override def secondaryDimLevel: Option[Int] = baseDim.secondaryDimLevel
 
   override def getBaseDim: Dimension = baseDim
 
