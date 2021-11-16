@@ -2319,4 +2319,87 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
+  test("Test: Test AllowPushDown Parameter") {
+    val jsonString =
+      s"""
+         |{
+         |    "cube": "student_performance",
+         |    "isDimDriven": true,
+         |    "selectFields": [
+         |        {
+         |            "field": "Group Name"
+         |        },
+         |        {
+         |            "field": "Group ID"
+         |        },
+         |        {
+         |            "field": "Student Name"
+         |        },
+         |        {
+         |            "field": "Researcher Name"
+         |        }
+         |    ],
+         |    "filterExpressions": [
+         |        {
+         |            "field": "Day",
+         |            "operator": "between",
+         |            "from": "$fromDate",
+         |            "to": "$toDate"
+         |        },
+         |        {
+         |            "field": "Student ID",
+         |            "operator": "=",
+         |            "value": "213"
+         |        },
+         |        {
+         |            "field": "Researcher ID",
+         |            "operator": "=",
+         |            "value": "334"
+         |        }
+         |    ],
+         |    "additionalParameters" : {
+         |        "allowPushDown": "true"
+         |    }
+         |}
+         |""".stripMargin
+
+    val request = ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), StudentSchema)
+    val registry = exampleRegistry
+    val res = getRequestModel(request.toOption.get, registry, revision = Some(3))
+    assert(res.isSuccess, s"Building request model failed.")
+
+    val queryPipelineTry = generatePipeline(res.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val result = queryPipeline.queryChain.drivingQuery.asString
+
+    val expected = s"""SELECT  *
+                      |      FROM (
+                      |          SELECT "Group Name", "Group ID", "Student Name", "Researcher Name", ROWNUM AS ROW_NUMBER
+                      |              FROM(SELECT g2.name "Group Name", g2.id "Group ID", sv1.name "Student Name", r0.name "Researcher Name"
+                      |                  FROM
+                      |               ( (SELECT  student_id, name, id
+                      |            FROM group
+                      |            WHERE (student_id = 213)
+                      |             ) g2
+                      |          INNER JOIN
+                      |            (SELECT  researcher_id, name, id
+                      |            FROM student_v1
+                      |            WHERE (researcher_id = 334) AND (id = 213)
+                      |             ) sv1
+                      |              ON( g2.student_id = sv1.id )
+                      |               INNER JOIN
+                      |            (SELECT  name, id
+                      |            FROM researcher
+                      |            WHERE (id = 334)
+                      |             ) r0
+                      |              ON( sv1.researcher_id = r0.id )
+                      |               )
+                      |
+                      |                  ))
+                      |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
 }

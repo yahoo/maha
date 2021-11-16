@@ -7,6 +7,7 @@ import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.helper.SqlHelper
 import com.yahoo.maha.core.query._
+import com.yahoo.maha.core.request.{AllowPushDownNameValue, Parameter, ReportingRequest}
 import grizzled.slf4j.Logging
 import org.apache.commons.lang3.StringUtils
 
@@ -122,7 +123,7 @@ b. Dim Driven
           if (!requestModel.forceDimDriven
           || dimBundle.isDrivingDimension
           //TODO: add check that not include filter predicate if it is push down only if that field is partition key
-          || requestModel.hasNonDrivingDimSortOrFilter && !dimBundle.isDrivingDimension) {
+          || requestModel.hasNonDrivingDimSortOrFilter && !dimBundle.isDrivingDimension || (requestModel.additionalParameters.get(Parameter.AllowPushDownName).get == AllowPushDownNameValue("true")  && requestModel.forceDimDriven)) {
             val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, OracleEngine, literalMapper)
             dimBundleFilters += f.filter
           }
