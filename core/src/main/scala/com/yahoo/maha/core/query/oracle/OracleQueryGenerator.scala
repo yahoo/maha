@@ -123,7 +123,7 @@ b. Dim Driven
           if (!requestModel.forceDimDriven
           || dimBundle.isDrivingDimension
           //TODO: add check that not include filter predicate if it is push down only if that field is partition key
-          || requestModel.hasNonDrivingDimSortOrFilter && !dimBundle.isDrivingDimension || (requestModel.additionalParameters.get(Parameter.AllowPushDownName).get == AllowPushDownNameValue("true")  && requestModel.forceDimDriven)) {
+          || requestModel.hasNonDrivingDimSortOrFilter && !dimBundle.isDrivingDimension || (requestModel.additionalParameters.contains(Parameter.AllowPushDownName) && requestModel.additionalParameters.get(Parameter.AllowPushDownName).get == AllowPushDownNameValue("true")  && requestModel.forceDimDriven)) {
             val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, OracleEngine, literalMapper)
             dimBundleFilters += f.filter
           }
