@@ -43,7 +43,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("batch_id", IntType(), annotations = Set(ForeignKey("batch")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
-            , DimCol("group_id", IntType(), annotations = Set(ForeignKey("group")))
+            , DimCol("group_id", IntType(), annotations = Set(ForeignKey("grp")))
             , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
@@ -148,7 +148,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("batch_id", IntType(), annotations = Set(ForeignKey("batch")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
-            , DimCol("group_id", IntType(3), annotations = Set(ForeignKey("group"))) 
+            , DimCol("group_id", IntType(3), annotations = Set(ForeignKey("grp"))) 
             , DimCol("section_id", IntType(3), annotations = Set(ForeignKey("section")))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
@@ -200,7 +200,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("science_lab_volunteer_id", IntType(), annotations = Set(ForeignKey("science_lab_volunteers")))
             , DimCol("tutor_id", IntType(), annotations = Set(ForeignKey("tutors")))
             , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
-            , DimCol("group_id", IntType(), annotations = Set(ForeignKey("group"))) 
+            , DimCol("group_id", IntType(), annotations = Set(ForeignKey("grp"))) 
             , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
@@ -922,7 +922,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
 
     val group_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("group", OracleEngine, LevelFour, Set(StudentSchema),
+        Dimension.newDimension("grp", OracleEngine, LevelFour, Set(StudentSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("name", StrType())
@@ -931,7 +931,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , annotations = Set(OracleHashPartitioning)
-        ).toPublicDimension("group","group",
+        ).toPublicDimension("grp","grp",
           Set(
             PubCol("id", "Group ID", InBetweenEqualityFieldEquality)
             , PubCol("name", "Group Name", EqualityFieldEquality)
