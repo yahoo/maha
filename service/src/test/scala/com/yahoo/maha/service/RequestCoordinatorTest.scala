@@ -30,8 +30,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
   }
   override def beforeAll(): Unit = {
     createTables()
-    val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, obtained_marks, date, comment, month, top_student_id, batch_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+    val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, obtained_marks, date, comment, month, top_student_id, batch_id, group_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
     val studentInsertSql =
       """INSERT INTO student (profile_url, id, name, admitted_year, status, department_id)
@@ -46,16 +46,16 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
 
     val rows: List[Seq[Any]] = List(
-      Seq(1, 100, 213, 200, 135, 135, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(9)), "some comment 1", today.toString, 213, 6),
-      Seq(1, 100, 213, 198, 120, 120, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 2", today.toString, 213, 6),
-      Seq(1, 500, 213, 197, 190, 190, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 3", today.toString, 213, 2),
-      Seq(1, 100, 213, 200, 125, 125, today.toString, "some comment 1", today.toString, 213, 3),
-      Seq(1, 100, 213, 198, 180, 180, yesterday.toString, "some comment 2", today.toString, 213, 9),
-      Seq(1, 200, 213, 199, 175, 175, today.toString, "some comment 3", today.toString, 213, 1),
-      Seq(1, 311, 214, 201, 100, 90, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(4)), "some comment 1", today.toString, 213, 5),
-      Seq(1, 311, 214, 201, 125, 100, today.toString, "some comment 1", today.toString, 213, 9),
-      Seq(1, 311, 214, 198, 180, 150, yesterday.toString, "some comment 2", today.toString, 213, 2),
-      Seq(1, 311, 214, 199, 175, 145, today.toString, "some comment 3", today.toString, 213, 1)
+      Seq(1, 100, 213, 200, 135, 135, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(9)), "some comment 1", today.toString, 213, 6, 3),
+      Seq(1, 100, 213, 198, 120, 120, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 2", today.toString, 213, 6, 3),
+      Seq(1, 500, 213, 197, 190, 190, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 3", today.toString, 213, 2, 3),
+      Seq(1, 100, 213, 200, 125, 125, today.toString, "some comment 1", today.toString, 213, 3, 3),
+      Seq(1, 100, 213, 198, 180, 180, yesterday.toString, "some comment 2", today.toString, 213, 9, 3),
+      Seq(1, 200, 213, 199, 175, 175, today.toString, "some comment 3", today.toString, 213, 1, 3),
+      Seq(1, 311, 214, 201, 100, 90, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(4)), "some comment 1", today.toString, 213, 5, 3),
+      Seq(1, 311, 214, 201, 125, 100, today.toString, "some comment 1", today.toString, 213, 9, 3),
+      Seq(1, 311, 214, 198, 180, 150, yesterday.toString, "some comment 2", today.toString, 213, 2, 3),
+      Seq(1, 311, 214, 199, 175, 145, today.toString, "some comment 3", today.toString, 213, 1, 3)
     )
 
     val studentRows: List[Seq[Any]] = List(

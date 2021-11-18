@@ -274,7 +274,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     assert(request.requestType === SyncRequest)
-    assert(request.selectFields.size == 12)
+    assert(request.selectFields.size == 13)
     assert(request.filterExpressions.nonEmpty)
     assert(request.cube == "student_performance")
 

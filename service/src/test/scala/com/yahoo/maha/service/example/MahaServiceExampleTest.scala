@@ -2357,7 +2357,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
          |            "operator": "=",
          |            "value": "334"
          |        }
-         |    ]
+         |    ],
          |    "additionalParameters" : {
          |        "allowPushDown": "true"
          |    }
@@ -2381,7 +2381,7 @@ class RequestModelSameDimLevelJoinTest extends BaseOracleQueryGeneratorTest {
                       |              FROM(SELECT g2.name "Group Name", g2.id "Group ID", sv1.name "Student Name", r0.name "Researcher Name"
                       |                  FROM
                       |               ( (SELECT  student_id, name, id
-                      |            FROM group
+                      |            FROM grp
                       |            WHERE (student_id = 213)
                       |             ) g2
                       |          INNER JOIN
