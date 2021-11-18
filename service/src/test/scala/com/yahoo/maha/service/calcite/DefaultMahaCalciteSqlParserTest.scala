@@ -23,7 +23,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
     assert(request.requestType === SyncRequest)
-    assert(request.selectFields.size == 12)
+    assert(request.selectFields.size == 13)
     assert(request.filterExpressions.size > 0)
 
     assert(request.filterExpressions.toString contains "EqualityFilter(Student ID,123,false,false)")
@@ -113,7 +113,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
 
     val expected  =
       s"""
-         |{"queryType":"groupby","cube":"student_performance","reportDisplayName":null,"schema":"student","requestType":"SyncRequest","forceDimensionDriven":false,"selectFields":[{"field":"Total Marks","alias":null,"value":null},{"field":"Marks Obtained","alias":null,"value":null},{"field":"Performance Factor","alias":null,"value":null},{"field":"Day","alias":null,"value":null},{"field":"Class ID","alias":null,"value":null},{"field":"Year","alias":null,"value":null},{"field":"Student ID","alias":null,"value":null},{"field":"Remarks","alias":null,"value":null},{"field":"Batch ID","alias":null,"value":null},{"field":"Month","alias":null,"value":null},{"field":"Top Student ID","alias":null,"value":null},{"field":"Section ID","alias":null,"value":null}],"filterExpressions":[{"field":"Student ID","operator":"=","value":"123"},{"field":"Class ID","operator":"=","value":"234"},{"field":"Total Marks","operator":">","value":"0"},{"field":"Day","operator":"Between","from":"${fromDate}","to":"${toDate}"}],"sortBy":[{"field":"Class ID","order":"ASC"},{"field":"Total Marks","order":"DESC"}],"paginationStartIndex":0,"rowsPerPage":-1,"includeRowCount":false}
+         |{"queryType":"groupby","cube":"student_performance","reportDisplayName":null,"schema":"student","requestType":"SyncRequest","forceDimensionDriven":false,"selectFields":[{"field":"Total Marks","alias":null,"value":null},{"field":"Marks Obtained","alias":null,"value":null},{"field":"Performance Factor","alias":null,"value":null},{"field":"Day","alias":null,"value":null},{"field":"Class ID","alias":null,"value":null},{"field":"Year","alias":null,"value":null},{"field":"Group ID","alias":null,"value":null},{"field":"Student ID","alias":null,"value":null},{"field":"Remarks","alias":null,"value":null},{"field":"Batch ID","alias":null,"value":null},{"field":"Month","alias":null,"value":null},{"field":"Top Student ID","alias":null,"value":null},{"field":"Section ID","alias":null,"value":null}],"filterExpressions":[{"field":"Student ID","operator":"=","value":"123"},{"field":"Class ID","operator":"=","value":"234"},{"field":"Total Marks","operator":">","value":"0"},{"field":"Day","operator":"Between","from":"2021-11-11","to":"2021-11-18"}],"sortBy":[{"field":"Class ID","order":"ASC"},{"field":"Total Marks","order":"DESC"}],"paginationStartIndex":0,"rowsPerPage":-1,"includeRowCount":false}
          |""".stripMargin
     ser should equal (expected) (after being whiteSpaceNormalised)
 
