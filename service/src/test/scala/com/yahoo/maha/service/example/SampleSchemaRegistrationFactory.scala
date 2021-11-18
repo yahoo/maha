@@ -43,6 +43,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("batch_id", IntType(), annotations = Set(ForeignKey("batch")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+            , DimCol("group_id", IntType(), annotations = Set(ForeignKey("grp")))
             , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
@@ -69,6 +70,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("class_id", "Class ID", InEquality),
             PubCol("batch_id", "Batch ID", InEquality),
             PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
+            PubCol("group_id", "Group ID", InEquality),
             PubCol("section_id", "Section ID", InEquality),
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
@@ -146,6 +148,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("batch_id", IntType(), annotations = Set(ForeignKey("batch")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+            , DimCol("group_id", IntType(3), annotations = Set(ForeignKey("grp"))) 
             , DimCol("section_id", IntType(3), annotations = Set(ForeignKey("section")))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
@@ -165,6 +168,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("class_id", "Class ID", InEquality),
             PubCol("batch_id", "Batch ID", InEquality),
             PubCol("student_id", "Student ID", InEqualityFieldEquality),
+            PubCol("group_id", "Group ID", InNotInEquality),
             PubCol("section_id", "Section ID", InNotInEquality),
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
@@ -188,7 +192,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
         Fact.newFact(
           "student_performance", DailyGrain, OracleEngine, Set(StudentSchema),
           Set(
-            DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+              DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("batch_id", IntType(), annotations = Set(ForeignKey("batch")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
@@ -196,6 +200,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("science_lab_volunteer_id", IntType(), annotations = Set(ForeignKey("science_lab_volunteers")))
             , DimCol("tutor_id", IntType(), annotations = Set(ForeignKey("tutors")))
             , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
+            , DimCol("group_id", IntType(), annotations = Set(ForeignKey("grp"))) 
             , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
@@ -237,6 +242,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           PubCol("tutor_id", "Tutor ID", InBetweenEqualityFieldEquality),
           PubCol("lab_id", "Lab ID", InBetweenEqualityFieldEquality),
           PubCol("section_id", "Section ID", InEquality),
+          PubCol("group_id", "Group ID", InEquality),
           PubCol("date", "Day", Equality),
           PubCol("month", "Month", InEquality),
           PubCol("year", "Year", Equality),
@@ -914,6 +920,28 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
       )
     }
 
+    val group_dim: PublicDimension = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        Dimension.newDimension("grp", OracleEngine, LevelFour, Set(StudentSchema),
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
+            , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(OracleHashPartitioning)
+        ).toPublicDimension("grp","grp",
+          Set(
+            PubCol("id", "Group ID", InBetweenEqualityFieldEquality)
+            , PubCol("name", "Group Name", EqualityFieldEquality)
+            , PubCol("lab_id", "Lab ID", InEqualityFieldEquality)
+            , PubCol("student_id", "Student ID", InEqualityFieldEquality)
+          )
+        )
+      }
+    }
+
     registry.register(section_dim)
     registry.register(class_dim)
     registry.register(batch_dim)
@@ -925,5 +953,6 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
     registry.register(class_volunteer_dim)
     registry.register(science_lab_volunteer_dim)
     registry.register(tutor_dim)
+    registry.register(group_dim)
   }
 }
