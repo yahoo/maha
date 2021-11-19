@@ -178,7 +178,8 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     protoBuilder.setForceFactDriven(model.forceFactDriven)
     protoBuilder.setHasNonDrivingDimSortOrFilter(model.hasNonDrivingDimSortOrFilter)
     protoBuilder.setHasDimAndFactOperations(model.hasDimAndFactOperations)
-    protoBuilder.setFactCost(model.factCost)
+    protoBuilder.setFactCost(0,MahaRequestProto.FactCost.newBuilder().setEngine(drivingQuery.engine:MahaRequestProto.Engine.Hive).setCost(factBestCandidateOption.get.factCost))
+
     if (model.queryGrain.isDefined) {
       protoBuilder.setTimeGrain(model.queryGrain.toString)
     }
