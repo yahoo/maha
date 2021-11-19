@@ -164,6 +164,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     val drivingQuery = queryPipeline.queryChain.drivingQuery
     val model = queryPipeline.queryChain.drivingQuery.queryContext.requestModel
     val factBestCandidateOption = queryPipeline.factBestCandidate
+    val engine = MahaRequestProto.Engine.Hive
     protoBuilder.setDrivingQueryEngine(drivingQuery.engine.toString)
     protoBuilder.setDrivingTable(drivingQuery.tableName)
     protoBuilder.setQueryChainType(queryPipeline.queryChain.getClass.getSimpleName)
@@ -178,7 +179,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     protoBuilder.setForceFactDriven(model.forceFactDriven)
     protoBuilder.setHasNonDrivingDimSortOrFilter(model.hasNonDrivingDimSortOrFilter)
     protoBuilder.setHasDimAndFactOperations(model.hasDimAndFactOperations)
-    protoBuilder.setFactCost(0,MahaRequestProto.FactCost.newBuilder().setEngine(drivingQuery.engine:MahaRequestProto.Engine.Hive).setCost(factBestCandidateOption.get.factCost))
+    protoBuilder.setFactCost(0,MahaRequestProto.FactCost.newBuilder().setEngine(engine).setCost(factBestCandidateOption.get.factCost))
 
     if (model.queryGrain.isDefined) {
       protoBuilder.setTimeGrain(model.queryGrain.toString)
