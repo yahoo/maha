@@ -164,7 +164,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     val drivingQuery = queryPipeline.queryChain.drivingQuery
     val model = queryPipeline.queryChain.drivingQuery.queryContext.requestModel
     val factBestCandidateOption = queryPipeline.factBestCandidate
-    val engine = MahaRequestProto.Engine.Hive
+    val engine = queryPipeline.queryChain.drivingQuery.engine
     protoBuilder.setDrivingQueryEngine(drivingQuery.engine.toString)
     protoBuilder.setDrivingTable(drivingQuery.tableName)
     protoBuilder.setQueryChainType(queryPipeline.queryChain.getClass.getSimpleName)
