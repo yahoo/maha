@@ -1009,7 +1009,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                             , maxDaysLookBack: Option[Map[RequestType, Int]] = None
                             , availableOnwardsDate : Option[String] = None
                             , underlyingTableName: Option[String] = None
-                            , discarding: Set[String] = Set.empty)(implicit cc: ColumnContext) : FactBuilder = {
+                            , discarding: Set[String] = Set.empty
+                            , resetAliasIfNotPresent: Boolean = false)(implicit cc: ColumnContext) : FactBuilder = {
 
     require(!tableMap.contains(name), "should not export with existing table name")
     require(tableMap.nonEmpty, "no tables found")
@@ -1036,9 +1037,9 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
 
     // non engine specific columns (engine specific columns not needed) and filter out overrides
     var dimColMap = fromTable
-      .dimCols.filter(c => !c.hasEngineRequirement && !overrideDimColsByName(c.name) && !updatedDiscardingSet.contains(c.name)).map(d => d.name -> d.copyWith(cc, columnAliasMap, true)).toMap
+      .dimCols.filter(c => !c.hasEngineRequirement && !overrideDimColsByName(c.name) && !updatedDiscardingSet.contains(c.name)).map(d => d.name -> d.copyWith(cc, columnAliasMap, resetAliasIfNotPresent)).toMap
     var factColMap = fromTable
-      .factCols.filter(c => !c.hasEngineRequirement && !overrideFactColsByName(c.name) && !updatedDiscardingSet.contains(c.name)).map(f => f.name -> f.copyWith(cc, columnAliasMap, true)).toMap
+      .factCols.filter(c => !c.hasEngineRequirement && !overrideFactColsByName(c.name) && !updatedDiscardingSet.contains(c.name)).map(f => f.name -> f.copyWith(cc, columnAliasMap, resetAliasIfNotPresent)).toMap
 
     val isFromTableView = fromTable.isInstanceOf[FactView]
     // override non engine specific columns or add new columns
@@ -1146,7 +1147,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                             , maxDaysWindow: Option[Map[RequestType, Int]] = None
                             , maxDaysLookBack: Option[Map[RequestType, Int]] = None
                             , availableOnwardsDate : Option[String] = None
-                            , underlyingTableName: Option[String] = None)(implicit cc: ColumnContext) : FactBuilder = {
+                            , underlyingTableName: Option[String] = None
+                            , resetAliasIfNotPresent: Boolean = false)(implicit cc: ColumnContext) : FactBuilder = {
 
     require(!tableMap.contains(name), s"should not export with existing table name $name")
     require(tableMap.nonEmpty, "no tables found")
@@ -1171,13 +1173,13 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       .dimCols
       .filter(dim => !discarding.contains(dim.name))
       .filter(c => !c.hasEngineRequirement && !overrideDimColsByName(c.name))
-      .map(d => d.name -> d.copyWith(cc, columnAliasMap, true))
+      .map(d => d.name -> d.copyWith(cc, columnAliasMap, resetAliasIfNotPresent))
       .toMap
     var factColMap = fromTable
       .factCols
       .filter(fact => !discarding.contains(fact.name))
       .filter(c => !c.hasEngineRequirement && !overrideFactColsByName(c.name))
-      .map(f => f.name -> f.copyWith(cc, columnAliasMap, true))
+      .map(f => f.name -> f.copyWith(cc, columnAliasMap, resetAliasIfNotPresent))
       .toMap
 
     val isFromTableView = fromTable.isInstanceOf[FactView]
