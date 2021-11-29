@@ -180,10 +180,10 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     protoBuilder.setForceFactDriven(model.forceFactDriven)
     protoBuilder.setHasNonDrivingDimSortOrFilter(model.hasNonDrivingDimSortOrFilter)
     protoBuilder.setHasDimAndFactOperations(model.hasDimAndFactOperations)
-    val index = model.factCost.size - 1
-    val FactCostIterator: Iterator[FactCost] = model.factCost.iterator
-    if(factBestCandidateOption.isDefined && FactCostIterator!=null && FactCostIterator.hasNext && index >=0) {
-      protoBuilder.setFactCost(index,MahaRequestProto.FactCost.newBuilder().setEngine(engineEnum).setCost(factBestCandidateOption.get.factCost))
+
+    if(factBestCandidateOption.isDefined) {
+      protoBuilder.addFactCostBuilder().build()
+      protoBuilder.setFactCost(0,MahaRequestProto.FactCost.newBuilder().setEngine(engineEnum).setCost(factBestCandidateOption.get.factCost))
     }
     if (model.queryGrain.isDefined) {
       protoBuilder.setTimeGrain(model.queryGrain.toString)
