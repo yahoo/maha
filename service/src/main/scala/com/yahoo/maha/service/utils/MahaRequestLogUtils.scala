@@ -207,6 +207,8 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     }
 
     if(factBestCandidateOption.isDefined) {
+
+
       val factBestCandidate = factBestCandidateOption.get
       protoBuilder.setIsIndexOptimized(factBestCandidate.isIndexOptimized)
       protoBuilder.setIsGrainOptimized(factBestCandidate.isGrainOptimized)
