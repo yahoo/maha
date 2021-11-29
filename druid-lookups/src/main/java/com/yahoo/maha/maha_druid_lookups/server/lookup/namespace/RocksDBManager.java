@@ -140,6 +140,10 @@ public class RocksDBManager {
 
         final String localPath = FilenameUtils.removeExtension(localZippedFileNameWithPath);
 
+        // Cleanup of files in the lookup directory and subdirectory(timestamp) last modified older than 10 days.
+        final String retentionCleanup = String.format("%s/%s", localStorageDirectory, extractionNamespace.getNamespace());
+        FileRetention.cleanup(retentionCleanup,10);
+
         if(lastUpdate != 0 && !Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
             // this is non deployment time and kafka is configured to get real time updates, so rocksdb instance download can be delayed
             try {
