@@ -3,7 +3,6 @@
 package com.yahoo.maha.service.utils
 
 import java.util.concurrent.atomic.AtomicBoolean
-
 import com.google.common.annotations.VisibleForTesting
 import com.google.protobuf.ByteString
 import com.yahoo.maha.core.query._
@@ -11,6 +10,7 @@ import com.yahoo.maha.core.request.{AsyncRequest, ReportingRequest, SyncRequest}
 import com.yahoo.maha.core.{DimensionCandidate, RequestModel, SortByColumnInfo}
 import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
+import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost
 import com.yahoo.maha.service.MahaRequestContext
 import com.yahoo.maha.service.curators.Curator
 import org.apache.commons.codec.digest.DigestUtils
@@ -180,8 +180,10 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     protoBuilder.setForceFactDriven(model.forceFactDriven)
     protoBuilder.setHasNonDrivingDimSortOrFilter(model.hasNonDrivingDimSortOrFilter)
     protoBuilder.setHasDimAndFactOperations(model.hasDimAndFactOperations)
-    if(factBestCandidateOption.isDefined) {
-      protoBuilder.setFactCost(0, MahaRequestProto.FactCost.newBuilder().setEngine(engineEnum).setCost(factBestCandidateOption.get.factCost))
+    val index = model.factCost.size - 1
+    val FactCostIterator: Iterator[FactCost] = model.factCost.iterator
+    if(factBestCandidateOption.isDefined && FactCostIterator!=null && FactCostIterator.hasNext && index >=0) {
+      protoBuilder.setFactCost(index,MahaRequestProto.FactCost.newBuilder().setEngine(engineEnum).setCost(factBestCandidateOption.get.factCost))
     }
     if (model.queryGrain.isDefined) {
       protoBuilder.setTimeGrain(model.queryGrain.toString)
@@ -207,8 +209,6 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     }
 
     if(factBestCandidateOption.isDefined) {
-
-
       val factBestCandidate = factBestCandidateOption.get
       protoBuilder.setIsIndexOptimized(factBestCandidate.isIndexOptimized)
       protoBuilder.setIsGrainOptimized(factBestCandidate.isGrainOptimized)
