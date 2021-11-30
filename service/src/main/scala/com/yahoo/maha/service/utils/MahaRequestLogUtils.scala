@@ -123,6 +123,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
       protoBuilder.setRequestType(getRequestType(mahaRequestContext.reportingRequest))
       protoBuilder.setCube(mahaRequestContext.reportingRequest.cube)
       protoBuilder.setSchema(mahaRequestContext.reportingRequest.schema.toString)
+      protoBuilder.setNumDays(mahaRequestContext.reportingRequest.numDays)
     }
     if(mahaRequestContext.rawJson != null) {
       protoBuilder.setJson(ByteString.copyFrom(mahaRequestContext.rawJson))
@@ -181,10 +182,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     protoBuilder.setForceFactDriven(model.forceFactDriven)
     protoBuilder.setHasNonDrivingDimSortOrFilter(model.hasNonDrivingDimSortOrFilter)
     protoBuilder.setHasDimAndFactOperations(model.hasDimAndFactOperations)
-    if( reportingRequest !=null)
-    {
-      protoBuilder.setNumDays(model.reportingRequest.numDays)
-    }
+
     if(factBestCandidateOption.isDefined) {
       protoBuilder.addFactCostBuilder().build()
       protoBuilder.setFactCost(0,MahaRequestProto.FactCost.newBuilder().setEngine(engineEnum).setCost(factBestCandidateOption.get.factCost))
