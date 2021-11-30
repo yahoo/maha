@@ -180,7 +180,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     protoBuilder.setForceFactDriven(model.forceFactDriven)
     protoBuilder.setHasNonDrivingDimSortOrFilter(model.hasNonDrivingDimSortOrFilter)
     protoBuilder.setHasDimAndFactOperations(model.hasDimAndFactOperations)
-
+    protoBuilder.setNumDays(model.reportingRequest.numDays)
     if(factBestCandidateOption.isDefined) {
       protoBuilder.addFactCostBuilder().build()
       protoBuilder.setFactCost(0,MahaRequestProto.FactCost.newBuilder().setEngine(engineEnum).setCost(factBestCandidateOption.get.factCost))
