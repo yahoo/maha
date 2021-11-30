@@ -163,6 +163,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
   override def logQueryPipeline(queryPipeline: QueryPipeline): Unit = {
     val drivingQuery = queryPipeline.queryChain.drivingQuery
     val model = queryPipeline.queryChain.drivingQuery.queryContext.requestModel
+    val reportingRequest = model.reportingRequest
     val factBestCandidateOption = queryPipeline.factBestCandidate
     val engine = queryPipeline.queryChain.drivingQuery.engine
     val engineEnum = MahaRequestProto.Engine.valueOf(engine.toString)
@@ -180,7 +181,10 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     protoBuilder.setForceFactDriven(model.forceFactDriven)
     protoBuilder.setHasNonDrivingDimSortOrFilter(model.hasNonDrivingDimSortOrFilter)
     protoBuilder.setHasDimAndFactOperations(model.hasDimAndFactOperations)
-    protoBuilder.setNumDays(model.reportingRequest.numDays)
+    if( reportingRequest !=null)
+    {
+      protoBuilder.setNumDays(model.reportingRequest.numDays)
+    }
     if(factBestCandidateOption.isDefined) {
       protoBuilder.addFactCostBuilder().build()
       protoBuilder.setFactCost(0,MahaRequestProto.FactCost.newBuilder().setEngine(engineEnum).setCost(factBestCandidateOption.get.factCost))

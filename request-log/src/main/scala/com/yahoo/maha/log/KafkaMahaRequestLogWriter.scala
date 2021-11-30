@@ -85,7 +85,7 @@ class KafkaMahaRequestLogWriter(kafkaRequestLoggingConfig: KafkaRequestLoggingCo
 
   def writeMahaRequestProto(proto: MahaRequestProto): Future[RecordMetadata] = {
     validate(proto)
-    val result = writeMessage(proto)
+    val result = writeMessage(proto.)
     result
   }
 
