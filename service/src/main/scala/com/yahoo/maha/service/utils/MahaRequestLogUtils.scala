@@ -164,7 +164,6 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
   override def logQueryPipeline(queryPipeline: QueryPipeline): Unit = {
     val drivingQuery = queryPipeline.queryChain.drivingQuery
     val model = queryPipeline.queryChain.drivingQuery.queryContext.requestModel
-    val reportingRequest = model.reportingRequest
     val factBestCandidateOption = queryPipeline.factBestCandidate
     val engine = queryPipeline.queryChain.drivingQuery.engine
     val engineEnum = MahaRequestProto.Engine.valueOf(engine.toString)
