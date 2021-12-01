@@ -123,6 +123,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
       protoBuilder.setRequestType(getRequestType(mahaRequestContext.reportingRequest))
       protoBuilder.setCube(mahaRequestContext.reportingRequest.cube)
       protoBuilder.setSchema(mahaRequestContext.reportingRequest.schema.toString)
+      protoBuilder.setNumDays(mahaRequestContext.reportingRequest.numDays)
     }
     if(mahaRequestContext.rawJson != null) {
       protoBuilder.setJson(ByteString.copyFrom(mahaRequestContext.rawJson))

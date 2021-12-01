@@ -97,4 +97,5 @@ message MahaRequestProto{
   repeated string labels = 57;
   optional string requestHash = 58;
   optional string jobIdString = 59;
+  optional int64 numDays = 60;
 }
