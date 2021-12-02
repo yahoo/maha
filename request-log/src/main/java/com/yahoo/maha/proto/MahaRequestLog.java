@@ -692,6 +692,15 @@ public final class MahaRequestLog {
      */
     com.google.protobuf.ByteString
         getJobIdStringBytes();
+
+    /**
+     * <code>optional int64 numDays = 60;</code>
+     */
+    boolean hasNumDays();
+    /**
+     * <code>optional int64 numDays = 60;</code>
+     */
+    long getNumDays();
   }
   /**
    * Protobuf type {@code com.yahoo.maha.proto.MahaRequestProto}
@@ -1097,6 +1106,11 @@ public final class MahaRequestLog {
               com.google.protobuf.ByteString bs = input.readBytes();
               bitField1_ |= 0x00400000;
               jobIdString_ = bs;
+              break;
+            }
+            case 480: {
+              bitField1_ |= 0x00800000;
+              numDays_ = input.readInt64();
               break;
             }
           }
@@ -4295,6 +4309,21 @@ public final class MahaRequestLog {
       }
     }
 
+    public static final int NUMDAYS_FIELD_NUMBER = 60;
+    private long numDays_;
+    /**
+     * <code>optional int64 numDays = 60;</code>
+     */
+    public boolean hasNumDays() {
+      return ((bitField1_ & 0x00800000) == 0x00800000);
+    }
+    /**
+     * <code>optional int64 numDays = 60;</code>
+     */
+    public long getNumDays() {
+      return numDays_;
+    }
+
     private void initFields() {
       requestId_ = "";
       json_ = com.google.protobuf.ByteString.EMPTY;
@@ -4355,6 +4384,7 @@ public final class MahaRequestLog {
       labels_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       requestHash_ = "";
       jobIdString_ = "";
+      numDays_ = 0L;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -4553,6 +4583,9 @@ public final class MahaRequestLog {
       }
       if (((bitField1_ & 0x00400000) == 0x00400000)) {
         output.writeBytes(59, getJobIdStringBytes());
+      }
+      if (((bitField1_ & 0x00800000) == 0x00800000)) {
+        output.writeInt64(60, numDays_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -4809,6 +4842,10 @@ public final class MahaRequestLog {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(59, getJobIdStringBytes());
       }
+      if (((bitField1_ & 0x00800000) == 0x00800000)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(60, numDays_);
+      }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
       return size;
@@ -5054,6 +5091,8 @@ public final class MahaRequestLog {
         bitField1_ = (bitField1_ & ~0x02000000);
         jobIdString_ = "";
         bitField1_ = (bitField1_ & ~0x04000000);
+        numDays_ = 0L;
+        bitField1_ = (bitField1_ & ~0x08000000);
         return this;
       }
 
@@ -5332,6 +5371,10 @@ public final class MahaRequestLog {
           to_bitField1_ |= 0x00400000;
         }
         result.jobIdString_ = jobIdString_;
+        if (((from_bitField1_ & 0x08000000) == 0x08000000)) {
+          to_bitField1_ |= 0x00800000;
+        }
+        result.numDays_ = numDays_;
         result.bitField0_ = to_bitField0_;
         result.bitField1_ = to_bitField1_;
         onBuilt();
@@ -5625,6 +5668,9 @@ public final class MahaRequestLog {
           bitField1_ |= 0x04000000;
           jobIdString_ = other.jobIdString_;
           onChanged();
+        }
+        if (other.hasNumDays()) {
+          setNumDays(other.getNumDays());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -8983,6 +9029,38 @@ public final class MahaRequestLog {
         return this;
       }
 
+      private long numDays_ ;
+      /**
+       * <code>optional int64 numDays = 60;</code>
+       */
+      public boolean hasNumDays() {
+        return ((bitField1_ & 0x08000000) == 0x08000000);
+      }
+      /**
+       * <code>optional int64 numDays = 60;</code>
+       */
+      public long getNumDays() {
+        return numDays_;
+      }
+      /**
+       * <code>optional int64 numDays = 60;</code>
+       */
+      public Builder setNumDays(long value) {
+        bitField1_ |= 0x08000000;
+        numDays_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional int64 numDays = 60;</code>
+       */
+      public Builder clearNumDays() {
+        bitField1_ = (bitField1_ & ~0x08000000);
+        numDays_ = 0L;
+        onChanged();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:com.yahoo.maha.proto.MahaRequestProto)
     }
 
@@ -9019,7 +9097,7 @@ public final class MahaRequestLog {
   static {
     java.lang.String[] descriptorData = {
       "\n\024MahaRequestLog.proto\022\024com.yahoo.maha.p" +
-      "roto\"\351\020\n\020MahaRequestProto\022\021\n\trequestId\030\001" +
+      "roto\"\372\020\n\020MahaRequestProto\022\021\n\trequestId\030\001" +
       " \002(\t\022\014\n\004json\030\002 \002(\014\022\016\n\006userId\030\003 \001(\t\022\014\n\004cu" +
       "be\030\004 \001(\t\022\016\n\006schema\030\005 \001(\t\022\022\n\nisInternal\030\006" +
       " \001(\010\022G\n\013requestType\030\007 \001(\01622.com.yahoo.ma" +
@@ -9062,18 +9140,18 @@ public final class MahaRequestLog {
       "4 \001(\003\022\021\n\tgrainRows\0305 \001(\003\022\017\n\007isDebug\0306 \001(" +
       "\010\022\016\n\006isTest\0307 \001(\010\022\020\n\010testName\0308 \001(\t\022\016\n\006l" +
       "abels\0309 \003(\t\022\023\n\013requestHash\030: \001(\t\022\023\n\013jobI" +
-      "dString\030; \001(\t\032^\n\020SortByColumnInfo\022\r\n\005ali" +
-      "as\030\001 \001(\t\022;\n\005order\030\002 \001(\0162,.com.yahoo.maha" +
-      ".proto.MahaRequestProto.Order\032e\n\010FactCos" +
-      "t\022\014\n\004name\030\001 \001(\t\022=\n\006engine\030\002 \001(\0162-.com.ya" +
-      "hoo.maha.proto.MahaRequestProto.Engine\022\014" +
-      "\n\004cost\030\003 \001(\003\"\"\n\013RequestType\022\010\n\004SYNC\020\000\022\t\n",
-      "\005ASYNC\020\001\"\032\n\005Order\022\007\n\003ASC\020\000\022\010\n\004DESC\020\001\"5\n\006" +
-      "Engine\022\n\n\006Oracle\020\000\022\t\n\005Druid\020\001\022\010\n\004Hive\020\002\022" +
-      "\n\n\006Presto\020\003\"G\n\016AsyncJobStatus\022\r\n\tSUBMITT" +
-      "ED\020\000\022\013\n\007RUNNING\020\001\022\n\n\006FAILED\020\002\022\r\n\tCOMPLET" +
-      "ED\020\003\"\"\n\tQueueType\022\n\n\006PULSAR\020\000\022\t\n\005KAFKA\020\001" +
-      "B\020B\016MahaRequestLog"
+      "dString\030; \001(\t\022\017\n\007numDays\030< \001(\003\032^\n\020SortBy" +
+      "ColumnInfo\022\r\n\005alias\030\001 \001(\t\022;\n\005order\030\002 \001(\016" +
+      "2,.com.yahoo.maha.proto.MahaRequestProto" +
+      ".Order\032e\n\010FactCost\022\014\n\004name\030\001 \001(\t\022=\n\006engi" +
+      "ne\030\002 \001(\0162-.com.yahoo.maha.proto.MahaRequ" +
+      "estProto.Engine\022\014\n\004cost\030\003 \001(\003\"\"\n\013Request",
+      "Type\022\010\n\004SYNC\020\000\022\t\n\005ASYNC\020\001\"\032\n\005Order\022\007\n\003AS" +
+      "C\020\000\022\010\n\004DESC\020\001\"5\n\006Engine\022\n\n\006Oracle\020\000\022\t\n\005D" +
+      "ruid\020\001\022\010\n\004Hive\020\002\022\n\n\006Presto\020\003\"G\n\016AsyncJob" +
+      "Status\022\r\n\tSUBMITTED\020\000\022\013\n\007RUNNING\020\001\022\n\n\006FA" +
+      "ILED\020\002\022\r\n\tCOMPLETED\020\003\"\"\n\tQueueType\022\n\n\006PU" +
+      "LSAR\020\000\022\t\n\005KAFKA\020\001B\020B\016MahaRequestLog"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -9092,7 +9170,7 @@ public final class MahaRequestLog {
     internal_static_com_yahoo_maha_proto_MahaRequestProto_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor,
-        new java.lang.String[] { "RequestId", "Json", "UserId", "Cube", "Schema", "IsInternal", "RequestType", "DrivingQueryEngine", "DrivingTable", "QueryChainType", "FirstSubsequentQueryEngine", "FirstSubsequentQueryTable", "RequestStartTime", "RequestEndTime", "Status", "ErrorMessage", "HasFactFilters", "HasNonFKFactFilters", "HasDimFilters", "HasNonFKDimFilters", "HasFactSortBy", "HasDimSortBy", "IsFactDriven", "ForceDimDriven", "ForceFactDriven", "HasNonDrivingDimSortOrFilter", "HasDimAndFactOperations", "DimCardinalityEstimate", "RequestSortByCols", "DimensionsCandidates", "FactCost", "DrivingQueryEngineLatency", "FirstSubsequentQueryEngineLatency", "ReRunEngineQueryLatency", "ReRunEngine", "JobId", "TimeGrain", "AsyncJobStatus", "IsDryRun", "JobResultURL", "JobName", "QueueWaitingTime", "QueueType", "CubeRevision", "MahaServiceRegistryName", "MahaServiceHostname", "IsGrainOptimized", "IsIndexOptimized", "Curator", "ReRunEngineQueryTable", "IsScanOptimized", "ScanRows", "GrainRows", "IsDebug", "IsTest", "TestName", "Labels", "RequestHash", "JobIdString", });
+        new java.lang.String[] { "RequestId", "Json", "UserId", "Cube", "Schema", "IsInternal", "RequestType", "DrivingQueryEngine", "DrivingTable", "QueryChainType", "FirstSubsequentQueryEngine", "FirstSubsequentQueryTable", "RequestStartTime", "RequestEndTime", "Status", "ErrorMessage", "HasFactFilters", "HasNonFKFactFilters", "HasDimFilters", "HasNonFKDimFilters", "HasFactSortBy", "HasDimSortBy", "IsFactDriven", "ForceDimDriven", "ForceFactDriven", "HasNonDrivingDimSortOrFilter", "HasDimAndFactOperations", "DimCardinalityEstimate", "RequestSortByCols", "DimensionsCandidates", "FactCost", "DrivingQueryEngineLatency", "FirstSubsequentQueryEngineLatency", "ReRunEngineQueryLatency", "ReRunEngine", "JobId", "TimeGrain", "AsyncJobStatus", "IsDryRun", "JobResultURL", "JobName", "QueueWaitingTime", "QueueType", "CubeRevision", "MahaServiceRegistryName", "MahaServiceHostname", "IsGrainOptimized", "IsIndexOptimized", "Curator", "ReRunEngineQueryTable", "IsScanOptimized", "ScanRows", "GrainRows", "IsDebug", "IsTest", "TestName", "Labels", "RequestHash", "JobIdString", "NumDays", });
     internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_descriptor =
       internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor.getNestedTypes().get(0);
     internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_fieldAccessorTable = new

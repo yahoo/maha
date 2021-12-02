@@ -3,7 +3,6 @@
 package com.yahoo.maha.service.utils
 
 import java.util.concurrent.atomic.AtomicBoolean
-
 import com.google.common.annotations.VisibleForTesting
 import com.google.protobuf.ByteString
 import com.yahoo.maha.core.query._
@@ -11,6 +10,7 @@ import com.yahoo.maha.core.request.{AsyncRequest, ReportingRequest, SyncRequest}
 import com.yahoo.maha.core.{DimensionCandidate, RequestModel, SortByColumnInfo}
 import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
+import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost
 import com.yahoo.maha.service.MahaRequestContext
 import com.yahoo.maha.service.curators.Curator
 import org.apache.commons.codec.digest.DigestUtils
@@ -123,6 +123,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
       protoBuilder.setRequestType(getRequestType(mahaRequestContext.reportingRequest))
       protoBuilder.setCube(mahaRequestContext.reportingRequest.cube)
       protoBuilder.setSchema(mahaRequestContext.reportingRequest.schema.toString)
+      protoBuilder.setNumDays(mahaRequestContext.reportingRequest.numDays)
     }
     if(mahaRequestContext.rawJson != null) {
       protoBuilder.setJson(ByteString.copyFrom(mahaRequestContext.rawJson))
@@ -164,6 +165,8 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     val drivingQuery = queryPipeline.queryChain.drivingQuery
     val model = queryPipeline.queryChain.drivingQuery.queryContext.requestModel
     val factBestCandidateOption = queryPipeline.factBestCandidate
+    val engine = queryPipeline.queryChain.drivingQuery.engine
+    val engineEnum = MahaRequestProto.Engine.valueOf(engine.toString)
     protoBuilder.setDrivingQueryEngine(drivingQuery.engine.toString)
     protoBuilder.setDrivingTable(drivingQuery.tableName)
     protoBuilder.setQueryChainType(queryPipeline.queryChain.getClass.getSimpleName)
@@ -178,6 +181,11 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     protoBuilder.setForceFactDriven(model.forceFactDriven)
     protoBuilder.setHasNonDrivingDimSortOrFilter(model.hasNonDrivingDimSortOrFilter)
     protoBuilder.setHasDimAndFactOperations(model.hasDimAndFactOperations)
+
+    if(factBestCandidateOption.isDefined) {
+      protoBuilder.addFactCostBuilder().build()
+      protoBuilder.setFactCost(0,MahaRequestProto.FactCost.newBuilder().setEngine(engineEnum).setCost(factBestCandidateOption.get.factCost))
+    }
     if (model.queryGrain.isDefined) {
       protoBuilder.setTimeGrain(model.queryGrain.toString)
     }
