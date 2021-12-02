@@ -5,7 +5,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>6.77-SNAPSHOT</version>
+        <version>6.78-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -111,11 +111,11 @@
                     <artifactId>httpcore</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.codehaus.jackson</groupId>
+                    <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-core-asl</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.codehaus.jackson</groupId>
+                    <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-mapper-asl</artifactId>
                 </exclusion>
                 <exclusion>
@@ -284,7 +284,7 @@
         <dependency>
             <groupId>org.apache.druid</groupId>
             <artifactId>druid-server</artifactId>
-            <version>0.17.1</version>
+            <version>0.21.1</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
