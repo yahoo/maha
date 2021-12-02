@@ -222,16 +222,17 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
             // http://www.javamex.com/tutorials/double_checked_locking.shtml
             synchronized (delegateLock) {
                 if (null == delegate) {
-                    Preconditions.checkArgument(manager.get(getLookup()).isPresent(), "Lookup [%s] not found", getLookup());
                     delegate = new MahaLookupExtractionFn(
-                            manager.get(getLookup()).get().getLookupExtractorFactory().get(),
-                            isRetainMissingValue(),
-                            getReplaceMissingValueWith(),
-                            isInjective(),
-                            isOptimize(),
-                            valueColumn,
-                            decodeConfig,
-                            dimensionOverrideMap
+                            Preconditions.checkNotNull(manager.get(getLookup())
+                                    , "Lookup [%s] not found", getLookup()
+                            ).getLookupExtractorFactory().get()
+                            , isRetainMissingValue()
+                            , getReplaceMissingValueWith()
+                            , isInjective()
+                            , isOptimize()
+                            , valueColumn
+                            , decodeConfig
+                            , dimensionOverrideMap
                     );
                 }
             }
