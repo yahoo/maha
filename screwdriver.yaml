@@ -18,6 +18,7 @@ jobs:
       - COVERALLS_REPO_TOKEN
     steps:
       - build: mvn -B clean install
+      - depTree: mvn dependency:tree
 
   main:
     secrets:
