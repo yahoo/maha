@@ -1,6 +1,7 @@
 cache:
   pipeline: ["~/.m2"]
 
+
 shared:
   annotations:
     screwdriver.cd/cpu: TURBO
