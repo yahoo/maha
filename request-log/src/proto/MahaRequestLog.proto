@@ -98,4 +98,15 @@ message MahaRequestProto{
   optional string requestHash = 58;
   optional string jobIdString = 59;
   optional int64 numDays = 60;
+  enum WorkerStatus {
+    RUNNING = 0;
+    FAILED = 1;
+    RETRIED = 2;
+    GRID_TIMEOUT = 3;
+    TRANSFORMATION_FAILED = 4;
+    MOBSTORE_FAILED = 5;
+    COMPLETED = 6;
+    SUBMITTED = 7;
+    }
+    optional WorkerStatus workerStatus = 61;
 }
