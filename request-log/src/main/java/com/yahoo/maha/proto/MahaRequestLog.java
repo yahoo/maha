@@ -701,6 +701,15 @@ public final class MahaRequestLog {
      * <code>optional int64 numDays = 60;</code>
      */
     long getNumDays();
+
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+     */
+    boolean hasWorkerStatus();
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+     */
+    com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus getWorkerStatus();
   }
   /**
    * Protobuf type {@code com.yahoo.maha.proto.MahaRequestProto}
@@ -1111,6 +1120,17 @@ public final class MahaRequestLog {
             case 480: {
               bitField1_ |= 0x00800000;
               numDays_ = input.readInt64();
+              break;
+            }
+            case 488: {
+              int rawValue = input.readEnum();
+              com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus value = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.valueOf(rawValue);
+              if (value == null) {
+                unknownFields.mergeVarintField(61, rawValue);
+              } else {
+                bitField1_ |= 0x01000000;
+                workerStatus_ = value;
+              }
               break;
             }
           }
@@ -1608,6 +1628,142 @@ public final class MahaRequestLog {
       }
 
       // @@protoc_insertion_point(enum_scope:com.yahoo.maha.proto.MahaRequestProto.QueueType)
+    }
+
+    /**
+     * Protobuf enum {@code com.yahoo.maha.proto.MahaRequestProto.WorkerStatus}
+     */
+    public enum WorkerStatus
+        implements com.google.protobuf.ProtocolMessageEnum {
+      /**
+       * <code>WORKER_RUNNING = 0;</code>
+       */
+      WORKER_RUNNING(0, 0),
+      /**
+       * <code>WORKER_FAILED = 1;</code>
+       */
+      WORKER_FAILED(1, 1),
+      /**
+       * <code>WORKER_RETRIED = 2;</code>
+       */
+      WORKER_RETRIED(2, 2),
+      /**
+       * <code>WORKER_GRID_TIMEOUT = 3;</code>
+       */
+      WORKER_GRID_TIMEOUT(3, 3),
+      /**
+       * <code>WORKER_TRANSFORMATION_FAILED = 4;</code>
+       */
+      WORKER_TRANSFORMATION_FAILED(4, 4),
+      /**
+       * <code>WORKER_RESULT_STORE_FAILED = 5;</code>
+       */
+      WORKER_RESULT_STORE_FAILED(5, 5),
+      /**
+       * <code>WORKER_COMPLETED = 6;</code>
+       */
+      WORKER_COMPLETED(6, 6),
+      /**
+       * <code>WORKER_SUBMITTED = 7;</code>
+       */
+      WORKER_SUBMITTED(7, 7),
+      ;
+
+      /**
+       * <code>WORKER_RUNNING = 0;</code>
+       */
+      public static final int WORKER_RUNNING_VALUE = 0;
+      /**
+       * <code>WORKER_FAILED = 1;</code>
+       */
+      public static final int WORKER_FAILED_VALUE = 1;
+      /**
+       * <code>WORKER_RETRIED = 2;</code>
+       */
+      public static final int WORKER_RETRIED_VALUE = 2;
+      /**
+       * <code>WORKER_GRID_TIMEOUT = 3;</code>
+       */
+      public static final int WORKER_GRID_TIMEOUT_VALUE = 3;
+      /**
+       * <code>WORKER_TRANSFORMATION_FAILED = 4;</code>
+       */
+      public static final int WORKER_TRANSFORMATION_FAILED_VALUE = 4;
+      /**
+       * <code>WORKER_RESULT_STORE_FAILED = 5;</code>
+       */
+      public static final int WORKER_RESULT_STORE_FAILED_VALUE = 5;
+      /**
+       * <code>WORKER_COMPLETED = 6;</code>
+       */
+      public static final int WORKER_COMPLETED_VALUE = 6;
+      /**
+       * <code>WORKER_SUBMITTED = 7;</code>
+       */
+      public static final int WORKER_SUBMITTED_VALUE = 7;
+
+
+      public final int getNumber() { return value; }
+
+      public static WorkerStatus valueOf(int value) {
+        switch (value) {
+          case 0: return WORKER_RUNNING;
+          case 1: return WORKER_FAILED;
+          case 2: return WORKER_RETRIED;
+          case 3: return WORKER_GRID_TIMEOUT;
+          case 4: return WORKER_TRANSFORMATION_FAILED;
+          case 5: return WORKER_RESULT_STORE_FAILED;
+          case 6: return WORKER_COMPLETED;
+          case 7: return WORKER_SUBMITTED;
+          default: return null;
+        }
+      }
+
+      public static com.google.protobuf.Internal.EnumLiteMap<WorkerStatus>
+          internalGetValueMap() {
+        return internalValueMap;
+      }
+      private static com.google.protobuf.Internal.EnumLiteMap<WorkerStatus>
+          internalValueMap =
+            new com.google.protobuf.Internal.EnumLiteMap<WorkerStatus>() {
+              public WorkerStatus findValueByNumber(int number) {
+                return WorkerStatus.valueOf(number);
+              }
+            };
+
+      public final com.google.protobuf.Descriptors.EnumValueDescriptor
+          getValueDescriptor() {
+        return getDescriptor().getValues().get(index);
+      }
+      public final com.google.protobuf.Descriptors.EnumDescriptor
+          getDescriptorForType() {
+        return getDescriptor();
+      }
+      public static final com.google.protobuf.Descriptors.EnumDescriptor
+          getDescriptor() {
+        return com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.getDescriptor().getEnumTypes().get(5);
+      }
+
+      private static final WorkerStatus[] VALUES = values();
+
+      public static WorkerStatus valueOf(
+          com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+        if (desc.getType() != getDescriptor()) {
+          throw new java.lang.IllegalArgumentException(
+            "EnumValueDescriptor is not for this type.");
+        }
+        return VALUES[desc.getIndex()];
+      }
+
+      private final int index;
+      private final int value;
+
+      private WorkerStatus(int index, int value) {
+        this.index = index;
+        this.value = value;
+      }
+
+      // @@protoc_insertion_point(enum_scope:com.yahoo.maha.proto.MahaRequestProto.WorkerStatus)
     }
 
     public interface SortByColumnInfoOrBuilder extends
@@ -4324,6 +4480,21 @@ public final class MahaRequestLog {
       return numDays_;
     }
 
+    public static final int WORKERSTATUS_FIELD_NUMBER = 61;
+    private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus workerStatus_;
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+     */
+    public boolean hasWorkerStatus() {
+      return ((bitField1_ & 0x01000000) == 0x01000000);
+    }
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+     */
+    public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus getWorkerStatus() {
+      return workerStatus_;
+    }
+
     private void initFields() {
       requestId_ = "";
       json_ = com.google.protobuf.ByteString.EMPTY;
@@ -4385,6 +4556,7 @@ public final class MahaRequestLog {
       requestHash_ = "";
       jobIdString_ = "";
       numDays_ = 0L;
+      workerStatus_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.WORKER_RUNNING;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -4586,6 +4758,9 @@ public final class MahaRequestLog {
       }
       if (((bitField1_ & 0x00800000) == 0x00800000)) {
         output.writeInt64(60, numDays_);
+      }
+      if (((bitField1_ & 0x01000000) == 0x01000000)) {
+        output.writeEnum(61, workerStatus_.getNumber());
       }
       getUnknownFields().writeTo(output);
     }
@@ -4846,6 +5021,10 @@ public final class MahaRequestLog {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(60, numDays_);
       }
+      if (((bitField1_ & 0x01000000) == 0x01000000)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeEnumSize(61, workerStatus_.getNumber());
+      }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
       return size;
@@ -5093,6 +5272,8 @@ public final class MahaRequestLog {
         bitField1_ = (bitField1_ & ~0x04000000);
         numDays_ = 0L;
         bitField1_ = (bitField1_ & ~0x08000000);
+        workerStatus_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.WORKER_RUNNING;
+        bitField1_ = (bitField1_ & ~0x10000000);
         return this;
       }
 
@@ -5375,6 +5556,10 @@ public final class MahaRequestLog {
           to_bitField1_ |= 0x00800000;
         }
         result.numDays_ = numDays_;
+        if (((from_bitField1_ & 0x10000000) == 0x10000000)) {
+          to_bitField1_ |= 0x01000000;
+        }
+        result.workerStatus_ = workerStatus_;
         result.bitField0_ = to_bitField0_;
         result.bitField1_ = to_bitField1_;
         onBuilt();
@@ -5671,6 +5856,9 @@ public final class MahaRequestLog {
         }
         if (other.hasNumDays()) {
           setNumDays(other.getNumDays());
+        }
+        if (other.hasWorkerStatus()) {
+          setWorkerStatus(other.getWorkerStatus());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -9061,6 +9249,41 @@ public final class MahaRequestLog {
         return this;
       }
 
+      private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus workerStatus_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.WORKER_RUNNING;
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+       */
+      public boolean hasWorkerStatus() {
+        return ((bitField1_ & 0x10000000) == 0x10000000);
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+       */
+      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus getWorkerStatus() {
+        return workerStatus_;
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+       */
+      public Builder setWorkerStatus(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        bitField1_ |= 0x10000000;
+        workerStatus_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+       */
+      public Builder clearWorkerStatus() {
+        bitField1_ = (bitField1_ & ~0x10000000);
+        workerStatus_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.WORKER_RUNNING;
+        onChanged();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:com.yahoo.maha.proto.MahaRequestProto)
     }
 
@@ -9097,7 +9320,7 @@ public final class MahaRequestLog {
   static {
     java.lang.String[] descriptorData = {
       "\n\024MahaRequestLog.proto\022\024com.yahoo.maha.p" +
-      "roto\"\372\020\n\020MahaRequestProto\022\021\n\trequestId\030\001" +
+      "roto\"\230\023\n\020MahaRequestProto\022\021\n\trequestId\030\001" +
       " \002(\t\022\014\n\004json\030\002 \002(\014\022\016\n\006userId\030\003 \001(\t\022\014\n\004cu" +
       "be\030\004 \001(\t\022\016\n\006schema\030\005 \001(\t\022\022\n\nisInternal\030\006" +
       " \001(\010\022G\n\013requestType\030\007 \001(\01622.com.yahoo.ma" +
@@ -9140,18 +9363,26 @@ public final class MahaRequestLog {
       "4 \001(\003\022\021\n\tgrainRows\0305 \001(\003\022\017\n\007isDebug\0306 \001(" +
       "\010\022\016\n\006isTest\0307 \001(\010\022\020\n\010testName\0308 \001(\t\022\016\n\006l" +
       "abels\0309 \003(\t\022\023\n\013requestHash\030: \001(\t\022\023\n\013jobI" +
-      "dString\030; \001(\t\022\017\n\007numDays\030< \001(\003\032^\n\020SortBy" +
-      "ColumnInfo\022\r\n\005alias\030\001 \001(\t\022;\n\005order\030\002 \001(\016" +
-      "2,.com.yahoo.maha.proto.MahaRequestProto" +
-      ".Order\032e\n\010FactCost\022\014\n\004name\030\001 \001(\t\022=\n\006engi" +
-      "ne\030\002 \001(\0162-.com.yahoo.maha.proto.MahaRequ" +
-      "estProto.Engine\022\014\n\004cost\030\003 \001(\003\"\"\n\013Request",
-      "Type\022\010\n\004SYNC\020\000\022\t\n\005ASYNC\020\001\"\032\n\005Order\022\007\n\003AS" +
-      "C\020\000\022\010\n\004DESC\020\001\"5\n\006Engine\022\n\n\006Oracle\020\000\022\t\n\005D" +
-      "ruid\020\001\022\010\n\004Hive\020\002\022\n\n\006Presto\020\003\"G\n\016AsyncJob" +
-      "Status\022\r\n\tSUBMITTED\020\000\022\013\n\007RUNNING\020\001\022\n\n\006FA" +
-      "ILED\020\002\022\r\n\tCOMPLETED\020\003\"\"\n\tQueueType\022\n\n\006PU" +
-      "LSAR\020\000\022\t\n\005KAFKA\020\001B\020B\016MahaRequestLog"
+      "dString\030; \001(\t\022\017\n\007numDays\030< \001(\003\022I\n\014worker" +
+      "Status\030= \001(\01623.com.yahoo.maha.proto.Maha" +
+      "RequestProto.WorkerStatus\032^\n\020SortByColum" +
+      "nInfo\022\r\n\005alias\030\001 \001(\t\022;\n\005order\030\002 \001(\0162,.co" +
+      "m.yahoo.maha.proto.MahaRequestProto.Orde" +
+      "r\032e\n\010FactCost\022\014\n\004name\030\001 \001(\t\022=\n\006engine\030\002 ",
+      "\001(\0162-.com.yahoo.maha.proto.MahaRequestPr" +
+      "oto.Engine\022\014\n\004cost\030\003 \001(\003\"\"\n\013RequestType\022" +
+      "\010\n\004SYNC\020\000\022\t\n\005ASYNC\020\001\"\032\n\005Order\022\007\n\003ASC\020\000\022\010" +
+      "\n\004DESC\020\001\"5\n\006Engine\022\n\n\006Oracle\020\000\022\t\n\005Druid\020" +
+      "\001\022\010\n\004Hive\020\002\022\n\n\006Presto\020\003\"G\n\016AsyncJobStatu" +
+      "s\022\r\n\tSUBMITTED\020\000\022\013\n\007RUNNING\020\001\022\n\n\006FAILED\020" +
+      "\002\022\r\n\tCOMPLETED\020\003\"\"\n\tQueueType\022\n\n\006PULSAR\020" +
+      "\000\022\t\n\005KAFKA\020\001\"\320\001\n\014WorkerStatus\022\022\n\016WORKER_" +
+      "RUNNING\020\000\022\021\n\rWORKER_FAILED\020\001\022\022\n\016WORKER_R" +
+      "ETRIED\020\002\022\027\n\023WORKER_GRID_TIMEOUT\020\003\022 \n\034WOR",
+      "KER_TRANSFORMATION_FAILED\020\004\022\036\n\032WORKER_RE" +
+      "SULT_STORE_FAILED\020\005\022\024\n\020WORKER_COMPLETED\020" +
+      "\006\022\024\n\020WORKER_SUBMITTED\020\007B\020B\016MahaRequestLo" +
+      "g"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -9170,7 +9401,7 @@ public final class MahaRequestLog {
     internal_static_com_yahoo_maha_proto_MahaRequestProto_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor,
-        new java.lang.String[] { "RequestId", "Json", "UserId", "Cube", "Schema", "IsInternal", "RequestType", "DrivingQueryEngine", "DrivingTable", "QueryChainType", "FirstSubsequentQueryEngine", "FirstSubsequentQueryTable", "RequestStartTime", "RequestEndTime", "Status", "ErrorMessage", "HasFactFilters", "HasNonFKFactFilters", "HasDimFilters", "HasNonFKDimFilters", "HasFactSortBy", "HasDimSortBy", "IsFactDriven", "ForceDimDriven", "ForceFactDriven", "HasNonDrivingDimSortOrFilter", "HasDimAndFactOperations", "DimCardinalityEstimate", "RequestSortByCols", "DimensionsCandidates", "FactCost", "DrivingQueryEngineLatency", "FirstSubsequentQueryEngineLatency", "ReRunEngineQueryLatency", "ReRunEngine", "JobId", "TimeGrain", "AsyncJobStatus", "IsDryRun", "JobResultURL", "JobName", "QueueWaitingTime", "QueueType", "CubeRevision", "MahaServiceRegistryName", "MahaServiceHostname", "IsGrainOptimized", "IsIndexOptimized", "Curator", "ReRunEngineQueryTable", "IsScanOptimized", "ScanRows", "GrainRows", "IsDebug", "IsTest", "TestName", "Labels", "RequestHash", "JobIdString", "NumDays", });
+        new java.lang.String[] { "RequestId", "Json", "UserId", "Cube", "Schema", "IsInternal", "RequestType", "DrivingQueryEngine", "DrivingTable", "QueryChainType", "FirstSubsequentQueryEngine", "FirstSubsequentQueryTable", "RequestStartTime", "RequestEndTime", "Status", "ErrorMessage", "HasFactFilters", "HasNonFKFactFilters", "HasDimFilters", "HasNonFKDimFilters", "HasFactSortBy", "HasDimSortBy", "IsFactDriven", "ForceDimDriven", "ForceFactDriven", "HasNonDrivingDimSortOrFilter", "HasDimAndFactOperations", "DimCardinalityEstimate", "RequestSortByCols", "DimensionsCandidates", "FactCost", "DrivingQueryEngineLatency", "FirstSubsequentQueryEngineLatency", "ReRunEngineQueryLatency", "ReRunEngine", "JobId", "TimeGrain", "AsyncJobStatus", "IsDryRun", "JobResultURL", "JobName", "QueueWaitingTime", "QueueType", "CubeRevision", "MahaServiceRegistryName", "MahaServiceHostname", "IsGrainOptimized", "IsIndexOptimized", "Curator", "ReRunEngineQueryTable", "IsScanOptimized", "ScanRows", "GrainRows", "IsDebug", "IsTest", "TestName", "Labels", "RequestHash", "JobIdString", "NumDays", "WorkerStatus", });
     internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_descriptor =
       internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor.getNestedTypes().get(0);
     internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_fieldAccessorTable = new
