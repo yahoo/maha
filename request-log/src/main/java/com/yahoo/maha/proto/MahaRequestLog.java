@@ -1656,9 +1656,9 @@ public final class MahaRequestLog {
        */
       WORKER_TRANSFORMATION_FAILED(4, 4),
       /**
-       * <code>WORKER_MOBSTORE_FAILED = 5;</code>
+       * <code>WORKER_RESULT_STORE_FAILED = 5;</code>
        */
-      WORKER_MOBSTORE_FAILED(5, 5),
+      WORKER_RESULT_STORE_FAILED(5, 5),
       /**
        * <code>WORKER_COMPLETED = 6;</code>
        */
@@ -1690,9 +1690,9 @@ public final class MahaRequestLog {
        */
       public static final int WORKER_TRANSFORMATION_FAILED_VALUE = 4;
       /**
-       * <code>WORKER_MOBSTORE_FAILED = 5;</code>
+       * <code>WORKER_RESULT_STORE_FAILED = 5;</code>
        */
-      public static final int WORKER_MOBSTORE_FAILED_VALUE = 5;
+      public static final int WORKER_RESULT_STORE_FAILED_VALUE = 5;
       /**
        * <code>WORKER_COMPLETED = 6;</code>
        */
@@ -1712,7 +1712,7 @@ public final class MahaRequestLog {
           case 2: return WORKER_RETRIED;
           case 3: return WORKER_GRID_TIMEOUT;
           case 4: return WORKER_TRANSFORMATION_FAILED;
-          case 5: return WORKER_MOBSTORE_FAILED;
+          case 5: return WORKER_RESULT_STORE_FAILED;
           case 6: return WORKER_COMPLETED;
           case 7: return WORKER_SUBMITTED;
           default: return null;
@@ -9320,7 +9320,7 @@ public final class MahaRequestLog {
   static {
     java.lang.String[] descriptorData = {
       "\n\024MahaRequestLog.proto\022\024com.yahoo.maha.p" +
-      "roto\"\224\023\n\020MahaRequestProto\022\021\n\trequestId\030\001" +
+      "roto\"\230\023\n\020MahaRequestProto\022\021\n\trequestId\030\001" +
       " \002(\t\022\014\n\004json\030\002 \002(\014\022\016\n\006userId\030\003 \001(\t\022\014\n\004cu" +
       "be\030\004 \001(\t\022\016\n\006schema\030\005 \001(\t\022\022\n\nisInternal\030\006" +
       " \001(\010\022G\n\013requestType\030\007 \001(\01622.com.yahoo.ma" +
@@ -9376,12 +9376,13 @@ public final class MahaRequestLog {
       "\001\022\010\n\004Hive\020\002\022\n\n\006Presto\020\003\"G\n\016AsyncJobStatu" +
       "s\022\r\n\tSUBMITTED\020\000\022\013\n\007RUNNING\020\001\022\n\n\006FAILED\020" +
       "\002\022\r\n\tCOMPLETED\020\003\"\"\n\tQueueType\022\n\n\006PULSAR\020" +
-      "\000\022\t\n\005KAFKA\020\001\"\314\001\n\014WorkerStatus\022\022\n\016WORKER_" +
+      "\000\022\t\n\005KAFKA\020\001\"\320\001\n\014WorkerStatus\022\022\n\016WORKER_" +
       "RUNNING\020\000\022\021\n\rWORKER_FAILED\020\001\022\022\n\016WORKER_R" +
       "ETRIED\020\002\022\027\n\023WORKER_GRID_TIMEOUT\020\003\022 \n\034WOR",
-      "KER_TRANSFORMATION_FAILED\020\004\022\032\n\026WORKER_MO" +
-      "BSTORE_FAILED\020\005\022\024\n\020WORKER_COMPLETED\020\006\022\024\n" +
-      "\020WORKER_SUBMITTED\020\007B\020B\016MahaRequestLog"
+      "KER_TRANSFORMATION_FAILED\020\004\022\036\n\032WORKER_RE" +
+      "SULT_STORE_FAILED\020\005\022\024\n\020WORKER_COMPLETED\020" +
+      "\006\022\024\n\020WORKER_SUBMITTED\020\007B\020B\016MahaRequestLo" +
+      "g"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
