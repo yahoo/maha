@@ -24,11 +24,11 @@ public class MongoLookupExtractor<U extends List<String>> extends OnlineDatastor
 
     @Override
     public boolean canIterate() {
-        return false;
+        return true;
     }
 
     @Override
     public Iterable<Map.Entry<String, String>> iterable() {
-        return null;
+        return new java.util.HashMap<String, String>().entrySet();
     }
 }
