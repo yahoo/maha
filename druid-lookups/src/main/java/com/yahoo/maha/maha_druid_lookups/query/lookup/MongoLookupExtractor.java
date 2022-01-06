@@ -29,6 +29,6 @@ public class MongoLookupExtractor<U extends List<String>> extends OnlineDatastor
 
     @Override
     public Iterable<Map.Entry<String, String>> iterable() {
-        return new java.util.HashMap<String, String>().entrySet();
+        return staticMap.entrySet();
     }
 }

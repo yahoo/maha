@@ -41,6 +41,6 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
     @Override
     public Iterable<Map.Entry<String, String>> iterable() {
-        return new java.util.HashMap<String, String>().entrySet();
+        return staticMap.entrySet();
     }
 }
