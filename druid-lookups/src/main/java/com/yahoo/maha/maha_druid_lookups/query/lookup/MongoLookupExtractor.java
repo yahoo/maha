@@ -22,4 +22,13 @@ public class MongoLookupExtractor<U extends List<String>> extends OnlineDatastor
         return LOG;
     }
 
+    @Override
+    public boolean canIterate() {
+        return false;
+    }
+
+    @Override
+    public Iterable<Map.Entry<String, String>> iterable() {
+        return null;
+    }
 }

@@ -70,7 +70,7 @@ public class RocksDBExtractionNamespaceCacheFactory
                     emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_SUCCESS, 1));
                     return loadTime;
                 } catch(Exception e) {
-                    LOG.wtf(e, "Caught exception while RocksDB creation, error: %s, lastVersion: [%s]", e.getMessage(), lastVersion);
+                    LOG.error(e, "Caught exception while RocksDB creation, error: %s, lastVersion: [%s]", e.getMessage(), lastVersion);
                     emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_FAILURE, 1));
                     return lastVersion;
                 }
