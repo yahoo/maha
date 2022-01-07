@@ -15,8 +15,6 @@ abstract public class MahaLookupExtractor extends LookupExtractor {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    protected static final Map<String, String> staticMap = new java.util.HashMap<>();
-
     @Nullable
     public abstract String apply(@Nullable String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap);
 

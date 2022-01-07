@@ -27,14 +27,4 @@ public class RocksDBDynamicLookupExtractor<U> extends BaseRocksDBLookupExtractor
     public byte[] getCacheByteValue(String key, String valueColumn, Optional<DecodeConfig> decodeConfigOptional, RocksDB db) {
         return dynamicCacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, schemaManager, lookupService, serviceEmitter, extractionNamespace);
     }
-
-    @Override
-    public boolean canIterate() {
-        return true;
-    }
-
-    @Override
-    public Iterable<Map.Entry<String, String>> iterable() {
-        return staticMap.entrySet();
-    }
 }
