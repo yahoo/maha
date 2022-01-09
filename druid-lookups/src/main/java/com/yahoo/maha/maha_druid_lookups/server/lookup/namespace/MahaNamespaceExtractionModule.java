@@ -29,8 +29,10 @@ import org.apache.druid.guice.LifecycleModule;
 import org.apache.druid.guice.PolyBind;
 import org.apache.druid.guice.annotations.Json;
 import org.apache.druid.initialization.DruidModule;
+import org.apache.druid.query.lookup.*;
 import org.apache.druid.sql.calcite.expression.SqlOperatorConversion;
-import org.apache.druid.sql.guice.SqlModule;
+import org.apache.druid.sql.calcite.schema.*;
+import org.apache.druid.sql.guice.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -56,6 +58,7 @@ public class MahaNamespaceExtractionModule implements DruidModule
                 new SimpleModule("DruidNamespacedCachedExtractionModule")
                         .registerSubtypes(MahaLookupExtractorFactory.class)
                         .registerSubtypes(MahaRegisteredLookupExtractionFn.class)
+
         );
     }
 
@@ -174,11 +177,19 @@ public class MahaNamespaceExtractionModule implements DruidModule
                 .to(JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower.class)
                 .in(LazySingleton.class);
 
-        Multibinder.newSetBinder(binder, SqlOperatorConversion.class).addBinding().to(MahaLookupOperatorConversion.class);
+       // Multibinder.newSetBinder(binder, SqlOperatorConversion.class).addBinding().to(MahaLookupOperatorConversion.class);
+
+        //new LookupModule().configure(binder);
+
+
 
         LifecycleModule.register(binder, RocksDBManager.class);
         LifecycleModule.register(binder, KafkaManager.class);
         LifecycleModule.register(binder, LookupService.class);
+
+        SqlBindings.addOperatorConversion(binder, MahaLookupOperatorConversion.class);
+        binder.bind(LookupSchema.class).in(Scopes.SINGLETON);
+
         Jerseys.addResource(binder, MahaNamespacesCacheResource.class);
     }
 }

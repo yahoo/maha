@@ -14,10 +14,7 @@ import org.apache.druid.guice.JsonConfigProvider;
 import org.apache.druid.guice.annotations.Self;
 import org.apache.druid.initialization.Initialization;
 import org.apache.druid.query.extraction.ExtractionFn;
-import org.apache.druid.query.lookup.LookupExtractor;
-import org.apache.druid.query.lookup.LookupExtractorFactory;
-import org.apache.druid.query.lookup.LookupExtractorFactoryContainer;
-import org.apache.druid.query.lookup.LookupReferencesManager;
+import org.apache.druid.query.lookup.*;
 import org.apache.druid.server.DruidNode;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -72,6 +69,7 @@ public class MahaLookupExtractionFactoryTest extends TestMongoServer {
         injector = Initialization.makeInjectorWithModules(
                 injector,
                 ImmutableList.of(
+                        binder -> new LookupModule().configure(binder),
                         binder -> {
                             JsonConfigProvider.bindInstance(
                                     binder,
