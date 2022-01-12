@@ -166,7 +166,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
         final NamespaceImplData implDatum = implData.get(namespaceName);
         if (implDatum == null) {
             // Delete but we don't have it?
-            log.wtf("Asked to delete something I just lost [%s]", namespaceName);
+            log.error("Asked to delete something I just lost [%s]", namespaceName);
             return false;
         }
         return delete(namespaceName);
@@ -376,7 +376,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
                 throw new IAE("Namespace [%s] already exists! Leaving prior running", namespace);
             } else {
                 if (!me.enabled.compareAndSet(false, true)) {
-                    log.wtf("How did someone enable this before ME?");
+                    log.error("How did someone enable this before ME?");
                 }
                 log.debug("I own namespace [%s]", id);
                 return future;
