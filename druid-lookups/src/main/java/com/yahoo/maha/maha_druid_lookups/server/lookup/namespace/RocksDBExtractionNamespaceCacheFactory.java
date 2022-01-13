@@ -17,7 +17,6 @@ import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
-import org.apache.druid.query.lookup.*;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
@@ -47,7 +46,6 @@ public class RocksDBExtractionNamespaceCacheFactory
     DynamicLookupSchemaManager dynamicLookupSchemaManager;
 
 
-
     @Override
     public Callable<String> getCachePopulator(
             final String id,
@@ -72,7 +70,7 @@ public class RocksDBExtractionNamespaceCacheFactory
                     emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_SUCCESS, 1));
                     return loadTime;
                 } catch(Exception e) {
-                    LOG.error(e, "Caught exception while RocksDB creation, error: %s, lastVersion: [%s]", e.getMessage(), lastVersion);
+                    LOG.wtf(e, "Caught exception while RocksDB creation, error: %s, lastVersion: [%s]", e.getMessage(), lastVersion);
                     emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_FAILURE, 1));
                     return lastVersion;
                 }

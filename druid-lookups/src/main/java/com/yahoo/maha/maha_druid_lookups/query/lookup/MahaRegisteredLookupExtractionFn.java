@@ -18,7 +18,8 @@ import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Strings;
@@ -221,18 +222,17 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
             // http://www.javamex.com/tutorials/double_checked_locking.shtml
             synchronized (delegateLock) {
                 if (null == delegate) {
-                    //manager.start();
-                    LOG.info("Available Lookups ##################### : "+Arrays.toString(manager.getAllLookupNames().toArray()));
-                    Preconditions.checkArgument(manager.get(getLookup()).isPresent(), "Lookup [%s] not found", getLookup());
                     delegate = new MahaLookupExtractionFn(
-                            manager.get(getLookup()).get().getLookupExtractorFactory().get(),
-                            isRetainMissingValue(),
-                            getReplaceMissingValueWith(),
-                            isInjective(),
-                            isOptimize(),
-                            valueColumn,
-                            decodeConfig,
-                            dimensionOverrideMap
+                            Preconditions.checkNotNull(manager.get(getLookup())
+                                    , "Lookup [%s] not found", getLookup()
+                            ).getLookupExtractorFactory().get()
+                            , isRetainMissingValue()
+                            , getReplaceMissingValueWith()
+                            , isInjective()
+                            , isOptimize()
+                            , valueColumn
+                            , decodeConfig
+                            , dimensionOverrideMap
                     );
                 }
             }
