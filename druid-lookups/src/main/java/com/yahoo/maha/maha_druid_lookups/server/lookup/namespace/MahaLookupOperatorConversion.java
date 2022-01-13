@@ -30,7 +30,7 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
 
     private static final SqlFunction SQL_FUNCTION = OperatorConversions
             .operatorBuilder(DRUID_FUNC_NAME)
-            .operandTypes(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)
+            .operandTypes(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)
             .returnTypeNullable(SqlTypeName.VARCHAR)
             .requiredOperands(3)
             .functionCategory(SqlFunctionCategory.USER_DEFINED_FUNCTION)
