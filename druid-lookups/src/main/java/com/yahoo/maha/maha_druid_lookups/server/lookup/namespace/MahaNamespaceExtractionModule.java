@@ -8,11 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.inject.Binder;
-import com.google.inject.Key;
-import com.google.inject.Provides;
+import com.google.inject.*;
 import com.google.inject.name.Named;
-import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.MapBinder;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.MahaLookupExtractorFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.MahaRegisteredLookupExtractionFn;
@@ -31,6 +28,8 @@ import org.apache.druid.guice.LifecycleModule;
 import org.apache.druid.guice.PolyBind;
 import org.apache.druid.guice.annotations.Json;
 import org.apache.druid.initialization.DruidModule;
+import org.apache.druid.sql.calcite.schema.*;
+import org.apache.druid.sql.guice.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -55,6 +54,7 @@ public class MahaNamespaceExtractionModule implements DruidModule
                 new SimpleModule("DruidNamespacedCachedExtractionModule")
                         .registerSubtypes(MahaLookupExtractorFactory.class)
                         .registerSubtypes(MahaRegisteredLookupExtractionFn.class)
+
         );
     }
 
@@ -176,6 +176,10 @@ public class MahaNamespaceExtractionModule implements DruidModule
         LifecycleModule.register(binder, RocksDBManager.class);
         LifecycleModule.register(binder, KafkaManager.class);
         LifecycleModule.register(binder, LookupService.class);
+
+        SqlBindings.addOperatorConversion(binder, MahaLookupOperatorConversion.class);
+        binder.bind(LookupSchema.class).in(Scopes.SINGLETON);
+
         Jerseys.addResource(binder, MahaNamespacesCacheResource.class);
     }
 }

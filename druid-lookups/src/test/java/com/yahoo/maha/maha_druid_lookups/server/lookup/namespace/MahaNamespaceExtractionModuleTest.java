@@ -9,6 +9,7 @@ import org.apache.druid.guice.GuiceInjectors;
 import org.apache.druid.guice.JsonConfigProvider;
 import org.apache.druid.guice.annotations.Self;
 import org.apache.druid.initialization.Initialization;
+import org.apache.druid.query.lookup.*;
 import org.apache.druid.server.DruidNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -17,6 +18,7 @@ import org.testng.annotations.Test;
 import java.util.Properties;
 
 public class MahaNamespaceExtractionModuleTest {
+
     @Test
     public void testInjection()
     {
@@ -30,10 +32,14 @@ public class MahaNamespaceExtractionModuleTest {
         properties.put(String.format("%s.lookupService.service_nodes", MahaNamespaceExtractionModule.PREFIX), "hist1,hist2,hist3");
         properties.put(String.format("%s.rocksdb.localStorageDirectory", MahaNamespaceExtractionModule.PREFIX), "/home/y/tmp/maha-lookups");
         properties.put(String.format("%s.rocksdb.blockCacheSize", MahaNamespaceExtractionModule.PREFIX), "2147483648");
+        properties.put("druid.lookup.snapshotWorkingDir", "/tmp");
+
 
         injector = Initialization.makeInjectorWithModules(
                 injector,
                 ImmutableList.of(
+                        binder -> new LookupModule().configure(binder)
+                        ,
                         binder -> JsonConfigProvider.bindInstance(
                                 binder,
                                 Key.get(DruidNode.class, Self.class),

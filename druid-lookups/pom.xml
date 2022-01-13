@@ -5,7 +5,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>6.82-SNAPSHOT</version>
+        <version>6.83-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -169,6 +169,12 @@
         <dependency>
             <groupId>org.apache.druid</groupId>
             <artifactId>druid-server</artifactId>
+            <version>${druid.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.druid</groupId>
+            <artifactId>druid-sql</artifactId>
             <version>${druid.version}</version>
             <scope>provided</scope>
         </dependency>
