@@ -7,10 +7,11 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.*;
+import org.apache.druid.java.util.common.*;
+import org.apache.druid.java.util.common.logger.*;
+import org.apache.druid.math.expr.*;
 import org.apache.druid.query.aggregation.*;
-import org.apache.druid.query.aggregation.post.*;
 import org.apache.druid.query.filter.*;
 import org.apache.druid.query.lookup.*;
 import org.apache.druid.segment.column.*;
@@ -19,18 +20,20 @@ import org.apache.druid.sql.calcite.planner.PlannerContext;
 import org.apache.druid.sql.calcite.rel.*;
 
 import javax.annotation.*;
+import java.util.*;
 
 public class MahaLookupOperatorConversion implements SqlOperatorConversion {
 
-    private static final String DRUID_FUNC_NAME = "MYFUNC";
+    private static final String DRUID_FUNC_NAME = "MAHA_LOOKUP";
+    private static final String MISSING_VALUE = "NA";
+    private static final Logger LOG = new Logger(MahaLookupOperatorConversion.class);
 
     private static final SqlFunction SQL_FUNCTION = OperatorConversions
             .operatorBuilder(DRUID_FUNC_NAME)
-            .operandTypes(SqlTypeFamily.STRING)
-            .operandTypes(SqlTypeFamily.STRING)
-            .operandTypes(SqlTypeFamily.ANY)
+            .operandTypes(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)
+            .returnTypeNullable(SqlTypeName.VARCHAR)
+            .requiredOperands(3)
             .functionCategory(SqlFunctionCategory.USER_DEFINED_FUNCTION)
-            .returnTypeInference(ReturnTypes.ARG0)
             .build();
 
     private final LookupExtractorFactoryContainerProvider lookupReferencesManager;
@@ -40,12 +43,7 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
     @Inject
     public MahaLookupOperatorConversion(LookupExtractorFactoryContainerProvider lookupProvider) {
         lookupReferencesManager = lookupProvider;
-        if (lookupReferencesManager!=null) {
-            System.out.println("############ Lookups : ");
-            //lookupReferencesManager.getAllLookupNames().stream().forEach(System.out::println);
-        }
     }
-
 
     @Override
     public SqlOperator calciteOperator()
@@ -56,98 +54,65 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
     @Nullable
     @Override
     public DruidExpression toDruidExpression(PlannerContext plannerContext, RowSignature rowSignature, RexNode rexNode) {
-        LookupReferencesManager lrm = (LookupReferencesManager) lookupReferencesManager;
-        MahaRegisteredLookupExtractionFn mahaRegisteredLookupExtractionFn = new MahaRegisteredLookupExtractionFn(lrm, "customer_lookup",
-                false, "NA_ValueFROM_MAHA_LOOKUP", false, false, "status", null, null, null);
 
-        return DruidExpression.of(
-                new SimpleExtraction("added",
-                        mahaRegisteredLookupExtractionFn), "abc");
+        DruidExpression simpleExtraction = OperatorConversions.convertCall(
+                plannerContext,
+                rowSignature,
+                rexNode,
+                StringUtils.toLowerCase(calciteOperator().getName()),
+                inputExpressions -> {
+                    final DruidExpression arg = inputExpressions.get(0); // maha lookup function
+                    final Expr lookupName = inputExpressions.get(1).parse(plannerContext.getExprMacroTable()); // maha lookup name
+                    final Expr columnName = inputExpressions.get(2).parse(plannerContext.getExprMacroTable()); // maha lookup name
+
+                    LookupReferencesManager lrm = (LookupReferencesManager) lookupReferencesManager;
+                    String missingValue = getMissingValue(inputExpressions, plannerContext);
+
+                    if (arg.isSimpleExtraction() && lookupName.isLiteral() && columnName.isLiteral()) {
+                        MahaRegisteredLookupExtractionFn mahaRegisteredLookupExtractionFn = new MahaRegisteredLookupExtractionFn(lrm,
+                                (String) lookupName.getLiteralValue(),
+                                false,
+                                missingValue,
+                                false,
+                                false,
+                                (String) columnName.getLiteralValue(),
+                                null,
+                                null,
+                                false);
+
+                        return arg.getSimpleExtraction().cascade(mahaRegisteredLookupExtractionFn);
+                    } else {
+                        LOG.error("Invalid call to Maha_lookup: lookupName = "+lookupName+", columnName = "+columnName+", "+arg);
+                        return null;
+                    }
+                }
+        );
+        if(simpleExtraction == null) return null;
+       return DruidExpression.of(simpleExtraction.getSimpleExtraction(), "maha");
     }
 
-    @Nullable
-    @Override
-    public DruidExpression toDruidExpressionWithPostAggOperands(PlannerContext plannerContext, RowSignature rowSignature, RexNode rexNode, PostAggregatorVisitor postAggregatorVisitor) {
-        LookupReferencesManager lrm = (LookupReferencesManager) lookupReferencesManager;
-        MahaRegisteredLookupExtractionFn mahaRegisteredLookupExtractionFn = new MahaRegisteredLookupExtractionFn(lrm, "customer_lookup",
-                false, "NA_ValueFROM_MAHA_LOOKUP", false, false, "status", null, null, null);
-
-        return DruidExpression.of(
-                new SimpleExtraction("added",
-                        mahaRegisteredLookupExtractionFn), "abc_added");
-
+    private String getMissingValue(List<DruidExpression> list, PlannerContext plannerContext) {
+        if (list==null) {
+            return MISSING_VALUE;
+        }
+        if (list.size() >= 4) {
+            DruidExpression expression = list.get(3);
+            if (expression != null) {
+                return (String) expression.parse(plannerContext.getExprMacroTable()).getLiteralValue();
+            }
+        }
+        return MISSING_VALUE;
     }
 
     @Nullable
     @Override
     public DimFilter toDruidFilter(PlannerContext plannerContext, RowSignature rowSignature, @Nullable VirtualColumnRegistry virtualColumnRegistry, RexNode rexNode) {
-        LookupReferencesManager lrm = (LookupReferencesManager) lookupReferencesManager;
-        MahaRegisteredLookupExtractionFn mahaRegisteredLookupExtractionFn = new MahaRegisteredLookupExtractionFn(lrm, "customer_lookup",
-                false, "MahaLookupOperatorConversion.java", false, false, "status", null, null, null);
-
-        return new ExtractionDimFilter("testabc", "testvalue", mahaRegisteredLookupExtractionFn,  mahaRegisteredLookupExtractionFn );
-
+        return null;
     }
 
     @Nullable
     @Override
     public PostAggregator toPostAggregator(PlannerContext plannerContext, RowSignature querySignature, RexNode rexNode, PostAggregatorVisitor postAggregatorVisitor) {
-
-        return new FieldAccessPostAggregator("abc_test", "abc_w");
+        return null;
     }
-
-/*    @Override
-    public DruidExpression toDruidExpression(
-            final PlannerContext plannerContext,
-            final RowSignature rowSignature,
-            final RexNode rexNode
-    )
-    {
-//        return DruidExpression.of(new SimpleExtraction("dummy column", new ExtractionFn() {
-//            @Nullable
-//            @Override
-//            public String apply(@Nullable Object value) {
-//                return null;
-//            }
-//
-//            @Nullable
-//            @Override
-//            public String apply(@Nullable String value) {
-//                return null;
-//            }
-//
-//            @Override
-//            public String apply(long value) {
-//                return null;
-//            }
-//
-//            @Override
-//            public boolean preservesOrdering() {
-//                return false;
-//            }
-//
-//            @Override
-//            public ExtractionType getExtractionType() {
-//                return null;
-//            }
-//
-//            @Override
-//            public byte[] getCacheKey() {
-//                return new byte[0];
-//            }
-//        }), "1 == 1");
-        return DruidExpression.of(
-                new SimpleExtraction("dummy column",
-                new MahaLookupExtractionFn(
-                        null,
-                        false,
-                        "replaced",
-                        false,
-                        true,
-                        "value_column",
-                        null,
-                        null)
-                ), "12345678"
-        );
-    }*/
 }
