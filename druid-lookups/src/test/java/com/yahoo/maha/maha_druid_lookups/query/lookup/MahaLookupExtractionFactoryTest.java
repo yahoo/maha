@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.Properties;
 
 import static org.mockito.Matchers.any;
@@ -128,7 +129,8 @@ public class MahaLookupExtractionFactoryTest extends TestMongoServer {
         assertEquals(mahaExtractor.apply("5ad10906fc7b6ecac8d41081", "name", null, null), "advertiser1");
 
         lookupReferencesManager = mock(LookupReferencesManager.class);
-        when(lookupReferencesManager.get(any())).thenReturn(container);
+        Optional<LookupExtractorFactoryContainer> containerOptional = Optional.of(container);
+        when(lookupReferencesManager.get(any())).thenReturn(containerOptional);
 
         MahaRegisteredLookupExtractionFn fn = objectMapper
                 .readValue(Thread.currentThread()
