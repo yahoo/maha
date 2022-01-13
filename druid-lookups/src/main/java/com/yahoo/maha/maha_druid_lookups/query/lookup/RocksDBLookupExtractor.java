@@ -2,6 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBSnapshot;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 import org.apache.commons.io.FilenameUtils;
@@ -16,12 +18,15 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 
+import com.google.protobuf.Message;
+import com.google.protobuf.Parser;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
@@ -87,7 +92,31 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
             LOG.info("Iterator is valid");
             LOG.info("it.key: " + Arrays.toString(it.key()));
             LOG.info("it.value: " + Arrays.toString(it.value()));
-            tempMap.put(Arrays.toString(it.key()), Arrays.toString(it.value()));
+            StringBuilder sb = new StringBuilder();
+            try {
+                byte[] cacheByteValue = db.get(it.key());
+                LOG.info("Got cacheByteValue");
+                LOG.info("cacheByteValue: " + Arrays.toString(cacheByteValue));
+                Parser<Message> parser = schemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+                Message message = parser.parseFrom(cacheByteValue);
+                LOG.info("Got Message message");
+                LOG.info("Message message: " + message);
+                Map<Descriptors.FieldDescriptor, Object> tempMap2 = message.getAllFields();
+                sb = new StringBuilder();
+                for (Map.Entry<Descriptors.FieldDescriptor, Object> kevVal: tempMap2.entrySet()) {
+                    sb.append(kevVal.getKey().getJsonName()).append(":").append(kevVal.getValue().toString()).append("#");
+                }
+                if (sb.length() > 0) {
+                    sb.setLength(sb.length() - 1);
+                }
+                LOG.info("Got StringBuilder sb");
+                LOG.info("StringBuilder sb: " + sb.toString());
+            } catch (RocksDBException | InvalidProtocolBufferException e) {
+                e.printStackTrace();
+            }
+            StringBuilder keySb = new StringBuilder(sb);
+            String key = keySb.substring(0, sb.indexOf("#"));
+            tempMap.put(key, sb.toString());
             it.next();
         }
 
