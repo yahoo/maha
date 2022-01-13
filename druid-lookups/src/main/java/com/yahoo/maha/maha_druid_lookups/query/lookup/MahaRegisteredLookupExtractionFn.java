@@ -225,7 +225,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
                     delegate = new MahaLookupExtractionFn(
                             Preconditions.checkNotNull(manager.get(getLookup())
                                     , "Lookup [%s] not found", getLookup()
-                            ).getLookupExtractorFactory().get()
+                            ).get().getLookupExtractorFactory().get()
                             , isRetainMissingValue()
                             , getReplaceMissingValueWith()
                             , isInjective()
