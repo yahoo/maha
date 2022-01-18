@@ -56,32 +56,32 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
     @Override
     public Iterable<Map.Entry<String, String>> iterable() {
-        final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
-
         Map<String, String> tempMap = new java.util.HashMap<>();
-        RocksIterator it = db.newIterator();
-        it.seekToFirst();
-        while (it.isValid()) {
-            StringBuilder sb = new StringBuilder();
-            try {
+
+        try {
+            final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
+            RocksIterator it = db.newIterator();
+            it.seekToFirst();
+            while (it.isValid()) {
                 byte[] cacheByteValue = db.get(it.key());
                 Parser<Message> parser = schemaFactory.getProtobufParser(extractionNamespace.getNamespace());
                 Message message = parser.parseFrom(cacheByteValue);
                 Map<Descriptors.FieldDescriptor, Object> tempMap2 = message.getAllFields();
-                sb = new StringBuilder();
+                StringBuilder sb = new StringBuilder();
                 for (Map.Entry<Descriptors.FieldDescriptor, Object> kevVal: tempMap2.entrySet()) {
                     sb.append(kevVal.getKey().getJsonName()).append(":").append(kevVal.getValue().toString()).append("#");
                 }
                 if (sb.length() > 0) {
                     sb.setLength(sb.length() - 1);
                 }
-            } catch (RocksDBException | InvalidProtocolBufferException e) {
-                e.printStackTrace();
+                StringBuilder keySb = new StringBuilder(sb);
+                String key = keySb.substring(0, sb.indexOf("#"));
+                tempMap.put(key, sb.toString());
+                it.next();
             }
-            StringBuilder keySb = new StringBuilder(sb);
-            String key = keySb.substring(0, sb.indexOf("#"));
-            tempMap.put(key, sb.toString());
-            it.next();
+        } catch (Exception e) {
+            LOG.error("Caught exception: " + e);
+            LOG.warn("Returning iterable to empty map due to above exception.");
         }
 
         return tempMap.entrySet();
