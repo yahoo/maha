@@ -56,51 +56,17 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
     @Override
     public Iterable<Map.Entry<String, String>> iterable() {
-        if (rocksDBManager == null) {
-            LOG.info("rocksDBManager is null!!");
-        }
-        else {
-            LOG.info("rocksDBManager: " + rocksDBManager);
-        }
-        if (extractionNamespace == null) {
-            LOG.info("extractionNamespace is null!!");
-        }
-        else {
-            LOG.info("extractionNamespace: " + extractionNamespace);
-        }
-        if (extractionNamespace.getNamespace() == null) {
-            LOG.info("extractionNamespace.getNamespace() is null!!");
-        }
-        else {
-            LOG.info("extractionNamespace.getNamespace(): " + extractionNamespace.getNamespace());
-        }
         final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
-        LOG.info("Got RocksDB db");
-        if (db == null) {
-            LOG.info("RocksDB db is null!!");
-        }
-        else {
-            LOG.info("RocksDB db: " + db.toString());
-        }
 
         Map<String, String> tempMap = new java.util.HashMap<>();
         RocksIterator it = db.newIterator();
-        LOG.info("Got RocksIterator it");
         it.seekToFirst();
-        LOG.info("Got seekToFirst");
         while (it.isValid()) {
-            LOG.info("Iterator is valid");
-            LOG.info("it.key: " + Arrays.toString(it.key()));
-            LOG.info("it.value: " + Arrays.toString(it.value()));
             StringBuilder sb = new StringBuilder();
             try {
                 byte[] cacheByteValue = db.get(it.key());
-                LOG.info("Got cacheByteValue");
-                LOG.info("cacheByteValue: " + Arrays.toString(cacheByteValue));
                 Parser<Message> parser = schemaFactory.getProtobufParser(extractionNamespace.getNamespace());
                 Message message = parser.parseFrom(cacheByteValue);
-                LOG.info("Got Message message");
-                LOG.info("Message message: " + message);
                 Map<Descriptors.FieldDescriptor, Object> tempMap2 = message.getAllFields();
                 sb = new StringBuilder();
                 for (Map.Entry<Descriptors.FieldDescriptor, Object> kevVal: tempMap2.entrySet()) {
@@ -109,8 +75,6 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
                 if (sb.length() > 0) {
                     sb.setLength(sb.length() - 1);
                 }
-                LOG.info("Got StringBuilder sb");
-                LOG.info("StringBuilder sb: " + sb.toString());
             } catch (RocksDBException | InvalidProtocolBufferException e) {
                 e.printStackTrace();
             }
