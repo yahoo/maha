@@ -145,6 +145,7 @@ public class MahaLookupOperatorConversionTest {
         }
     }
 
+    //Currently, we don't assert on the value col used in the lookup & simply allow bad lookup cols to pass through.
     @Test
     public void testInvalidValueCol() throws JsonProcessingException {
         MahaLookupTestUtil util = new MahaLookupTestUtil();

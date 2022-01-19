@@ -69,6 +69,8 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
                     LookupReferencesManager lrm = (LookupReferencesManager) lookupReferencesManager;
                     String missingValue = getMissingValue(inputExpressions, plannerContext, 3, MISSING_VALUE);
                     String extractionMap = getMissingValue(inputExpressions, plannerContext, 4, "-3");
+                    //TODO: Enhance by passing in KV separator & delimeter.
+                    //Also, allow passing of Map type statements: Case, KV pair, etc. ex: CASE, MAP(',','->')
                     Map<String, String> dimensionOverrideMap = extractionMap.equals("-3") ? null : Splitter.on(",").withKeyValueSeparator("->").split(extractionMap);
 
                     if (arg.isSimpleExtraction() && lookupName.isLiteral() && columnName.isLiteral() ) {
