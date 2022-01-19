@@ -1,5 +1,6 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
+import com.google.common.base.Splitter;
 import com.google.inject.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.*;
@@ -30,7 +31,7 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
 
     private static final SqlFunction SQL_FUNCTION = OperatorConversions
             .operatorBuilder(DRUID_FUNC_NAME)
-            .operandTypes(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)
+            .operandTypes(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)
             .returnTypeNullable(SqlTypeName.VARCHAR)
             .requiredOperands(3)
             .functionCategory(SqlFunctionCategory.USER_DEFINED_FUNCTION)
@@ -66,9 +67,11 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
                     final Expr columnName = inputExpressions.get(2).parse(plannerContext.getExprMacroTable()); // maha lookup name
 
                     LookupReferencesManager lrm = (LookupReferencesManager) lookupReferencesManager;
-                    String missingValue = getMissingValue(inputExpressions, plannerContext);
+                    String missingValue = getMissingValue(inputExpressions, plannerContext, 3, MISSING_VALUE);
+                    String extractionMap = getMissingValue(inputExpressions, plannerContext, 4, "-3");
+                    Map<String, String> dimensionOverrideMap = extractionMap.equals("-3") ? null : Splitter.on(",").withKeyValueSeparator("->").split(extractionMap);
 
-                    if (arg.isSimpleExtraction() && lookupName.isLiteral() && columnName.isLiteral()) {
+                    if (arg.isSimpleExtraction() && lookupName.isLiteral() && columnName.isLiteral() ) {
                         MahaRegisteredLookupExtractionFn mahaRegisteredLookupExtractionFn = new MahaRegisteredLookupExtractionFn(lrm,
                                 (String) lookupName.getLiteralValue(),
                                 false,
@@ -77,7 +80,7 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
                                 false,
                                 (String) columnName.getLiteralValue(),
                                 null,
-                                null,
+                                dimensionOverrideMap,
                                 false);
 
                         return arg.getSimpleExtraction().cascade(mahaRegisteredLookupExtractionFn);
@@ -91,17 +94,17 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
        return DruidExpression.of(simpleExtraction.getSimpleExtraction(), "maha");
     }
 
-    private String getMissingValue(List<DruidExpression> list, PlannerContext plannerContext) {
+    private String getMissingValue(List<DruidExpression> list, PlannerContext plannerContext, int index, String valueIfMissing) {
         if (list==null) {
-            return MISSING_VALUE;
+            return valueIfMissing;
         }
-        if (list.size() >= 4) {
-            DruidExpression expression = list.get(3);
+        if (list.size() >= index+1) {
+            DruidExpression expression = list.get(index);
             if (expression != null) {
                 return (String) expression.parse(plannerContext.getExprMacroTable()).getLiteralValue();
             }
         }
-        return MISSING_VALUE;
+        return valueIfMissing;
     }
 
     @Nullable
