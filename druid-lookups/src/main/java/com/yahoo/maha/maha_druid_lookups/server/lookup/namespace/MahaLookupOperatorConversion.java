@@ -83,7 +83,7 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
                                 (String) columnName.getLiteralValue(),
                                 null,
                                 dimensionOverrideMap,
-                                false);
+                                dimensionOverrideMap != null);
 
                         return arg.getSimpleExtraction().cascade(mahaRegisteredLookupExtractionFn);
                     } else {
