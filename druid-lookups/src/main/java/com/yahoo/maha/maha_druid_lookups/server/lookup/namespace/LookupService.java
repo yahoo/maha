@@ -69,8 +69,13 @@ public class LookupService {
             this.authHeaderFactory = authHeaderFactory;
             serviceScheme = lookupServiceProperties.getProperty("service_scheme", lookupServiceProperties.getProperty("serviceScheme", "http"));
             servicePort = lookupServiceProperties.getProperty("service_port", lookupServiceProperties.getProperty("servicePort", "4080"));
-            serviceNodeList = lookupServiceProperties.getProperty("service_nodes", lookupServiceProperties.getProperty("serviceNodes")).split(",");
 
+            if(StringUtils.isEmpty(localHostName)) {
+                localHostName = InetAddress.getLocalHost().getHostName();
+                LOG.info(String.format("local host name: [%s]", localHostName));
+            }
+
+            serviceNodeList = lookupServiceProperties.getProperty("service_nodes", lookupServiceProperties.getProperty("serviceNodes", localHostName)).split(",");
             currentHost.set(RANDOM.nextInt(serviceNodeList.length));
 
             SSLContext sslContext = SSLContexts.createDefault();
@@ -122,10 +127,7 @@ public class LookupService {
                     .expireAfterWrite(1, TimeUnit.MINUTES)
                     .build(loader);
 
-            if(StringUtils.isEmpty(localHostName)) {
-                localHostName = InetAddress.getLocalHost().getHostName();
-                LOG.info(String.format("local host name: [%s]", localHostName));
-            }
+
 
         } catch (final Exception e) {
             throw Throwables.propagate(e);
