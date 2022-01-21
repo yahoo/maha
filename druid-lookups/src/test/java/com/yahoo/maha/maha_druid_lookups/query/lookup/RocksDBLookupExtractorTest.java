@@ -246,7 +246,7 @@ public class RocksDBLookupExtractorTest {
         mahaLookupQueryElement1.setValueColumn("name");
         mahaLookupQueryElement1.setDimensionOverrideMap(dimensionOverrideMap);
         String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
-        Assert.assertEquals(lookupValue, "something-6789");
+        Assert.assertEquals(lookupValue, "something-12345");
 
         when(lookupService.lookup(any())).thenReturn("".getBytes());
         MahaLookupQueryElement mahaLookupQueryElement2 = new MahaLookupQueryElement();
