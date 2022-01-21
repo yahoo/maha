@@ -56,6 +56,7 @@ public class MahaLookupTestUtil {
         private RexNode lookupCol;
         private RexNode replaceIfNull;
         private RexNode mapFun = null;
+        private RexNode mapFun2 = null;
         RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
 
         MAHA_LOOKUP(RexNode inputRef
@@ -75,6 +76,7 @@ public class MahaLookupTestUtil {
                 , Pair<String, SqlTypeName> lookupCol
                 , Pair<String, SqlTypeName> replaceIfNull
                 , Pair<String, SqlTypeName> mapFun
+                , Pair<String, SqlTypeName> mapFun2
                 , RexBuilder rexBuilder
         ) {
             this.inputRef = inputRef;
@@ -82,6 +84,7 @@ public class MahaLookupTestUtil {
             this.lookupCol = makeLiteral(rexBuilder, lookupCol.getKey(), lookupCol.getValue(), true);
             this.replaceIfNull = makeLiteral(rexBuilder, replaceIfNull.getKey(), replaceIfNull.getValue(), true);
             this.mapFun = makeLiteral(rexBuilder, mapFun.getKey(), mapFun.getValue(), true);
+            this.mapFun2 = makeLiteral(rexBuilder, mapFun2.getKey(), mapFun.getValue(), true);
         }
 
         RexNode makeLiteral(RexBuilder rexBuilder, String literalName, SqlTypeName dataType, Boolean allowCast) {
@@ -89,11 +92,10 @@ public class MahaLookupTestUtil {
         }
 
         RexNode makeCall(RexBuilder rexBuilder, SqlOperator operator){
-            if(mapFun == null) {
+            if(mapFun == null && mapFun2 == null) {
                 return rexBuilder.makeCall(operator, inputRef, lookupName, lookupCol, replaceIfNull);
             } else {
-                return rexBuilder.makeCall(operator, inputRef, lookupName, lookupCol, replaceIfNull, mapFun);
-
+                return rexBuilder.makeCall(operator, inputRef, lookupName, lookupCol, replaceIfNull, mapFun, mapFun2);
             }
         }
 

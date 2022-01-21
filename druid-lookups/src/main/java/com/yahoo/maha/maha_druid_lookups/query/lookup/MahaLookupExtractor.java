@@ -18,7 +18,7 @@ abstract public class MahaLookupExtractor extends LookupExtractor {
     protected static final Map<String, String> staticMap = new java.util.HashMap<>();
 
     @Nullable
-    public abstract String apply(@Nullable String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap);
+    public abstract String apply(@Nullable String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap, Map<String, String> secondaryColOverrideMap);
 
     @Nullable
     @Override
@@ -33,8 +33,9 @@ abstract public class MahaLookupExtractor extends LookupExtractor {
             String valueColumn = mahaLookupQueryElement.getValueColumn();
             DecodeConfig decodeConfig = mahaLookupQueryElement.getDecodeConfig();
             Map<String, String> dimensionOverrideMap = mahaLookupQueryElement.getDimensionOverrideMap();
+            Map<String, String> secondaryColOverrideMap = mahaLookupQueryElement.getSecondaryColOverrideMap();
 
-            return apply(dimension, valueColumn, decodeConfig, dimensionOverrideMap);
+            return apply(dimension, valueColumn, decodeConfig, dimensionOverrideMap, secondaryColOverrideMap);
         } catch (Exception e) {
             LOG.error(e, "Exception in MahaLookupExtractor apply");
         }

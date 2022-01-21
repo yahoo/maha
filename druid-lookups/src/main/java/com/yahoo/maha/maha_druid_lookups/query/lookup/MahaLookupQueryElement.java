@@ -14,6 +14,8 @@ public class MahaLookupQueryElement {
     public DecodeConfig decodeConfig;
     @JsonProperty
     public Map<String, String> dimensionOverrideMap;
+    @JsonProperty
+    public Map<String, String> secondaryColOverrideMap;
 
     public MahaLookupQueryElement() {
     }
@@ -46,7 +48,15 @@ public class MahaLookupQueryElement {
         return dimensionOverrideMap;
     }
 
+    public Map<String, String> getSecondaryColOverrideMap() {
+        return secondaryColOverrideMap;
+    }
+
     public void setDimensionOverrideMap(Map<String, String> dimensionOverrideMap) {
         this.dimensionOverrideMap = dimensionOverrideMap;
+    }
+
+    public void setSecondaryColOverrideMap(Map<String, String> secondaryColOverrideMap) {
+        this.secondaryColOverrideMap = secondaryColOverrideMap;
     }
 }

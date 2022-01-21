@@ -100,11 +100,18 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
     }
 
     @Nullable
-    public String apply(@NotNull String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap) {
+    public String apply(@NotNull String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap, Map<String, String> secondaryColOverrideMap) {
         try {
+            if(dimensionOverrideMap != null && !dimensionOverrideMap.isEmpty() && secondaryColOverrideMap != null && !secondaryColOverrideMap.isEmpty()){
+                throw new IllegalArgumentException("Cannot populate both dimensionOverrideMap and secondaryColOverrideMap!");
+            }
 
             if (key == null) {
                 return null;
+            }
+
+            if (dimensionOverrideMap != null && dimensionOverrideMap.containsKey(key)) {
+                return Strings.emptyToNull(dimensionOverrideMap.get(key));
             }
 
             Optional<DecodeConfig> decodeConfigOptional = (decodeConfig == null) ? Optional.empty() : Optional.of(decodeConfig);

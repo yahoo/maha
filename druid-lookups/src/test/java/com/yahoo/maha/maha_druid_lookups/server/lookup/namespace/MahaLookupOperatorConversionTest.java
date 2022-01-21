@@ -67,7 +67,7 @@ public class MahaLookupOperatorConversionTest {
         String expectedDruidExpr = "DruidExpression{simpleExtraction=MahaRegisteredLookupExtractionFn{delegate=null, lookup='student_lookup', retainMissingValue=false, replaceMissingValueWith='123', injective=false, optimize=false, valueColumn=student_id, decodeConfig=null, useQueryLevelCache=false}(student_id), expression='maha'}";
         String json = util.convertToJson(druidExp, "testing_stats", "Student ID");
         assert druidExp.toString().equals(expectedDruidExpr);
-        assert json.contains("\"dimensions\":[{\"type\":\"extraction\",\"dimension\":\"student_id\",\"outputName\":\"Student ID\",\"outputType\":\"STRING\",\"extractionFn\":{\"type\":\"mahaRegisteredLookup\",\"lookup\":\"student_lookup\",\"retainMissingValue\":false,\"replaceMissingValueWith\":\"123\",\"injective\":false,\"optimize\":false,\"valueColumn\":\"student_id\",\"decode\":null,\"dimensionOverrideMap\":null,\"useQueryLevelCache\":false}}]");
+        assert json.contains("\"dimensions\":[{\"type\":\"extraction\",\"dimension\":\"student_id\",\"outputName\":\"Student ID\",\"outputType\":\"STRING\",\"extractionFn\":{\"type\":\"mahaRegisteredLookup\",\"lookup\":\"student_lookup\",\"retainMissingValue\":false,\"replaceMissingValueWith\":\"123\",\"injective\":false,\"optimize\":false,\"valueColumn\":\"student_id\",\"decode\":null,\"dimensionOverrideMap\":null,\"secondaryColOverrideMap\":null,\"useQueryLevelCache\":false}}]");
     }
 
     @Test
@@ -96,6 +96,7 @@ public class MahaLookupOperatorConversionTest {
                 , Pair.of("grade", SqlTypeName.VARCHAR)
                 , Pair.of("A+", SqlTypeName.VARCHAR)
                 , Pair.of("a->A,b->B", SqlTypeName.VARCHAR)
+                , Pair.of("a->A,b->B", SqlTypeName.VARCHAR)
                 , rexBuilder
         );
 
@@ -108,7 +109,7 @@ public class MahaLookupOperatorConversionTest {
         assert json.contains("{\"type\":\"extraction\",\"dimension\":\"student_id\",\"outputName\":\"Grade Avg\",\"outputType\":\"STRING\",");
         assert json.contains("\"extractionFn\":{\"type\":\"mahaRegisteredLookup\",\"lookup\":\"student_lookup\"");
         assert json.contains("\"replaceMissingValueWith\":\"A+\",\"injective\":false,\"optimize\":false,\"valueColumn\":\"grade\"");
-        assert json.contains("\"dimensionOverrideMap\":{\"a\":\"A\",\"b\":\"B\"},\"useQueryLevelCache\":false");
+        assert json.contains("\"dimensionOverrideMap\":{\"a\":\"A\",\"b\":\"B\"},\"secondaryColOverrideMap\":{\"a\":\"A\",\"b\":\"B\"},\"useQueryLevelCache\":false");
     }
 
     @Test
@@ -137,6 +138,7 @@ public class MahaLookupOperatorConversionTest {
                     , Pair.of("student_lookup", SqlTypeName.VARCHAR)
                     , Pair.of("grade", SqlTypeName.VARCHAR)
                     , Pair.of("A+", SqlTypeName.VARCHAR)
+                    , Pair.of("a->A,b->B", SqlTypeName.VARCHAR)
                     , Pair.of("a->A,b->B", SqlTypeName.VARCHAR)
                     , rexBuilder
             );
@@ -172,6 +174,7 @@ public class MahaLookupOperatorConversionTest {
                 , Pair.of("grade_fake", SqlTypeName.VARCHAR)
                 , Pair.of("A+", SqlTypeName.VARCHAR)
                 , Pair.of("a->A,b->B", SqlTypeName.VARCHAR)
+                , Pair.of("a->A,b->B", SqlTypeName.VARCHAR)
                 , rexBuilder
         );
 
@@ -184,7 +187,7 @@ public class MahaLookupOperatorConversionTest {
         assert json.contains("{\"type\":\"extraction\",\"dimension\":\"student_id\",\"outputName\":\"Grade Avg\",\"outputType\":\"STRING\",");
         assert json.contains("\"extractionFn\":{\"type\":\"mahaRegisteredLookup\",\"lookup\":\"student_lookup\"");
         assert json.contains("\"replaceMissingValueWith\":\"A+\",\"injective\":false,\"optimize\":false,\"valueColumn\":\"grade_fake\"");
-        assert json.contains("\"dimensionOverrideMap\":{\"a\":\"A\",\"b\":\"B\"},\"useQueryLevelCache\":false");
+        assert json.contains("\"dimensionOverrideMap\":{\"a\":\"A\",\"b\":\"B\"},\"secondaryColOverrideMap\":{\"a\":\"A\",\"b\":\"B\"},\"useQueryLevelCache\":false");
 
     }
 

@@ -43,7 +43,7 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
     }
 
     @Nullable
-    public String apply(@NotNull String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap) {
+    public String apply(@NotNull String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap, Map<String, String> secondaryColOverrideMap) {
         try {
 
             if (key == null) {
