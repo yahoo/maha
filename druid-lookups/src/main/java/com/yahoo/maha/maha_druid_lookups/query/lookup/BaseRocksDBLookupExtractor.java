@@ -126,8 +126,8 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
                     LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
                     serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE + "_" + extractionNamespace.getNamespace(), 1));
                     String cacheByteString = new String(lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional)));
-                    if (dimensionOverrideMap != null && dimensionOverrideMap.containsKey(cacheByteString)) {
-                        return Strings.emptyToNull(dimensionOverrideMap.get(cacheByteString));
+                    if (secondaryColOverrideMap != null && secondaryColOverrideMap.containsKey(cacheByteString)) {
+                        return Strings.emptyToNull(secondaryColOverrideMap.get(cacheByteString));
                     }
                     return new String(lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional)));
                 }
@@ -148,8 +148,8 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
                     return null;
                 } else {
                     String cacheByteString = new String(cacheByteValue);
-                    if (dimensionOverrideMap != null && dimensionOverrideMap.containsKey(cacheByteString)) {
-                        return Strings.emptyToNull(dimensionOverrideMap.get(cacheByteString));
+                    if (secondaryColOverrideMap != null && secondaryColOverrideMap.containsKey(cacheByteString)) {
+                        return Strings.emptyToNull(secondaryColOverrideMap.get(cacheByteString));
                     }
                     return new String(cacheByteValue);
                 }

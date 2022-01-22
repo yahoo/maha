@@ -31,7 +31,7 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
 
     private static final SqlFunction SQL_FUNCTION = OperatorConversions
             .operatorBuilder(DRUID_FUNC_NAME)
-            .operandTypes(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)
+            .operandTypes(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)
             .returnTypeNullable(SqlTypeName.VARCHAR)
             .requiredOperands(3)
             .functionCategory(SqlFunctionCategory.USER_DEFINED_FUNCTION)
@@ -72,8 +72,8 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
                     String valueExtractionMap = getMissingValue(inputExpressions, plannerContext, 5, "-3");
                     //TODO: Enhance by passing in KV separator & delimeter.
                     //Also, allow passing of Map type statements: Case, KV pair, etc. ex: CASE, MAP(',','->')
-                    Map<String, String> dimensionOverrideMap = extractionMap.equals("-3") ? null : Splitter.on(",").withKeyValueSeparator("->").split(extractionMap);
-                    Map<String, String> secondaryColOverrideMap = valueExtractionMap.equals("-3") ? null : Splitter.on(",").withKeyValueSeparator("->").split(valueExtractionMap);
+                    Map<String, String> dimensionOverrideMap = extractionMap == null || extractionMap.equals("-3") ? null : Splitter.on(",").withKeyValueSeparator("->").split(extractionMap);
+                    Map<String, String> secondaryColOverrideMap = valueExtractionMap == null || valueExtractionMap.equals("-3") ? null : Splitter.on(",").withKeyValueSeparator("->").split(valueExtractionMap);
 
                     if (arg.isSimpleExtraction() && lookupName.isLiteral() && columnName.isLiteral() ) {
                         MahaRegisteredLookupExtractionFn mahaRegisteredLookupExtractionFn = new MahaRegisteredLookupExtractionFn(lrm,
