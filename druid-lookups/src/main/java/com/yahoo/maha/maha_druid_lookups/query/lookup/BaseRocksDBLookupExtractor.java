@@ -125,7 +125,7 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
                     LOG.error("RocksDB instance is null");
                     LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
                     serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE + "_" + extractionNamespace.getNamespace(), 1));
-                    String cacheByteString = new String(lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional)));
+                    String cacheByteString = new String(lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional))).trim();
                     if (secondaryColOverrideMap != null && secondaryColOverrideMap.containsKey(cacheByteString)) {
                         return Strings.emptyToNull(secondaryColOverrideMap.get(cacheByteString));
                     }
@@ -147,7 +147,7 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
                     }
                     return null;
                 } else {
-                    String cacheByteString = new String(cacheByteValue);
+                    String cacheByteString = new String(cacheByteValue).trim();
                     if (secondaryColOverrideMap != null && secondaryColOverrideMap.containsKey(cacheByteString)) {
                         return Strings.emptyToNull(secondaryColOverrideMap.get(cacheByteString));
                     }

@@ -27,6 +27,8 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
 
     private static final String DRUID_FUNC_NAME = "MAHA_LOOKUP";
     private static final String MISSING_VALUE = "NA";
+    private static final String SEPARATOR = ",";
+    private static final String KV_DEFAULT = "->";
     private static final Logger LOG = new Logger(MahaLookupOperatorConversion.class);
 
     private static final SqlFunction SQL_FUNCTION = OperatorConversions
@@ -68,12 +70,10 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
 
                     LookupReferencesManager lrm = (LookupReferencesManager) lookupReferencesManager;
                     String missingValue = getMissingValue(inputExpressions, plannerContext, 3, MISSING_VALUE);
-                    String extractionMap = getMissingValue(inputExpressions, plannerContext, 4, "-3");
-                    String valueExtractionMap = getMissingValue(inputExpressions, plannerContext, 5, "-3");
                     //TODO: Enhance by passing in KV separator & delimeter.
                     //Also, allow passing of Map type statements: Case, KV pair, etc. ex: CASE, MAP(',','->')
-                    Map<String, String> dimensionOverrideMap = extractionMap == null || extractionMap.equals("-3") ? null : Splitter.on(",").withKeyValueSeparator("->").split(extractionMap);
-                    Map<String, String> secondaryColOverrideMap = valueExtractionMap == null || valueExtractionMap.equals("-3") ? null : Splitter.on(",").withKeyValueSeparator("->").split(valueExtractionMap);
+                    Map<String, String> dimensionOverrideMap = getMapOrDefault(inputExpressions, 5, plannerContext);
+                    Map<String, String> secondaryColOverrideMap = getMapOrDefault(inputExpressions, 4, plannerContext);
 
                     if (arg.isSimpleExtraction() && lookupName.isLiteral() && columnName.isLiteral() ) {
                         MahaRegisteredLookupExtractionFn mahaRegisteredLookupExtractionFn = new MahaRegisteredLookupExtractionFn(lrm,
@@ -97,6 +97,11 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
         );
         if(simpleExtraction == null) return null;
        return DruidExpression.of(simpleExtraction.getSimpleExtraction(), "maha");
+    }
+
+    private Map<String, String> getMapOrDefault(List<DruidExpression> inputExpressions, int index, PlannerContext plannerContext) {
+        String map = getMissingValue(inputExpressions, plannerContext, index, "");
+        return map == null || map.isEmpty() ? null : Splitter.on(SEPARATOR).withKeyValueSeparator(KV_DEFAULT).split(map);
     }
 
     private String getMissingValue(List<DruidExpression> list, PlannerContext plannerContext, int index, String valueIfMissing) {
