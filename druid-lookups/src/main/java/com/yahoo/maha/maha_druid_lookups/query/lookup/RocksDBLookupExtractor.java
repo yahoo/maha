@@ -63,8 +63,11 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
             RocksIterator it = db.newIterator();
             it.seekToFirst();
             while (it.isValid()) {
-                byte[] cacheByteValue = db.get(it.key());
                 Parser<Message> parser = schemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+                byte[] cacheByteValue = db.get(it.key());
+                if (cacheByteValue == null) {
+                    return tempMap.entrySet();
+                }
                 Message message = parser.parseFrom(cacheByteValue);
                 Map<Descriptors.FieldDescriptor, Object> tempMap2 = message.getAllFields();
                 StringBuilder sb = new StringBuilder();

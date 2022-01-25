@@ -116,6 +116,10 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         }
     }
 
+    public Descriptors.Descriptor getProtobufMessageDescriptor() {
+        return protobufMessageDescriptor;
+    }
+
     @Override
     public String toString() {
         return "DynamicLookupProtobufSchemaSerDe() : ";
