@@ -47,24 +47,24 @@ public class RocksDBDynamicLookupExtractor<U> extends BaseRocksDBLookupExtractor
 
         try {
             final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
+
+            Optional<DynamicLookupSchema> dynamicLookupSchemaOption = schemaManager.getSchema(extractionNamespace);
+            if(!dynamicLookupSchemaOption.isPresent()) {
+                return tempMap.entrySet();
+            }
+            DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaOption.get();
+            DynamicLookupCoreSchema dynamicLookupCoreSchema = dynamicLookupSchema.getCoreSchema();
+
             RocksIterator it = db.newIterator();
             it.seekToFirst();
             while (it.isValid()) {
-                Optional<DynamicLookupSchema> dynamicLookupSchemaOption = schemaManager.getSchema(extractionNamespace);
-                if(!dynamicLookupSchemaOption.isPresent()) {
-                    return tempMap.entrySet();
-                }
-
                 byte[] cacheByteValue = db.get(it.key());
                 if (cacheByteValue == null) {
-                    return tempMap.entrySet();
+                    continue;
                 }
 
-                DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaOption.get();
-                DynamicLookupCoreSchema dynamicLookupCoreSchema = dynamicLookupSchema.getCoreSchema();
                 if (dynamicLookupCoreSchema instanceof DynamicLookupProtobufSchemaSerDe) {
-                    DynamicLookupProtobufSchemaSerDe dynamicLookupProtobufSchemaSerDe = (DynamicLookupProtobufSchemaSerDe) dynamicLookupCoreSchema;
-                    DynamicMessage dynamicMessage = Optional.of(DynamicMessage.parseFrom(dynamicLookupProtobufSchemaSerDe.getProtobufMessageDescriptor(), cacheByteValue)).get();
+                    DynamicMessage dynamicMessage = Optional.of(DynamicMessage.parseFrom(((DynamicLookupProtobufSchemaSerDe) dynamicLookupCoreSchema).getProtobufMessageDescriptor(), cacheByteValue)).get();
                     Map<Descriptors.FieldDescriptor, Object> tempMap2 = dynamicMessage.getAllFields();
                     StringBuilder sb = new StringBuilder();
                     for (Map.Entry<Descriptors.FieldDescriptor, Object> kevVal: tempMap2.entrySet()) {
@@ -73,8 +73,7 @@ public class RocksDBDynamicLookupExtractor<U> extends BaseRocksDBLookupExtractor
                     if (sb.length() > 0) {
                         sb.setLength(sb.length() - 1);
                     }
-                    StringBuilder keySb = new StringBuilder(sb);
-                    String key = keySb.substring(0, sb.indexOf("#"));
+                    String key = sb.substring(0, sb.indexOf("#"));
                     tempMap.put(key, sb.toString());
                     it.next();
                 }
