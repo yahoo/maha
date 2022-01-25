@@ -62,6 +62,9 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     @JsonProperty
     private boolean enableDynamicLookup = false;
 
+    @JsonProperty
+    private int numEntriesIterator = 100;
+
 
     @JsonCreator
     public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
@@ -79,7 +82,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @JsonProperty(value = "cacheActionRunner", required = false) final String cacheActionRunnerName,
                                       @JsonProperty(value = "overrideLookupServiceHosts", required = false) final String overrideLookupServiceHosts,
                                       @JsonProperty(value = "randomLocalPathSuffixEnabled", required = false) final boolean randomLocalPathSuffixEnabled,
-                                      @JsonProperty(value = "enableDynamicLookup", required = false) final boolean enableDynamicLookup) {
+                                      @JsonProperty(value = "enableDynamicLookup", required = false) final boolean enableDynamicLookup,
+                                      @JsonProperty(value = "numEntriesIterator", required = false) final int numEntriesIterator) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
@@ -91,6 +95,10 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         this.lookupName = lookupName;
         this.tsColumn = tsColumn;
         this.randomLocalPathSuffixEnabled = randomLocalPathSuffixEnabled;
+
+        if (numEntriesIterator > 0) {
+            this.numEntriesIterator = numEntriesIterator;
+        }
 
         //cacheActionRunner = "."
         try {
@@ -203,6 +211,10 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     public String getOverrideLookupServiceHosts() {
         return overrideLookupServiceHosts;
+    }
+
+    public int getNumEntriesIterator() {
+        return numEntriesIterator;
     }
 
     @Override

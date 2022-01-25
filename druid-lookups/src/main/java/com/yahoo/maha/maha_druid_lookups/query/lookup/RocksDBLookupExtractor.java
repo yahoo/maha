@@ -52,9 +52,10 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
             final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
             Parser<Message> parser = schemaFactory.getProtobufParser(extractionNamespace.getNamespace());
 
+            int numEntriesIterated = 0;
             RocksIterator it = db.newIterator();
             it.seekToFirst();
-            while (it.isValid()) {
+            while (it.isValid() && numEntriesIterated <= extractionNamespace.getNumEntriesIterator()) {
                 byte[] cacheByteValue = db.get(it.key());
                 if (cacheByteValue == null) {
                     continue;
@@ -63,14 +64,15 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
                 Map<Descriptors.FieldDescriptor, Object> tempMap2 = message.getAllFields();
                 StringBuilder sb = new StringBuilder();
                 for (Map.Entry<Descriptors.FieldDescriptor, Object> kevVal: tempMap2.entrySet()) {
-                    sb.append(kevVal.getKey().getJsonName()).append(":").append(kevVal.getValue().toString()).append("#");
+                    sb.append(kevVal.getKey().getJsonName()).append(ITER_KEY_VAL_SEPARATOR).append(kevVal.getValue().toString()).append(ITER_VALUE_COL_SEPARATOR);
                 }
                 if (sb.length() > 0) {
                     sb.setLength(sb.length() - 1);
                 }
-                String key = sb.substring(0, sb.indexOf("#"));
+                String key = sb.substring(0, sb.indexOf(ITER_VALUE_COL_SEPARATOR));
                 tempMap.put(key, sb.toString());
                 it.next();
+                numEntriesIterated++;
             }
         } catch (Exception e) {
             LOG.error("Caught exception: " + e);
