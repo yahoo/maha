@@ -3,31 +3,21 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
 import com.google.protobuf.Descriptors;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBSnapshot;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.druid.java.util.common.logger.Logger;
-import org.apache.druid.java.util.emitter.service.ServiceEmitter;
+import com.google.protobuf.Message;
+import com.google.protobuf.Parser;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
+import org.apache.druid.java.util.common.logger.Logger;
+import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 
-import com.google.protobuf.Message;
-import com.google.protobuf.Parser;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 
 public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
@@ -60,10 +50,11 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
         try {
             final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
+            Parser<Message> parser = schemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+
             RocksIterator it = db.newIterator();
             it.seekToFirst();
             while (it.isValid()) {
-                Parser<Message> parser = schemaFactory.getProtobufParser(extractionNamespace.getNamespace());
                 byte[] cacheByteValue = db.get(it.key());
                 if (cacheByteValue == null) {
                     continue;
