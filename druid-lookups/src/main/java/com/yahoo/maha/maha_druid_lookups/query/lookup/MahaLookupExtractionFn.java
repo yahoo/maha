@@ -32,6 +32,7 @@ public class MahaLookupExtractionFn extends FunctionalExtraction {
             , String valueColumn
             , DecodeConfig decodeConfig
             , Map<String, String> dimensionOverrideMap
+            , Map<String, String> secondaryColOverrideMap
     ) {
         super(
                 new Function<String, String>() {
@@ -40,7 +41,7 @@ public class MahaLookupExtractionFn extends FunctionalExtraction {
                     public String apply(String input) {
                         if (lookup instanceof MahaLookupExtractor) {
                             MahaLookupExtractor mahaLookupExtractor = (MahaLookupExtractor) lookup;
-                            return mahaLookupExtractor.apply(Strings.nullToEmpty(input), valueColumn, decodeConfig, dimensionOverrideMap);
+                            return mahaLookupExtractor.apply(Strings.nullToEmpty(input), valueColumn, decodeConfig, dimensionOverrideMap, secondaryColOverrideMap);
                         } else {
                             return lookup.apply(Strings.nullToEmpty(input));
                         }

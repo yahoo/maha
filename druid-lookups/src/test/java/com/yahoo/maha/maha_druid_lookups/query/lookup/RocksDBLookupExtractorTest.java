@@ -224,6 +224,7 @@ public class RocksDBLookupExtractorTest {
     public void testDimensionOverrideMap() throws Exception {
 
         LookupService lookupService = mock(LookupService.class);
+        when(lookupService.lookup(any())).thenReturn("something-6789".getBytes());
         RocksDBManager rocksDBManager = mock(RocksDBManager.class);
         KafkaManager kafkaManager = mock(KafkaManager.class);
         ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
@@ -247,6 +248,7 @@ public class RocksDBLookupExtractorTest {
         String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         Assert.assertEquals(lookupValue, "something-12345");
 
+        when(lookupService.lookup(any())).thenReturn("".getBytes());
         MahaLookupQueryElement mahaLookupQueryElement2 = new MahaLookupQueryElement();
         mahaLookupQueryElement2.setDimension("");
         mahaLookupQueryElement2.setValueColumn("name");

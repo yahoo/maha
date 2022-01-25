@@ -56,7 +56,7 @@ public class MahaRegisteredLookupExtractionFnTest {
         LookupReferencesManager lrm = mock(LookupReferencesManager.class);
         when(lrm.get(anyString())).thenReturn(lefcOptional);
 
-        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, true));
+        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, null, true));
         Assert.assertNull(fn.cache);
         Assert.assertEquals(fn.apply("123"), "ON");
         Assert.assertEquals(fn.cache.getIfPresent("123"), "ON");
@@ -83,7 +83,7 @@ public class MahaRegisteredLookupExtractionFnTest {
         LookupReferencesManager lrm = mock(LookupReferencesManager.class);
         when(lrm.get(anyString())).thenReturn(lefcOptional);
 
-        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, true));
+        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, null, true));
 
         fn.ensureCache().put("123", "hola");
 
@@ -112,7 +112,7 @@ public class MahaRegisteredLookupExtractionFnTest {
         LookupReferencesManager lrm = mock(LookupReferencesManager.class);
         when(lrm.get(anyString())).thenReturn(lefcOptional);
 
-        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, false));
+        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, null, false));
 
         Assert.assertNull(fn.cache);
         Assert.assertEquals(fn.apply("123"), "ON");
@@ -140,7 +140,7 @@ public class MahaRegisteredLookupExtractionFnTest {
         LookupReferencesManager lrm = mock(LookupReferencesManager.class);
         when(lrm.get(anyString())).thenReturn(lefcOptional);
 
-        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, true));
+        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, null, true));
 
         Assert.assertNull(fn.apply(null));
     }

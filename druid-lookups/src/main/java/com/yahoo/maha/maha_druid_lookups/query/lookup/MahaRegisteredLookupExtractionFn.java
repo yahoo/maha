@@ -39,6 +39,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
     private final String valueColumn;
     private final DecodeConfig decodeConfig;
     private final Map<String, String> dimensionOverrideMap;
+    private final Map<String, String> secondaryColOverrideMap;
     private final boolean useQueryLevelCache;
     volatile Cache<String, String> cache = null;
     private final Object cacheLock = new Object();
@@ -54,6 +55,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
             @NotNull @JsonProperty("valueColumn") String valueColumn,
             @Nullable @JsonProperty("decode") DecodeConfig decodeConfig,
             @Nullable @JsonProperty("dimensionOverrideMap") Map<String, String> dimensionOverrideMap,
+            @Nullable @JsonProperty("secondaryColOverrideMap") Map<String, String> secondaryColOverrideMap,
             @Nullable @JsonProperty("useQueryLevelCache") Boolean useQueryLevelCache
     ) {
         Preconditions.checkArgument(lookup != null, "`lookup` required");
@@ -67,6 +69,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
         this.valueColumn = valueColumn;
         this.decodeConfig = decodeConfig;
         this.dimensionOverrideMap = dimensionOverrideMap;
+        this.secondaryColOverrideMap = secondaryColOverrideMap;
         this.useQueryLevelCache = useQueryLevelCache == null ? false : useQueryLevelCache;
     }
 
@@ -110,6 +113,11 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
         return dimensionOverrideMap;
     }
 
+    @JsonProperty("secondaryColOverrideMap")
+    public Map<String, String> getSecondaryColOverrideMap() {
+        return secondaryColOverrideMap;
+    }
+
     @JsonProperty("useQueryLevelCache")
     public boolean isUseQueryLevelCache() {
         return useQueryLevelCache;
@@ -134,6 +142,10 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
             outputStream.write(0xFF);
             if (getDimensionOverrideMap() != null) {
                 outputStream.write(getDimensionOverrideMap().hashCode());
+            }
+            outputStream.write(0xFF);
+            if (getSecondaryColOverrideMap() != null) {
+                outputStream.write(getSecondaryColOverrideMap().hashCode());
             }
             outputStream.write(0xFF);
             outputStream.write(isUseQueryLevelCache() ? 1 : 0);
@@ -233,6 +245,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
                             , valueColumn
                             , decodeConfig
                             , dimensionOverrideMap
+                            , secondaryColOverrideMap
                     );
                 }
             }

@@ -124,7 +124,7 @@ public class MahaLookupExtractionFactoryTest extends TestMongoServer {
         LookupExtractor extractor = onHeapManager.getLookupExtractor("advertiser_lookup");
         assertTrue(extractor instanceof MahaLookupExtractor);
         MahaLookupExtractor mahaExtractor = (MahaLookupExtractor) extractor;
-        assertEquals(mahaExtractor.apply("5ad10906fc7b6ecac8d41081", "name", null, null), "advertiser1");
+        assertEquals(mahaExtractor.apply("5ad10906fc7b6ecac8d41081", "name", null, null, null), "advertiser1");
 
         lookupReferencesManager = mock(LookupReferencesManager.class);
         Optional<LookupExtractorFactoryContainer> containerOptional = Optional.of(container);

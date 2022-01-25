@@ -245,6 +245,7 @@ public class RocksDBLookupExtractorWithFlatBufferTest {
         dimensionOverrideMap.put("12345", "something-12345");
         dimensionOverrideMap.put("6789", "something-6789");
         dimensionOverrideMap.put("", "Unknown");
+        when(lookupService.lookup(any())).thenReturn("12345".getBytes());
 
         MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
         mahaLookupQueryElement1.setDimension("12345");
@@ -252,6 +253,7 @@ public class RocksDBLookupExtractorWithFlatBufferTest {
         mahaLookupQueryElement1.setDimensionOverrideMap(dimensionOverrideMap);
         String lookupValue = rocksDBLookupExtractorWithFlatBuffer.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         Assert.assertEquals(lookupValue, "something-12345");
+        when(lookupService.lookup(any())).thenReturn("".getBytes());
 
         MahaLookupQueryElement mahaLookupQueryElement2 = new MahaLookupQueryElement();
         mahaLookupQueryElement2.setDimension("");
