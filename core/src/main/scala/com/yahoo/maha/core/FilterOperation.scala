@@ -17,7 +17,7 @@ import grizzled.slf4j.Logging
 import org.apache.druid.java.util.common.granularity.PeriodGranularity
 import org.apache.druid.js.JavaScriptConfig
 import org.apache.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
-import org.apache.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
+import org.apache.druid.query.extraction.{JavaScriptExtractionFn, RegexDimExtractionFn, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
 import org.apache.druid.query.filter.JavaScriptDimFilter
 import org.apache.druid.query.ordering.StringComparators.{LexicographicComparator, NumericComparator}
 import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
@@ -1484,6 +1484,9 @@ object FilterDruid {
                 }
                 new OrDimFilter(selectorList.asJava)
             }
+          case javascript@JAVASCRIPT(_, function) =>
+            val exFn = new JavaScriptExtractionFn(function, false, JavaScriptConfig.getEnabledInstance)
+            new SelectorDimFilter(javascript.dimColName, druidLiteralMapper.toLiteral(column, value, grainOption), exFn)
           case _ =>
             new SelectorDimFilter(columnAlias, druidLiteralMapper.toLiteral(column, value, grainOption), null)
         }
