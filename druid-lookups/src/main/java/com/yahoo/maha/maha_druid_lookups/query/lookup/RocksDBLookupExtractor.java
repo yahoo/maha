@@ -55,7 +55,7 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
             int numEntriesIterated = 0;
             RocksIterator it = db.newIterator();
             it.seekToFirst();
-            while (it.isValid() && numEntriesIterated <= extractionNamespace.getNumEntriesIterator()) {
+            while (it.isValid() && numEntriesIterated < extractionNamespace.getNumEntriesIterator()) {
                 byte[] cacheByteValue = db.get(it.key());
                 if (cacheByteValue == null) {
                     continue;
