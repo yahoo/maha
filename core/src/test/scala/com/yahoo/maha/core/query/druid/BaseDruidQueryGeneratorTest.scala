@@ -82,7 +82,7 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           , DruidFuncDimCol("Start Hour", DateType("HH"), DATETIME_FORMATTER("{start_time}", 8, 2))
           , DimCol("ageBucket", StrType())
           , DimCol("woeids", StrType())
-          , DruidFuncDimCol("segments", StrType(), JAVASCRIPT("{segments}", "function(x) { return x > 0; }"))
+          , DruidFuncDimCol("segments", StrType(), JAVASCRIPT("{segment_values}", "function(x) { return x > 0; }"))
           , DimCol("internal_bucket_id", StrType())
           , DruidFuncDimCol("click_exp_id", StrType(), REGEX("{internal_bucket_id}", "(cl-)(.*?)(,)", 2, replaceMissingValue = true, "-3"))
           , DruidFuncDimCol("week_start", DateType(), DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY("yyyy-MM-dd", "P1W"))
