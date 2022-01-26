@@ -46,6 +46,9 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
     protected Cache<String, byte[]> missingLookupCache;
     protected final byte[] extractionNamespaceAsByteArray;
 
+    protected final String ITER_KEY_VAL_SEPARATOR = ":";
+    protected final String ITER_VALUE_COL_SEPARATOR = "#";
+
     public BaseRocksDBLookupExtractor(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
                                    LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
                                    ServiceEmitter serviceEmitter) {
