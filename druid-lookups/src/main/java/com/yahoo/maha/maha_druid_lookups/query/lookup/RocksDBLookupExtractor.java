@@ -75,8 +75,7 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
                 numEntriesIterated++;
             }
         } catch (Exception e) {
-            LOG.error("Caught exception: " + e);
-            LOG.warn("Returning iterable to empty map due to above exception.");
+            LOG.error(e, "Caught exception. Returning iterable to empty map.");
         }
 
         return tempMap.entrySet();

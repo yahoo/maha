@@ -63,7 +63,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     private boolean enableDynamicLookup = false;
 
     @JsonProperty
-    private int numEntriesIterator = 100;
+    private int numEntriesIterator = 1000;
 
 
     @JsonCreator
