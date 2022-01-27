@@ -172,6 +172,10 @@ public class MahaNamespaceExtractionModule implements DruidModule
                 .addBinding(JDBCExtractionNamespaceWithLeaderAndFollower.class)
                 .to(JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower.class)
                 .in(LazySingleton.class);
+        getNamespaceFactoryMapBinder(binder)
+                .addBinding(URIExtractionNamespace.class)
+                .to(URIExtractionNamespaceCacheFactory.class)
+                .in(LazySingleton.class);
 
         LifecycleModule.register(binder, RocksDBManager.class);
         LifecycleModule.register(binder, KafkaManager.class);
