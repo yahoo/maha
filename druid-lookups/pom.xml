@@ -179,12 +179,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.druid.extensions</groupId>
-            <artifactId>druid-lookups-cached-global</artifactId>
-            <version>${druid.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>com.opencsv</groupId>
             <artifactId>opencsv</artifactId>
             <version>4.6</version>

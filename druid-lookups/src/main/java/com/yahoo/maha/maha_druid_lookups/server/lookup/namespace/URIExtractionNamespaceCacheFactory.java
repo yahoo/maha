@@ -16,7 +16,7 @@ import org.apache.druid.segment.loading.URIDataPuller;
 import org.apache.druid.utils.CompressionUtils;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
-import org.apache.druid.data.input.MapPopulator;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MapPopulator;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
