@@ -370,7 +370,7 @@ public class URIExtractionNamespaceTest {
     {
         final ObjectMapper mapper = registerTypes(new DefaultObjectMapper());
         URIExtractionNamespace namespace = mapper.readValue(
-                "{\"type\":\"uri\", \"uriPrefix\":\"file:/foo\", \"namespaceParseSpec\":{\"format\":\"simpleJson\"}, \"pollPeriod\":\"PT5M\", \"versionRegex\":\"a.b.c\", \"namespace\":\"testNamespace\"}",
+                "{\"type\":\"mahauri\", \"lookupName\": \"student_lookup\", \"primaryKeyColumn\" : \"id\", \"columnList\": [\"name\",\"gpa\"], \"uriPrefix\":\"file:/foo\", \"namespaceParseSpec\":{\"format\":\"simpleJson\"}, \"pollPeriod\":\"PT5M\", \"versionRegex\":\"a.b.c\", \"namespace\":\"testNamespace\"}",
                 URIExtractionNamespace.class
         );
 
@@ -388,7 +388,7 @@ public class URIExtractionNamespaceTest {
     {
         final ObjectMapper mapper = registerTypes(new DefaultObjectMapper());
         URIExtractionNamespace namespace = mapper.readValue(
-                "{\"type\":\"uri\", \"uri\":\"file:/foo\", \"namespaceParseSpec\":{\"format\":\"simpleJson\"}, \"pollPeriod\":\"PT5M\"}",
+                "{\"type\":\"mahauri\", \"lookupName\": \"student_lookup\", \"primaryKeyColumn\" : \"id\", \"columnList\": [\"name\",\"gpa\"], \"uri\":\"file:/foo\", \"namespaceParseSpec\":{\"format\":\"simpleJson\"}, \"pollPeriod\":\"PT5M\"}",
                 URIExtractionNamespace.class
         );
 
