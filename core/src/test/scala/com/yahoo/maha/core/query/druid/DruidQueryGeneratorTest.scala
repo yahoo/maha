@@ -3952,9 +3952,10 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-
-    val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\["2022-01-19T00:00:00.000Z/2022-01-20T00:00:00.000Z"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":"20220119"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\},\{"type":"selector","dimension":"segment_values","value":"True","extractionFn":\{"type":"javascript","function":"function\(x\) \{ return x > 0; \}","injective":false\}\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"extraction","dimension":"segment_values","outputName":"Segments","outputType":"STRING","extractionFn":\{"type":"javascript","function":"function\(x\) \{ return x > 0; \}","injective":false\}\},\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"roundingDoubleSum","name":"_sum_avg_bid","fieldName":"avg_bid","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\},\{"type":"count","name":"_count_avg_bid"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":120\},"context":\{"applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
-    result should fullyMatch regex json
+    val json1 = """{"type":"selector","dimension":"segment_values","value":"True","extractionFn":{"type":"javascript","function":"function(x) { return x > 0; }","injective":false}}"""
+    val json2 = """{"type":"extraction","dimension":"segment_values","outputName":"Segments","outputType":"STRING","extractionFn":{"type":"javascript","function":"function(x) { return x > 0; }","injective":false}}"""
+    assert (result.contains(json1), "Missing selector JSON in result: " + result)
+    assert (result.contains(json2), "Missing dimension JSON in result: " + result)
   }
 
 }
