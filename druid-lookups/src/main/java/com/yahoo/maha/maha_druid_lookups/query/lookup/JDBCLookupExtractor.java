@@ -7,6 +7,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNa
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 
 import java.lang.invoke.MethodHandles;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +30,25 @@ public class JDBCLookupExtractor<U extends List<String>> extends OnlineDatastore
 
     @Override
     public Iterable<Map.Entry<String, String>> iterable() {
-        return staticMap.entrySet();
+        Map<String, String> tempMap = new HashMap<>();
+        int numEntriesIterated = 0;
+        for (Map.Entry<String, U> entry : getMap().entrySet()) {
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String, Integer> colToIndex : getColumnIndexMap().entrySet()) {
+                sb.append(colToIndex.getKey())
+                        .append(ITER_KEY_VAL_SEPARATOR)
+                        .append(entry.getValue().get(colToIndex.getValue()))
+                        .append(ITER_VALUE_COL_SEPARATOR);
+            }
+            if (sb.length() > 0) {
+                sb.setLength(sb.length() - 1);
+            }
+            tempMap.put(entry.getKey(), sb.toString());
+            numEntriesIterated++;
+            if (numEntriesIterated == ((JDBCExtractionNamespace)getExtractionNamespace()).getNumEntriesIterator()) {
+                break;
+            }
+        }
+        return tempMap.entrySet();
     }
 }

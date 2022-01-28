@@ -47,6 +47,8 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     private final boolean kerberosPropertiesEnabled;
     @JsonProperty
     private final boolean mTLSPropertiesEnabled;
+    @JsonProperty
+    private int numEntriesIterator = 1000;
 
     private boolean firstTimeCaching = true;
     private Timestamp previousLastUpdateTimestamp;
@@ -66,7 +68,8 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
             @JsonProperty(value = "mTLSProperties", required = false) final Properties mTLSProperties,
             @JsonProperty(value = "tsColumnConfig", required = false) final TsColumnConfig tsColumnConfig,
             @JsonProperty(value = "kerberosPropertiesEnabled", required = false) final boolean kerberosPropertiesEnabled,
-            @JsonProperty(value = "mTLSPropertiesEnabled", required = false) final boolean mTLSPropertiesEnabled
+            @JsonProperty(value = "mTLSPropertiesEnabled", required = false) final boolean mTLSPropertiesEnabled,
+            @JsonProperty(value = "numEntriesIterator", required = false) final int numEntriesIterator
     ) {
         this.connectorConfig = Preconditions.checkNotNull(connectorConfig, "connectorConfig");
         Preconditions.checkNotNull(connectorConfig.getConnectURI(), "connectorConfig.connectURI");
@@ -82,6 +85,11 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
         this.tsColumnConfig = tsColumnConfig;
         this.kerberosPropertiesEnabled = kerberosPropertiesEnabled;
         this.mTLSPropertiesEnabled = mTLSPropertiesEnabled;
+
+        if (numEntriesIterator > 0) {
+            this.numEntriesIterator = numEntriesIterator;
+        }
+
         int index = 0;
         ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
         for (String col : columnList) {
@@ -92,7 +100,7 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     }
 
     public JDBCExtractionNamespace(MetadataStorageConnectorConfig connectorConfig, String table, ArrayList<String> columnList, String primaryKeyColumn, String tsColumn, Period pollPeriod, boolean cacheEnabled, String lookupName) {
-        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, null, null, null, false, false);
+        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, null, null, null, false, false, 0);
     }
 
     public int getColumnIndex(String valueColumn) {
@@ -204,6 +212,10 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
 
     public boolean ismTLSPropertiesEnabled() {
         return mTLSPropertiesEnabled;
+    }
+
+    public int getNumEntriesIterator() {
+        return numEntriesIterator;
     }
 
     @Override

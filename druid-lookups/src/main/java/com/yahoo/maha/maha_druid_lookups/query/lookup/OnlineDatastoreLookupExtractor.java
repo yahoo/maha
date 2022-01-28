@@ -42,6 +42,14 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
         return ImmutableMap.copyOf(map);
     }
 
+    protected ImmutableMap<String, Integer> getColumnIndexMap() {
+        return columnIndexMap;
+    }
+
+    protected OnlineDatastoreExtractionNamespace getExtractionNamespace() {
+        return extractionNamespace;
+    }
+
     @Nullable
     public String apply(@NotNull String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap, Map<String, String> secondaryColOverrideMap) {
         try {
