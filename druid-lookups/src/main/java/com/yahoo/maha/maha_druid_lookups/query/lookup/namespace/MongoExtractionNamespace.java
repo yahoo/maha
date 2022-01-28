@@ -36,6 +36,8 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
     private long previousLastUpdateTime;
     private final ImmutableMap<String, Integer> columnIndexMap;
 
+    private int numEntriesIterator = 1000;
+
     @JsonCreator
     public MongoExtractionNamespace(
             @NotNull @JsonProperty(value = "connectorConfig", required = true) final MongoStorageConnectorConfig connectorConfig,
@@ -46,7 +48,8 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
             @JsonProperty(value = "cacheEnabled", required = false) final boolean cacheEnabled,
             @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
             @NotNull @JsonProperty(value = "documentProcessor", required = true) final MongoDocumentProcessor documentProcessor,
-            @Nullable @JsonProperty(value = "mongoClientRetryCount", required = false) final Integer mongoClientRetryCount
+            @Nullable @JsonProperty(value = "mongoClientRetryCount", required = false) final Integer mongoClientRetryCount,
+            @JsonProperty(value = "numEntriesIterator", required = false) final int numEntriesIterator
     ) {
         this.connectorConfig = Preconditions.checkNotNull(connectorConfig, "connectorConfig");
         Preconditions.checkNotNull(connectorConfig.getConnectURI(), "connectorConfig.connectURI");
@@ -59,6 +62,9 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
             this.mongoClientRetryCount = DEFAULT_MONGO_CLIENT_RETRY_COUNT;
         } else {
             this.mongoClientRetryCount = mongoClientRetryCount;
+        }
+        if (numEntriesIterator > 0) {
+            this.numEntriesIterator = numEntriesIterator;
         }
         this.collectionName = collectionName;
         this.tsColumn = tsColumn;
@@ -154,6 +160,10 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
         this.firstTimeCaching = value;
     }
 
+    public int getNumEntriesIterator() {
+        return numEntriesIterator;
+    }
+
     @JsonIgnore
     public long getPreviousLastUpdateTime() {
         return previousLastUpdateTime;
@@ -179,6 +189,7 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
                 ", tsColumnEpochInteger=" + tsColumnEpochInteger +
                 ", firstTimeCaching=" + firstTimeCaching +
                 ", previousLastUpdateTime=" + previousLastUpdateTime +
+                ", numEntriesIterator=" + numEntriesIterator +
                 '}';
     }
 

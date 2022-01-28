@@ -17,6 +17,7 @@ import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -156,4 +157,37 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
         return map.hashCode();
     }
 
+    @Override
+    public boolean canIterate() {
+        return true;
+    }
+
+    @Override
+    public Iterable<Map.Entry<String, String>> iterable() {
+        Map<String, String> tempMap = new HashMap<>();
+        int numEntriesIterated = 0;
+        try {
+            for (Map.Entry<String, U> entry : getMap().entrySet()) {
+                StringBuilder sb = new StringBuilder();
+                for (Map.Entry<String, Integer> colToIndex : columnIndexMap.entrySet()) {
+                    sb.append(colToIndex.getKey())
+                            .append(ITER_KEY_VAL_SEPARATOR)
+                            .append(entry.getValue().get(colToIndex.getValue()))
+                            .append(ITER_VALUE_COL_SEPARATOR);
+                }
+                if (sb.length() > 0) {
+                    sb.setLength(sb.length() - 1);
+                }
+                tempMap.put(entry.getKey(), sb.toString());
+                numEntriesIterated++;
+                if (numEntriesIterated == extractionNamespace.getNumEntriesIterator()) {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            LOGGER().error(e, "Caught exception. Returning iterable to empty map.");
+        }
+
+        return tempMap.entrySet();
+    }
 }

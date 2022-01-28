@@ -21,4 +21,6 @@ public interface OnlineDatastoreExtractionNamespace extends ExtractionNamespace 
     ImmutableMap<String, Integer> getColumnIndexMap();
 
     public List<String> getColumnList();
+
+    int getNumEntriesIterator();
 }
