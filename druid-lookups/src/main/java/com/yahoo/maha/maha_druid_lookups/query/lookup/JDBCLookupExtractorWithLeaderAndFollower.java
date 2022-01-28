@@ -29,6 +29,6 @@ public class JDBCLookupExtractorWithLeaderAndFollower<U extends List<String>> ex
 
     @Override
     public Iterable<Map.Entry<String, String>> iterable() {
-        return staticMap.entrySet();
+        return super.iterable();
     }
 }

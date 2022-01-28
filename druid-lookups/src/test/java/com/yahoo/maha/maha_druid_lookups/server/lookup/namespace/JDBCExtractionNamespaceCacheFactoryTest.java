@@ -115,7 +115,7 @@ public class JDBCExtractionNamespaceCacheFactoryTest {
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
                         "id", "", new Period(), true, "advertiser_lookup", new Properties(), new Properties(),
-                        new TsColumnConfig("primTsCol", "bigint", "YYYYMMDDhhmmss", "secTsCol", ">"), true, false);
+                        new TsColumnConfig("primTsCol", "bigint", "YYYYMMDDhhmmss", "secTsCol", ">"), true, false, 0);
         String[] cache = new String[1];
         Mockito.doReturn("123").when(obj).getMaxValFromColumn(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
         Assert.assertEquals(obj.getSecondaryTsWhereCondition("id", extractionNamespaceWithSecTsCol, cache), " AND secTsCol > '123'");

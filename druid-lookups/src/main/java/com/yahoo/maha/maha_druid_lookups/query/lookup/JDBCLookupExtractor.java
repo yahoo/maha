@@ -29,6 +29,6 @@ public class JDBCLookupExtractor<U extends List<String>> extends OnlineDatastore
 
     @Override
     public Iterable<Map.Entry<String, String>> iterable() {
-        return staticMap.entrySet();
+        return super.iterable();
     }
 }

@@ -85,7 +85,7 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("my name", "USD", "ON"));
         Assert.assertEquals(obj.getCacheValue(extractionNamespace, map, "12345", "name", Optional.empty()), "my name".getBytes());
@@ -96,7 +96,7 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("my name", "USD", "ON"));
         Assert.assertEquals(obj.getCacheValue(extractionNamespace, map, "6789", "name", Optional.empty()), "".getBytes());
@@ -107,7 +107,7 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("my name", "USD", "ON"));
         Assert.assertEquals(obj.getCacheValue(extractionNamespace, map, "6789", "blah", Optional.empty()), "".getBytes());
@@ -118,7 +118,7 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("my name", "USD", "ON"));
         DecodeConfig decodeConfig1 = new DecodeConfig();
@@ -143,7 +143,7 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(badMongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Callable<String> command = obj.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, null, cache);
         command.call();
     }
@@ -154,7 +154,7 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Callable<String> command = obj.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, null, cache);
         String version = command.call();
         Assert.assertTrue(cache.containsKey("5ad10906fc7b6ecac8d41080"));
@@ -170,7 +170,7 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Callable<String> command = obj.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, null, cache);
         String version = command.call();
         Assert.assertTrue(cache.containsKey("5ad10906fc7b6ecac8d41080"));
@@ -197,7 +197,7 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(badMongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Callable<String> command = obj.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, null, cache);
         command.call();
     }

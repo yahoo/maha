@@ -68,7 +68,7 @@ public class MongoLookupExtractorTest {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
 
         Map<String, String> map = new HashMap<>();
         MongoLookupExtractor MongoLookupExtractor = new MongoLookupExtractor(extractionNamespace, map, lookupService);
@@ -82,7 +82,7 @@ public class MongoLookupExtractorTest {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
 
         Map<String, String> map = new HashMap<>();
         MongoLookupExtractor MongoLookupExtractor = new MongoLookupExtractor(extractionNamespace, map, lookupService);
@@ -96,7 +96,7 @@ public class MongoLookupExtractorTest {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Map<String, String> map = new HashMap<>();
         MongoLookupExtractor MongoLookupExtractor = new MongoLookupExtractor(extractionNamespace, map, lookupService);
         MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
@@ -112,7 +112,7 @@ public class MongoLookupExtractorTest {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("my name", "USD", "ON"));
         MongoLookupExtractor MongoLookupExtractor = new MongoLookupExtractor(extractionNamespace, map, lookupService);
@@ -141,7 +141,7 @@ public class MongoLookupExtractorTest {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("my name", "USD", "ON"));
         MongoLookupExtractor MongoLookupExtractor = new MongoLookupExtractor(extractionNamespace, map, lookupService);
@@ -158,7 +158,7 @@ public class MongoLookupExtractorTest {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("my name", "USD", "ON"));
         MongoLookupExtractor MongoLookupExtractor = new MongoLookupExtractor(extractionNamespace, map, lookupService);
@@ -188,7 +188,7 @@ public class MongoLookupExtractorTest {
         MongoExtractionNamespace extractionNamespace =
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
-                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null, 0);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("my name", "USD", "ON"));
         MongoLookupExtractor MongoLookupExtractor = new MongoLookupExtractor(extractionNamespace, map, lookupService);

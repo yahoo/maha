@@ -17,6 +17,9 @@ abstract public class MahaLookupExtractor extends LookupExtractor {
 
     protected static final Map<String, String> staticMap = new java.util.HashMap<>();
 
+    protected final String ITER_KEY_VAL_SEPARATOR = ":";
+    protected final String ITER_VALUE_COL_SEPARATOR = "#";
+
     @Nullable
     public abstract String apply(@Nullable String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap, Map<String, String> secondaryColOverrideMap);
 
