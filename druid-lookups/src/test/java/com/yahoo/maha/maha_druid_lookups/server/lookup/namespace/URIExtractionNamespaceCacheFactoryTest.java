@@ -7,6 +7,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.TsColumnConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.URIExtractionNamespace;
+import org.apache.commons.io.FileUtils;
 import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.data.SearchableVersionedDataFinder;
 import org.apache.druid.java.util.common.lifecycle.Lifecycle;
@@ -22,9 +23,7 @@ import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -107,26 +106,34 @@ public class URIExtractionNamespaceCacheFactoryTest {
         obj.lookupService = lookupService;
         NullHandling.initializeForTests();
         File newFolder = path.toFile();
-
-        tmpFileParent = new File(newFolder, "tmp");
-        //tmpFile = Files.createTempFile(tmpFileParent.toPath(), "druidTestURIExtractionNS", suffix).toFile();
+        tmpFileParent = new File(newFolder, "tmp.txt");
+        tmpFileParent.createNewFile();
+        //tmpFileParent.setLastModified(8675309000L);
         namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
                 new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("id", "gpa", "date"), "id", "gpa", false, 0),
-                null, null, 10L, "student_lookup", "date", true, "id",
-                new ArrayList<String>(Arrays.asList("id", "gpa", "date")), null);
+                null, null, 10L, "student_lookup", "date", true, null, null, null);
     }
 
     @AfterTest
     public void tearDown() throws Exception {
         lifecycle.stop();
+        tmpFileParent.delete();
     }
 
     @Test
     public void testGetCacheValueWhenKeyPresent() throws Exception{
+        tmpFileParent.setWritable(true);
+        FileUtils.writeStringToFile(tmpFileParent, "543,0.2,20220102\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "111,0.3,22220103\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "222,3.9,20220104\n", true);
+        tmpFileParent.setLastModified(8675309123L);
+        Map<String, List<String>> cache = new HashMap<String, List<String>>(){{put("123", Arrays.asList("123", "4.5", "20220101"));}};
         Callable<String> versionedCache = obj.getCachePopulator("blah",
-                namespace, "500", new HashMap<String, String>(){{put("id", "123");put("gpa", "4.5");put("date", "20220101");}});
+                namespace, "500", cache);
 
-        System.err.println(versionedCache.call());
+        assert(versionedCache.call().equals("8675309000"));
+        assert(cache.containsKey("222"));
+        assert(cache.containsValue(Arrays.asList("111", "0.3", "22220103")));
     }
 
     @Test

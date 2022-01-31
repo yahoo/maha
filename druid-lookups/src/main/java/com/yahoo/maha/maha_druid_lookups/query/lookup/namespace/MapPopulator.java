@@ -11,6 +11,7 @@ import org.apache.druid.java.util.common.parsers.Parser;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -112,7 +113,7 @@ public class MapPopulator<K,V> {
                         if (lines == Integer.MAX_VALUE) {
                             throw new ISE("Cannot read more than %,d lines", Integer.MAX_VALUE);
                         }
-                        final Map<K, V> kvMap = parser.parseToMap(line);
+                        Map<K, V> kvMap = parser.parseToMap(line);
                         if (kvMap == null) {
                             return true;
                         }

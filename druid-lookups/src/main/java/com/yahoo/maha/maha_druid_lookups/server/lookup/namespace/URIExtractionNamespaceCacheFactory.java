@@ -17,6 +17,7 @@ import org.apache.druid.utils.CompressionUtils;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MapPopulator;
+import org.apache.commons.compress.compressors.snappy.FramedSnappyCompressorInputStream;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -31,7 +32,7 @@ import java.util.regex.Pattern;
  *
  */
 public class URIExtractionNamespaceCacheFactory
-        implements ExtractionNamespaceCacheFactory<URIExtractionNamespace, String> {
+        implements ExtractionNamespaceCacheFactory<URIExtractionNamespace, List<String>> {
     private static final Logger LOG = new Logger(URIExtractionNamespaceCacheFactory.class);
 
     private static final int DEFAULT_NUM_RETRIES = 3;
@@ -53,7 +54,7 @@ public class URIExtractionNamespaceCacheFactory
             final String id,
             final URIExtractionNamespace extractionNamespace,
             final String lastVersion,
-            final Map<String, String> cache
+            final Map<String, List<String>> cache
     ) {
         final long lastCheck = lastVersion == null ? Long.MIN_VALUE / 2 : Long.parseLong(lastVersion);
 
@@ -144,7 +145,7 @@ public class URIExtractionNamespaceCacheFactory
 
 
     @Override
-    public void updateCache(final URIExtractionNamespace extractionNamespace, final Map<String, String> cache,
+    public void updateCache(final URIExtractionNamespace extractionNamespace, final Map<String, List<String>> cache,
                             final String key, final byte[] value) {
         //No-op
     }

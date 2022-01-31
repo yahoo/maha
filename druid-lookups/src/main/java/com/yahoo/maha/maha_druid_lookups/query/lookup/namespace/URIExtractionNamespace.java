@@ -94,8 +94,8 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
             @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
             @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
             @JsonProperty(value = "cacheEnabled", required = false) final boolean cacheEnabled,
-            @NotNull @JsonProperty(value = "primaryKeyColumn", required = true) final String primaryKeyColumn,
-            @NotNull @JsonProperty(value = "columnList", required = true) final ArrayList<String> columnList,
+            @Nullable @JsonProperty(value = "primaryKeyColumn", required = false) final String primaryKeyColumn,
+            @Nullable @JsonProperty(value = "columnList", required = false) final ArrayList<String> columnList,
             @JsonProperty(value = "tsColumnConfig", required = false) final TsColumnConfig tsColumnConfig
 
             )
@@ -136,13 +136,13 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         this.lookupName = lookupName;
         this.tsColumn = tsColumn;
         this.cacheEnabled = cacheEnabled;
-        this.primaryKeyColumn = Preconditions.checkNotNull(primaryKeyColumn, "primaryKeyColumn");
-        this.columnList = ImmutableList.copyOf(Preconditions.checkNotNull(columnList, "columnList"));
+        this.primaryKeyColumn = primaryKeyColumn;
+        this.columnList = columnList == null || columnList.isEmpty() ? ImmutableList.of() : ImmutableList.copyOf(columnList);
         this.tsColumnConfig = tsColumnConfig;
 
         int index = 0;
         ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
-        for (String col : columnList) {
+        for (String col : this.columnList) {
             builder.put(col, index);
             index += 1;
         }
@@ -230,7 +230,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         return result;
     }
 
-    private static class DelegateParser implements Parser<String, String>
+    private static class DelegateParser implements Parser<String, List<String>>
     {
         private final Parser<String, Object> delegate;
         private final String key;
@@ -248,7 +248,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         }
 
         @Override
-        public Map<String, String> parseToMap(String input)
+        public Map<String, List<String>> parseToMap(String input)
         {
             final Map<String, Object> inner = delegate.parseToMap(input);
             if (null == inner) {
@@ -260,13 +260,9 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
                     "Key column [%s] missing data in line [%s]",
                     key,
                     input
-            ).toString(); // Just in case is long
-            final Object val = inner.get(value);
-            if (val == null) {
-                // Skip null or missing values, treat them as if there were no row at all.
-                return ImmutableMap.of();
-            }
-            return ImmutableMap.of(k, val.toString());
+            ).toString();
+
+            return ImmutableMap.of(k, new ArrayList(inner.values())); //TODO fix
         }
 
         @Override
@@ -284,20 +280,17 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "format")
     @JsonSubTypes(value = {
-            @JsonSubTypes.Type(name = "csv", value = CSVFlatDataParser.class),
-            @JsonSubTypes.Type(name = "tsv", value = TSVFlatDataParser.class),
-            @JsonSubTypes.Type(name = "customJson", value = JSONFlatDataParser.class),
-            @JsonSubTypes.Type(name = "simpleJson", value = ObjectMapperFlatDataParser.class)
+            @JsonSubTypes.Type(name = "csv", value = CSVFlatDataParser.class)
     })
     public interface FlatDataParser
     {
-        Parser<String, String> getParser();
+        Parser<String, List<String>> getParser();
     }
 
     @JsonTypeName("csv")
     public static class CSVFlatDataParser implements FlatDataParser
     {
-        private final Parser<String, String> parser;
+        private final Parser<String, List<String>> parser;
         private final List<String> columns;
         private final String keyColumn;
         private final String valueColumn;
@@ -373,7 +366,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         }
 
         @Override
-        public Parser<String, String> getParser()
+        public Parser<String, List<String>> getParser()
         {
             return parser;
         }
@@ -410,305 +403,6 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         }
     }
 
-    @JsonTypeName("tsv")
-    public static class TSVFlatDataParser implements FlatDataParser
-    {
-        private final Parser<String, String> parser;
-        private final List<String> columns;
-        private final String delimiter;
-        private final String listDelimiter;
-        private final String keyColumn;
-        private final String valueColumn;
-
-        @JsonCreator
-        public TSVFlatDataParser(
-                @JsonProperty("columns") List<String> columns,
-                @JsonProperty("delimiter") String delimiter,
-                @JsonProperty("listDelimiter") String listDelimiter,
-                @JsonProperty("keyColumn") final String keyColumn,
-                @JsonProperty("valueColumn") final String valueColumn,
-                @JsonProperty("hasHeaderRow") boolean hasHeaderRow,
-                @JsonProperty("skipHeaderRows") int skipHeaderRows
-        )
-        {
-            Preconditions.checkArgument(
-                    Preconditions.checkNotNull(columns, "`columns` list required").size() > 1,
-                    "Must specify more than one column to have a key value pair"
-            );
-            final DelimitedParser delegate = new DelimitedParser(
-                    StringUtils.emptyToNullNonDruidDataString(delimiter),
-                    StringUtils.emptyToNullNonDruidDataString(listDelimiter),
-                    hasHeaderRow,
-                    skipHeaderRows
-            );
-            delegate.startFileFromBeginning();
-            Preconditions.checkArgument(
-                    !(Strings.isNullOrEmpty(keyColumn) ^ Strings.isNullOrEmpty(valueColumn)),
-                    "Must specify both `keyColumn` and `valueColumn` or neither `keyColumn` nor `valueColumn`"
-            );
-            delegate.setFieldNames(columns);
-            this.columns = columns;
-            this.delimiter = delimiter;
-            this.listDelimiter = listDelimiter;
-            this.keyColumn = Strings.isNullOrEmpty(keyColumn) ? columns.get(0) : keyColumn;
-            this.valueColumn = Strings.isNullOrEmpty(valueColumn) ? columns.get(1) : valueColumn;
-            Preconditions.checkArgument(
-                    columns.contains(this.keyColumn),
-                    "Column [%s] not found int columns: %s",
-                    this.keyColumn,
-                    columns
-            );
-            Preconditions.checkArgument(
-                    columns.contains(this.valueColumn),
-                    "Column [%s] not found int columns: %s",
-                    this.valueColumn,
-                    columns
-            );
-
-            this.parser = new DelegateParser(delegate, this.keyColumn, this.valueColumn);
-        }
-
-        @VisibleForTesting
-        TSVFlatDataParser(
-                List<String> columns,
-                String delimiter,
-                String listDelimiter,
-                String keyColumn,
-                String valueColumn
-        )
-        {
-            this(columns, delimiter, listDelimiter, keyColumn, valueColumn, false, 0);
-        }
-
-        @JsonProperty
-        public List<String> getColumns()
-        {
-            return columns;
-        }
-
-        @JsonProperty
-        public String getKeyColumn()
-        {
-            return this.keyColumn;
-        }
-
-        @JsonProperty
-        public String getValueColumn()
-        {
-            return this.valueColumn;
-        }
-
-        @JsonProperty
-        public String getListDelimiter()
-        {
-            return listDelimiter;
-        }
-
-        @JsonProperty
-        public String getDelimiter()
-        {
-            return delimiter;
-        }
-
-        @Override
-        public Parser<String, String> getParser()
-        {
-            return parser;
-        }
-
-        @Override
-        public boolean equals(final Object o)
-        {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final TSVFlatDataParser that = (TSVFlatDataParser) o;
-            return Objects.equals(columns, that.columns) &&
-                    Objects.equals(delimiter, that.delimiter) &&
-                    Objects.equals(listDelimiter, that.listDelimiter) &&
-                    Objects.equals(keyColumn, that.keyColumn) &&
-                    Objects.equals(valueColumn, that.valueColumn);
-        }
-
-        @Override
-        public int hashCode()
-        {
-            return Objects.hash(columns, delimiter, listDelimiter, keyColumn, valueColumn);
-        }
-
-        @Override
-        public String toString()
-        {
-            return "TSVFlatDataParser{" +
-                    "columns=" + columns +
-                    ", delimiter='" + delimiter + '\'' +
-                    ", listDelimiter='" + listDelimiter + '\'' +
-                    ", keyColumn='" + keyColumn + '\'' +
-                    ", valueColumn='" + valueColumn + '\'' +
-                    '}';
-        }
-    }
-
-    @JsonTypeName("customJson")
-    public static class JSONFlatDataParser implements FlatDataParser
-    {
-        private final Parser<String, String> parser;
-        private final String keyFieldName;
-        private final String valueFieldName;
-
-        @JsonCreator
-        public JSONFlatDataParser(
-                @JacksonInject @Json ObjectMapper jsonMapper,
-                @JsonProperty("keyFieldName") final String keyFieldName,
-                @JsonProperty("valueFieldName") final String valueFieldName
-        )
-        {
-            Preconditions.checkArgument(!Strings.isNullOrEmpty(keyFieldName), "[keyFieldName] cannot be empty");
-            Preconditions.checkArgument(!Strings.isNullOrEmpty(valueFieldName), "[valueFieldName] cannot be empty");
-            this.keyFieldName = keyFieldName;
-            this.valueFieldName = valueFieldName;
-
-            // Copy jsonMapper; don't want to share canonicalization tables, etc., with the global ObjectMapper.
-            this.parser = new DelegateParser(
-                    new JSONPathParser(
-                            new JSONPathSpec(
-                                    false,
-                                    ImmutableList.of(
-                                            new JSONPathFieldSpec(JSONPathFieldType.ROOT, keyFieldName, keyFieldName),
-                                            new JSONPathFieldSpec(JSONPathFieldType.ROOT, valueFieldName, valueFieldName)
-                                    )
-                            ),
-                            jsonMapper.copy(),
-                            false
-                    ),
-                    keyFieldName,
-                    valueFieldName
-            );
-        }
-
-        @JsonProperty
-        public String getKeyFieldName()
-        {
-            return this.keyFieldName;
-        }
-
-        @JsonProperty
-        public String getValueFieldName()
-        {
-            return this.valueFieldName;
-        }
-
-        @Override
-        public Parser<String, String> getParser()
-        {
-            return this.parser;
-        }
-
-        @Override
-        public boolean equals(final Object o)
-        {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final JSONFlatDataParser that = (JSONFlatDataParser) o;
-            return Objects.equals(keyFieldName, that.keyFieldName) &&
-                    Objects.equals(valueFieldName, that.valueFieldName);
-        }
-
-        @Override
-        public int hashCode()
-        {
-            return Objects.hash(keyFieldName, valueFieldName);
-        }
-
-        @Override
-        public String toString()
-        {
-            return "JSONFlatDataParser{" +
-                    "keyFieldName='" + keyFieldName + '\'' +
-                    ", valueFieldName='" + valueFieldName + '\'' +
-                    '}';
-        }
-    }
-
-    @JsonTypeName("simpleJson")
-    public static class ObjectMapperFlatDataParser implements FlatDataParser
-    {
-        private final Parser<String, String> parser;
-
-        @JsonCreator
-        public ObjectMapperFlatDataParser(
-                final @JacksonInject @Json ObjectMapper jsonMapper
-        )
-        {
-            // There's no point canonicalizing field names, we expect them to all be unique.
-            final JsonFactory jsonFactory = jsonMapper.getFactory().copy();
-            jsonFactory.configure(JsonFactory.Feature.CANONICALIZE_FIELD_NAMES, false);
-
-            parser = new Parser<String, String>()
-            {
-                @Override
-                public Map<String, String> parseToMap(String input)
-                {
-                    try {
-                        return jsonFactory.createParser(input).readValueAs(JacksonUtils.TYPE_REFERENCE_MAP_STRING_STRING);
-                    }
-                    catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-
-                @Override
-                public void setFieldNames(Iterable<String> fieldNames)
-                {
-                    throw new UOE("No field names available");
-                }
-
-                @Override
-                public List<String> getFieldNames()
-                {
-                    throw new UOE("No field names available");
-                }
-            };
-        }
-
-        @Override
-        public Parser<String, String> getParser()
-        {
-            return parser;
-        }
-
-        @Override
-        public boolean equals(Object o)
-        {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-
-            return true;
-        }
-
-        @Override
-        public int hashCode()
-        {
-            return 0;
-        }
-
-        @Override
-        public String toString()
-        {
-            return "ObjectMapperFlatDataParser{}";
-        }
-    }
 
     @Override
     public String getLookupName() {
@@ -748,6 +442,11 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         return columnList;
     }
 
+    @Override
+    public int getNumEntriesIterator() {
+        return 0;
+    }
+
     public int getColumnIndex(String valueColumn) {
         if (columnIndexMap != null && valueColumn != null && columnIndexMap.containsKey(valueColumn)) {
             return columnIndexMap.get(valueColumn);
@@ -784,7 +483,6 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
     {
         return uriPrefix;
     }
-
 
 }
 
