@@ -25,8 +25,8 @@ public class MahaLookupTestUtil {
 
     DateTime todayTime = DateTime.now(DateTimeZone.UTC);
     DateTime lastWeekTime = todayTime.minusDays(7);
-    String today = todayTime.toString("YYYY-MM-DD");
-    String lastWeek = lastWeekTime.toString("YYYY-MM-DD");
+    String today = todayTime.toString("YYYY-MM-dd");
+    String lastWeek = lastWeekTime.toString("YYYY-MM-dd");
 
     RexNode makeInputRef(String columnName, RowSignature ROW_SIGNATURE, RexBuilder rexBuilder)
     {
