@@ -137,7 +137,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         this.tsColumn = tsColumn;
         this.cacheEnabled = cacheEnabled;
         this.primaryKeyColumn = primaryKeyColumn;
-        this.columnList = columnList == null || columnList.isEmpty() ? ImmutableList.of() : ImmutableList.copyOf(columnList);
+        this.columnList = columnList == null || columnList.isEmpty() ? ImmutableList.of() : ImmutableList.copyOf(columnList); //TODO replace pkCol & columnList with values in namespaceParseSpec to avoid dupes.
         this.tsColumnConfig = tsColumnConfig;
 
         int index = 0;
@@ -285,6 +285,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
     public interface FlatDataParser
     {
         Parser<String, List<String>> getParser();
+        List<String> getColumns();
     }
 
     @JsonTypeName("csv")
@@ -337,6 +338,9 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
             );
         }
 
+        @JsonProperty
+        public List<String> getColumns() { return columns; }
+
         @VisibleForTesting
         CSVFlatDataParser(
                 List<String> columns,
@@ -347,11 +351,11 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
             this(columns, keyColumn, valueColumn, false, 0);
         }
 
-        @JsonProperty
-        public List<String> getColumns()
-        {
-            return columns;
-        }
+        //@JsonProperty
+        //public List<String> getColumns()
+        //{
+        //    return columns;
+        //}
 
         @JsonProperty
         public String getKeyColumn()

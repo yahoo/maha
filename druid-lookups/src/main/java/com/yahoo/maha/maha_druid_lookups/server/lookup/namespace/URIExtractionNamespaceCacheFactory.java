@@ -147,17 +147,18 @@ public class URIExtractionNamespaceCacheFactory
     }
 
     private byte[] checkCacheAndReturn(URIExtractionNamespace extractionNamespace, Map<String, List<String>> cache, String key, String valueColumn) {
-        if(!cache.containsKey(key) || !extractionNamespace.getColumnIndexMap().containsKey(valueColumn)){
+        if(!cache.containsKey(key) || !extractionNamespace.getNamespaceParseSpec().getColumns().contains(valueColumn)){
+            log.error("Found no value for " + key + " with Namespace Cols: " + extractionNamespace.getNamespaceParseSpec().getColumns().toString() + " and val: " + valueColumn);
             return new byte[0];
         } else {
-            return cache.get(key).get(extractionNamespace.getColumnIndex(valueColumn)).getBytes();
+            return cache.get(key).get(extractionNamespace.getNamespaceParseSpec().getColumns().indexOf(valueColumn)).getBytes();
         }
     }
 
     @Override
     public byte[] getCacheValue(final URIExtractionNamespace extractionNamespace, final Map<String, List<String>> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
         if(!extractionNamespace.isCacheEnabled()){
-            Map<String, List<String>> tempCache = new HashMap<String, List<String>>();
+            Map<String, List<String>> tempCache = new HashMap<>();
             getValuesFromURI(extractionNamespace, 0L, tempCache, extractionNamespace.getLookupName());
             return checkCacheAndReturn(extractionNamespace, tempCache, key, valueColumn);
         } else {
