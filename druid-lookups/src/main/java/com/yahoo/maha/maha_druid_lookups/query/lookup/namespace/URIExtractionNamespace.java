@@ -2,38 +2,31 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.query.lookup.namespace;
 
-import com.fasterxml.jackson.annotation.JacksonInject;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.apache.druid.guice.annotations.Json;
+
 import org.apache.druid.java.util.common.IAE;
-import org.apache.druid.java.util.common.StringUtils;
-import org.apache.druid.java.util.common.UOE;
-import org.apache.druid.java.util.common.jackson.JacksonUtils;
+
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.common.parsers.CSVParser;
-import org.apache.druid.java.util.common.parsers.DelimitedParser;
-import org.apache.druid.java.util.common.parsers.JSONPathFieldSpec;
-import org.apache.druid.java.util.common.parsers.JSONPathFieldType;
-import org.apache.druid.java.util.common.parsers.JSONPathParser;
-import org.apache.druid.java.util.common.parsers.JSONPathSpec;
+
 import org.apache.druid.java.util.common.parsers.Parser;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
-import java.io.IOException;
+
 import java.net.URI;
 import java.sql.Timestamp;
 import java.util.*;
@@ -65,10 +58,6 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
     @JsonProperty
     private boolean cacheEnabled = true;
     @JsonProperty
-    private final String primaryKeyColumn;
-    @JsonProperty
-    private final ImmutableList<String> columnList;
-    @JsonProperty
     private final TsColumnConfig tsColumnConfig;
 
     private final ImmutableMap<String, Integer> columnIndexMap;
@@ -94,7 +83,6 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
             @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
             @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
             @JsonProperty(value = "cacheEnabled", required = false) final boolean cacheEnabled,
-            @Nullable @JsonProperty(value = "primaryKeyColumn", required = false) final String primaryKeyColumn,
             @Nullable @JsonProperty(value = "columnList", required = false) final ArrayList<String> columnList,
             @JsonProperty(value = "tsColumnConfig", required = false) final TsColumnConfig tsColumnConfig
 
@@ -107,9 +95,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         }
         this.namespaceParseSpec = Preconditions.checkNotNull(namespaceParseSpec, "namespaceParseSpec");
         if (pollPeriod == null) {
-            // Warning because if URIExtractionNamespace is being used for lookups, any updates to the database will not
-            // be picked up after the node starts. So for use casses where nodes start at different times (like streaming
-            // ingestion with peons) there can be data inconsistencies across the cluster.
+
             LOG.warn("No pollPeriod configured for URIExtractionNamespace - entries will be loaded only once at startup");
             this.pollPeriod = Period.ZERO;
         } else {
@@ -136,13 +122,11 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         this.lookupName = lookupName;
         this.tsColumn = tsColumn;
         this.cacheEnabled = cacheEnabled;
-        this.primaryKeyColumn = primaryKeyColumn;
-        this.columnList = columnList == null || columnList.isEmpty() ? ImmutableList.of() : ImmutableList.copyOf(columnList); //TODO replace pkCol & columnList with values in namespaceParseSpec to avoid dupes.
         this.tsColumnConfig = tsColumnConfig;
 
         int index = 0;
         ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
-        for (String col : this.columnList) {
+        for (String col : this.namespaceParseSpec.getColumns()) {
             builder.put(col, index);
             index += 1;
         }
@@ -234,17 +218,14 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
     {
         private final Parser<String, Object> delegate;
         private final String key;
-        private final String value;
 
         private DelegateParser(
                 Parser<String, Object> delegate,
-                @NotNull String key,
-                @NotNull String value
+                @NotNull String key
         )
         {
             this.delegate = delegate;
             this.key = key;
-            this.value = value;
         }
 
         @Override
@@ -262,7 +243,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
                     input
             ).toString();
 
-            return ImmutableMap.of(k, new ArrayList(inner.values())); //TODO fix
+            return ImmutableMap.of(k, new ArrayList(inner.values()));
         }
 
         @Override
@@ -286,6 +267,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
     {
         Parser<String, List<String>> getParser();
         List<String> getColumns();
+        String getKey();
     }
 
     @JsonTypeName("csv")
@@ -294,13 +276,11 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         private final Parser<String, List<String>> parser;
         private final List<String> columns;
         private final String keyColumn;
-        private final String valueColumn;
 
         @JsonCreator
         public CSVFlatDataParser(
                 @JsonProperty("columns") List<String> columns,
                 @JsonProperty("keyColumn") final String keyColumn,
-                @JsonProperty("valueColumn") final String valueColumn,
                 @JsonProperty("hasHeaderRow") boolean hasHeaderRow,
                 @JsonProperty("skipHeaderRows") int skipHeaderRows
         )
@@ -310,45 +290,35 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
                     "Must specify more than one column to have a key value pair"
             );
 
-            Preconditions.checkArgument(
-                    !(Strings.isNullOrEmpty(keyColumn) ^ Strings.isNullOrEmpty(valueColumn)),
-                    "Must specify both `keyColumn` and `valueColumn` or neither `keyColumn` nor `valueColumn`"
-            );
             this.columns = columns;
             this.keyColumn = Strings.isNullOrEmpty(keyColumn) ? columns.get(0) : keyColumn;
-            this.valueColumn = Strings.isNullOrEmpty(valueColumn) ? columns.get(1) : valueColumn;
             Preconditions.checkArgument(
                     columns.contains(this.keyColumn),
                     "Column [%s] not found int columns: %s",
                     this.keyColumn,
                     Arrays.toString(columns.toArray())
             );
-            Preconditions.checkArgument(
-                    columns.contains(this.valueColumn),
-                    "Column [%s] not found int columns: %s",
-                    this.valueColumn,
-                    Arrays.toString(columns.toArray())
-            );
             CSVParser csvParser = new CSVParser(null, columns, hasHeaderRow, skipHeaderRows);
             csvParser.startFileFromBeginning();
             this.parser = new DelegateParser(
                     csvParser,
-                    this.keyColumn,
-                    this.valueColumn
+                    this.keyColumn
             );
         }
 
         @JsonProperty
         public List<String> getColumns() { return columns; }
 
+        @JsonProperty
+        public String getKey() { return keyColumn; }
+
         @VisibleForTesting
         CSVFlatDataParser(
                 List<String> columns,
-                String keyColumn,
-                String valueColumn
+                String keyColumn
         )
         {
-            this(columns, keyColumn, valueColumn, false, 0);
+            this(columns, keyColumn, false, 0);
         }
 
         //@JsonProperty
@@ -361,12 +331,6 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         public String getKeyColumn()
         {
             return this.keyColumn;
-        }
-
-        @JsonProperty
-        public String getValueColumn()
-        {
-            return this.valueColumn;
         }
 
         @Override
@@ -386,14 +350,13 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
             }
             final CSVFlatDataParser that = (CSVFlatDataParser) o;
             return Objects.equals(columns, that.columns) &&
-                    Objects.equals(keyColumn, that.keyColumn) &&
-                    Objects.equals(valueColumn, that.valueColumn);
+                    Objects.equals(keyColumn, that.keyColumn);
         }
 
         @Override
         public int hashCode()
         {
-            return Objects.hash(columns, keyColumn, valueColumn);
+            return Objects.hash(columns, keyColumn);
         }
 
         @Override
@@ -402,7 +365,6 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
             return "CSVFlatDataParser{" +
                     "columns=" + columns +
                     ", keyColumn='" + keyColumn + '\'' +
-                    ", valueColumn='" + valueColumn + '\'' +
                     '}';
         }
     }
@@ -433,7 +395,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
 
     @Override
     public String getPrimaryKeyColumn() {
-        return primaryKeyColumn;
+        return namespaceParseSpec.getKey();
     }
 
     @Override
@@ -443,7 +405,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
 
     @Override
     public ImmutableList<String> getColumnList() {
-        return columnList;
+        return ImmutableList.copyOf(namespaceParseSpec.getColumns());
     }
 
     @Override

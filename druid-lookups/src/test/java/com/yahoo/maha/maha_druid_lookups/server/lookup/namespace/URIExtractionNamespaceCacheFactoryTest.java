@@ -110,8 +110,8 @@ public class URIExtractionNamespaceCacheFactoryTest {
         tmpFileParent.createNewFile();
         //tmpFileParent.setLastModified(8675309000L);
         namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
-                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("id", "gpa", "date"), "id", "gpa", false, 0),
-                null, null, 10L, "student_lookup", "date", true, null, null, null);
+                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("id", "gpa", "date"), "id", false, 0),
+                null, null, 10L, "student_lookup", "date", true, null, null);
     }
 
     @AfterTest

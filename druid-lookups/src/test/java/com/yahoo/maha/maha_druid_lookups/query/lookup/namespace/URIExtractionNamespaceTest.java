@@ -77,7 +77,7 @@ public class URIExtractionNamespaceTest {
                         "col1",
                         "col2",
                         "col3"
-                ), "col2", "col3"
+                ), "col2"
         );
         Assert.assertEquals(ImmutableMap.of("B", Arrays.asList("A", "B", "C")), parser.getParser().parseToMap("A,B,C"));
     }
@@ -87,7 +87,6 @@ public class URIExtractionNamespaceTest {
         URIExtractionNamespace.CSVFlatDataParser parser = new URIExtractionNamespace.CSVFlatDataParser(
                 ImmutableList.of("col1", "col2", "col3"),
                 "col2",
-                "col3",
                 true,
                 1
         );
@@ -100,7 +99,9 @@ public class URIExtractionNamespaceTest {
         // The third row will parse to data
         Assert.assertEquals(ImmutableMap.of("val2", Arrays.asList("val1","val2","val3")), parser.getParser().parseToMap("val1,val2,val3"));
     }
-    @Test(expected = IllegalArgumentException.class)
+
+
+    @Test(expected = NullPointerException.class)
     public void testBadCSV()
     {
         URIExtractionNamespace.CSVFlatDataParser parser = new URIExtractionNamespace.CSVFlatDataParser(
@@ -108,20 +109,7 @@ public class URIExtractionNamespaceTest {
                         "col1",
                         "col2",
                         "col3"
-                ), "col2", "col3ADFSDF"
-        );
-        Assert.assertEquals(ImmutableMap.of("B", "C"), parser.getParser().parseToMap("A,B,C"));
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void testBadCSV2()
-    {
-        URIExtractionNamespace.CSVFlatDataParser parser = new URIExtractionNamespace.CSVFlatDataParser(
-                ImmutableList.of(
-                        "col1",
-                        "col2",
-                        "col3"
-                ), "col2", "col3"
+                ), "col2"
         );
         Map<String, List<String>> map = parser.getParser().parseToMap("A");
     }
