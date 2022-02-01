@@ -28,6 +28,8 @@ import org.apache.druid.guice.LifecycleModule;
 import org.apache.druid.guice.PolyBind;
 import org.apache.druid.guice.annotations.Json;
 import org.apache.druid.initialization.DruidModule;
+import org.apache.druid.query.lookup.LookupExtractorFactoryContainerProvider;
+import org.apache.druid.query.lookup.LookupReferencesManager;
 import org.apache.druid.sql.calcite.schema.*;
 import org.apache.druid.sql.guice.*;
 
@@ -178,6 +180,7 @@ public class MahaNamespaceExtractionModule implements DruidModule
         LifecycleModule.register(binder, LookupService.class);
 
         SqlBindings.addOperatorConversion(binder, MahaLookupOperatorConversion.class);
+        binder.bind(LookupExtractorFactoryContainerProvider.class).to(LookupReferencesManager.class);
         binder.bind(LookupSchema.class).in(Scopes.SINGLETON);
 
         Jerseys.addResource(binder, MahaNamespacesCacheResource.class);
