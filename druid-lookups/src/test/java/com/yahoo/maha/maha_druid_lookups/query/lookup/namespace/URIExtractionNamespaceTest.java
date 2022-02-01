@@ -18,6 +18,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -78,7 +79,7 @@ public class URIExtractionNamespaceTest {
                         "col3"
                 ), "col2", "col3"
         );
-        Assert.assertEquals(ImmutableMap.of("B", "C"), parser.getParser().parseToMap("A,B,C"));
+        Assert.assertEquals(ImmutableMap.of("B", Arrays.asList("A", "B", "C")), parser.getParser().parseToMap("A,B,C"));
     }
     @Test
     public void testCSVWithHeader()
@@ -97,7 +98,7 @@ public class URIExtractionNamespaceTest {
         // test the header is parsed
         Assert.assertEquals(ImmutableList.of("col1", "col2", "col3"), parser.getParser().getFieldNames());
         // The third row will parse to data
-        Assert.assertEquals(ImmutableMap.of("val2", "val3"), parser.getParser().parseToMap("val1,val2,val3"));
+        Assert.assertEquals(ImmutableMap.of("val2", Arrays.asList("val1","val2","val3")), parser.getParser().parseToMap("val1,val2,val3"));
     }
     @Test(expected = IllegalArgumentException.class)
     public void testBadCSV()
