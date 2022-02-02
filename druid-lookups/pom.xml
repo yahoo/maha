@@ -301,6 +301,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.druid.extensions</groupId>
+            <artifactId>druid-hdfs-storage</artifactId>
+            <version>0.21.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-test</artifactId>
             <version>${curator.version}</version>

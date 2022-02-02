@@ -1,11 +1,10 @@
-// Copyright 2017, Yahoo Holdings Inc.
+
+// Copyright 2022, Yahoo Holdings Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.google.common.collect.ImmutableMap;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.TsColumnConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.URIExtractionNamespace;
 import org.apache.commons.io.FileUtils;
 import org.apache.druid.common.config.NullHandling;
@@ -14,11 +13,10 @@ import org.apache.druid.java.util.common.lifecycle.Lifecycle;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.druid.segment.loading.LocalFileTimestampVersionFinder;
+import org.apache.druid.storage.hdfs.HdfsFileTimestampVersionFinder;
+import org.apache.hadoop.conf.Configuration;
 import org.joda.time.Period;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
 import org.mockito.*;
-import org.testng.Assert;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
@@ -28,14 +26,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.Callable;
-
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doThrow;
 
 public class URIExtractionNamespaceCacheFactoryTest {
     private Lifecycle lifecycle;
@@ -77,7 +69,9 @@ public class URIExtractionNamespaceCacheFactoryTest {
                 {
                     return super.getInputStream(fixURI(uri));
                 }
-            }
+            },
+            "hdfs",
+            new HdfsFileTimestampVersionFinder(new Configuration(true))
     );
 
     private File tmpFile;
@@ -108,10 +102,6 @@ public class URIExtractionNamespaceCacheFactoryTest {
         File newFolder = path.toFile();
         tmpFileParent = new File(newFolder, "tmp.txt");
         tmpFileParent.createNewFile();
-        //tmpFileParent.setLastModified(8675309000L);
-        namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
-                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("id", "gpa", "date"), "id", false, 0),
-                null, null, 10L, "student_lookup", "date", true, null, null);
     }
 
     @AfterTest
@@ -122,6 +112,10 @@ public class URIExtractionNamespaceCacheFactoryTest {
 
     @Test
     public void testGetCacheValueWhenKeyPresent() throws Exception{
+        namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
+                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("id", "gpa", "date"), "id", false, 0),
+                null, null, 10L, "student_lookup", "date", true, null, null);
+
         tmpFileParent.setWritable(true);
         FileUtils.writeStringToFile(tmpFileParent, "543,0.2,20220102\n", true);
         FileUtils.writeStringToFile(tmpFileParent, "111,0.3,22220103\n", true);
@@ -134,6 +128,28 @@ public class URIExtractionNamespaceCacheFactoryTest {
         assert(versionedCache.call().equals("8675309000"));
         assert(cache.containsKey("222"));
         assert(cache.containsValue(Arrays.asList("111", "0.3", "22220103")));
+    }
+
+    @Test
+    public void testDebugHdfsInput() throws Exception{
+        namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
+                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0),
+                null, null, 10L, "cities_lookup", "date", true, null, null);
+
+        Map<String, List<String>> cache = new HashMap<String, List<String>>();
+        Callable<String> versionedCache = obj.getCachePopulator("blah",
+                namespace, "500", cache);
+
+        tmpFileParent.setWritable(true);
+        FileUtils.writeStringToFile(tmpFileParent, "name,country,subcountry,geonameid\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "les Escaldes,Andorra,Escaldes-Engordany,3040051\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Andorra la Vella,Andorra,Andorra la Vella,3041563\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Umm al Qaywayn,United Arab Emirates,Umm al Qaywayn,290594\n", true);
+        tmpFileParent.setLastModified(8675309123L);
+
+        System.err.println(versionedCache.call());
+        assert(cache.containsKey("Andorra la Vella"));
+
     }
 
     @Test
