@@ -179,12 +179,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.opencsv</groupId>
-            <artifactId>opencsv</artifactId>
-            <version>4.6</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>16.0.1</version>
@@ -296,14 +290,14 @@
         <dependency>
             <groupId>org.apache.druid</groupId>
             <artifactId>druid-server</artifactId>
-            <version>0.21.1</version>
+            <version>${druid.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.druid.extensions</groupId>
             <artifactId>druid-hdfs-storage</artifactId>
-            <version>0.21.1</version>
+            <version>${druid.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
