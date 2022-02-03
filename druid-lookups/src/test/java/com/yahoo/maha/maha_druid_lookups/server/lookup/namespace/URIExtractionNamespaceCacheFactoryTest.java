@@ -20,6 +20,7 @@ import org.mockito.*;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
+import java.util.zip.GZIPOutputStream;
 
 import java.io.*;
 import java.net.URI;
@@ -74,9 +75,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
             new HdfsFileTimestampVersionFinder(new Configuration(true))
     );
 
-    private File tmpFile;
     private File tmpFileParent;
-    private final String suffix = ".txt";
 
     @Spy
     @InjectMocks
@@ -146,6 +145,41 @@ public class URIExtractionNamespaceCacheFactoryTest {
         FileUtils.writeStringToFile(tmpFileParent, "Andorra la Vella,Andorra,Andorra la Vella,3041563\n", true);
         FileUtils.writeStringToFile(tmpFileParent, "Umm al Qaywayn,United Arab Emirates,Umm al Qaywayn,290594\n", true);
         tmpFileParent.setLastModified(8675309123L);
+
+        System.err.println(versionedCache.call());
+        assert(cache.containsKey("Andorra la Vella"));
+
+    }
+
+    @Test
+    public void testNewGzFileHandle() throws Exception{
+        tmpFileParent.setWritable(true);
+        FileUtils.writeStringToFile(tmpFileParent, "name,country,subcountry,geonameid\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "les Escaldes,Andorra,Escaldes-Engordany,3040051\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Andorra la Vella,Andorra,Andorra la Vella,3041563\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Umm al Qaywayn,United Arab Emirates,Umm al Qaywayn,290594\n", true);
+        tmpFileParent.setLastModified(8675309123L);
+        String parent = tmpFileParent.getParent();
+
+        FileInputStream fis = new FileInputStream(tmpFileParent.getAbsolutePath());
+        FileOutputStream fos = new FileOutputStream(parent + "/tmp.gz");
+        GZIPOutputStream gzos = new GZIPOutputStream(fos);
+        byte[] buffer = new byte[2048];
+        int length;
+        while ((length = fis.read(buffer)) > 0) {
+            gzos.write(buffer, 0, length);
+        }
+        gzos.finish();
+        URI testUri = new URI("file:" + parent + "/tmp.gz");
+
+        namespace = new URIExtractionNamespace(testUri, null, null,
+                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0),
+                null, null, 10L, "cities_lookup", "date", true, null, null);
+
+        Map<String, List<String>> cache = new HashMap<String, List<String>>();
+        Callable<String> versionedCache = obj.getCachePopulator("blah",
+                namespace, "500", cache);
+
 
         System.err.println(versionedCache.call());
         assert(cache.containsKey("Andorra la Vella"));
