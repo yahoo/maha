@@ -158,6 +158,7 @@ public class URIExtractionNamespaceCacheFactory
                 final long lineCount = new MapPopulator<>(
                         extractionNamespace.getNamespaceParseSpec().getParser()).populate(source,
                         cache).getLines();
+                log.info("Finished loading %d lines for namespace [%s]", lineCount, id);
                 return version;
             }, puller.shouldRetryPredicate(), DEFAULT_NUM_RETRIES);
         } catch (Exception e) {
