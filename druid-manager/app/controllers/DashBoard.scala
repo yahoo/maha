@@ -653,6 +653,8 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
       ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces/$lookupName/lastUpdatedTime?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace").withHeaders(headers.head._1 -> headers.head._2).get()
     } else if (extractionNamespaceType == "mahajdbcwithleaderandfollower"){
       ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces/$lookupName/lastUpdatedTime?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower").withHeaders(headers.head._1 -> headers.head._2).get()
+    } else if (extractionNamespaceType == "mahauri"){
+      ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces/$lookupName/lastUpdatedTime?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.URIExtractionNamespace").withHeaders(headers.head._1 -> headers.head._2).get()
     } else {
       ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces/$lookupName/lastUpdatedTime?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace").withHeaders(headers.head._1 -> headers.head._2).get()
     }

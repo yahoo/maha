@@ -283,6 +283,9 @@ Licensed under the terms of the Apache License 2.0. Please see LICENSE file in p
                 else if(mapOfTierLookup.get(tier).get(lookup) === 'mahajdbcleaderfollower'){
                     namespace = 'JDBCExtractionNamespaceWithLeaderAndFollower';
                 }
+                else if(mapOfTierLookup.get(tier).get(lookup) === 'mahauri'){
+                    namespace = 'URIExtractionNamespace';
+                }
                 else{
                     namespace = 'RocksDBExtractionNamespace';
                 }

@@ -6,7 +6,7 @@ package com.yahoo.maha.report
  * Created by hiral on 1/20/16.
  */
 
-import com.opencsv.CSVWriter
+import com.opencsv.{CSVWriter, ICSVWriter}
 import com.yahoo.maha.core.query.Row
 import java.io._
 import java.nio.charset.StandardCharsets
@@ -24,28 +24,28 @@ object RowCSVWriter {
   /**
    * The character used for escaping quotes.
    */
-  final val DEFAULT_ESCAPE_CHARACTER: Char = CSVWriter.DEFAULT_ESCAPE_CHARACTER
+  final val DEFAULT_ESCAPE_CHARACTER: Char = ICSVWriter.DEFAULT_ESCAPE_CHARACTER
   /**
    * The default separator to use if none is supplied to the constructor.
    */
-  final val DEFAULT_SEPARATOR: Char = CSVWriter.DEFAULT_SEPARATOR
+  final val DEFAULT_SEPARATOR: Char = ICSVWriter.DEFAULT_SEPARATOR
   /**
    * The default quote character to use if none is supplied to the constructor.
    */
-  final val DEFAULT_QUOTE_CHARACTER: Char = CSVWriter.DEFAULT_QUOTE_CHARACTER
+  final val DEFAULT_QUOTE_CHARACTER: Char = ICSVWriter.DEFAULT_QUOTE_CHARACTER
   /**
    * The quote constant to use when you wish to suppress all quoting, unless it's require if the string contains
    * special characters.
    */
-  final val NO_QUOTE_CHARACTER: Char = CSVWriter.NO_QUOTE_CHARACTER
+  final val NO_QUOTE_CHARACTER: Char = ICSVWriter.NO_QUOTE_CHARACTER
   /**
    * The escape constant to use when you wish to suppress all escaping.
    */
-  final val NO_ESCAPE_CHARACTER: Char = CSVWriter.NO_ESCAPE_CHARACTER
+  final val NO_ESCAPE_CHARACTER: Char = ICSVWriter.NO_ESCAPE_CHARACTER
   /**
    * Default line terminator uses platform encoding.
    */
-  final val DEFAULT_LINE_END: String = CSVWriter.DEFAULT_LINE_END
+  final val DEFAULT_LINE_END: String = ICSVWriter.DEFAULT_LINE_END
   /**
    * Excel Special Char prefix
    */

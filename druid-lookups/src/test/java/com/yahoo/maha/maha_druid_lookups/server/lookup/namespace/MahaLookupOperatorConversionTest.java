@@ -188,6 +188,7 @@ public class MahaLookupOperatorConversionTest {
         assert json.contains("\"extractionFn\":{\"type\":\"mahaRegisteredLookup\",\"lookup\":\"student_lookup\"");
         assert json.contains("\"replaceMissingValueWith\":\"A+\",\"injective\":false,\"optimize\":false,\"valueColumn\":\"grade_fake\"");
         assert json.contains("\"dimensionOverrideMap\":{\"a\":\"A\",\"b\":\"B\"},\"secondaryColOverrideMap\":{\"a\":\"A\",\"b\":\"B\"},\"useQueryLevelCache\":false");
+        
 
     }
 
