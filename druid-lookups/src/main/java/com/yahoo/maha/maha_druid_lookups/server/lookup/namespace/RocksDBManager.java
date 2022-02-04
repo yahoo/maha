@@ -249,7 +249,7 @@ public class RocksDBManager {
             if (extractionNamespace.isLookupAuditingEnabled()) {
                 long sleepTime = 30000;
                 int retryCount = 0;
-                lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, retryCount);
+                lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, retryCount, overridedFileSystem);
             }
             LOG.info("startNewInstance: adding Listener for namespace: %s...", extractionNamespace.getLookupName());
             kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, false);
@@ -406,7 +406,7 @@ public class RocksDBManager {
 
     private void lookupAuditing(final String localZippedFileNameWithPath,
                                 final RocksDBExtractionNamespace extractionNamespace, final String loadTime,
-                                long sleepTime, int retryCount) {
+                                long sleepTime, int retryCount, FileSystem overridedFileSystem) {
 
         final String successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
                 extractionNamespace.getLookupAuditingHDFSPath(), loadTime);
@@ -420,7 +420,7 @@ public class RocksDBManager {
 
                 LOG.info("dirToZip: [%s], exists: [%s]", dirToZip, dirToZip.exists());
 
-                if (dirToZip.exists() && !isFilePresentOnHdfs(successMarkerPath)) {
+                if (dirToZip.exists() && !isFilePresentOnHdfs(successMarkerPath, overridedFileSystem)) {
 
                     final File file = new File(String.format("%s/%s/%s", localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace()));
                     if (!file.exists()) {
@@ -444,7 +444,7 @@ public class RocksDBManager {
                 LOG.error(e, "Caught exception while uploading lookups to HDFS for auditing");
                 try {
                     cleanup(String.format("%s/%s/%s", localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace()));
-                    if (!isFilePresentOnHdfs(successMarkerPath)) {
+                    if (!isFilePresentOnHdfs(successMarkerPath, overridedFileSystem)) {
                         fileSystem.delete(new Path(String.format("%s/load_time=%s/rocksdb.zip",
                                 extractionNamespace.getLookupAuditingHDFSPath(), loadTime)), false);
                     }
@@ -453,7 +453,7 @@ public class RocksDBManager {
                     LOG.error(e, "Exception while cleaning up");
                 }
 
-                lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, ++retryCount);
+                lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, ++retryCount, overridedFileSystem);
             }
         } else {
             LOG.error(String.format("Giving up upload after [%s] retries", retryCount));
