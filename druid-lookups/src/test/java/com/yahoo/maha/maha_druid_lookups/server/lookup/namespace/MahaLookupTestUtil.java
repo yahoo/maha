@@ -19,14 +19,18 @@ import org.apache.druid.sql.calcite.expression.DruidExpression;
 import org.apache.druid.sql.calcite.table.RowSignatures;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 public class MahaLookupTestUtil {
     RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    String formatString = "yyyy-MM-dd";
+    DateTimeFormatter datetimeFormat = DateTimeFormat.forPattern(formatString).withZoneUTC();
 
     DateTime todayTime = DateTime.now(DateTimeZone.UTC);
     DateTime lastWeekTime = todayTime.minusDays(7);
-    String today = todayTime.toString("YYYY-MM-DD");
-    String lastWeek = lastWeekTime.toString("YYYY-MM-DD");
+    String today = datetimeFormat.print(todayTime);
+    String lastWeek = datetimeFormat.print(lastWeekTime);
 
     RexNode makeInputRef(String columnName, RowSignature ROW_SIGNATURE, RexBuilder rexBuilder)
     {

@@ -16,7 +16,8 @@ import java.util.List;
         @JsonSubTypes.Type(name = "mahajdbc", value = JDBCExtractionNamespace.class),
         @JsonSubTypes.Type(name = "mahainmemorydb", value = RocksDBExtractionNamespace.class),
         @JsonSubTypes.Type(name = "maharocksdb", value = RocksDBExtractionNamespace.class),
-        @JsonSubTypes.Type(name = "mahamongo", value = MongoExtractionNamespace.class)
+        @JsonSubTypes.Type(name = "mahamongo", value = MongoExtractionNamespace.class),
+        @JsonSubTypes.Type(name = "mahauri", value = URIExtractionNamespace.class)
 })
 /**
  * Druid version 0.11.0 uses Jackson version 2.4.*, which does not have support
