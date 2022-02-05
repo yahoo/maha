@@ -106,9 +106,11 @@ public class RocksDBManager {
         }
 
 
+        LOG.info("original_config: " + config.toString());
         if (extractionNamespace.getRocksDbInstanceHDFSPath().contains("hdfs")) {
             overridedConfig.set("fs.default.name", "hdfs://phazonblue-nn1.blue.ygrid.yahoo.com:8020");
             overridedFileSystem = FileSystem.get(overridedConfig);
+            LOG.info("overrided_config: " + overridedConfig.toString());
         }
 
         String successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
@@ -230,7 +232,7 @@ public class RocksDBManager {
                     extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime, DYNAMIC_SCHEMA_JSON_FILE);
             if (isFilePresentOnHdfs(schemaHdfsPath, overridedFileSystem)) {
                 LOG.info("Downloading Dynamic Lookup Schema json from [%s] to [%s]", schemaHdfsPath, localPath);
-                fileSystem.copyToLocalFile(new Path(schemaHdfsPath), new Path(localPath));
+                overridedFileSystem.copyToLocalFile(new Path(schemaHdfsPath), new Path(localPath));
                 LOG.info("Downloaded Dynamic Lookup Schema json from [%s] to [%s]", schemaHdfsPath, localPath);
                 initDynamicLookupSchema(extractionNamespace, localPath);
             } else {
