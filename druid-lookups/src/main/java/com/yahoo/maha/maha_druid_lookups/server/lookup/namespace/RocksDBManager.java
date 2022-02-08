@@ -19,6 +19,7 @@ import org.apache.druid.guice.ManageLifecycle;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FsUrlStreamHandlerFactory;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -29,6 +30,7 @@ import org.zeroturnaround.zip.ZipUtil;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -57,8 +59,6 @@ public class RocksDBManager {
     private long blockCacheSize;
     private FileSystem fileSystem;
     private Configuration config;
-    private FileSystem overridedFileSystem;
-    private Configuration overridedConfig;
 
 
     @Inject
@@ -70,6 +70,7 @@ public class RocksDBManager {
 
     static {
         RocksDB.loadLibrary();
+        URL.setURLStreamHandlerFactory(new FsUrlStreamHandlerFactory());
     }
 
     @Inject
@@ -81,14 +82,11 @@ public class RocksDBManager {
         config.set("fs.file.impl",
                 LocalFileSystem.class.getName()
         );
-        LOG.info("config_in_rocksdbmanager: " + config.toString());
         this.localStorageDirectory = mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_LOCATION_PROP_NAME, TEMPORARY_PATH);
         this.blockCacheSize = Long.parseLong(mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME, String.valueOf(DEFAULT_BLOCK_CACHE_SIZE)));
         Preconditions.checkArgument(blockCacheSize > 0);
         this.config = config;
         this.fileSystem = FileSystem.get(config);
-        this.overridedConfig = new Configuration(config);;
-        this.overridedFileSystem = fileSystem;
     }
 
     public String createDB(final RocksDBExtractionNamespace extractionNamespace,
@@ -105,27 +103,35 @@ public class RocksDBManager {
             return loadTime;
         }
 
-
-        LOG.info("original_config: " + config.toString());
+        FileSystem overrideFileSystem = null;
         if (extractionNamespace.getRocksDbInstanceHDFSPath().contains("hdfs")) {
-            overridedConfig.set("fs.default.name", "hdfs://phazonblue-nn1.blue.ygrid.yahoo.com:8020");
-            overridedFileSystem = FileSystem.get(overridedConfig);
-            LOG.info("overrided_config: " + overridedConfig.toString());
+            URL hdfsUrl = new URL(extractionNamespace.getRocksDbInstanceHDFSPath());
+            String nameNodePath = hdfsUrl.getProtocol() + "://" + hdfsUrl.getHost() + ":" + hdfsUrl.getPort();
+            LOG.warn("intended namenode path for lookup: " + nameNodePath);
+            LOG.warn("config fs.defaultFS:" + config.get("fs.defaultFS"));
+            if(!config.get("fs.defaultFS").equals(nameNodePath)) {
+                LOG.warn("default config defaulFS is not equal to intended one, overriding..");
+                Configuration overrideConfig = new Configuration(config);
+                overrideConfig.set("fs.defaultFS", nameNodePath);
+                overrideFileSystem = FileSystem.get(overrideConfig);
+            }
         }
+
+        FileSystem targetedFileSystem = (overrideFileSystem != null)? overrideFileSystem: this.fileSystem;
 
         String successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
                 extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
 
         LOG.debug(String.format("successMarkerPath [%s], lastUpdate [%s]", successMarkerPath, lastUpdate));
 
-        if (!isFilePresentOnHdfs(successMarkerPath, overridedFileSystem)) {
+        if (!isFilePresentOnHdfs(successMarkerPath, targetedFileSystem)) {
             if(lastUpdate == 0) {
                 LOG.warn(String.format("RocksDB instance not present for namespace [%s] loadTime [%s], will check for previous loadTime", extractionNamespace.getNamespace(), loadTime));
                 loadTime = LocalDateTime.now().minus(2, ChronoUnit.DAYS)
                         .format(DateTimeFormatter.ofPattern("yyyyMMdd0000"));
                 successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
                         extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
-                if (!isFilePresentOnHdfs(successMarkerPath, overridedFileSystem)) {
+                if (!isFilePresentOnHdfs(successMarkerPath, targetedFileSystem)) {
                     LOG.warn(String.format("RocksDB instance not present for previous loadTime [%s] too for namespace [%s]", loadTime, extractionNamespace.getNamespace()));
                     serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_INSTANCE_NOT_PRESENT, 1));
                     return String.valueOf(lastUpdate);
@@ -140,7 +146,7 @@ public class RocksDBManager {
 
         LOG.debug(String.format("hdfsPath [%s]", hdfsPath));
 
-        if(!isRocksDBInstanceCreated(hdfsPath, overridedFileSystem)) {
+        if(!isRocksDBInstanceCreated(hdfsPath, targetedFileSystem)) {
             serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_INSTANCE_NOT_PRESENT, 1));
             return String.valueOf(lastUpdate);
         }
@@ -166,20 +172,29 @@ public class RocksDBManager {
                 LOG.error(e, "Interrupted while sleeping for RocksDB downloading.");
             }
             LOG.info("non-deployment time: starting a new RocksDB instance after sleep for namespace[%s]...", extractionNamespace.getNamespace());
-            return startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath, overridedFileSystem);
+            String res = startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath, targetedFileSystem);
+            //close overrideFileSystem if not null as it's only override for current lookup
+            closeFileSystem(overrideFileSystem);
+            return res;
         }
 
         File snapShotFile = new File(localPath + SNAPSHOT_FILE_NAME);
 
         if(snapShotFile.exists()) {
             try {
-                return useSnapshotInstance(extractionNamespace, loadTime, localPath, snapShotFile);
+                String res = useSnapshotInstance(extractionNamespace, loadTime, localPath, snapShotFile);
+                //close overrideFileSystem if not null as it's only override for current lookup
+                closeFileSystem(overrideFileSystem);
+                return res;
             } catch (Exception e) {
                 LOG.error(e, "Caught exception while using the snapshot.");
             }
         }
         LOG.info("starting new instance for namespace[%s]...", extractionNamespace.getNamespace());
-        return startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath, overridedFileSystem);
+        String res = startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath, targetedFileSystem);
+        //close overrideFileSystem if not null as it's only override for current lookup
+        closeFileSystem(overrideFileSystem);
+        return res;
     }
 
     private String getLocalPathSuffix(boolean enabled) {
@@ -217,9 +232,9 @@ public class RocksDBManager {
                                     final String loadTime,
                                     final String hdfsPath,
                                     final String localZippedFileNameWithPath,
-                                    final String localPath, FileSystem overridedFileSystem) throws IOException, RocksDBException {
+                                    final String localPath, FileSystem targetedFileSystem) throws IOException, RocksDBException {
 
-        downloadRocksDBInstanceFromHDFS(hdfsPath, localZippedFileNameWithPath, overridedFileSystem);
+        downloadRocksDBInstanceFromHDFS(hdfsPath, localZippedFileNameWithPath, targetedFileSystem);
         unzipFile(localZippedFileNameWithPath);
 
         RocksDBSnapshot rocksDBSnapshot = new RocksDBSnapshot();
@@ -230,9 +245,9 @@ public class RocksDBManager {
         if (extractionNamespace.isDynamicSchemaLookup()) {
             final String schemaHdfsPath = String.format("%s/load_time=%s/%s",
                     extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime, DYNAMIC_SCHEMA_JSON_FILE);
-            if (isFilePresentOnHdfs(schemaHdfsPath, overridedFileSystem)) {
+            if (isFilePresentOnHdfs(schemaHdfsPath, targetedFileSystem)) {
                 LOG.info("Downloading Dynamic Lookup Schema json from [%s] to [%s]", schemaHdfsPath, localPath);
-                overridedFileSystem.copyToLocalFile(new Path(schemaHdfsPath), new Path(localPath));
+                targetedFileSystem.copyToLocalFile(new Path(schemaHdfsPath), new Path(localPath));
                 LOG.info("Downloaded Dynamic Lookup Schema json from [%s] to [%s]", schemaHdfsPath, localPath);
                 initDynamicLookupSchema(extractionNamespace, localPath);
             } else {
@@ -251,7 +266,7 @@ public class RocksDBManager {
             if (extractionNamespace.isLookupAuditingEnabled()) {
                 long sleepTime = 30000;
                 int retryCount = 0;
-                lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, retryCount, overridedFileSystem);
+                lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, retryCount, targetedFileSystem);
             }
             LOG.info("startNewInstance: adding Listener for namespace: %s...", extractionNamespace.getLookupName());
             kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, false);
@@ -356,19 +371,13 @@ public class RocksDBManager {
             }
         });
 
-        if(overridedFileSystem != null) {
-            overridedFileSystem.close();
-        }
-
-        if(fileSystem != null) {
-            fileSystem.close();
-        }
+        closeFileSystem(this.fileSystem);
     }
 
-    private boolean isRocksDBInstanceCreated(final String hdfsPath, FileSystem fileSystem) {
+    private boolean isRocksDBInstanceCreated(final String hdfsPath, FileSystem targetedFileSystem) {
         try {
             Path path = new Path(hdfsPath);
-            if (fileSystem.exists(path)) {
+            if (targetedFileSystem.exists(path)) {
                 return true;
             }
         } catch (IOException e) {
@@ -377,10 +386,10 @@ public class RocksDBManager {
         return false;
     }
 
-    private boolean isFilePresentOnHdfs(final String successMarkerPath, FileSystem fileSystem) {
+    private boolean isFilePresentOnHdfs(final String successMarkerPath, FileSystem targetedFileSystem) {
         try {
             Path path = new Path(successMarkerPath);
-            if (fileSystem.exists(path)) {
+            if (targetedFileSystem.exists(path)) {
                 return true;
             }
             return false;
@@ -391,10 +400,10 @@ public class RocksDBManager {
     }
 
     private void downloadRocksDBInstanceFromHDFS(final String hdfsPath,
-                                                 final String localPath, FileSystem fileSystem) throws IOException {
+                                                 final String localPath, FileSystem targetedFileSystem) throws IOException {
 
         LOG.info("Downloading RocksDB instance from [%s] to [%s]", hdfsPath, localPath);
-        fileSystem.copyToLocalFile(new Path(hdfsPath), new Path(localPath));
+        targetedFileSystem.copyToLocalFile(new Path(hdfsPath), new Path(localPath));
         LOG.info("Downloaded RocksDB instance from [%s] to [%s]", hdfsPath, localPath);
     }
 
@@ -408,7 +417,7 @@ public class RocksDBManager {
 
     private void lookupAuditing(final String localZippedFileNameWithPath,
                                 final RocksDBExtractionNamespace extractionNamespace, final String loadTime,
-                                long sleepTime, int retryCount, FileSystem overridedFileSystem) {
+                                long sleepTime, int retryCount, FileSystem targetedFileSystem) {
 
         final String successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
                 extractionNamespace.getLookupAuditingHDFSPath(), loadTime);
@@ -422,7 +431,7 @@ public class RocksDBManager {
 
                 LOG.info("dirToZip: [%s], exists: [%s]", dirToZip, dirToZip.exists());
 
-                if (dirToZip.exists() && !isFilePresentOnHdfs(successMarkerPath, overridedFileSystem)) {
+                if (dirToZip.exists() && !isFilePresentOnHdfs(successMarkerPath, targetedFileSystem)) {
 
                     final File file = new File(String.format("%s/%s/%s", localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace()));
                     if (!file.exists()) {
@@ -435,7 +444,7 @@ public class RocksDBManager {
 
                     ZipUtil.pack(dirToZip, new File(localFileNameWithPath));
                     uploadFileForAuditing(extractionNamespace, loadTime,
-                            successMarkerPath, localFileNameWithPath);
+                            successMarkerPath, localFileNameWithPath, targetedFileSystem);
                     cleanup(String.format("%s/%s/%s", localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace()));
 
                     LOG.info("Uploaded lookup for auditing");
@@ -446,7 +455,7 @@ public class RocksDBManager {
                 LOG.error(e, "Caught exception while uploading lookups to HDFS for auditing");
                 try {
                     cleanup(String.format("%s/%s/%s", localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace()));
-                    if (!isFilePresentOnHdfs(successMarkerPath, overridedFileSystem)) {
+                    if (!isFilePresentOnHdfs(successMarkerPath, targetedFileSystem)) {
                         fileSystem.delete(new Path(String.format("%s/load_time=%s/rocksdb.zip",
                                 extractionNamespace.getLookupAuditingHDFSPath(), loadTime)), false);
                     }
@@ -455,7 +464,7 @@ public class RocksDBManager {
                     LOG.error(e, "Exception while cleaning up");
                 }
 
-                lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, ++retryCount, overridedFileSystem);
+                lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, ++retryCount, targetedFileSystem);
             }
         } else {
             LOG.error(String.format("Giving up upload after [%s] retries", retryCount));
@@ -464,7 +473,7 @@ public class RocksDBManager {
     }
 
     private void uploadFileForAuditing(RocksDBExtractionNamespace extractionNamespace,
-                                       String loadTime, String successMarkerPath, String localFileNameWithPath)
+                                       String loadTime, String successMarkerPath, String localFileNameWithPath, FileSystem targetedFileSystem)
             throws IOException {
 
         final String hdfsLookupAuditingPath = String.format("%s/load_time=%s/rocksdb.zip",
@@ -472,21 +481,25 @@ public class RocksDBManager {
 
         Path path = new Path(String.format("%s/load_time=%s",
                 extractionNamespace.getLookupAuditingHDFSPath(), loadTime));
-        if(!fileSystem.exists(path)) {
-            fileSystem.mkdirs(path);
+        if(!targetedFileSystem.exists(path)) {
+            targetedFileSystem.mkdirs(path);
         }
 
         LOG.info(String.format("hdfsLookupAuditingPath [%s]", hdfsLookupAuditingPath));
 
-        fileSystem.copyFromLocalFile(new Path(localFileNameWithPath), new Path(hdfsLookupAuditingPath));
+        targetedFileSystem.copyFromLocalFile(new Path(localFileNameWithPath), new Path(hdfsLookupAuditingPath));
         final String localSuccessPath = String.format("%s/%s/%s/_SUCCESS",
                 localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace());
         File successFile = new File(localSuccessPath);
         if (!successFile.exists()) {
             new FileOutputStream(successFile).close();
         }
-        fileSystem.copyFromLocalFile(new Path(localSuccessPath), new Path(successMarkerPath));
-
+        targetedFileSystem.copyFromLocalFile(new Path(localSuccessPath), new Path(successMarkerPath));
     }
 
+    private void closeFileSystem(FileSystem fileSystem) throws IOException{
+        if(fileSystem != null) {
+            fileSystem.close();
+        }
+    }
 }
