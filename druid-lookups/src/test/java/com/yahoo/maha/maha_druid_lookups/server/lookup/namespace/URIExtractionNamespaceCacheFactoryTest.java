@@ -76,6 +76,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
     );
 
     private File tmpFileParent;
+    private File tmpFileParent2;
 
     @Spy
     @InjectMocks
@@ -101,12 +102,15 @@ public class URIExtractionNamespaceCacheFactoryTest {
         File newFolder = path.toFile();
         tmpFileParent = new File(newFolder, "tmp.txt");
         tmpFileParent.createNewFile();
+        tmpFileParent2 = new File(newFolder, "tmp2.txt");
+        tmpFileParent2.createNewFile();
     }
 
     @AfterTest
     public void tearDown() throws Exception {
         lifecycle.stop();
         tmpFileParent.delete();
+        tmpFileParent2.delete();
     }
 
     @Test
@@ -127,6 +131,36 @@ public class URIExtractionNamespaceCacheFactoryTest {
         assert(versionedCache.call().equals("8675309000"));
         assert(cache.containsKey("222"));
         assert(cache.containsValue(Arrays.asList("111", "0.3", "22220103")));
+    }
+
+    @Test
+    public void testGetRegexCacheOnFileRegex() throws Exception{
+        namespace = new URIExtractionNamespace(null, tmpFileParent.getParentFile().toURI(), ".*tmp.*txt", //want the regex to match all tmp*txt files
+                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0),
+                null, null, 10L, "cities_lookup", "date", true, null, null);
+
+        Map<String, List<String>> cache = new HashMap<String, List<String>>();
+        Callable<String> versionedCache = obj.getCachePopulator("blah",
+                namespace, "500", cache);
+
+        tmpFileParent.setWritable(true);
+        FileUtils.writeStringToFile(tmpFileParent, "name,country,subcountry,geonameid\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "les Escaldes,Andorra,Escaldes-Engordany,3040051\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Andorra la Vella,Andorra,Andorra la Vella,3041563\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Umm al Qaywayn,United Arab Emirates,Umm al Qaywayn,290594\n", true);
+        tmpFileParent.setLastModified(8675309123L);
+
+
+        tmpFileParent2.setWritable(true);
+        FileUtils.writeStringToFile(tmpFileParent2, "name,country,subcountry,geonameid\n", true);
+        FileUtils.writeStringToFile(tmpFileParent2, "les Escaldes,Andorra123,Escaldes-Engordany,3040051\n", true);
+        FileUtils.writeStringToFile(tmpFileParent2, "Andorra la Vella,Andorra,Andorra la Vella123,3041563\n", true);
+        FileUtils.writeStringToFile(tmpFileParent2, "Umm al Qaywayn,United Arab Emirates123,Umm al Qaywayn,290594\n", true);
+        tmpFileParent.setLastModified(8675310321L);
+
+        System.err.println(versionedCache.call());
+        assert(cache.containsKey("Andorra la Vella"));
+        assert(cache.get("Andorra la Vella").get(2).contains("Andorra la Vella123")); //should be the contents of the second file created
     }
 
     @Test
