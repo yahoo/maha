@@ -1,7 +1,6 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup.schema;
 
 
-import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
