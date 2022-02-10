@@ -1,10 +1,15 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup.schema;
 
 
+import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.DynamicLookupProtobufSchemaSerDe;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.DynamicLookupSchema;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.FieldDataType;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.dynamic.schema.SchemaField;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNameSpaceSchemaType;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.AdProtos;
 import org.testng.Assert;
@@ -113,6 +118,23 @@ public class DynamicLookupProtobufSchemaSerDeTest {
         when(decodeConfigOptional.get().getColumnIfValueMatched()).thenReturn("status"); // then return "status" column value
         String str = dynamicLookupProtobufSchemaSerDe.getValue("title", byteArr, decodeConfigOptional, extractionNamespace);
         Assert.assertEquals("ON", str);
+    }
+
+    @Test
+    public void DynamicLookupProtobufSchemaSerDeDataTypeTestSuccess() throws Exception{
+        List<SchemaField> schemaFieldList = new ArrayList<>();
+        schemaFieldList.add(new SchemaField("id", FieldDataType.INT32, 1));
+        schemaFieldList.add(new SchemaField("budget", FieldDataType.DOUBLE, 2));
+        schemaFieldList.add(new SchemaField("status", FieldDataType.BOOL, 3));
+        schemaFieldList.add(new SchemaField("last_updated", FieldDataType.INT64, 4));
+        DynamicLookupSchema dynamicSchema = new DynamicLookupSchema(ExtractionNameSpaceSchemaType.PROTOBUF, "2022021000", "budget_schedule_pb_lookup", schemaFieldList);
+
+        DynamicLookupProtobufSchemaSerDe serDe = new DynamicLookupProtobufSchemaSerDe(dynamicSchema);
+        Descriptors.Descriptor descriptor = serDe.getProtobufMessageDescriptor();
+        Assert.assertEquals(descriptor.findFieldByName("id").getType().toString(), FieldDataType.INT32.toString());
+        Assert.assertEquals(descriptor.findFieldByName("budget").getType().toString(), FieldDataType.DOUBLE.toString());
+        Assert.assertEquals(descriptor.findFieldByName("status").getType().toString(), FieldDataType.BOOL.toString());
+        Assert.assertEquals(descriptor.findFieldByName("last_updated").getType().toString(), FieldDataType.INT64.toString());
     }
 
 }
