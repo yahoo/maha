@@ -48,7 +48,7 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
             @JsonProperty(value = "mTLSPropertiesEnabled", required = false) final boolean mTLSPropertiesEnabled,
             @JsonProperty(value = "numEntriesIterator", required = false) final int numEntriesIterator
             ) {
-        super(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kerberosProperties, mTLSProperties, tsColumnConfig, kerberosPropertiesEnabled, mTLSPropertiesEnabled, numEntriesIterator);
+        super(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kerberosProperties, mTLSProperties, tsColumnConfig, kerberosPropertiesEnabled, mTLSPropertiesEnabled, numEntriesIterator, null);
 
         this.kafkaTopic = Objects.nonNull(kafkaTopic) ? kafkaTopic : "unassigned";
 

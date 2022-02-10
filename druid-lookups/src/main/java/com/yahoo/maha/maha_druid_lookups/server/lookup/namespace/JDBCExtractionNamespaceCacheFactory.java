@@ -3,6 +3,7 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
@@ -12,12 +13,17 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNa
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CustomizedTimestampMapper;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.RowMapper;
 import org.apache.derby.iapi.util.StringUtil;
+import org.joda.time.DateTime;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
+import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.tweak.HandleCallback;
+import org.skife.jdbi.v2.tweak.ResultSetMapper;
 import org.skife.jdbi.v2.util.StringMapper;
 import org.skife.jdbi.v2.util.TypedMapper;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -74,14 +80,34 @@ public class JDBCExtractionNamespaceCacheFactory
             LOG.info("Updating [%s]", id);
             dbi.withHandle(
                     (HandleCallback<Void>) handle -> {
-                        String query = String.format("SELECT %s FROM %s",
+                        String query = null;
+                        if(extractionNamespace.getColumnList() != null && extractionNamespace.getTable() != null) {
+                         query = String.format("SELECT %s FROM %s",
                                 String.join(COMMA_SEPARATOR, extractionNamespace.getColumnList()),
-                                extractionNamespace.getTable()
-                        );
+                                extractionNamespace.getTable());
+                        } else if (extractionNamespace.getColumnExtractionSQL() != null){
+                            query = extractionNamespace.getColumnExtractionSQL();
+                        }
                         try {
-                            populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle,
-                                                    new RowMapper(extractionNamespace, cache),
-                                                    secondaryTsWhereCondition);
+                            if (query != null) {
+                                handle.createQuery(query).map(new ResultSetMapper<Void>(){
+                                    @Override
+                                    public Void map(int index, ResultSet r, StatementContext ctx) throws SQLException {
+                                        List<String> columns = ImmutableList.of("cityName", "upper_value");
+                                        List<String> strings = new ArrayList<>(2);
+
+                                        for(String columnName: columns) {
+                                            strings.add(r.getString(columnName));
+                                        }
+                                        if(Objects.nonNull(cache))
+                                            cache.put(r.getString("cityName"), strings);
+                                        return null;
+
+                                    }
+                                }).setFetchSize(FETCH_SIZE).list();
+                            } else {
+                                throw new Exception("query string is null");
+                            }
                         } catch (Throwable t) {
                             LOG.error(t, "Failed to populate RowList From JDBC [s%]", id);
                             throw t;
@@ -92,7 +118,7 @@ public class JDBCExtractionNamespaceCacheFactory
 
             LOG.info("Finished loading %d values for extractionNamespace[%s]", cache.size(), id);
             extractionNamespace.setPreviousLastUpdateTimestamp(lastDBUpdate);
-            return String.format("%d", lastDBUpdate.getTime());
+            return String.format("%d", lastDBUpdate == null? 0 : lastDBUpdate.getTime());
         };
     }
 
@@ -114,7 +140,9 @@ public class JDBCExtractionNamespaceCacheFactory
             RowMapper rm,
             String secondaryTsWhereCondition
     ) {
+
         Timestamp updateTS;
+
         if (extractionNamespace.isFirstTimeCaching()) {
             extractionNamespace.setFirstTimeCaching(false);
             query = String.format("%s %s %s",

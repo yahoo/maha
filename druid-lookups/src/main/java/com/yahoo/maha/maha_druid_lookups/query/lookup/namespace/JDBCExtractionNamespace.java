@@ -50,6 +50,9 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     @JsonProperty
     private int numEntriesIterator = 1000;
 
+    @JsonProperty
+    private String ColumnExtractionSQL;
+
     private boolean firstTimeCaching = true;
     private Timestamp previousLastUpdateTimestamp;
     private final ImmutableMap<String, Integer> columnIndexMap;
@@ -57,8 +60,8 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     @JsonCreator
     public JDBCExtractionNamespace(
             @NotNull @JsonProperty(value = "connectorConfig", required = true) final MetadataStorageConnectorConfig connectorConfig,
-            @NotNull @JsonProperty(value = "table", required = true) final String table,
-            @NotNull @JsonProperty(value = "columnList", required = true) final ArrayList<String> columnList,
+            @Nullable @JsonProperty(value = "table", required = false) final String table,
+            @Nullable @JsonProperty(value = "columnList", required = false) final ArrayList<String> columnList,
             @NotNull @JsonProperty(value = "primaryKeyColumn", required = true) final String primaryKeyColumn,
             @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
             @Min(0) @Nullable @JsonProperty(value = "pollPeriod", required = false) final Period pollPeriod,
@@ -69,12 +72,13 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
             @JsonProperty(value = "tsColumnConfig", required = false) final TsColumnConfig tsColumnConfig,
             @JsonProperty(value = "kerberosPropertiesEnabled", required = false) final boolean kerberosPropertiesEnabled,
             @JsonProperty(value = "mTLSPropertiesEnabled", required = false) final boolean mTLSPropertiesEnabled,
-            @JsonProperty(value = "numEntriesIterator", required = false) final int numEntriesIterator
+            @JsonProperty(value = "numEntriesIterator", required = false) final int numEntriesIterator,
+            @Nullable @JsonProperty(value = "ColumnExtractionSQL", required = false) final String ColumnExtractionSQL
     ) {
         this.connectorConfig = Preconditions.checkNotNull(connectorConfig, "connectorConfig");
         Preconditions.checkNotNull(connectorConfig.getConnectURI(), "connectorConfig.connectURI");
-        this.table = Preconditions.checkNotNull(table, "table");
-        this.columnList = ImmutableList.copyOf(Preconditions.checkNotNull(columnList, "columnList"));
+        this.table = table;
+        this.columnList = columnList != null? ImmutableList.copyOf(columnList): null;
         this.primaryKeyColumn = Preconditions.checkNotNull(primaryKeyColumn, "primaryKeyColumn");
         this.tsColumn = tsColumn;
         this.pollPeriod = pollPeriod == null ? new Period(0L) : pollPeriod;
@@ -85,6 +89,7 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
         this.tsColumnConfig = tsColumnConfig;
         this.kerberosPropertiesEnabled = kerberosPropertiesEnabled;
         this.mTLSPropertiesEnabled = mTLSPropertiesEnabled;
+        this.ColumnExtractionSQL = ColumnExtractionSQL;
 
         if (numEntriesIterator > 0) {
             this.numEntriesIterator = numEntriesIterator;
@@ -92,15 +97,22 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
 
         int index = 0;
         ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
-        for (String col : columnList) {
-            builder.put(col, index);
-            index += 1;
+        if(columnList != null) {
+            for (String col : columnList) {
+                builder.put(col, index);
+                index += 1;
+            }
+        } else {
+            for (String col : ImmutableList.of("cityName", "upper_value")) {
+                builder.put(col, index);
+                index += 1;
+            }
         }
         this.columnIndexMap = builder.build();
     }
 
     public JDBCExtractionNamespace(MetadataStorageConnectorConfig connectorConfig, String table, ArrayList<String> columnList, String primaryKeyColumn, String tsColumn, Period pollPeriod, boolean cacheEnabled, String lookupName) {
-        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, null, null, null, false, false, 0);
+        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, null, null, null, false, false, 0, null);
     }
 
     public int getColumnIndex(String valueColumn) {
@@ -217,6 +229,8 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     public int getNumEntriesIterator() {
         return numEntriesIterator;
     }
+
+    public String getColumnExtractionSQL() { return ColumnExtractionSQL; }
 
     @Override
     public String toString() {
