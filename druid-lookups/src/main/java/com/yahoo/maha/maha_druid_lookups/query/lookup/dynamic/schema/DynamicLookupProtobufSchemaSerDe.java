@@ -47,6 +47,15 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         if (fieldDataType == FieldDataType.INT32) {
             return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32;
         }
+
+        if (fieldDataType == FieldDataType.INT64) {
+            return DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64;
+        }
+
+        if (fieldDataType == FieldDataType.DOUBLE) {
+            return DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE;
+        }
+
         if (fieldDataType == FieldDataType.BOOL) {
             return DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL;
         }
