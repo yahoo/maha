@@ -101,7 +101,7 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
            return "";
         }
         if (dynamicMessage.hasField(fieldDescriptor)) {
-            String fieldValue = (String) dynamicMessage.getField(fieldDescriptor);
+            String fieldValue = String.valueOf(dynamicMessage.getField(fieldDescriptor));
             return fieldValue != null ? fieldValue : "";
         } else {
             //if empty value for specific field, decoded dynamic message won't have the fieldDescriptor for that field
