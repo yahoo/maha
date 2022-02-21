@@ -35,7 +35,7 @@ public class JDBCExtractionNamespaceWithSQL extends JDBCExtractionNamespace {
             @JsonProperty(value = "mTLSPropertiesEnabled", required = false) final boolean mTLSPropertiesEnabled,
             @JsonProperty(value = "numEntriesIterator", required = false) final int numEntriesIterator
     ) {
-        super(connectorConfig, "tableNamePlaceHolder", columnList, primaryKeyColumn, null, pollPeriod, cacheEnabled, lookupName);
+        super(connectorConfig, lookupName, columnList, primaryKeyColumn, null, pollPeriod, cacheEnabled, lookupName);
         this.columnExtractionSQL = Preconditions.checkNotNull(columnExtractionSQL, "columnExtractionSQL");
     }
 
