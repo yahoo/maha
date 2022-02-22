@@ -45,7 +45,7 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
     }
 
     public Map<String, U> getMap() {
-        return new HashMap<>(map);
+        return ImmutableMap.copyOf(map);
     }
 
     @Nullable

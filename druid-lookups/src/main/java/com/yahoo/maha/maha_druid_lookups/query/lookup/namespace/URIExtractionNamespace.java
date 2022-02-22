@@ -264,7 +264,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
 
             final String k = inner.get(key) == null ? nullReplacement : inner.get(key).toString();
 
-            return new HashMap<String, List<String>>(){{put(k, new ArrayList(inner.values()));}};
+            return ImmutableMap.of(k, new ArrayList(inner.values()));
         }
 
         @Override
