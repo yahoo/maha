@@ -65,6 +65,9 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     @JsonProperty
     private int numEntriesIterator = 1000;
 
+    @JsonProperty
+    private String nullReplacement = "";
+
 
     @JsonCreator
     public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
@@ -83,7 +86,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @JsonProperty(value = "overrideLookupServiceHosts", required = false) final String overrideLookupServiceHosts,
                                       @JsonProperty(value = "randomLocalPathSuffixEnabled", required = false) final boolean randomLocalPathSuffixEnabled,
                                       @JsonProperty(value = "enableDynamicLookup", required = false) final boolean enableDynamicLookup,
-                                      @JsonProperty(value = "numEntriesIterator", required = false) final int numEntriesIterator) {
+                                      @JsonProperty(value = "numEntriesIterator", required = false) final int numEntriesIterator,
+                                      @JsonProperty(value = "nullReplacement", required = false) final String nullReplacement) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
@@ -95,6 +99,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         this.lookupName = lookupName;
         this.tsColumn = tsColumn;
         this.randomLocalPathSuffixEnabled = randomLocalPathSuffixEnabled;
+        this.nullReplacement = nullReplacement == null ? "" : nullReplacement;
 
         if (numEntriesIterator > 0) {
             this.numEntriesIterator = numEntriesIterator;
@@ -280,4 +285,6 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 overrideLookupServiceHosts,
                 randomLocalPathSuffixEnabled);
     }
+
+    public String nullReplacement() { return nullReplacement; }
 }

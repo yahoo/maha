@@ -33,6 +33,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import com.yahoo.maha.maha_druid_lookups.query.lookup.util.LookupUtil;
 import org.apache.druid.java.util.common.IAE;
 
 import org.apache.druid.java.util.common.logger.Logger;
@@ -54,6 +55,7 @@ import java.util.regex.PatternSyntaxException;
 @JsonTypeName("mahauri")
 public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespace {
     private static final Logger LOG = new Logger(URIExtractionNamespace.class);
+    private static final LookupUtil util = new LookupUtil();
 
     long DEFAULT_MAX_HEAP_PERCENTAGE = 10;
 
@@ -77,6 +79,8 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
     private boolean cacheEnabled = true;
     @JsonProperty
     private final TsColumnConfig tsColumnConfig;
+    @JsonProperty
+    private final String nullReplacement;
 
     private final ImmutableMap<String, Integer> columnIndexMap;
     private Timestamp previousLastUpdateTimestamp;
@@ -103,7 +107,6 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
             @JsonProperty(value = "cacheEnabled", required = false) final boolean cacheEnabled,
             @Nullable @JsonProperty(value = "columnList", required = false) final ArrayList<String> columnList,
             @JsonProperty(value = "tsColumnConfig", required = false) final TsColumnConfig tsColumnConfig
-
             )
     {
         this.uri = uri;
@@ -149,6 +152,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
             index += 1;
         }
         this.columnIndexMap = builder.build();
+        this.nullReplacement = this.namespaceParseSpec.getNullReplacement() == null ? "" : this.namespaceParseSpec.getNullReplacement();
     }
 
     public String getFileRegex()
@@ -236,14 +240,17 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
     {
         private final Parser<String, Object> delegate;
         private final String key;
+        private final String nullReplacement;
 
         private DelegateParser(
                 Parser<String, Object> delegate,
-                @NotNull String key
+                String key,
+                String nullReplacement
         )
         {
             this.delegate = delegate;
             this.key = key;
+            this.nullReplacement = nullReplacement;
         }
 
         @Override
@@ -255,14 +262,9 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
                 return ImmutableMap.of();
             }
 
-            final String k = Preconditions.checkNotNull(
-                    inner.get(key),
-                    "Key column [%s] missing data in line [%s]",
-                    key,
-                    input
-            ).toString();
+            final String k = inner.get(key) == null ? nullReplacement : inner.get(key).toString();
 
-            return ImmutableMap.of(k, new ArrayList(inner.values()));
+            return new HashMap<String, List<String>>(){{put(k, new ArrayList(inner.values()));}};
         }
 
         @Override
@@ -287,6 +289,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         Parser<String, List<String>> getParser();
         List<String> getColumns();
         String getKey();
+        String getNullReplacement();
     }
 
     @JsonTypeName("csv")
@@ -295,13 +298,15 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         private final Parser<String, List<String>> parser;
         private final List<String> columns;
         private final String keyColumn;
+        private final String nullReplacement;
 
         @JsonCreator
         public CSVFlatDataParser(
                 @JsonProperty("columns") List<String> columns,
                 @JsonProperty("keyColumn") final String keyColumn,
                 @JsonProperty("hasHeaderRow") boolean hasHeaderRow,
-                @JsonProperty("skipHeaderRows") int skipHeaderRows
+                @JsonProperty("skipHeaderRows") int skipHeaderRows,
+                @JsonProperty("nullReplacement") String nullReplacement
         )
         {
             Preconditions.checkArgument(
@@ -311,6 +316,7 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
 
             this.columns = columns;
             this.keyColumn = Strings.isNullOrEmpty(keyColumn) ? columns.get(0) : keyColumn;
+            this.nullReplacement = nullReplacement == null ? "" : nullReplacement;
             Preconditions.checkArgument(
                     columns.contains(this.keyColumn),
                     "Column [%s] not found int columns: %s",
@@ -321,7 +327,8 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
             csvParser.startFileFromBeginning();
             this.parser = new DelegateParser(
                     csvParser,
-                    this.keyColumn
+                    this.keyColumn,
+                    this.nullReplacement
             );
         }
 
@@ -331,13 +338,26 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         @JsonProperty
         public String getKey() { return keyColumn; }
 
+        @JsonProperty
+        public String getNullReplacement() { return nullReplacement; }
+
+        @VisibleForTesting
+        CSVFlatDataParser(
+                List<String> columns,
+                String keyColumn,
+                String nullReplacement
+        )
+        {
+            this(columns, keyColumn, false, 0, nullReplacement);
+        }
+
         @VisibleForTesting
         CSVFlatDataParser(
                 List<String> columns,
                 String keyColumn
         )
         {
-            this(columns, keyColumn, false, 0);
+            this(columns, keyColumn, false, 0, "");
         }
 
         //@JsonProperty
@@ -469,5 +489,9 @@ public class URIExtractionNamespace implements OnlineDatastoreExtractionNamespac
         return uriPrefix;
     }
 
+    @Override
+    public String nullReplacement() {
+        return nullReplacement;
+    }
 }
 

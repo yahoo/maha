@@ -9,6 +9,8 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.util.LookupUtil;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.URIExtractionNamespaceCacheFactory;
 import org.apache.druid.java.util.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.OnlineDatastoreExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
@@ -29,8 +31,11 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
     private final OnlineDatastoreExtractionNamespace extractionNamespace;
     private LookupService lookupService;
     private final ImmutableMap<String, Integer> columnIndexMap;
+    private final LookupUtil util = new LookupUtil();
 
-    abstract protected Logger LOGGER();
+    private static final Logger log = new Logger(URIExtractionNamespaceCacheFactory.class);
+
+    protected abstract Logger LOGGER();
 
     OnlineDatastoreLookupExtractor(OnlineDatastoreExtractionNamespace extractionNamespace, Map<String, U> map, LookupService lookupService) {
         this.extractionNamespace = extractionNamespace;
@@ -40,45 +45,52 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
     }
 
     public Map<String, U> getMap() {
-        return ImmutableMap.copyOf(map);
+        return new HashMap<>(map);
     }
 
     @Nullable
-    public String apply(@NotNull String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap, Map<String, String> secondaryColOverrideMap) {
+    public String apply(@Nullable String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap, Map<String, String> secondaryColOverrideMap) {
         try {
+            util.overrideThrowableCheck(dimensionOverrideMap, secondaryColOverrideMap);
 
-            if (key == null) {
+            if (key == null && (extractionNamespace.nullReplacement() == null || extractionNamespace.nullReplacement().isEmpty())) {
                 return null;
-            }
+            } else if (key == null)
+                key = extractionNamespace.nullReplacement();
 
             if (dimensionOverrideMap != null && dimensionOverrideMap.containsKey(key)) {
                 return Strings.emptyToNull(dimensionOverrideMap.get(key));
             }
 
+            String cacheableByteString;
             if (!extractionNamespace.isCacheEnabled()) {
                 Optional<DecodeConfig> decodeConfigOptional = (decodeConfig == null) ? Optional.empty() : Optional.of(decodeConfig);
                 byte[] cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
                         key, valueColumn, decodeConfigOptional));
-                return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
+                String cacheByteString = (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8).trim();
+                cacheableByteString = util.populateCacheStringFromOverride(cacheByteString, secondaryColOverrideMap);
             } else {
                 U cacheValueArray = map.get(key);
                 if (cacheValueArray == null) {
                     return null;
                 }
                 if (decodeConfig != null) {
-                    return handleDecode(cacheValueArray, decodeConfig);
+                    cacheableByteString = handleDecode(cacheValueArray, decodeConfig);
                 } else {
                     int columnIndex = getColumnIndex(valueColumn);
                     if (columnIndex < 0 || columnIndex >= cacheValueArray.size()) {
-                        LOGGER().error("Invalid columnIndex [%s], cacheValueArray is [%s]", columnIndex, cacheValueArray);
+                        log.error("Invalid columnIndex [%s], cacheValueArray is [%s]", columnIndex, cacheValueArray);
                         return null;
                     }
-                    return Strings.emptyToNull(cacheValueArray.get(columnIndex));
+                    String cacheByteString = Strings.emptyToNull(cacheValueArray.get(columnIndex));
+                    cacheableByteString = util.populateCacheStringFromOverride(cacheByteString, secondaryColOverrideMap);
                 }
             }
 
+            return cacheableByteString;
+
         } catch (Exception e) {
-            LOGGER().error(e, "Exception in OnlineDatastoreLookupExtractor apply");
+            log.error(e, "Exception in OnlineDatastoreLookupExtractor apply");
         }
         return null;
     }
@@ -185,7 +197,7 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
                 }
             }
         } catch (Exception e) {
-            LOGGER().error(e, "Caught exception. Returning iterable to empty map.");
+            log.error(e, "Caught exception. Returning iterable to empty map.");
         }
 
         return tempMap.entrySet();

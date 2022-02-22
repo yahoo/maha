@@ -3,6 +3,7 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 import com.google.common.base.Splitter;
 import com.google.inject.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.util.LookupUtil;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.*;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlFunction;
@@ -30,6 +31,8 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
     private static final String SEPARATOR = ",";
     private static final String KV_DEFAULT = "->";
     private static final Logger LOG = new Logger(MahaLookupOperatorConversion.class);
+    private static final LookupUtil util = new LookupUtil();
+    private static final List<String> REPL_LIST = Arrays.asList("", null);
 
     private static final SqlFunction SQL_FUNCTION = OperatorConversions
             .operatorBuilder(DRUID_FUNC_NAME)
@@ -101,7 +104,28 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
 
     private Map<String, String> getMapOrDefault(List<DruidExpression> inputExpressions, int index, PlannerContext plannerContext) {
         String map = getMissingValue(inputExpressions, plannerContext, index, "");
-        return map == null || map.isEmpty() ? null : Splitter.on(SEPARATOR).withKeyValueSeparator(KV_DEFAULT).split(map);
+        HashMap<String, String> reqMap = map == null || map.isEmpty() ? null : new HashMap<>(Splitter.on(SEPARATOR).withKeyValueSeparator(KV_DEFAULT).split(map));
+        reqMap = mapCase(reqMap);
+
+        return reqMap;
+    }
+
+    private HashMap<String, String> fixKeys(HashMap<String, String> input, String keyToFix) {
+        String mod = input.remove(keyToFix);
+        input.put(util.NULL_VAL, mod);
+        return input;
+    }
+
+    private HashMap<String, String> mapCase(HashMap<String, String> input) {
+        if(input == null)
+            return input;
+        for(String item: REPL_LIST){
+            if(input.containsKey(item)) {
+                input = fixKeys(input, item);
+            }
+        }
+
+        return input;
     }
 
     private String getMissingValue(List<DruidExpression> list, PlannerContext plannerContext, int index, String valueIfMissing) {
