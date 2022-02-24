@@ -349,4 +349,6 @@ public class JDBCExtractionNamespaceCacheFactory
         }
         return (extractionNamespace.getPreviousLastUpdateTimestamp() != null) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : -1L;
     }
+
+    public int getFetchSize() {return FETCH_SIZE;}
 }

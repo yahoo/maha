@@ -392,6 +392,8 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
             return new JDBCLookupExtractorWithLeaderAndFollower((JDBCExtractionNamespaceWithLeaderAndFollower) extractionNamespace, map, lookupService);
         } else if (extractionNamespace instanceof JDBCExtractionNamespace) {
             return new JDBCLookupExtractor((JDBCExtractionNamespace) extractionNamespace, map, lookupService);
+        } else if (extractionNamespace instanceof JDBCExtractionNamespaceWithSQL) {
+            return new JDBCLookupExtractor((JDBCExtractionNamespaceWithSQL) extractionNamespace, map, lookupService);
         } else if (extractionNamespace instanceof URIExtractionNamespace) {
             return new URILookupExtractor((URIExtractionNamespace) extractionNamespace, map, lookupService);
         } else if(isRocksDBLookup(extractionNamespace)) {
