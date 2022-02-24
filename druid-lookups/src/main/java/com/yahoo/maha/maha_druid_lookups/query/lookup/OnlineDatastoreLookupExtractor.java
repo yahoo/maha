@@ -53,10 +53,9 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
         try {
             util.overrideThrowableCheck(dimensionOverrideMap, secondaryColOverrideMap);
 
-            if (key == null && (extractionNamespace.nullReplacement() == null || extractionNamespace.nullReplacement().isEmpty())) {
+            if (key == null) {
                 return null;
-            } else if (key == null)
-                key = extractionNamespace.nullReplacement();
+            }
 
             if (dimensionOverrideMap != null && dimensionOverrideMap.containsKey(key)) {
                 return Strings.emptyToNull(dimensionOverrideMap.get(key));
@@ -171,7 +170,7 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
 
     @Override
     public boolean canIterate() {
-        return true;
+        return extractionNamespace.isCacheEnabled();
     }
 
     @Override

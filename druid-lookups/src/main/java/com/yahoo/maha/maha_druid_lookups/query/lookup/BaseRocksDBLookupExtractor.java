@@ -106,10 +106,9 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
         try {
             util.overrideThrowableCheck(dimensionOverrideMap, secondaryColOverrideMap);
 
-            if (key == null && (extractionNamespace.nullReplacement() == null || extractionNamespace.nullReplacement().isEmpty())) {
+            if (key == null) {
                 return null;
-            } else if (key == null)
-                key = extractionNamespace.nullReplacement();
+            }
 
             if (dimensionOverrideMap != null && dimensionOverrideMap.containsKey(key)) {
                 return Strings.emptyToNull(dimensionOverrideMap.get(key));
