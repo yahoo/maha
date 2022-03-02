@@ -83,7 +83,7 @@ public class JDBCExtractionNamespaceCacheFactory
                                                     new RowMapper(extractionNamespace, cache),
                                                     secondaryTsWhereCondition);
                         } catch (Throwable t) {
-                            LOG.error(t, "Failed to populate RowList From JDBC [s%]", id);
+                            LOG.error(t, "Failed to populate RowList From JDBC [%s]", id);
                             throw t;
                         }
                         return null;
