@@ -98,7 +98,7 @@ public class KafkaManager {
                 public Boolean call() {
                     final KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(properties);
                     consumer.subscribe(Arrays.asList(topic));
-                    log.error("Listening to topic [%s] with groupid [%s] for namespace [%s] to apply changes since the beginning", topic, groupId, namespace);
+                    log.info("Listening to topic [%s] with groupid [%s] for namespace [%s] to apply changes since the beginning", topic, groupId, namespace);
                     long recordCount = 0;
                     while (!cancelled && !Thread.currentThread().isInterrupted()) {
                         final ConsumerRecords<String, byte[]> records = consumer.poll(20000);
@@ -133,7 +133,7 @@ public class KafkaManager {
                         }
                     }
                     consumer.close();
-                    log.error("Applied [%s] changes since the beginning for this consumer and topic [%s]", recordCount, topic);
+                    log.info("Applied [%s] changes since the beginning for this consumer and topic [%s]", recordCount, topic);
                     countDownLatch.countDown();
                     return true;
                 }
