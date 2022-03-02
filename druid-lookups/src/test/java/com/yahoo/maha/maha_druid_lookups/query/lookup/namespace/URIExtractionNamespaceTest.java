@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Note: these classes are testing Jackson version 2.9.9, and druid-server
@@ -106,7 +107,8 @@ public class URIExtractionNamespaceTest {
                 ImmutableList.of("col1", "col2", "col3"),
                 "col2",
                 true,
-                1
+                1,
+                "null"
         );
         // parser return empyt list as the 1 row header need to be skipped.
         Assert.assertEquals(ImmutableMap.of(), parser.getParser().parseToMap("row to skip "));
@@ -119,17 +121,18 @@ public class URIExtractionNamespaceTest {
     }
 
 
-    @Test(expected = NullPointerException.class)
-    public void testBadCSV()
+    @Test//(expected = NullPointerException.class)
+    public void testNullKey()
     {
         URIExtractionNamespace.CSVFlatDataParser parser = new URIExtractionNamespace.CSVFlatDataParser(
                 ImmutableList.of(
                         "col1",
                         "col2",
                         "col3"
-                ), "col2"
+                ), "col2", "nullval"
         );
-        Map<String, List<String>> map = parser.getParser().parseToMap("A");
+        Map<String, List<String>> map = parser.getParser().parseToMap("A,,C");
+        Assert.assertEquals(new HashMap<String, List<String>>(){{put("nullval", Arrays.asList("A",null,"C"));}}, map);
     }
 
 

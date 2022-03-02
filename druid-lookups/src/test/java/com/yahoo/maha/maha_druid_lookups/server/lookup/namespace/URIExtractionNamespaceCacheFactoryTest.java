@@ -116,7 +116,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
     @Test
     public void testGetCacheValueWhenKeyPresent() throws Exception{
         namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
-                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("id", "gpa", "date"), "id", false, 0),
+                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("id", "gpa", "date"), "id", false, 0, null),
                 null, null, 10L, "student_lookup", "date", true, null, null);
 
         tmpFileParent.setWritable(true);
@@ -136,7 +136,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
     @Test
     public void testGetRegexCacheOnFileRegex() throws Exception{
         namespace = new URIExtractionNamespace(null, tmpFileParent.getParentFile().toURI(), ".*tmp.*txt", //want the regex to match all tmp*txt files
-                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0),
+                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, null),
                 null, null, 10L, "cities_lookup", "date", true, null, null);
 
         Map<String, List<String>> cache = new HashMap<String, List<String>>();
@@ -166,7 +166,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
     @Test
     public void testDebugHdfsInput() throws Exception{
         namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
-                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0),
+                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, null),
                 null, null, 10L, "cities_lookup", "date", true, null, null);
 
         Map<String, List<String>> cache = new HashMap<String, List<String>>();
@@ -207,7 +207,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
         URI testUri = new URI("file:" + parent + "/tmp.gz");
 
         namespace = new URIExtractionNamespace(testUri, null, null,
-                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0),
+                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, null),
                 null, null, 10L, "cities_lookup", "date", true, null, null);
 
         Map<String, List<String>> cache = new HashMap<String, List<String>>();
@@ -217,6 +217,41 @@ public class URIExtractionNamespaceCacheFactoryTest {
 
         System.err.println(versionedCache.call());
         assert(cache.containsKey("Andorra la Vella"));
+
+    }
+
+    @Test
+    public void testNullKeyJoining() throws Exception{
+        tmpFileParent.setWritable(true);
+        FileUtils.writeStringToFile(tmpFileParent, "name,country,subcountry,geonameid\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "les Escaldes,Andorra,Escaldes-Engordany,3040051\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, ",Andorra,Andorra la Vella,3041563\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Umm al Qaywayn,United Arab Emirates,Umm al Qaywayn,290594\n", true);
+        tmpFileParent.setLastModified(8675309123L);
+        String parent = tmpFileParent.getParent();
+
+        FileInputStream fis = new FileInputStream(tmpFileParent.getAbsolutePath());
+        FileOutputStream fos = new FileOutputStream(parent + "/tmp.gz");
+        GZIPOutputStream gzos = new GZIPOutputStream(fos);
+        byte[] buffer = new byte[2048];
+        int length;
+        while ((length = fis.read(buffer)) > 0) {
+            gzos.write(buffer, 0, length);
+        }
+        gzos.finish();
+        URI testUri = new URI("file:" + parent + "/tmp.gz");
+
+        namespace = new URIExtractionNamespace(testUri, null, null,
+                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, "nuller"),
+                null, null, 10L, "cities_lookup", "date", true, null, null);
+
+        Map<String, List<String>> cache = new HashMap<String, List<String>>();
+        Callable<String> versionedCache = obj.getCachePopulator("blah",
+                namespace, "500", cache);
+
+
+        System.err.println(versionedCache.call());
+        assert(cache.containsKey("nuller"));
 
     }
 

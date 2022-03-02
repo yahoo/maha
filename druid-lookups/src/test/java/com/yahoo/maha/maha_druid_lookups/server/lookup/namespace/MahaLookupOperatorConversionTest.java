@@ -192,5 +192,48 @@ public class MahaLookupOperatorConversionTest {
 
     }
 
+    @Test
+    public void testMappedLookupWithNullKeys() throws JsonProcessingException {
+        MahaLookupTestUtil util = new MahaLookupTestUtil();
+        RexBuilder rexBuilder = new RexBuilder(util.typeFactory);
+        RowSignature ROW_SIGNATURE = RowSignature
+                .builder()
+                .add("d", ValueType.DOUBLE)
+                .add("l", ValueType.LONG)
+                .add("grade", ValueType.STRING)
+                .add("student_id", ValueType.STRING)
+                .build();
+
+        final LookupExtractorFactoryContainerProvider manager = EasyMock.createStrictMock(LookupReferencesManager.class);
+
+        MahaLookupOperatorConversion opConversion = new MahaLookupOperatorConversion(manager);
+        ExprMacroTable exprMacroTable = TestExprMacroTable.INSTANCE;
+
+        PlannerContext plannerContext = EasyMock.createStrictMock(PlannerContext.class);
+        EasyMock.expect(plannerContext.getExprMacroTable()).andReturn(exprMacroTable).anyTimes();
+        EasyMock.replay(plannerContext);
+        MahaLookupTestUtil.MAHA_LOOKUP mahaLookup = new MahaLookupTestUtil.MAHA_LOOKUP(
+                util.makeInputRef("student_id", ROW_SIGNATURE, rexBuilder)
+                , Pair.of("student_lookup", SqlTypeName.VARCHAR)
+                , Pair.of("grade", SqlTypeName.VARCHAR)
+                , Pair.of("A+", SqlTypeName.VARCHAR)
+                , Pair.of("->A,b->B", SqlTypeName.VARCHAR)
+                , Pair.of("a->A,->B", SqlTypeName.VARCHAR)
+                , rexBuilder
+        );
+
+        RexNode rn2 = mahaLookup.makeCall(rexBuilder, opConversion.calciteOperator());
+
+        DruidExpression druidExp = opConversion.toDruidExpression(plannerContext, ROW_SIGNATURE, rn2);
+        assert druidExp != null;
+
+        String json = util.convertToJson(druidExp, "testing_stats", "Grade Avg");
+        System.err.println(json);
+        assert json.contains("{\"type\":\"extraction\",\"dimension\":\"student_id\",\"outputName\":\"Grade Avg\",\"outputType\":\"STRING\",");
+        assert json.contains("\"extractionFn\":{\"type\":\"mahaRegisteredLookup\",\"lookup\":\"student_lookup\"");
+        assert json.contains("\"replaceMissingValueWith\":\"A+\",\"injective\":false,\"optimize\":false,\"valueColumn\":\"grade\"");
+        assert json.contains("\"dimensionOverrideMap\":{\"a\":\"A\",\"NULL\":\"B\"},\"secondaryColOverrideMap\":{\"b\":\"B\",\"NULL\":\"A\"},\"useQueryLevelCache\":false");
+    }
+
 
 }

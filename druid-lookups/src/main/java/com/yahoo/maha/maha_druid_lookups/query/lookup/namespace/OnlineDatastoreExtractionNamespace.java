@@ -23,4 +23,6 @@ public interface OnlineDatastoreExtractionNamespace extends ExtractionNamespace 
     public List<String> getColumnList();
 
     int getNumEntriesIterator();
+
+    String nullReplacement();
 }

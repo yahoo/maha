@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.util.LookupUtil;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConstants;
@@ -45,6 +46,7 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
     protected ServiceEmitter serviceEmitter;
     protected Cache<String, byte[]> missingLookupCache;
     protected final byte[] extractionNamespaceAsByteArray;
+    private final LookupUtil util = new LookupUtil();
 
     public BaseRocksDBLookupExtractor(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
                                    LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
@@ -102,9 +104,7 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
     @Nullable
     public String apply(@NotNull String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap, Map<String, String> secondaryColOverrideMap) {
         try {
-            if(dimensionOverrideMap != null && !dimensionOverrideMap.isEmpty() && secondaryColOverrideMap != null && !secondaryColOverrideMap.isEmpty()){
-                throw new IllegalArgumentException("Cannot populate both dimensionOverrideMap and secondaryColOverrideMap!");
-            }
+            util.overrideThrowableCheck(dimensionOverrideMap, secondaryColOverrideMap);
 
             if (key == null) {
                 return null;
@@ -114,11 +114,13 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
                 return Strings.emptyToNull(dimensionOverrideMap.get(key));
             }
 
+            String cacheableByteString;
             Optional<DecodeConfig> decodeConfigOptional = (decodeConfig == null) ? Optional.empty() : Optional.of(decodeConfig);
             if (!extractionNamespace.isCacheEnabled()) {
                 byte[] cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
                         key, valueColumn, decodeConfigOptional));
-                return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
+                String cacheByteString = (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8).trim();
+                cacheableByteString = util.populateCacheStringFromOverride(cacheByteString, secondaryColOverrideMap);
             } else {
                 final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
                 if (db == null) {
@@ -126,10 +128,7 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
                     LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
                     serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE + "_" + extractionNamespace.getNamespace(), 1));
                     String cacheByteString = new String(lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional))).trim();
-                    if (secondaryColOverrideMap != null && secondaryColOverrideMap.containsKey(cacheByteString)) {
-                        return Strings.emptyToNull(secondaryColOverrideMap.get(cacheByteString));
-                    }
-                    return new String(lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional)));
+                    return util.populateCacheStringFromOverride(cacheByteString, secondaryColOverrideMap);
                 }
                 byte[] cacheByteValue = getCacheByteValue(key, valueColumn, decodeConfigOptional, db);
 
@@ -148,12 +147,11 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
                     return null;
                 } else {
                     String cacheByteString = new String(cacheByteValue).trim();
-                    if (secondaryColOverrideMap != null && secondaryColOverrideMap.containsKey(cacheByteString)) {
-                        return Strings.emptyToNull(secondaryColOverrideMap.get(cacheByteString));
-                    }
-                    return new String(cacheByteValue);
+                    cacheableByteString = util.populateCacheStringFromOverride(cacheByteString, secondaryColOverrideMap);
                 }
             }
+
+            return cacheableByteString;
 
         } catch (Exception e) {
             LOG.error(e, "Caught exception while lookup");

@@ -213,5 +213,10 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
     public int hashCode() {
         return Objects.hash(getConnectorConfig(), getCollectionName(), getTsColumn(), pollPeriod, isCacheEnabled(), getLookupName(), getDocumentProcessor(), getMongoClientRetryCount(), isTsColumnEpochInteger());
     }
+
+    @Override
+    public String nullReplacement() {
+        return "";
+    }
 }
 

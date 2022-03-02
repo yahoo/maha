@@ -259,5 +259,10 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     public int hashCode() {
         return Objects.hash(getConnectorConfig(), getTable(), getTsColumn(), pollPeriod, getColumnList(), getPrimaryKeyColumn(), isCacheEnabled(), getLookupName(), getKerberosProperties(), getTsColumnConfig(), isKerberosPropertiesEnabled());
     }
+
+    @Override
+    public String nullReplacement() {
+        return "";
+    }
 }
 

@@ -51,7 +51,7 @@ public class MissingLookupManagerTest {
         List<ConsumerRecord<String, byte[]>> records = new ArrayList<>();
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = objectMapper.readValue("{ \"createTables\": false,\"connectURI\": \"jdbc:oracle:thin:@testdb\",\"user\": \"test_user\",\"password\":\"test_user.db.prod.pwd\"}", MetadataStorageConnectorConfig.class);
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
-                "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner", null, false, false, 0
+                "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner", null, false, false, 0, null
         );
         objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         byte[] byteArray = objectMapper.writeValueAsBytes(extractionNamespace);
