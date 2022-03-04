@@ -80,7 +80,7 @@ public class MahaNamespacesCacheResource
             } else {
                 if (key != null) {
                     if (debug) {
-                        log.info("Fetching cache value for key [%s] and valueColumn [%s]", key, valueColumn);
+                        log.info("Fetching cache value for key [%s] and valueColumn [%s], namespace [%s]", key, valueColumn, namespace);
                     }
 
                     Optional<DecodeConfig> decodeConfigOptional = Optional.empty();
@@ -100,7 +100,7 @@ public class MahaNamespacesCacheResource
                         log.info("Cache value is : [%s]", new String(response));
                     }
                 } else {
-                    log.warn("Key is not passed hence returning the size of the cache");
+                    log.warn("Key is not passed hence returning the size of the cache, namespace[%s]", namespace);
                     response = mahaNamespaceExtractionCacheManager
                             .getExtractionNamespaceFunctionFactory(Class.forName(extractionNamespaceClass))
                             .getCacheSize(extractionNamespace.get(),
