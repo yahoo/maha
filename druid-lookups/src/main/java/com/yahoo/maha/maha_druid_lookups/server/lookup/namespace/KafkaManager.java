@@ -132,8 +132,8 @@ public class KafkaManager {
                             }
                         }
                     }
+                    log.info("Applied [%s] changes since the beginning for this consumer and topic [%s], consumer closing", recordCount, topic);
                     consumer.close();
-                    log.info("Applied [%s] changes since the beginning for this consumer and topic [%s]", recordCount, topic);
                     countDownLatch.countDown();
                     return true;
                 }
@@ -226,8 +226,8 @@ public class KafkaManager {
                             }
 
                         }
+                        log.info("Running Task is cancelled for topic [%s], consumer closing...", topic);
                         consumer.close();
-                        log.info("Running Task is cancelled for topic [%s]", topic);
                         return true;
                     }
                 }
