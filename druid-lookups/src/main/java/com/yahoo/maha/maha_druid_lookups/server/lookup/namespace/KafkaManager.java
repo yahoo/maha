@@ -132,15 +132,17 @@ public class KafkaManager {
                             }
                         }
                     }
+                    log.info("Applied [%s] changes since the beginning for this consumer and topic [%s], consumer closing", recordCount, topic);
                     consumer.close();
-                    log.info("Applied [%s] changes since the beginning for this consumer and topic [%s]", recordCount, topic);
                     countDownLatch.countDown();
+                    log.info("countDownLatch count down for topic [%s]", topic);
                     return true;
                 }
             }));
         }
        try {
             countDownLatch.await(30, TimeUnit.MINUTES);
+            log.info("countDownLatch timeout for topic [%s]", topic);
             futureList.forEach(future -> {
                 if(!future.isDone()) {
                     future.cancel(true);
@@ -226,8 +228,8 @@ public class KafkaManager {
                             }
 
                         }
+                        log.info("Running Task is cancelled for topic [%s], consumer closing...", topic);
                         consumer.close();
-                        log.info("Running Task is cancelled for topic [%s]", topic);
                         return true;
                     }
                 }
