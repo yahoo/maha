@@ -135,12 +135,14 @@ public class KafkaManager {
                     log.info("Applied [%s] changes since the beginning for this consumer and topic [%s], consumer closing", recordCount, topic);
                     consumer.close();
                     countDownLatch.countDown();
+                    log.info("countDownLatch count down for topic [%s]", topic);
                     return true;
                 }
             }));
         }
        try {
             countDownLatch.await(30, TimeUnit.MINUTES);
+            log.info("countDownLatch timeout for topic [%s]", topic);
             futureList.forEach(future -> {
                 if(!future.isDone()) {
                     future.cancel(true);
