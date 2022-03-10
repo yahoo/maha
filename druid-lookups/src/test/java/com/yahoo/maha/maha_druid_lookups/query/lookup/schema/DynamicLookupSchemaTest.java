@@ -52,7 +52,7 @@ public class DynamicLookupSchemaTest {
         Assert.assertEquals(dynamicLookupSchema.getName() , "ad_pb_dym_lookup");
         Assert.assertEquals(dynamicLookupSchema.getVersion(), "2021061800");
         Assert.assertEquals(dynamicLookupSchema.getType(), ExtractionNameSpaceSchemaType.PROTOBUF);
-        Assert.assertEquals(dynamicLookupSchema.getSchemaFieldList().size(), 4);
+        Assert.assertEquals(dynamicLookupSchema.getSchemaFieldList().size(), 5);
     }
 
     @Test

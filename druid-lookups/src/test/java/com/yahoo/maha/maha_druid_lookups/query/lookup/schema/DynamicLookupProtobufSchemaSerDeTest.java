@@ -56,6 +56,15 @@ public class DynamicLookupProtobufSchemaSerDeTest {
 
     }
 
+    @Test
+    public void DynamicLookupProtobufSchemaSerDeTestInt32DefaultValueSuccess(){
+        Message adMessage = AdProtos.Ad.newBuilder().setTitle("some title").setStatus("ON").setLastUpdated("2021062220").build();
+        byte[] byteArr = adMessage.toByteArray();
+
+        String str = dynamicLookupProtobufSchemaSerDe.getValue("budget", byteArr, Optional.empty(), extractionNamespace);
+        Assert.assertEquals("0", str);
+    }
+
 
     @Test
     public void DynamicLookupProtobufSchemaSerDeTestFailure(){
