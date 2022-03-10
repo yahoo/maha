@@ -63,6 +63,26 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         return DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING;
     }
 
+    private String getTypeDefaultValue(Descriptors.FieldDescriptor.Type fieldDataType) {
+        // TODO Add Support for other types
+        if (fieldDataType == Descriptors.FieldDescriptor.Type.INT32) {
+            return "0";
+        }
+
+        if (fieldDataType == Descriptors.FieldDescriptor.Type.INT64) {
+            return "0";
+        }
+
+        if (fieldDataType == Descriptors.FieldDescriptor.Type.DOUBLE) {
+            return "0.0";
+        }
+
+        if (fieldDataType == Descriptors.FieldDescriptor.Type.BOOL) {
+            return "false";
+        }
+
+        return "";
+    }
 
     public ExtractionNameSpaceSchemaType getSchemaType(){
         return ExtractionNameSpaceSchemaType.PROTOBUF;
@@ -98,16 +118,16 @@ public class DynamicLookupProtobufSchemaSerDe implements DynamicLookupCoreSchema
         Descriptors.FieldDescriptor fieldDescriptor =  protobufMessageDescriptor.findFieldByName(fieldName);
         if (fieldDescriptor == null) {
             LOG.error("Failed to find fieldDescriptor for field: '{}' in schema: [{}], namespace: {}}", fieldName, fieldsCsv, extractionNamespace.getLookupName());
-           return "";
+            return "";
         }
         if (dynamicMessage.hasField(fieldDescriptor)) {
             String fieldValue = String.valueOf(dynamicMessage.getField(fieldDescriptor));
-            return fieldValue != null ? fieldValue : "";
+            return fieldValue != null ? fieldValue : getTypeDefaultValue(fieldDescriptor.getType());
         } else {
             //if empty value for specific field, decoded dynamic message won't have the fieldDescriptor for that field
             LOG.info("Failed to find value for field: {} namespace: {}", fieldName, extractionNamespace.getLookupName());
         }
-        return "";
+        return getTypeDefaultValue(fieldDescriptor.getType());
     }
 
     public String handleDecode(DecodeConfig decodeConfig, DynamicMessage dynamicMessage, ExtractionNamespace extractionNamespace) {

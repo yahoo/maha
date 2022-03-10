@@ -22,6 +22,11 @@
       "field": "last_updated",
       "dataType": "STRING",
       "index": 4
+    },
+    {
+      "field": "budget",
+      "dataType": "INT32",
+      "index": 5
     }
   ]
 }
