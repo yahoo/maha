@@ -21,13 +21,10 @@ import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuff
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferSchemaFactoryProvider;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactoryProvider;
-import org.apache.druid.guice.Jerseys;
-import org.apache.druid.guice.JsonConfigProvider;
-import org.apache.druid.guice.LazySingleton;
-import org.apache.druid.guice.LifecycleModule;
-import org.apache.druid.guice.PolyBind;
+import org.apache.druid.guice.*;
 import org.apache.druid.guice.annotations.Json;
 import org.apache.druid.initialization.DruidModule;
+import org.apache.druid.query.expression.LookupExprMacro;
 import org.apache.druid.sql.calcite.schema.*;
 import org.apache.druid.sql.guice.*;
 
@@ -186,6 +183,7 @@ public class MahaNamespaceExtractionModule implements DruidModule
         LifecycleModule.register(binder, LookupService.class);
 
         SqlBindings.addOperatorConversion(binder, MahaLookupOperatorConversion.class);
+        ExpressionModule.addExprMacro(binder, MahaLookupExprMacro.class);
         binder.bind(LookupSchema.class).in(Scopes.SINGLETON);
 
         Jerseys.addResource(binder, MahaNamespacesCacheResource.class);

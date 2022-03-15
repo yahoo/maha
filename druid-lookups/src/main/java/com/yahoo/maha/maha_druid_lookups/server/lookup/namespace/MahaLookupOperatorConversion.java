@@ -5,6 +5,7 @@ import com.google.inject.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.util.LookupUtil;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.*;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -20,6 +21,7 @@ import org.apache.druid.segment.column.*;
 import org.apache.druid.sql.calcite.expression.*;
 import org.apache.druid.sql.calcite.planner.PlannerContext;
 import org.apache.druid.sql.calcite.rel.*;
+import sun.java2d.pipe.SpanShapeRenderer;
 
 import javax.annotation.*;
 import java.util.*;
@@ -61,6 +63,17 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
     @Override
     public DruidExpression toDruidExpression(PlannerContext plannerContext, RowSignature rowSignature, RexNode rexNode) {
 
+        //test area
+        final RexCall call = (RexCall) rexNode;
+
+        final List<DruidExpression> druidExpressions = Expressions.toDruidExpressions(
+                plannerContext,
+                rowSignature,
+                call.getOperands()
+        );
+
+        druidExpressions.stream().forEach(expr -> LOG.error("starting druidExpressions: " + expr.toString()));
+
         DruidExpression simpleExtraction = OperatorConversions.convertCall(
                 plannerContext,
                 rowSignature,
@@ -90,16 +103,21 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
                                 dimensionOverrideMap,
                                 secondaryColOverrideMap,
                                 false);
-
-                        return arg.getSimpleExtraction().cascade(mahaRegisteredLookupExtractionFn);
+                        LOG.error("Valid call to Maha_lookup: lookupName = "+lookupName+", columnName = "+columnName+", arg = "+arg);
+                        SimpleExtraction sim = arg.getSimpleExtraction().cascade(mahaRegisteredLookupExtractionFn);
+                        LOG.error("simpleExtraction: " + sim.toString());
+                        return sim;
                     } else {
-                        LOG.error("Invalid call to Maha_lookup: lookupName = "+lookupName+", columnName = "+columnName+", "+arg);
+                        LOG.error("Invalid call to Maha_lookup: lookupName = "+lookupName+", columnName = "+columnName+", arg = "+arg);
                         return null;
                     }
                 }
         );
         if(simpleExtraction == null) return null;
-       return DruidExpression.of(simpleExtraction.getSimpleExtraction(), "maha");
+        //MAHA_LOOKUP(cityName, 'druid_data_lookup', 'val', 'NA')
+        //String mahaLookupExprStr = String.format("MAHA_LOOKUP(%s, '%s', '%s', '%s')", arg);
+        LOG.error("end of operatorConversion, simpleExtraction: " + simpleExtraction.toString());
+        return DruidExpression.of(simpleExtraction.getSimpleExtraction(), simpleExtraction.getExpression());
     }
 
     private Map<String, String> getMapOrDefault(List<DruidExpression> inputExpressions, int index, PlannerContext plannerContext) {
