@@ -114,8 +114,6 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
                 }
         );
         if(simpleExtraction == null) return null;
-        //MAHA_LOOKUP(cityName, 'druid_data_lookup', 'val', 'NA')
-        //String mahaLookupExprStr = String.format("MAHA_LOOKUP(%s, '%s', '%s', '%s')", arg);
         LOG.error("end of operatorConversion, simpleExtraction: " + simpleExtraction.toString());
         return DruidExpression.of(simpleExtraction.getSimpleExtraction(), simpleExtraction.getExpression());
     }

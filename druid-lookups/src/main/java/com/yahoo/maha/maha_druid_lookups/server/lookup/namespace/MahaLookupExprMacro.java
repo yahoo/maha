@@ -1,7 +1,9 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
+import com.google.common.base.Splitter;
 import com.google.inject.Inject;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.MahaRegisteredLookupExtractionFn;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.util.LookupUtil;
 import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.java.util.common.IAE;
 import org.apache.druid.java.util.common.StringUtils;
@@ -12,18 +14,25 @@ import org.apache.druid.math.expr.ExprMacroTable;
 import org.apache.druid.math.expr.ExprType;
 import org.apache.druid.query.lookup.LookupExtractorFactoryContainerProvider;
 import org.apache.druid.query.lookup.LookupReferencesManager;
-import org.apache.druid.query.lookup.RegisteredLookupExtractionFn;
+import org.apache.druid.sql.calcite.expression.DruidExpression;
+import org.apache.druid.sql.calcite.planner.PlannerContext;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
 {
     private static final Logger LOG = new Logger(MahaLookupExprMacro.class);
     private static final String FN_NAME = "maha_lookup";
     private final LookupExtractorFactoryContainerProvider lookupExtractorFactoryContainerProvider;
-
+    private static final LookupUtil util = new LookupUtil();
+    private static final List<String> REPL_LIST = Arrays.asList("", null);
+    private static final String SEPARATOR = ",";
+    private static final String KV_DEFAULT = "->";
 
     @Inject
     public MahaLookupExprMacro(final LookupExtractorFactoryContainerProvider lookupExtractorFactoryContainerProvider)
@@ -41,9 +50,8 @@ public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
     public Expr apply(final List<Expr> args)
     {
 
-
         if (args.size() != 4) {
-            throw new IAE("Function[%s] must have 2 arguments", name());
+            throw new IAE("Function[%s] must have 4 arguments", name());
         }
 
         final Expr arg = args.get(0);
@@ -53,20 +61,22 @@ public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
         final Expr missingValueExpr = args.get(3);
         String missingValueStr = (String) missingValueExpr.getLiteralValue();
 
+        final String secondaryColOverrideMapStr = args.size() >= 5? (String) args.get(4).getLiteralValue(): "";
+        final String dimensionOverrideMapStr = args.size() >= 6? (String) args.get(5).getLiteralValue(): "";
+
+        Map<String, String> secondaryColOverrideMap = !secondaryColOverrideMapStr.isEmpty() ?
+                new HashMap<>(Splitter.on(SEPARATOR).withKeyValueSeparator(KV_DEFAULT).split(secondaryColOverrideMapStr)) :
+                null;
+
+        Map<String, String> dimensionOverrideMap = !dimensionOverrideMapStr.isEmpty() ?
+                new HashMap<>(Splitter.on(SEPARATOR).withKeyValueSeparator(KV_DEFAULT).split(dimensionOverrideMapStr)) :
+                null;
+
         if (!lookupExpr.isLiteral() || lookupExpr.getLiteralValue() == null) {
             throw new IAE("Function[%s] second argument must be a registered lookup name", name());
         }
 
         final String lookupName = lookupExpr.getLiteralValue().toString();
-//        final RegisteredLookupExtractionFn extractionFn = new RegisteredLookupExtractionFn(
-//                lookupExtractorFactoryContainerProvider,
-//                lookupName,
-//                false,
-//                null,
-//                false,
-//                null
-//        );
-
 
         LookupReferencesManager lrm = (LookupReferencesManager) lookupExtractorFactoryContainerProvider;
         MahaRegisteredLookupExtractionFn mahaRegisteredLookupExtractionFn = new MahaRegisteredLookupExtractionFn(lrm,
@@ -77,8 +87,8 @@ public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
                 false,
                 columnStr,
                 null,
-                null,
-                null,
+                dimensionOverrideMap,
+                secondaryColOverrideMap,
                 false);
         LOG.error("Macro: valid call to Maha_lookup: lookupName = " + lookupName + ", columnName = " + columnStr + ", arg = " + arg);
 
@@ -118,5 +128,44 @@ public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
         }
 
         return new MahaLookupExpr(arg);
+    }
+
+    private Map<String, String> getMapOrDefault(List<DruidExpression> inputExpressions, int index) {
+        String map = getMissingValue(inputExpressions, index, "");
+        HashMap<String, String> reqMap = map == null || map.isEmpty() ? null : new HashMap<>(Splitter.on(SEPARATOR).withKeyValueSeparator(KV_DEFAULT).split(map));
+        reqMap = mapCase(reqMap);
+
+        return reqMap;
+    }
+
+    private HashMap<String, String> fixKeys(HashMap<String, String> input, String keyToFix) {
+        String mod = input.remove(keyToFix);
+        input.put(util.NULL_VAL, mod);
+        return input;
+    }
+
+    private HashMap<String, String> mapCase(HashMap<String, String> input) {
+        if(input == null)
+            return input;
+        for(String item: REPL_LIST){
+            if(input.containsKey(item)) {
+                input = fixKeys(input, item);
+            }
+        }
+
+        return input;
+    }
+
+    private String getMissingValue(List<DruidExpression> list, int index, String valueIfMissing) {
+        if (list==null) {
+            return valueIfMissing;
+        }
+        if (list.size() >= index+1) {
+            DruidExpression expression = list.get(index);
+            if (expression != null) {
+                return (String) expression.parse(plannerContext.getExprMacroTable()).getLiteralValue();
+            }
+        }
+        return valueIfMissing;
     }
 }
