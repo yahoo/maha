@@ -123,49 +123,10 @@ public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
             @Override
             public String stringify()
             {
-                return StringUtils.format("%s(%s, %s, %s, %s)", FN_NAME, arg.stringify(), lookupExpr.stringify(), columnStr);
+                return StringUtils.format("%s(%s, %s, %s, %s, %s, %s)", FN_NAME, arg.stringify(), lookupExpr.stringify(), columnStr, secondaryColOverrideMapStr, dimensionOverrideMapStr);
             }
         }
 
         return new MahaLookupExpr(arg);
-    }
-
-    private Map<String, String> getMapOrDefault(List<DruidExpression> inputExpressions, int index) {
-        String map = getMissingValue(inputExpressions, index, "");
-        HashMap<String, String> reqMap = map == null || map.isEmpty() ? null : new HashMap<>(Splitter.on(SEPARATOR).withKeyValueSeparator(KV_DEFAULT).split(map));
-        reqMap = mapCase(reqMap);
-
-        return reqMap;
-    }
-
-    private HashMap<String, String> fixKeys(HashMap<String, String> input, String keyToFix) {
-        String mod = input.remove(keyToFix);
-        input.put(util.NULL_VAL, mod);
-        return input;
-    }
-
-    private HashMap<String, String> mapCase(HashMap<String, String> input) {
-        if(input == null)
-            return input;
-        for(String item: REPL_LIST){
-            if(input.containsKey(item)) {
-                input = fixKeys(input, item);
-            }
-        }
-
-        return input;
-    }
-
-    private String getMissingValue(List<DruidExpression> list, int index, String valueIfMissing) {
-        if (list==null) {
-            return valueIfMissing;
-        }
-        if (list.size() >= index+1) {
-            DruidExpression expression = list.get(index);
-            if (expression != null) {
-                return (String) expression.parse(plannerContext.getExprMacroTable()).getLiteralValue();
-            }
-        }
-        return valueIfMissing;
     }
 }
