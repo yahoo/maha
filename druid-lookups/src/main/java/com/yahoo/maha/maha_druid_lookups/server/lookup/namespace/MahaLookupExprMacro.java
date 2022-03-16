@@ -53,8 +53,10 @@ public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
         String columnStr = (String) columnExpr.getLiteralValue();
         final Expr missingValueExpr = args.get(3);
         String missingValueStr = (String) missingValueExpr.getLiteralValue();
-        final String secondaryColOverrideMapStr = args.size() >= 5? (String) args.get(4).getLiteralValue(): "";
-        final String dimensionOverrideMapStr = args.size() >= 6? (String) args.get(5).getLiteralValue(): "";
+        final Expr secondaryColOverrideMapExpr = args.size() >= 5? args.get(4): null;
+        final String secondaryColOverrideMapStr = secondaryColOverrideMapExpr != null ? (String) secondaryColOverrideMapExpr.getLiteralValue(): null;
+        final Expr dimensionOverrideMapStrExpr = args.size() >= 6? args.get(5): null;
+        final String dimensionOverrideMapStr = dimensionOverrideMapStrExpr != null ? (String) dimensionOverrideMapStrExpr.getLiteralValue(): null;
 
         //valueMap
         Map<String, String> secondaryColOverrideMap = secondaryColOverrideMapStr!= null && !secondaryColOverrideMapStr.isEmpty() ?
@@ -117,7 +119,19 @@ public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
             @Override
             public String stringify()
             {
-                return StringUtils.format("%s(%s, %s, %s, %s, %s, %s)", FN_NAME, arg.stringify(), lookupExpr.stringify(), columnStr, secondaryColOverrideMapStr, dimensionOverrideMapStr);
+                StringBuilder sb = new StringBuilder();
+                sb.append(FN_NAME + "(");
+                sb.append(StringUtils.format("%s, %s, %s, %s", arg.stringify(), lookupExpr.stringify(), columnExpr.stringify(), missingValueExpr.stringify()));
+                if(args.size() >= 5) {
+                    sb.append(", " + secondaryColOverrideMapExpr.stringify());
+                }
+
+                if(args.size() >= 6) {
+                    sb.append(", " + dimensionOverrideMapStrExpr.stringify());
+                }
+
+                sb.append(")");
+                return sb.toString();
             }
         }
 
