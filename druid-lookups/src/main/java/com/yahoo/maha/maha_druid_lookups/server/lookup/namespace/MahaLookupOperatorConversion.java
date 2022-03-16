@@ -4,8 +4,6 @@ import com.google.common.base.Splitter;
 import com.google.inject.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.util.LookupUtil;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.*;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -21,7 +19,6 @@ import org.apache.druid.segment.column.*;
 import org.apache.druid.sql.calcite.expression.*;
 import org.apache.druid.sql.calcite.planner.PlannerContext;
 import org.apache.druid.sql.calcite.rel.*;
-import sun.java2d.pipe.SpanShapeRenderer;
 
 import javax.annotation.*;
 import java.util.*;
@@ -46,8 +43,6 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
 
     private final LookupExtractorFactoryContainerProvider lookupReferencesManager;
 
-    OnHeapMahaNamespaceExtractionCacheManager onHeapMahaNamespaceExtractionCacheManager;
-
     @Inject
     public MahaLookupOperatorConversion(LookupExtractorFactoryContainerProvider lookupProvider) {
         lookupReferencesManager = lookupProvider;
@@ -63,35 +58,24 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
     @Override
     public DruidExpression toDruidExpression(PlannerContext plannerContext, RowSignature rowSignature, RexNode rexNode) {
 
-        //test area
-        final RexCall call = (RexCall) rexNode;
-
-        final List<DruidExpression> druidExpressions = Expressions.toDruidExpressions(
-                plannerContext,
-                rowSignature,
-                call.getOperands()
-        );
-
-        druidExpressions.stream().forEach(expr -> LOG.error("starting druidExpressions: " + expr.toString()));
-
         DruidExpression simpleExtraction = OperatorConversions.convertCall(
                 plannerContext,
                 rowSignature,
                 rexNode,
                 StringUtils.toLowerCase(calciteOperator().getName()),
                 inputExpressions -> {
-                    final DruidExpression arg = inputExpressions.get(0); // maha lookup function
-                    final Expr lookupName = inputExpressions.get(1).parse(plannerContext.getExprMacroTable()); // maha lookup name
-                    final Expr columnName = inputExpressions.get(2).parse(plannerContext.getExprMacroTable()); // maha lookup name
+                    final DruidExpression arg = inputExpressions.get(0);
+                    final Expr lookupName = inputExpressions.get(1).parse(plannerContext.getExprMacroTable());
+                    final Expr columnName = inputExpressions.get(2).parse(plannerContext.getExprMacroTable());
 
                     LookupReferencesManager lrm = (LookupReferencesManager) lookupReferencesManager;
                     String missingValue = getMissingValue(inputExpressions, plannerContext, 3, MISSING_VALUE);
                     //TODO: Enhance by passing in KV separator & delimeter.
                     //Also, allow passing of Map type statements: Case, KV pair, etc. ex: CASE, MAP(',','->')
-                    Map<String, String> dimensionOverrideMap = getMapOrDefault(inputExpressions, 5, plannerContext);
-                    Map<String, String> secondaryColOverrideMap = getMapOrDefault(inputExpressions, 4, plannerContext);
+                    Map<String, String> dimensionOverrideMap = getMapOrDefault(inputExpressions, 5, plannerContext); //keyMap
+                    Map<String, String> secondaryColOverrideMap = getMapOrDefault(inputExpressions, 4, plannerContext); //valueMap
 
-                    if (arg.isSimpleExtraction() && lookupName.isLiteral() && columnName.isLiteral() ) {
+                    if ( arg.isSimpleExtraction() && lookupName.isLiteral() && columnName.isLiteral() ) {
                         MahaRegisteredLookupExtractionFn mahaRegisteredLookupExtractionFn = new MahaRegisteredLookupExtractionFn(lrm,
                                 (String) lookupName.getLiteralValue(),
                                 false,
@@ -103,18 +87,17 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
                                 dimensionOverrideMap,
                                 secondaryColOverrideMap,
                                 false);
-                        LOG.error("Valid call to Maha_lookup: lookupName = "+lookupName+", columnName = "+columnName+", arg = "+arg);
-                        SimpleExtraction sim = arg.getSimpleExtraction().cascade(mahaRegisteredLookupExtractionFn);
-                        LOG.error("simpleExtraction: " + sim.toString());
-                        return sim;
+
+                        LOG.debug("valid call: lookupName = "+lookupName+", columnName = "+columnName+", arg = "+arg);
+                        return arg.getSimpleExtraction().cascade(mahaRegisteredLookupExtractionFn);
                     } else {
-                        LOG.error("Invalid call to Maha_lookup: lookupName = "+lookupName+", columnName = "+columnName+", arg = "+arg);
+                        LOG.error("Invalid call: lookupName = "+lookupName+", columnName = "+columnName+", arg = "+arg);
                         return null;
                     }
                 }
         );
         if(simpleExtraction == null) return null;
-        LOG.error("end of operatorConversion, simpleExtraction: " + simpleExtraction.toString());
+        LOG.debug(String.format("Maha Lookup SimpleExtraction: %s", simpleExtraction.toString()));
         return DruidExpression.of(simpleExtraction.getSimpleExtraction(), simpleExtraction.getExpression());
     }
 
