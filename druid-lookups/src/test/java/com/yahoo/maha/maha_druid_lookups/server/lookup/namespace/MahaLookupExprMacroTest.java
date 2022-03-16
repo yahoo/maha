@@ -109,6 +109,7 @@ public class MahaLookupExprMacroTest {
     @Test
     public void testLookup()
     {
+        assertExpr("maha_lookup(id1, 'test_maha_lookup', 'dim_val_column')", "dim_val1");
         assertExpr("maha_lookup(id1, 'test_maha_lookup', 'dim_val_column', 'NA')", "dim_val1");
         assertExpr("maha_lookup(id1, 'test_maha_lookup', 'dim_val_column', 'NA', 'dim_val1->UNKNOWN')", "UNKNOWN");
         assertExpr("maha_lookup(id1, 'test_maha_lookup', 'dim_val_column', 'NA', null, 'dim_key1->UNKNOWN')", "UNKNOWN");

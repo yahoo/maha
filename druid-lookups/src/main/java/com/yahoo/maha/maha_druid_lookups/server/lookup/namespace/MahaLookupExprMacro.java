@@ -13,6 +13,8 @@ import org.apache.druid.math.expr.ExprMacroTable;
 import org.apache.druid.math.expr.ExprType;
 import org.apache.druid.query.lookup.LookupExtractorFactoryContainerProvider;
 import org.apache.druid.query.lookup.LookupReferencesManager;
+import org.apache.druid.sql.calcite.expression.DruidExpression;
+import org.apache.druid.sql.calcite.planner.PlannerContext;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -43,20 +45,31 @@ public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
     @Override
     public Expr apply(final List<Expr> args)
     {
-        if (args.size() < 4) {
-            throw new IAE("Function[%s] must have at least 4 arguments", name());
+
+        //Checks
+        if (args.size() < 3) {
+            throw new IAE("Function[%s] must have at least 3 arguments: usage: maha_lookup(arg, 'lookup_name', 'dimension_colunn')", name());
         }
 
         final Expr arg = args.get(0);
         final Expr lookupExpr = args.get(1);
+        if (lookupExpr == null || !lookupExpr.isLiteral() || lookupExpr.getLiteralValue() == null) {
+            throw new IAE("Function[%s] 2nd argument must be a registered lookup name", name());
+        }
         final Expr columnExpr = args.get(2);
-        String columnStr = (String) columnExpr.getLiteralValue();
-        final Expr missingValueExpr = args.get(3);
-        String missingValueStr = (String) missingValueExpr.getLiteralValue();
-        final Expr secondaryColOverrideMapExpr = args.size() >= 5? args.get(4): null;
-        final String secondaryColOverrideMapStr = secondaryColOverrideMapExpr != null ? (String) secondaryColOverrideMapExpr.getLiteralValue(): null;
-        final Expr dimensionOverrideMapStrExpr = args.size() >= 6? args.get(5): null;
-        final String dimensionOverrideMapStr = dimensionOverrideMapStrExpr != null ? (String) dimensionOverrideMapStrExpr.getLiteralValue(): null;
+        if (columnExpr == null || !columnExpr.isLiteral() || columnExpr.getLiteralValue() == null) {
+            throw new IAE("Function[%s] 3th argument must be a targeted dimension name", name());
+        }
+        final Expr missingValueExpr = getExprOrNull(args, 3);
+        final Expr secondaryColOverrideMapExpr = getExprOrNull(args, 4);
+        final Expr dimensionOverrideMapStrExpr = getExprOrNull(args, 5);
+
+        //construct required strings and maps from Expr for mahaRegisteredLookupExtractionFn
+        final String lookupName = convertExprToStringOrDefault(lookupExpr, "");
+        final String columnStr = convertExprToStringOrDefault(columnExpr, "");
+        final String missingValueStr = convertExprToStringOrDefault(missingValueExpr, "");
+        final String secondaryColOverrideMapStr = convertExprToStringOrDefault(secondaryColOverrideMapExpr, "");
+        final String dimensionOverrideMapStr = convertExprToStringOrDefault(dimensionOverrideMapStrExpr, "");
 
         //valueMap
         Map<String, String> secondaryColOverrideMap = secondaryColOverrideMapStr!= null && !secondaryColOverrideMapStr.isEmpty() ?
@@ -68,11 +81,6 @@ public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
                 new HashMap<>(Splitter.on(SEPARATOR).withKeyValueSeparator(KV_DEFAULT).split(dimensionOverrideMapStr)) :
                 null;
 
-        if (!lookupExpr.isLiteral() || lookupExpr.getLiteralValue() == null) {
-            throw new IAE("Function[%s] second argument must be a registered lookup name", name());
-        }
-
-        final String lookupName = lookupExpr.getLiteralValue().toString();
 
         LookupReferencesManager lrm = (LookupReferencesManager) lookupExtractorFactoryContainerProvider;
         MahaRegisteredLookupExtractionFn mahaRegisteredLookupExtractionFn = new MahaRegisteredLookupExtractionFn(lrm,
@@ -121,7 +129,12 @@ public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
             {
                 StringBuilder sb = new StringBuilder();
                 sb.append(FN_NAME + "(");
-                sb.append(StringUtils.format("%s, %s, %s, %s", arg.stringify(), lookupExpr.stringify(), columnExpr.stringify(), missingValueExpr.stringify()));
+                sb.append(StringUtils.format("%s, %s, %s", arg.stringify(), lookupExpr.stringify(), columnExpr.stringify()));
+
+                if(args.size() >= 4) {
+                    sb.append(", " + missingValueExpr.stringify());
+                }
+
                 if(args.size() >= 5) {
                     sb.append(", " + secondaryColOverrideMapExpr.stringify());
                 }
@@ -136,5 +149,13 @@ public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
         }
 
         return new MahaLookupExpr(arg);
+    }
+
+    private Expr getExprOrNull(List<Expr> list, int index) {
+        return list != null && list.size() >= index+1? list.get(index): null;
+    }
+
+    private String convertExprToStringOrDefault(Expr expr, String defaultValue) {
+        return (expr != null)? (String) expr.getLiteralValue(): defaultValue;
     }
 }
