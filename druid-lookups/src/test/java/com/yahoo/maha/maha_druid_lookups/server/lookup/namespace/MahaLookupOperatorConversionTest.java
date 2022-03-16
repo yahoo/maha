@@ -64,7 +64,7 @@ public class MahaLookupOperatorConversionTest {
         DruidExpression druidExp = opConversion.toDruidExpression(plannerContext, ROW_SIGNATURE, rn2);
         assert druidExp != null;
 
-        String expectedDruidExpr = "DruidExpression{simpleExtraction=MahaRegisteredLookupExtractionFn{delegate=null, lookup='student_lookup', retainMissingValue=false, replaceMissingValueWith='123', injective=false, optimize=false, valueColumn=student_id, decodeConfig=null, useQueryLevelCache=false}(student_id), expression='maha'}";
+        String expectedDruidExpr = "DruidExpression{simpleExtraction=MahaRegisteredLookupExtractionFn{delegate=null, lookup='student_lookup', retainMissingValue=false, replaceMissingValueWith='123', injective=false, optimize=false, valueColumn=student_id, decodeConfig=null, useQueryLevelCache=false}(student_id), expression='maha_lookup(\"student_id\",'student_lookup','student_id','123')'}";
         String json = util.convertToJson(druidExp, "testing_stats", "Student ID");
         assert druidExp.toString().equals(expectedDruidExpr);
         assert json.contains("\"dimensions\":[{\"type\":\"extraction\",\"dimension\":\"student_id\",\"outputName\":\"Student ID\",\"outputType\":\"STRING\",\"extractionFn\":{\"type\":\"mahaRegisteredLookup\",\"lookup\":\"student_lookup\",\"retainMissingValue\":false,\"replaceMissingValueWith\":\"123\",\"injective\":false,\"optimize\":false,\"valueColumn\":\"student_id\",\"decode\":null,\"dimensionOverrideMap\":null,\"secondaryColOverrideMap\":null,\"useQueryLevelCache\":false}}]");
