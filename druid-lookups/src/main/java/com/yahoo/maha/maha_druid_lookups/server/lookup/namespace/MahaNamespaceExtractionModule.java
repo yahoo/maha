@@ -24,7 +24,6 @@ import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf
 import org.apache.druid.guice.*;
 import org.apache.druid.guice.annotations.Json;
 import org.apache.druid.initialization.DruidModule;
-import org.apache.druid.query.expression.LookupExprMacro;
 import org.apache.druid.sql.calcite.schema.*;
 import org.apache.druid.sql.guice.*;
 

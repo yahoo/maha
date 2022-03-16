@@ -98,7 +98,7 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
         );
         if(simpleExtraction == null) return null;
         LOG.debug(String.format("Maha Lookup SimpleExtraction: %s", simpleExtraction.toString()));
-        return DruidExpression.of(simpleExtraction.getSimpleExtraction(), simpleExtraction.getExpression());
+        return DruidExpression.of(simpleExtraction.isSimpleExtraction()? simpleExtraction.getSimpleExtraction(): null, simpleExtraction.getExpression());
     }
 
     private Map<String, String> getMapOrDefault(List<DruidExpression> inputExpressions, int index, PlannerContext plannerContext) {
