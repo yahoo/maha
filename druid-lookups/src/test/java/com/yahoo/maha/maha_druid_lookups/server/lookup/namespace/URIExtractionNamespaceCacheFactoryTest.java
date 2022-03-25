@@ -6,6 +6,8 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 import com.google.common.collect.ImmutableMap;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.URIExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.parser.CSVFlatDataParser;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.parser.TSVFlatDataParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.data.SearchableVersionedDataFinder;
@@ -116,7 +118,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
     @Test
     public void testGetCacheValueWhenKeyPresent() throws Exception{
         namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
-                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("id", "gpa", "date"), "id", false, 0, null),
+                new CSVFlatDataParser(Arrays.asList("id", "gpa", "date"), "id", false, 0, null),
                 null, null, 10L, "student_lookup", "date", true, null, null);
 
         tmpFileParent.setWritable(true);
@@ -136,7 +138,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
     @Test
     public void testGetRegexCacheOnFileRegex() throws Exception{
         namespace = new URIExtractionNamespace(null, tmpFileParent.getParentFile().toURI(), ".*tmp.*txt", //want the regex to match all tmp*txt files
-                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, null),
+                new CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, null),
                 null, null, 10L, "cities_lookup", "date", true, null, null);
 
         Map<String, List<String>> cache = new HashMap<String, List<String>>();
@@ -166,7 +168,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
     @Test
     public void testDebugHdfsInput() throws Exception{
         namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
-                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, null),
+                new CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, null),
                 null, null, 10L, "cities_lookup", "date", true, null, null);
 
         Map<String, List<String>> cache = new HashMap<String, List<String>>();
@@ -207,7 +209,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
         URI testUri = new URI("file:" + parent + "/tmp.gz");
 
         namespace = new URIExtractionNamespace(testUri, null, null,
-                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, null),
+                new CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, null),
                 null, null, 10L, "cities_lookup", "date", true, null, null);
 
         Map<String, List<String>> cache = new HashMap<String, List<String>>();
@@ -242,7 +244,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
         URI testUri = new URI("file:" + parent + "/tmp.gz");
 
         namespace = new URIExtractionNamespace(testUri, null, null,
-                new URIExtractionNamespace.CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, "nuller"),
+                new CSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, "nuller"),
                 null, null, 10L, "cities_lookup", "date", true, null, null);
 
         Map<String, List<String>> cache = new HashMap<String, List<String>>();
@@ -275,6 +277,120 @@ public class URIExtractionNamespaceCacheFactoryTest {
                         "id", "", new Period(), true, "advertiser_lookup");
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
+    }
+
+    @Test
+    public void testUseTsvParser() throws Exception{
+        namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
+                new TSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", "NA", "\t", null),
+                null, null, 10L, "cities_lookup", "date", true, null, null);
+
+        Map<String, List<String>> cache = new HashMap<String, List<String>>();
+        Callable<String> versionedCache = obj.getCachePopulator("blah",
+                namespace, "500", cache);
+
+        tmpFileParent.setWritable(true);
+        FileUtils.writeStringToFile(tmpFileParent, "name\tcountry\tsubcountry\tgeonameid\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "les Escaldes\tAndorra\tEscaldes-Engordany\t3040051\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Andorra la Vella\tAndorra\tAndorra la Vella\t3041563\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Umm al Qaywayn\tUnited Arab Emirates\tUmm al Qaywayn\t290594\n", true);
+        tmpFileParent.setLastModified(8675309123L);
+
+        System.err.println(versionedCache.call());
+        assert(cache.containsKey("Andorra la Vella"));
+
+    }
+
+    @Test
+    public void testUseTsvParserWithoutHeaders() throws Exception{
+        namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
+                new TSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 0, "NA", "\t", null),
+                null, null, 10L, "cities_lookup", "date", true, null, null);
+
+        Map<String, List<String>> cache = new HashMap<String, List<String>>();
+        Callable<String> versionedCache = obj.getCachePopulator("blah",
+                namespace, "500", cache);
+
+        tmpFileParent.setWritable(true);
+        FileUtils.writeStringToFile(tmpFileParent, "name\tcountry\tsubcountry\tgeonameid\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "les Escaldes\tAndorra\tEscaldes-Engordany\t3040051\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Andorra la Vella\tAndorra\tAndorra la Vella\t3041563\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Umm al Qaywayn\tUnited Arab Emirates\tUmm al Qaywayn\t290594\n", true);
+        tmpFileParent.setLastModified(8675309123L);
+
+        System.err.println(versionedCache.call());
+        assert(cache.containsKey("Andorra la Vella"));
+        assert(cache.size() == 3);
+
+    }
+
+    @Test
+    public void testTsvWithSkipRows() throws Exception{
+        namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
+                new TSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", true, 1, "NA", "\t", null),
+                null, null, 10L, "cities_lookup", "date", true, null, null);
+
+        Map<String, List<String>> cache = new HashMap<String, List<String>>();
+        Callable<String> versionedCache = obj.getCachePopulator("blah",
+                namespace, "500", cache);
+
+        tmpFileParent.setWritable(true);
+        FileUtils.writeStringToFile(tmpFileParent, "name\tcountry\tsubcountry\tgeonameid\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "les Escaldes\tAndorra\tEscaldes-Engordany\t3040051\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Andorra la Vella\tAndorra\tAndorra la Vella\t3041563\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Umm al Qaywayn\tUnited Arab Emirates\tUmm al Qaywayn\t290594\n", true);
+        tmpFileParent.setLastModified(8675309123L);
+
+        System.err.println(versionedCache.call());
+        assert(cache.containsKey("Andorra la Vella"));
+        assert(cache.size() == 2);
+
+    }
+
+    @Test
+    public void testTsvNoHeaderSkipRows() throws Exception{
+        namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
+                new TSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", false, 1, "NA", "\t", null),
+                null, null, 10L, "cities_lookup", "date", true, null, null);
+
+        Map<String, List<String>> cache = new HashMap<String, List<String>>();
+        Callable<String> versionedCache = obj.getCachePopulator("blah",
+                namespace, "500", cache);
+
+        tmpFileParent.setWritable(true);
+        FileUtils.writeStringToFile(tmpFileParent, "name\tcountry\tsubcountry\tgeonameid\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "les Escaldes\tAndorra\tEscaldes-Engordany\t3040051\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Andorra la Vella\tAndorra\tAndorra la Vella\t3041563\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Umm al Qaywayn\tUnited Arab Emirates\tUmm al Qaywayn\t290594\n", true);
+        tmpFileParent.setLastModified(8675309123L);
+
+        System.err.println(versionedCache.call());
+        assert(cache.containsKey("Andorra la Vella"));
+        assert(cache.size() == 3);
+
+    }
+
+    @Test
+    public void testTsvArbitraryDelimiter() throws Exception{
+        namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
+                new TSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", false, 1, "NA", ":", null),
+                null, null, 10L, "cities_lookup", "date", true, null, null);
+
+        Map<String, List<String>> cache = new HashMap<String, List<String>>();
+        Callable<String> versionedCache = obj.getCachePopulator("blah",
+                namespace, "500", cache);
+
+        tmpFileParent.setWritable(true);
+        FileUtils.writeStringToFile(tmpFileParent, "name:country:subcountry:geonameid\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "les Escaldes:Andorra:Escaldes-Engordany:3040051\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Andorra la Vella:Andorra:Andorra la Vella:3041563\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Umm al Qaywayn:United Arab Emirates:Umm al Qaywayn:290594\n", true);
+        tmpFileParent.setLastModified(8675309123L);
+
+        System.err.println(versionedCache.call());
+        assert(cache.containsKey("Andorra la Vella") && cache.containsValue(Arrays.asList("Umm al Qaywayn", "United Arab Emirates", "Umm al Qaywayn", "290594")));
+        assert(cache.size() == 3);
+
     }
 
 }

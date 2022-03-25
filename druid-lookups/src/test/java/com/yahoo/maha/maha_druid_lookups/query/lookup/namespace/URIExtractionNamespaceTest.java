@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.inject.Binder;
 import com.google.inject.Guice;
 import com.google.inject.Module;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.parser.CSVFlatDataParser;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.parser.FlatDataParser;
 import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.guice.GuiceAnnotationIntrospector;
 import org.apache.druid.guice.GuiceInjectableValues;
@@ -72,7 +74,7 @@ public class URIExtractionNamespaceTest {
                                 )
                         )
                 )
-        ).registerSubtypes(URIExtractionNamespace.class, URIExtractionNamespace.FlatDataParser.class);
+        ).registerSubtypes(URIExtractionNamespace.class, FlatDataParser.class);
 
         final GuiceAnnotationIntrospector guiceIntrospector = new GuiceAnnotationIntrospector();
         mapper.setAnnotationIntrospectors(
@@ -91,7 +93,7 @@ public class URIExtractionNamespaceTest {
     @Test
     public void testCSV()
     {
-        URIExtractionNamespace.CSVFlatDataParser parser = new URIExtractionNamespace.CSVFlatDataParser(
+        CSVFlatDataParser parser = new CSVFlatDataParser(
                 ImmutableList.of(
                         "col1",
                         "col2",
@@ -103,7 +105,7 @@ public class URIExtractionNamespaceTest {
     @Test
     public void testCSVWithHeader()
     {
-        URIExtractionNamespace.CSVFlatDataParser parser = new URIExtractionNamespace.CSVFlatDataParser(
+        CSVFlatDataParser parser = new CSVFlatDataParser(
                 ImmutableList.of("col1", "col2", "col3"),
                 "col2",
                 true,
@@ -124,7 +126,7 @@ public class URIExtractionNamespaceTest {
     @Test//(expected = NullPointerException.class)
     public void testNullKey()
     {
-        URIExtractionNamespace.CSVFlatDataParser parser = new URIExtractionNamespace.CSVFlatDataParser(
+        CSVFlatDataParser parser = new CSVFlatDataParser(
                 ImmutableList.of(
                         "col1",
                         "col2",
