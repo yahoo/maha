@@ -19,9 +19,8 @@ import org.apache.druid.storage.hdfs.HdfsFileTimestampVersionFinder;
 import org.apache.hadoop.conf.Configuration;
 import org.joda.time.Period;
 import org.mockito.*;
-import org.testng.annotations.AfterTest;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
+
 import java.util.zip.GZIPOutputStream;
 
 import java.io.*;
@@ -92,7 +91,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
     @Mock
     LookupService lookupService;
 
-    @BeforeTest
+    @BeforeMethod
     public void setUp() throws Exception {
         Path path = Files.createTempDirectory("druidTest");
         this.lifecycle = new Lifecycle();
@@ -108,11 +107,11 @@ public class URIExtractionNamespaceCacheFactoryTest {
         tmpFileParent2.createNewFile();
     }
 
-    @AfterTest
+    @AfterMethod
     public void tearDown() throws Exception {
-        lifecycle.stop();
         tmpFileParent.delete();
         tmpFileParent2.delete();
+        lifecycle.stop();
     }
 
     @Test
