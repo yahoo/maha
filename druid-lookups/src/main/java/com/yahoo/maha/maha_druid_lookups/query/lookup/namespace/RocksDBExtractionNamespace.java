@@ -68,6 +68,9 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     @JsonProperty
     private String nullReplacement = "";
 
+    @JsonProperty
+    private Period partitionGrain = null;
+
 
     @JsonCreator
     public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
@@ -87,7 +90,9 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @JsonProperty(value = "randomLocalPathSuffixEnabled", required = false) final boolean randomLocalPathSuffixEnabled,
                                       @JsonProperty(value = "enableDynamicLookup", required = false) final boolean enableDynamicLookup,
                                       @JsonProperty(value = "numEntriesIterator", required = false) final int numEntriesIterator,
-                                      @JsonProperty(value = "nullReplacement", required = false) final String nullReplacement) {
+                                      @JsonProperty(value = "nullReplacement", required = false) final String nullReplacement,
+                                      @JsonProperty(value = "partitionGrain", required = false) final Period partitionGrain
+    ) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
@@ -100,6 +105,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         this.tsColumn = tsColumn;
         this.randomLocalPathSuffixEnabled = randomLocalPathSuffixEnabled;
         this.nullReplacement = nullReplacement == null ? "" : nullReplacement;
+        this.partitionGrain = partitionGrain;
 
         if (numEntriesIterator > 0) {
             this.numEntriesIterator = numEntriesIterator;
@@ -227,6 +233,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         return overrideLookupServiceHostsList;
     }
 
+    public Period getPartitionGrain() {return partitionGrain; }
+
     @Override
     public String toString() {
         return "RocksDBExtractionNamespace{" +
@@ -245,6 +253,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 ", overrideLookupServiceHosts=" + overrideLookupServiceHosts +
                 ", randomLocalPathSuffixEnabled=" + randomLocalPathSuffixEnabled +
                 ", enableDynamicLookup=" + enableDynamicLookup +
+                ", partitionGrain=" + partitionGrain +
                 '}';
     }
 
@@ -265,7 +274,9 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 Objects.equals(missingLookupConfig, that.missingLookupConfig) &&
                 Objects.equals(cacheActionRunnerName, that.cacheActionRunnerName) &&
                 Objects.equals(overrideLookupServiceHosts, that.overrideLookupServiceHosts) &&
-                Objects.equals(randomLocalPathSuffixEnabled, that.randomLocalPathSuffixEnabled);
+                Objects.equals(randomLocalPathSuffixEnabled, that.randomLocalPathSuffixEnabled &&
+                Objects.equals(partitionGrain, that.partitionGrain)
+                );
     }
 
     @Override
@@ -283,7 +294,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 missingLookupConfig,
                 cacheActionRunnerName,
                 overrideLookupServiceHosts,
-                randomLocalPathSuffixEnabled);
+                randomLocalPathSuffixEnabled,
+                partitionGrain);
     }
 
     public String nullReplacement() { return nullReplacement; }
