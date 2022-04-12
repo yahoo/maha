@@ -143,8 +143,6 @@ public class RocksDBManager {
         String successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
                 extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
 
-        LOG.debug(String.format("successMarkerPath [%s], lastUpdate [%s]", successMarkerPath, lastUpdate));
-
         if (!isFilePresentOnHdfs(successMarkerPath, targetedFileSystem)) {
             if(lastUpdate == 0) {
                 for(int i = 2; i <= lookBackWindowSize; i++) {
