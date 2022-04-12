@@ -100,7 +100,6 @@ public class RocksDBManager {
 
         String loadTime = null;
         //default values for daily partitions
-        char grain = 'D';
         DateTimeFormatter formatter = DAILY_PARTITION_FORMATTER;
         ChronoUnit unit = ChronoUnit.DAYS;
         int lookBackWindowSize = LOOKBACK_WINDOW_FOR_DAY;
@@ -108,7 +107,6 @@ public class RocksDBManager {
         //check if using hourly partition or default daily partition
         Period partitionGrain = extractionNamespace.getPartitionGrain();
         if(partitionGrain != null && partitionGrain.toStandardDuration().getStandardHours() == 1) {
-            grain = 'H';
             unit = ChronoUnit.HOURS;
             formatter = HOURLY_PARTITION_FORMATTER;
             lookBackWindowSize = LOOKBACK_WINDOW_FOR_HOUR;
