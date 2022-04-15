@@ -94,7 +94,7 @@ public class RocksDBExtractionNamespaceCacheFactoryDynamicLookupTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , "", null, false, true, 0, null);
+            , "", null, false, true, 0, null, null);
 
             obj.dynamicLookupSchemaManager.updateSchema(extractionNamespace, dynamicLookupSchema);
 
@@ -162,7 +162,7 @@ public class RocksDBExtractionNamespaceCacheFactoryDynamicLookupTest {
                     .build();
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner", null, false, true, 0, null);
+                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner", null, false, true, 0, null, null);
 
             noopObj.getCachePopulator("ad_lookup", extractionNamespace, "32309719080", new HashMap<>());
             noopObj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", msgFromKafka.toByteArray());
@@ -203,7 +203,7 @@ public class RocksDBExtractionNamespaceCacheFactoryDynamicLookupTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , "", null, false, true, 0, null);
+            , "", null, false, true, 0, null, null);
 
             Message msgFromKafka = AdProtos.Ad.newBuilder()
                     .setId("32309719080")
@@ -264,7 +264,7 @@ public class RocksDBExtractionNamespaceCacheFactoryDynamicLookupTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , null, null, false, true, 0, null);
+            , null, null, false, true, 0, null, null);
 
             obj.dynamicLookupSchemaManager.updateSchema(extractionNamespace, dynamicLookupSchema);
 
@@ -298,7 +298,7 @@ public class RocksDBExtractionNamespaceCacheFactoryDynamicLookupTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , null, null, false, false, 0, null);
+            , null, null, false, false, 0, null, null);
 
             byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 

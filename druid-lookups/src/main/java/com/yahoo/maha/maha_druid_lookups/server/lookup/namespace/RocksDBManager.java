@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.joda.time.Period;
 import org.rocksdb.*;
 import org.zeroturnaround.zip.ZipUtil;
 
@@ -54,6 +55,10 @@ public class RocksDBManager {
     private static final String STATS_KEY = "rocksdb.stats";
     private static final long DEFAULT_BLOCK_CACHE_SIZE = (long)2 * 1024 * 1024 * 1024;
     private static final Object DYNAMIC_SCHEMA_JSON_FILE = "dynamic-schema.json";
+    private static final DateTimeFormatter HOURLY_PARTITION_FORMATTER= DateTimeFormatter.ofPattern("yyyyMMddHH00");
+    private static final DateTimeFormatter DAILY_PARTITION_FORMATTER= DateTimeFormatter.ofPattern("yyyyMMdd0000");
+    private static final int LOOKBACK_WINDOW_FOR_DAY = 2;
+    private static final int LOOKBACK_WINDOW_FOR_HOUR = 48;
 
     private String localStorageDirectory;
     private long blockCacheSize;
@@ -92,8 +97,22 @@ public class RocksDBManager {
     public String createDB(final RocksDBExtractionNamespace extractionNamespace,
                            final String lastVersion) throws RocksDBException, IOException {
 
-        String loadTime = LocalDateTime.now().minus(1, ChronoUnit.DAYS)
-                .format(DateTimeFormatter.ofPattern("yyyyMMdd0000"));
+
+        String loadTime = null;
+        //default values for daily partitions
+        DateTimeFormatter formatter = DAILY_PARTITION_FORMATTER;
+        ChronoUnit unit = ChronoUnit.DAYS;
+        int lookBackWindowSize = LOOKBACK_WINDOW_FOR_DAY;
+
+        //check if using hourly partition or default daily partition
+        Period partitionGrain = extractionNamespace.getPartitionGrain();
+        if(partitionGrain != null && partitionGrain.toStandardDuration().getStandardHours() == 1) {
+            unit = ChronoUnit.HOURS;
+            formatter = HOURLY_PARTITION_FORMATTER;
+            lookBackWindowSize = LOOKBACK_WINDOW_FOR_HOUR;
+        }
+
+        loadTime = LocalDateTime.now().minus(1, unit).format(formatter);
         final long currentUpdate = Long.parseLong(loadTime);
         final long lastUpdate = lastVersion == null ? 0L : Long.parseLong(lastVersion);
 
@@ -122,19 +141,23 @@ public class RocksDBManager {
         String successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
                 extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
 
-        LOG.debug(String.format("successMarkerPath [%s], lastUpdate [%s]", successMarkerPath, lastUpdate));
-
         if (!isFilePresentOnHdfs(successMarkerPath, targetedFileSystem)) {
             if(lastUpdate == 0) {
-                LOG.warn(String.format("RocksDB instance not present for namespace [%s] loadTime [%s], will check for previous loadTime", extractionNamespace.getNamespace(), loadTime));
-                loadTime = LocalDateTime.now().minus(2, ChronoUnit.DAYS)
-                        .format(DateTimeFormatter.ofPattern("yyyyMMdd0000"));
-                successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
-                        extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
-                if (!isFilePresentOnHdfs(successMarkerPath, targetedFileSystem)) {
-                    LOG.warn(String.format("RocksDB instance not present for previous loadTime [%s] too for namespace [%s]", loadTime, extractionNamespace.getNamespace()));
-                    serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_INSTANCE_NOT_PRESENT, 1));
-                    return String.valueOf(lastUpdate);
+                for(int i = 2; i <= lookBackWindowSize; i++) {
+                    LOG.warn(String.format("RocksDB instance not present for namespace [%s] loadTime [%s], will check for previous loadTime", extractionNamespace.getNamespace(), loadTime));
+                    loadTime = LocalDateTime.now().minus(i, unit).format(formatter);
+                    successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
+                            extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
+                    if(isFilePresentOnHdfs(successMarkerPath, targetedFileSystem)) {
+                        break;
+                    } else {
+                        LOG.warn(String.format("RocksDB instance not present for previous loadTime [%s] too for namespace [%s]", loadTime, extractionNamespace.getNamespace()));
+                        serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_INSTANCE_NOT_PRESENT, 1));
+                        if (i == lookBackWindowSize) {
+                            LOG.warn(String.format("Reached look back limit, not looking further for namespace [%s]", extractionNamespace.getNamespace()));
+                            return String.valueOf(lastUpdate);
+                        }
+                    }
                 }
             } else {
                 return String.valueOf(lastUpdate);
