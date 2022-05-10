@@ -136,27 +136,6 @@ public class URIExtractionNamespaceCacheFactoryTest {
         assert(!cache.containsKey("123"));
     }
 
-//    @Test
-//    public void testGetCacheValueDeleteRecords() throws Exception{
-//        namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
-//                new CSVFlatDataParser(Arrays.asList("id", "gpa", "date"), "id", false, 0, null),
-//                null, null, 10L, "student_lookup", "date", true, null, null);
-//
-//        tmpFileParent.setWritable(true);
-//        FileUtils.writeStringToFile(tmpFileParent, "543,0.2,20220102\n", true);
-//        FileUtils.writeStringToFile(tmpFileParent, "111,0.3,22220103\n", true);
-//        FileUtils.writeStringToFile(tmpFileParent, "222,3.9,20220104\n", true);
-//        tmpFileParent.setLastModified(8675309123L);
-//        Map<String, List<String>> cache = new HashMap<String, List<String>>(){{put("123", Arrays.asList("123", "4.5", "20220101"));}};
-//        Callable<String> versionedCache = obj.getCachePopulator("blah",
-//                namespace, "500", cache);
-//
-//        assert(versionedCache.call().equals("8675309123"));
-//        assert(cache.containsKey("222"));
-//        assert(cache.containsValue(Arrays.asList("111", "0.3", "22220103")));
-//        assert(!cache.containsValue(Arrays.asList("123", "4.5", "20220101")));
-//    }
-
     @Test
     public void testGetRegexCacheOnFileRegex() throws Exception{
         namespace = new URIExtractionNamespace(null, tmpFileParent.getParentFile().toURI(), ".*tmp.*txt", //want the regex to match all tmp*txt files
