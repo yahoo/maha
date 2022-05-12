@@ -130,8 +130,10 @@ public class URIExtractionNamespaceCacheFactoryTest {
                 namespace, "500", cache);
 
         assert(versionedCache.call().equals("8675309000"));
+        assert (cache.size() == 3);
         assert(cache.containsKey("222"));
         assert(cache.containsValue(Arrays.asList("111", "0.3", "22220103")));
+        assert(!cache.containsKey("123"));
     }
 
     @Test

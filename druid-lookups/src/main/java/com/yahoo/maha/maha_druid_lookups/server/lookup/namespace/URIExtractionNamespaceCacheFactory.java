@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
@@ -155,11 +156,22 @@ public class URIExtractionNamespaceCacheFactory
                         }
                     };
                 }
-                final long lineCount = new MapPopulator<>(
+
+                final Map<String, List<String>> newCache = new ConcurrentHashMap<>();
+                final MapPopulator.PopulateResult populator = new MapPopulator<>(
                         extractionNamespace.getNamespaceParseSpec().getParser()).populate(source,
-                        cache).getLines();
-                log.info("Finished loading %d lines for namespace [%s]", lineCount, id);
-                return version;
+                        newCache);
+
+                if (newCache.size() == populator.getEntries()) {
+                    log.info("Loaded data to a new map successfully. Cleaning previous cache and adding data in the new map to cache ...");
+                    cache.keySet().retainAll(newCache.keySet());
+                    cache.putAll(newCache);
+                    log.info("Finished loading %d lines for namespace [%s]", populator.getLines(), id);
+                    return version;
+                } else {
+                    log.error("Num of loaded data is not matching with num of entries parsed. Continue to use previous cache");
+                    return String.valueOf(lastCheck);
+                }
             }, puller.shouldRetryPredicate(), DEFAULT_NUM_RETRIES);
         } catch (Exception e) {
             throw Throwables.propagate(e);
