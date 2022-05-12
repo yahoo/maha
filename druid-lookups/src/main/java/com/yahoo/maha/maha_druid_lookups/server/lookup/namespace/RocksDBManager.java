@@ -63,7 +63,9 @@ public class RocksDBManager {
     private String localStorageDirectory;
     private long blockCacheSize;
     private FileSystem fileSystem;
+    private FileSystem overrideFileSystem;
     private Configuration config;
+    private Configuration overrideConfig;
 
 
     @Inject
@@ -92,6 +94,8 @@ public class RocksDBManager {
         Preconditions.checkArgument(blockCacheSize > 0);
         this.config = config;
         this.fileSystem = FileSystem.get(config);
+        this.overrideConfig = new Configuration(config);
+        this.overrideFileSystem = null;
     }
 
     public String createDB(final RocksDBExtractionNamespace extractionNamespace,
@@ -122,15 +126,19 @@ public class RocksDBManager {
             return loadTime;
         }
 
-        FileSystem overrideFileSystem = null;
+        //FileSystem overrideFileSystem = null;
         if (extractionNamespace.getRocksDbInstanceHDFSPath().contains("hdfs")) {
             URL hdfsUrl = new URL(extractionNamespace.getRocksDbInstanceHDFSPath());
             String nameNodePath = hdfsUrl.getProtocol() + "://" + hdfsUrl.getHost() + ":" + hdfsUrl.getPort();
-            LOG.warn("intended namenode path for lookup: " + nameNodePath);
-            LOG.warn("config fs.defaultFS:" + config.get("fs.defaultFS"));
+            LOG.debug("intended namenode path for lookup: " + nameNodePath);
+            LOG.debug("config fs.defaultFS:" + config.get("fs.defaultFS"));
             if(!config.get("fs.defaultFS").equals(nameNodePath)) {
-                LOG.warn("default config defaulFS is not equal to intended one, overriding..");
-                Configuration overrideConfig = new Configuration(config);
+                LOG.debug("default config defaulFS is not equal to intended one, overriding..");
+                //check if previous overrideConfig is pointing to different hdfs cluster
+                if (overrideConfig.get("fs.defaultFS") != nameNodePath) {
+                    //closing previous file system before getting a new one
+                    closeFileSystem(overrideFileSystem);
+                }
                 overrideConfig.set("fs.defaultFS", nameNodePath);
                 overrideFileSystem = FileSystem.get(overrideConfig);
             }
@@ -196,8 +204,6 @@ public class RocksDBManager {
             }
             LOG.info("non-deployment time: starting a new RocksDB instance after sleep for namespace[%s]...", extractionNamespace.getNamespace());
             String res = startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath, targetedFileSystem);
-            //close overrideFileSystem if not null as it's only override for current lookup
-            closeFileSystem(overrideFileSystem);
             return res;
         }
 
@@ -206,8 +212,6 @@ public class RocksDBManager {
         if(snapShotFile.exists()) {
             try {
                 String res = useSnapshotInstance(extractionNamespace, loadTime, localPath, snapShotFile);
-                //close overrideFileSystem if not null as it's only override for current lookup
-                closeFileSystem(overrideFileSystem);
                 return res;
             } catch (Exception e) {
                 LOG.error(e, "Caught exception while using the snapshot.");
@@ -215,8 +219,6 @@ public class RocksDBManager {
         }
         LOG.info("starting new instance for namespace[%s]...", extractionNamespace.getNamespace());
         String res = startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath, targetedFileSystem);
-        //close overrideFileSystem if not null as it's only override for current lookup
-        closeFileSystem(overrideFileSystem);
         return res;
     }
 
@@ -395,6 +397,7 @@ public class RocksDBManager {
         });
 
         closeFileSystem(this.fileSystem);
+        closeFileSystem(this.overrideFileSystem);
     }
 
     private boolean isRocksDBInstanceCreated(final String hdfsPath, FileSystem targetedFileSystem) {
