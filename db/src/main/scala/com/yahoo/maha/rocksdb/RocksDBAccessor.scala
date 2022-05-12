@@ -2,9 +2,10 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.rocksdb
 
+import com.yahoo.maha.rocksdb.RocksDBAccessor._1MB
+
 import java.io._
 import java.util.concurrent.atomic.AtomicInteger
-
 import com.yahoo.maha.serde.SerDe
 import grizzled.slf4j.Logging
 import org.apache.commons.io.FileUtils
@@ -54,7 +55,7 @@ class RocksDBAccessor[K, V](builder: RocksDBAccessorBuilder[K, V]) extends Loggi
     options.setCreateIfMissing(builder.createIfMissing)
     options.setCompressionType(builder.compressionType)
     options.setParanoidChecks(true)
-    options.optimizeForPointLookup(builder.cacheSize)
+    options.optimizeForPointLookup(builder.cacheSize / _1MB)
     options.setMemTableConfig(new HashSkipListMemTableConfig)
     options.setAllowConcurrentMemtableWrite(false)
     RocksDB.loadLibrary()

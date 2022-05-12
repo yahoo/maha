@@ -47,13 +47,13 @@ public class RocksDBManager {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEMPORARY_PATH = StandardSystemProperty.JAVA_IO_TMPDIR.value();
     private static final String ROCKSDB_LOCATION_PROP_NAME = "localStorageDirectory";
-    private static final String ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME = "blockCacheSize";
+    private static final String ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME = "blockCacheSizeInMb";
     private static final String SNAPSHOT_FILE_NAME = "/rocksDBSnapshot";
     private static final int UPLOAD_LOOKUP_AUDIT_MAX_RETRY = 3;
     private static final Random RANDOM = new Random();
     private static final int BOUND = 6 * 60 * 60 * 1000;
     private static final String STATS_KEY = "rocksdb.stats";
-    private static final long DEFAULT_BLOCK_CACHE_SIZE = (long)2 * 1024 * 1024 * 1024;
+    private static final long DEFAULT_BLOCK_CACHE_SIZE_IN_MB = (long)2 * 1024;
     private static final Object DYNAMIC_SCHEMA_JSON_FILE = "dynamic-schema.json";
     private static final DateTimeFormatter HOURLY_PARTITION_FORMATTER= DateTimeFormatter.ofPattern("yyyyMMddHH00");
     private static final DateTimeFormatter DAILY_PARTITION_FORMATTER= DateTimeFormatter.ofPattern("yyyyMMdd0000");
@@ -61,7 +61,7 @@ public class RocksDBManager {
     private static final int LOOKBACK_WINDOW_FOR_HOUR = 48;
 
     private String localStorageDirectory;
-    private long blockCacheSize;
+    private long blockCacheSizeInMb;
     private FileSystem fileSystem;
     private Configuration config;
 
@@ -88,8 +88,8 @@ public class RocksDBManager {
                 LocalFileSystem.class.getName()
         );
         this.localStorageDirectory = mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_LOCATION_PROP_NAME, TEMPORARY_PATH);
-        this.blockCacheSize = Long.parseLong(mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME, String.valueOf(DEFAULT_BLOCK_CACHE_SIZE)));
-        Preconditions.checkArgument(blockCacheSize > 0);
+        this.blockCacheSizeInMb = Long.parseLong(mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME, String.valueOf(DEFAULT_BLOCK_CACHE_SIZE_IN_MB)));
+        Preconditions.checkArgument(blockCacheSizeInMb > 0);
         this.config = config;
         this.fileSystem = FileSystem.get(config);
     }
@@ -346,7 +346,7 @@ public class RocksDBManager {
         OptionsUtil.loadOptionsFromFile(localPath + "/" + optionsFileName, Env.getDefault(), dbOptions, columnFamilyDescriptors);
 
         Preconditions.checkArgument(columnFamilyDescriptors.size() > 0);
-        columnFamilyDescriptors.get(0).getOptions().optimizeForPointLookup(blockCacheSize).setMemTableConfig(new HashSkipListMemTableConfig());
+        columnFamilyDescriptors.get(0).getOptions().optimizeForPointLookup(blockCacheSizeInMb).setMemTableConfig(new HashSkipListMemTableConfig());
         dbOptions.setWalDir(localPath).setAllowConcurrentMemtableWrite(false);
 
         List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
