@@ -21,6 +21,7 @@ import org.joda.time.Period;
 import org.mockito.*;
 import org.testng.annotations.*;
 
+import java.util.Optional;
 import java.util.zip.GZIPOutputStream;
 
 import java.io.*;
@@ -392,6 +393,34 @@ public class URIExtractionNamespaceCacheFactoryTest {
         assert(cache.containsKey("Andorra la Vella") && cache.containsValue(Arrays.asList("Umm al Qaywayn", "United Arab Emirates", "Umm al Qaywayn", "290594")));
         assert(cache.size() == 3);
 
+    }
+
+    @Test
+    public void testGetCacheValueWhenDisabled() throws Exception {
+        namespace = new URIExtractionNamespace(tmpFileParent.toURI(), null, null,
+                new TSVFlatDataParser(Arrays.asList("name","country","subcountry","geonameid"), "name", false, 1, "NA", ":", null),
+                null, null, 10L, "cities_lookup", "date", false, null, null);
+
+        Map<String, List<String>> cache = new HashMap<String, List<String>>();
+        Callable<String> versionedCache = obj.getCachePopulator("blah",
+                namespace, "500", cache);
+
+
+        tmpFileParent.setWritable(true);
+        FileUtils.writeStringToFile(tmpFileParent, "name:country:subcountry:geonameid\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "les Escaldes:Andorra:Escaldes-Engordany:3040051\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Andorra la Vella:Andorra:Andorra la Vella:3041563\n", true);
+        FileUtils.writeStringToFile(tmpFileParent, "Umm al Qaywayn:United Arab Emirates:Umm al Qaywayn:290594\n", true);
+        tmpFileParent.setLastModified(8675309123L);
+
+        System.err.println(versionedCache.call());
+        assert(cache.isEmpty());
+
+        Mockito.when(lookupService.lookup(Mockito.any())).thenReturn("Something".getBytes());
+
+        String cacheValue = new String(obj.getCacheValue(namespace, cache, "Andorra", "country", Optional.empty()));
+
+        assert(cacheValue.equals("Something"));
     }
 
 }

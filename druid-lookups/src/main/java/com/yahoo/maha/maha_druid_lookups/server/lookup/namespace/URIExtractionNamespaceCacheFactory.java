@@ -190,9 +190,10 @@ public class URIExtractionNamespaceCacheFactory
     @Override
     public byte[] getCacheValue(final URIExtractionNamespace extractionNamespace, final Map<String, List<String>> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
         if(!extractionNamespace.isCacheEnabled()){
-            Map<String, List<String>> tempCache = new HashMap<>();
-            getValuesFromURI(extractionNamespace, 0L, tempCache, extractionNamespace.getLookupName());
-            return checkCacheAndReturn(extractionNamespace, tempCache, key, valueColumn);
+            byte[] value = lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional));
+            value = (value == null) ? new byte[0] : value;
+            log.info("From URI Namespace: [%s] got Cache value [%s]", extractionNamespace.getLookupName(), new String(value));
+            return value;
         } else {
             return checkCacheAndReturn(extractionNamespace, cache, key, valueColumn);
         }
