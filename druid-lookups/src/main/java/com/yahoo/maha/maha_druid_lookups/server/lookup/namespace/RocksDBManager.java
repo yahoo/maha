@@ -135,12 +135,15 @@ public class RocksDBManager {
             if(!config.get("fs.defaultFS").equals(nameNodePath)) {
                 LOG.debug("default config defaulFS is not equal to intended one, overriding..");
                 //check if previous overrideConfig is pointing to different hdfs cluster
-                if (overrideConfig.get("fs.defaultFS") != nameNodePath) {
+                //if (overrideConfig.get("fs.defaultFS") != nameNodePath) {
                     //closing previous file system before getting a new one
-                    closeFileSystem(overrideFileSystem);
-                }
+                //    closeFileSystem(overrideFileSystem);
+                //}
                 overrideConfig.set("fs.defaultFS", nameNodePath);
-                overrideFileSystem = FileSystem.get(overrideConfig);
+                if (overrideFileSystem == null) {
+                    overrideFileSystem = FileSystem.newInstance(overrideConfig);
+                }
+                //overrideFileSystem = FileSystem.get(overrideConfig);
             }
         }
 
