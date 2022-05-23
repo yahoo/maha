@@ -131,7 +131,7 @@ public class URIExtractionNamespaceCacheFactory
                     if (lastModified <= lastCheck) {
                         final DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
                         log.debug(
-                                "URI [%s] for namespace [%s] was las modified [%s] but was last cached [%s]. Skipping ",
+                                "URI [%s] for namespace [%s] was last modified [%s] but was last cached [%s]. Skipping ",
                                 uri.toString(), id, fmt.print(lastModified), fmt.print(lastCheck));
                         return version;
                     }
@@ -162,14 +162,16 @@ public class URIExtractionNamespaceCacheFactory
                         extractionNamespace.getNamespaceParseSpec().getParser()).populate(source,
                         newCache);
 
-                if (newCache.size() == populator.getEntries()) {
-                    log.info("Loaded data to a new map successfully. Cleaning previous cache and adding data in the new map to cache ...");
+                if (populator.getLines() > 0) {
+                    if (newCache.size() != populator.getEntries()) {
+                        log.warn("Namespace [%s]: the input file may have duplicated key causing num of loaded data [%d] != num of entries parsed [%d]", id, newCache.size(), populator.getEntries());
+                    }
                     cache.keySet().retainAll(newCache.keySet());
                     cache.putAll(newCache);
-                    log.info("Finished loading %d lines for namespace [%s]", populator.getLines(), id);
+                    log.info("Namespace [%s]: finished loading %d lines and updated cache", id, populator.getLines());
                     return version;
                 } else {
-                    log.error("Num of loaded data is not matching with num of entries parsed. Continue to use previous cache");
+                    log.error("Namespace [%s]: processed %d lines. Do nothing to cache", id, populator.getLines());
                     return String.valueOf(lastCheck);
                 }
             }, puller.shouldRetryPredicate(), DEFAULT_NUM_RETRIES);
