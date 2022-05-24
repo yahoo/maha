@@ -164,7 +164,7 @@ public class URIExtractionNamespaceCacheFactory
 
                 if (populator.getLines() > 0) {
                     if (newCache.size() != populator.getEntries()) {
-                        log.warn("Namespace [%s]: the input file may have duplicated key causing num of loaded data [%d] != num of entries parsed [%d]", id, newCache.size(), populator.getEntries());
+                        log.warn("Namespace [%s]: the input file may have duplicated key causing map size [%d] != num of entries parsed [%d]", id, newCache.size(), populator.getEntries());
                     }
                     cache.keySet().retainAll(newCache.keySet());
                     cache.putAll(newCache);
