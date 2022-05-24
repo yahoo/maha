@@ -171,7 +171,7 @@ public class URIExtractionNamespaceCacheFactory
                     log.info("Namespace [%s]: finished loading %d lines and updated cache", id, populator.getLines());
                     return version;
                 } else {
-                    log.error("Namespace [%s]: processed %d lines. Do nothing to cache", id, populator.getLines());
+                    log.error("Namespace [%s]: loaded 0 line, do nothing to cache", id);
                     return String.valueOf(lastCheck);
                 }
             }, puller.shouldRetryPredicate(), DEFAULT_NUM_RETRIES);
