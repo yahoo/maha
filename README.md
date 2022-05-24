@@ -6,7 +6,7 @@
 
 [Maha Release Notes](RELEASE_NOTES.md)
 
-[Maha Release Pipeline](https://cd.screwdriver.cd/pipelines/7538/events/636686)
+[Maha Release Pipeline](https://cd.screwdriver.cd/pipelines/7538)
 
 # Maha
 A centralised library for building reporting APIs on top of multiple data stores to exploit them for what they do best.
