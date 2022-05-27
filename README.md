@@ -558,6 +558,12 @@ You can follow the below steps to configure your local explorer and query maha j
 1. Please follow the above steps and keep your api-example server running. It exposes this endpoint `http://localhost:8080/mahademo/registry/student/schemas/student/sql-avatica` to be used by avatica jdbc connection.
 2. Download the community version of DBEver from https://dbeaver.io/ 
 3. Go to Driver Manager and Coonfigure Avatica Jar with the following settings as shown in the screenshot. 
+```aidl
+JDBC URL =  jdbc:avatica:remote:url=http://localhost:8080/mahademo/registry/student/schemas/student/sql-avatica
+```
+```aidl
+Driver Class Name =  org.apache.calcite.avatica.remote.Driver
+```
 4. Mostly Avatica driver is backward compatible, we used the https://mvnrepository.com/artifact/org.apache.calcite.avatica/avatica-core/1.17.0 for demo.
 5. Example queries:
 
