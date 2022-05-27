@@ -556,7 +556,15 @@ You can follow the below steps to configure your local explorer and query maha j
 2. Download the community version of DBEver from https://dbeaver.io/ 
 3. Go to Driver Manager and Coonfigure Avatica Jar with the following settings as shown in the screenshot. 
 4. Mostly Avatica driver is backward compatible, we used the https://mvnrepository.com/artifact/org.apache.calcite.avatica/avatica-core/1.17.0 for demo.
-5. 
+5. Example queries:
+
+``DESCRIBE student_performance;``
+
+```
+SELECT 'Student ID', 'Total Marks', "Student Name", "Student Status" ,"Admitted Year",
+ "Class ID" FROM student_performance where 'Student ID' = 213
+ ORDER BY 'Total Marks' DESC;
+``` 
 
 
 
