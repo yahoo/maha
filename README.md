@@ -548,7 +548,7 @@ Once your application context is ready, you are good to launch the war file on t
 ```
 #### Maha JDBC Query Layer (Example DB Ever configuration)
 Maha is currently queryable by json REST APIs. 
-We have exposed the standard JDBC interface to query maha so that users can use any other tool like SQL Labs/ DbEver/Any other Database Explorer that you like to query maha.  
+We have exposed the standard JDBC interface to query maha so that users can use any other tool like SQL Labs/ dbeaver /Any other Database Explorer that you like to query maha.  
 Users will be agnostic about which engine maha sql query will be fetching the data from and able to get the data back seamlessly without any code change from client side.  
 This feature is powered by Apache Calcite for sql parsing and Avatica JDBC for exposing the JDBC server.
 
@@ -557,7 +557,7 @@ This feature is powered by Apache Calcite for sql parsing and Avatica JDBC for e
 You can follow the below steps to configure your local explorer and query maha jdbc. 
 1. Please follow the above steps and keep your api-example server running. It exposes this endpoint `http://localhost:8080/mahademo/registry/student/schemas/student/sql-avatica` to be used by avatica jdbc connection.
 2. Optionally you can run `docker run -p 8080:8080 -it pranavbhole/pbs-docker-images:maha-api-example` and it starts the maha-example-api server in local and you can skip step 1.  
-3. Download the community version of DBEver from https://dbeaver.io/ 
+3. Download the community version of DBeaver from https://dbeaver.io/ 
 4. Go to Driver Manager and Coonfigure Avatica Jar with the following settings as shown in the screenshot. 
 ```aidl
 JDBC URL =  jdbc:avatica:remote:url=http://localhost:8080/mahademo/registry/student/schemas/student/sql-avatica
