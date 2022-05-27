@@ -25,6 +25,7 @@ import scala.util.Try
 /**
  * Created by jians on 11/12/15.
  */
+
 class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
   lazy val defaultRegistry = getDefaultRegistry()
   private var dataSource: Option[HikariDataSource] = None
@@ -35,7 +36,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
   if (StringUtils.isNotBlank(userDir)) {
     System.setProperty("java.io.tmpdir", userDir+"/target")
   }
-  private val pg = EmbeddedPostgres.start()
+  private val pg = Try(EmbeddedPostgres.start())
   val ddlOutFile = new java.io.File("src/test/resources/pg-dim-ddl.sql")
   val ddlOutputStream = new BufferedOutputStream(new FileOutputStream(ddlOutFile))
   val ddlWriter = new PrintWriter(ddlOutputStream)
@@ -45,21 +46,31 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    val config = new HikariConfig()
-    val jdbcUrl = pg.getJdbcUrl("postgres", "postgres")
-    config.setJdbcUrl(jdbcUrl)
-    config.setUsername("postgres")
-    config.setPassword("")
-    config.setMaximumPoolSize(1)
-    dataSource = Option(new HikariDataSource(config))
-    jdbcConnection = dataSource.map(new JdbcConnection(_))
+    try {
+      val config = new HikariConfig()
+      val jdbcUrl = pg.get.getJdbcUrl("postgres", "postgres")
+      config.setJdbcUrl(jdbcUrl)
+      config.setUsername("postgres")
+      config.setPassword("")
+      config.setMaximumPoolSize(1)
+      dataSource = Option(new HikariDataSource(config))
+      jdbcConnection = dataSource.map(new JdbcConnection(_))
+    } catch {
+      case e=>
+        e.printStackTrace()
+    }
   }
   override protected def afterAll(): Unit = {
     super.afterAll()
-    dataSource.foreach(_.close())
-    println(tablesCreated)
-    ddlWriter.close()
-    factDDLWriter.close()
+    try {
+      dataSource.foreach(_.close())
+      println(tablesCreated)
+      ddlWriter.close()
+      factDDLWriter.close()
+    } catch {
+      case e=>
+        e.printStackTrace()
+    }
   }
   private def createTables(queryPipelineTry: scala.util.Try[QueryPipeline]): Unit = synchronized {
     if(queryPipelineTry.isFailure)
@@ -102,7 +113,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
   override protected[this] def generatePipeline(requestModel: RequestModel) : Try[QueryPipeline] = {
     val qpt = super.generatePipeline(requestModel)
     if(qpt.isSuccess) {
-      createTables(qpt)
+      Try(createTables(qpt))
     }
     qpt
   }
@@ -110,16 +121,21 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
   override protected[this] def generatePipeline(requestModel: RequestModel, queryAttributes: QueryAttributes) : Try[QueryPipeline] = {
     val qpt = super.generatePipeline(requestModel, queryAttributes)
     if(qpt.isSuccess) {
-      createTables(qpt)
+      Try(createTables(qpt))
     }
     qpt
   }
 
   private def testQuery(sql: String): Unit = {
-    val sqlTry = jdbcConnection.get.execute(sql)
-    if(sqlTry.isFailure) {
-      //println(sql)
-      throw sqlTry.failed.get
+    try{
+      val sqlTry = jdbcConnection.get.execute(sql)
+      if(sqlTry.isFailure) {
+        //println(sql)
+        throw sqlTry.failed.get
+      }
+    } catch {
+      case e=>
+        e.printStackTrace()
     }
   }
 

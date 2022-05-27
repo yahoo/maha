@@ -29,6 +29,7 @@ A centralised library for building reporting APIs on top of multiple data stores
   - Supports customising and tweaking data source specific executor's config 
   - MahaRequestLog : Kafka logging of API Statistics
   - Support for high cardinality dimension druid lookups
+  - Standard JDBC driver to query maha (With Maha Dialect) powered by Avatica and Calcite. 
 
 ### Maha Architecture
 
@@ -545,6 +546,47 @@ Once your application context is ready, you are good to launch the war file on t
     }
 }
 ```
+#### Maha JDBC Query Layer (Example DB Ever configuration)
+Maha is currently queryable by json REST APIs. 
+We have exposed the standard JDBC interface to query maha so that users can use any other tool like SQL Labs/ dbeaver /Any other Database IDE that you like to query maha.  
+Users will be agnostic about which engine maha sql query will be fetching the data from and able to get the data back seamlessly without any code change from client side.  
+This feature is powered by Apache Calcite for sql parsing and Avatica JDBC for exposing the JDBC server.
+
+<img width="701" alt="Screen Shot 2022-05-26 at 9 32 40 PM" src="https://user-images.githubusercontent.com/4935454/170633999-bff81f95-ab58-42e2-8509-8d9e79b53978.png">
+
+You can follow the below steps to configure your local explorer and query maha jdbc. 
+1. Please follow the above steps and keep your api-example server running. It exposes this endpoint `http://localhost:8080/mahademo/registry/student/schemas/student/sql-avatica` to be used by avatica jdbc connection.
+2. Optionally you can run `docker run -p 8080:8080 -it pranavbhole/pbs-docker-images:maha-api-example` and it starts the maha-example-api server in local and you can skip step 1.  
+3. Download the community version of DBeaver from https://dbeaver.io/ 
+4. Go to Driver Manager and Coonfigure Avatica Jar with the following settings as shown in the screenshot. 
+```aidl
+JDBC URL =  jdbc:avatica:remote:url=http://localhost:8080/mahademo/registry/student/schemas/student/sql-avatica
+```
+```aidl
+Driver Class Name =  org.apache.calcite.avatica.remote.Driver
+```
+5. Mostly Avatica driver is backward compatible, we used the https://mvnrepository.com/artifact/org.apache.calcite.avatica/avatica-core/1.17.0 for demo.
+6. Example queries:
+
+``DESCRIBE student_performance;``
+
+```
+SELECT 'Student ID', 'Total Marks', 'Student Name', 'Student Status' ,'Admitted Year',
+ 'Class ID' FROM student_performance where 'Student ID' = 213
+ ORDER BY 'Total Marks' DESC;
+``` 
+<img width="535" alt="Screen Shot 2022-05-26 at 9 26 11 PM" src="https://user-images.githubusercontent.com/4935454/170634062-c5232359-75d7-4591-b433-44516ad09e1a.png">
+
+<img width="659" alt="Screen Shot 2022-05-26 at 9 25 47 PM" src="https://user-images.githubusercontent.com/4935454/170634070-550b0efd-b89b-4a00-8bbb-ccecc8a75d7f.png">
+
+<img width="1234" alt="Screen Shot 2022-05-26 at 9 53 24 PM" src="https://user-images.githubusercontent.com/4935454/170634089-6b6c7c34-300c-464c-a4f5-85ebbee117c6.png">
+
+<img width="1225" alt="Screen Shot 2022-05-26 at 10 50 22 PM" src="https://user-images.githubusercontent.com/4935454/170638543-9ce299b1-e1f5-439f-870e-156d8be30ede.png">
+
+<img width="1348" alt="Screen Shot 2022-05-26 at 10 52 23 PM" src="https://user-images.githubusercontent.com/4935454/170638958-8f2b6f9a-dc2c-49f2-8f3e-e043892803a1.png">
+<img width="988" alt="Screen Shot 2022-05-26 at 10 53 58 PM" src="https://user-images.githubusercontent.com/4935454/170638965-1102ed52-8a7d-4f45-afea-813a8f2c7ff1.png">
+<img width="1358" alt="Screen Shot 2022-05-26 at 10 54 16 PM" src="https://user-images.githubusercontent.com/4935454/170638967-53d51946-52ff-4944-a587-6f9309d1a8a3.png">
+
 
 #### Presentation of 'Maha' at Bay Area Hadoop Meetup held on 29th Oct 2019:
 
