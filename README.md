@@ -571,8 +571,8 @@ Driver Class Name =  org.apache.calcite.avatica.remote.Driver
 ``DESCRIBE student_performance;``
 
 ```
-SELECT 'Student ID', 'Total Marks', "Student Name", "Student Status" ,"Admitted Year",
- "Class ID" FROM student_performance where 'Student ID' = 213
+SELECT 'Student ID', 'Total Marks', 'Student Name', 'Student Status' ,'Admitted Year',
+ 'Class ID' FROM student_performance where 'Student ID' = 213
  ORDER BY 'Total Marks' DESC;
 ``` 
 <img width="535" alt="Screen Shot 2022-05-26 at 9 26 11 PM" src="https://user-images.githubusercontent.com/4935454/170634062-c5232359-75d7-4591-b433-44516ad09e1a.png">
