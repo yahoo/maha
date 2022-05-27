@@ -556,16 +556,17 @@ This feature is powered by Apache Calcite for sql parsing and Avatica JDBC for e
 
 You can follow the below steps to configure your local explorer and query maha jdbc. 
 1. Please follow the above steps and keep your api-example server running. It exposes this endpoint `http://localhost:8080/mahademo/registry/student/schemas/student/sql-avatica` to be used by avatica jdbc connection.
-2. Download the community version of DBEver from https://dbeaver.io/ 
-3. Go to Driver Manager and Coonfigure Avatica Jar with the following settings as shown in the screenshot. 
+2. Optionally you can run `docker run -p 8080:8080 -it pranavbhole/pbs-docker-images:maha-api-example` and it starts the maha-example-api server in local and you can skip step 1.  
+3. Download the community version of DBEver from https://dbeaver.io/ 
+4. Go to Driver Manager and Coonfigure Avatica Jar with the following settings as shown in the screenshot. 
 ```aidl
 JDBC URL =  jdbc:avatica:remote:url=http://localhost:8080/mahademo/registry/student/schemas/student/sql-avatica
 ```
 ```aidl
 Driver Class Name =  org.apache.calcite.avatica.remote.Driver
 ```
-4. Mostly Avatica driver is backward compatible, we used the https://mvnrepository.com/artifact/org.apache.calcite.avatica/avatica-core/1.17.0 for demo.
-5. Example queries:
+5. Mostly Avatica driver is backward compatible, we used the https://mvnrepository.com/artifact/org.apache.calcite.avatica/avatica-core/1.17.0 for demo.
+6. Example queries:
 
 ``DESCRIBE student_performance;``
 
