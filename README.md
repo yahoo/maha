@@ -548,7 +548,7 @@ Once your application context is ready, you are good to launch the war file on t
 ```
 #### Maha JDBC Query Layer (Example DB Ever configuration)
 Maha is currently queryable by json REST APIs. 
-We have exposed the standard JDBC interface to query maha so that users can use any other tool like SQL Labs/ dbeaver /Any other Database Explorer that you like to query maha.  
+We have exposed the standard JDBC interface to query maha so that users can use any other tool like SQL Labs/ dbeaver /Any other Database IDE that you like to query maha.  
 Users will be agnostic about which engine maha sql query will be fetching the data from and able to get the data back seamlessly without any code change from client side.  
 This feature is powered by Apache Calcite for sql parsing and Avatica JDBC for exposing the JDBC server.
 
