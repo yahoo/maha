@@ -78,18 +78,6 @@ public class LookupService {
             serviceNodeList = lookupServiceProperties.getProperty("service_nodes", lookupServiceProperties.getProperty("serviceNodes", localHostName)).split(",");
             currentHost.set(RANDOM.nextInt(serviceNodeList.length));
 
-            SSLContext sslContext = SSLContexts.createDefault();
-            SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext,
-                    new String[]{"TLSv1.2"},
-                    null,
-                    new NoopHostnameVerifier());
-
-            PoolingHttpClientConnectionManager connMgr =
-                    new PoolingHttpClientConnectionManager(RegistryBuilder.<ConnectionSocketFactory>create()
-                            .register(serviceScheme, sslsf).build());
-            connMgr.setMaxTotal((int)lookupServiceProperties.getOrDefault("max_connections", MAX_CONNECTIONS));
-            connMgr.setDefaultMaxPerRoute((int)lookupServiceProperties.getOrDefault("max_connections", MAX_CONNECTIONS));
-
             final RequestConfig requestConfig =
                     RequestConfig.custom()
                             .setConnectionRequestTimeout((int) lookupServiceProperties.getOrDefault("timeout", TIMEOUT))
@@ -97,9 +85,41 @@ public class LookupService {
                             .setSocketTimeout((int)lookupServiceProperties.getOrDefault("timeout", TIMEOUT))
                             .build();
 
-            httpclient =
-                    HttpClients.custom().setSSLSocketFactory(sslsf).setConnectionManager(connMgr)
-                            .setDefaultRequestConfig(requestConfig).build();
+            PoolingHttpClientConnectionManager connMgr;
+
+            if("https".equals(serviceScheme)) {
+
+                SSLContext sslContext = SSLContexts.createDefault();
+                SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext,
+                        new String[]{"TLSv1.2"},
+                        null,
+                        new NoopHostnameVerifier());
+
+                connMgr = new PoolingHttpClientConnectionManager(RegistryBuilder.<ConnectionSocketFactory>create()
+                                .register(serviceScheme, sslsf).build());
+
+                connMgr.setMaxTotal((int)lookupServiceProperties.getOrDefault("max_connections", MAX_CONNECTIONS));
+                connMgr.setDefaultMaxPerRoute((int)lookupServiceProperties.getOrDefault("max_connections", MAX_CONNECTIONS));
+
+                httpclient = HttpClients
+                        .custom()
+                        .setSSLSocketFactory(sslsf)
+                        .setConnectionManager(connMgr)
+                        .setDefaultRequestConfig(requestConfig)
+                        .build();
+
+            } else {
+
+                connMgr = new PoolingHttpClientConnectionManager();
+                connMgr.setMaxTotal((int)lookupServiceProperties.getOrDefault("max_connections", MAX_CONNECTIONS));
+                connMgr.setDefaultMaxPerRoute((int)lookupServiceProperties.getOrDefault("max_connections", MAX_CONNECTIONS));
+
+                httpclient = HttpClients
+                        .custom()
+                        .setConnectionManager(connMgr)
+                        .setDefaultRequestConfig(requestConfig)
+                        .build();
+            }
 
             CacheLoader<LookupData, byte[]> loader;
             loader = new CacheLoader<LookupData, byte[]>() {
