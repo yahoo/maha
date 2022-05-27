@@ -551,6 +551,9 @@ Maha is currently queryable by json REST APIs.
 We have exposed the standard JDBC interface to query maha so that users can use any other tool like SQL Labs/ DbEver/Any other Database Explorer that you like to query maha.  
 Users will be agnostic about which engine maha sql query will be fetching the data from and able to get the data back seamlessly without any code change from client side.  
 This feature is powered by Apache Calcite for sql parsing and Avatica JDBC for exposing the JDBC server.
+
+<img width="701" alt="Screen Shot 2022-05-26 at 9 32 40 PM" src="https://user-images.githubusercontent.com/4935454/170633999-bff81f95-ab58-42e2-8509-8d9e79b53978.png">
+
 You can follow the below steps to configure your local explorer and query maha jdbc. 
 1. Please follow the above steps and keep your api-example server running. It exposes this endpoint `http://localhost:8080/mahademo/registry/student/schemas/student/sql-avatica` to be used by avatica jdbc connection.
 2. Download the community version of DBEver from https://dbeaver.io/ 
@@ -565,7 +568,13 @@ SELECT 'Student ID', 'Total Marks', "Student Name", "Student Status" ,"Admitted 
  "Class ID" FROM student_performance where 'Student ID' = 213
  ORDER BY 'Total Marks' DESC;
 ``` 
+<img width="535" alt="Screen Shot 2022-05-26 at 9 26 11 PM" src="https://user-images.githubusercontent.com/4935454/170634062-c5232359-75d7-4591-b433-44516ad09e1a.png">
 
+<img width="659" alt="Screen Shot 2022-05-26 at 9 25 47 PM" src="https://user-images.githubusercontent.com/4935454/170634070-550b0efd-b89b-4a00-8bbb-ccecc8a75d7f.png">
+
+<img width="1234" alt="Screen Shot 2022-05-26 at 9 53 24 PM" src="https://user-images.githubusercontent.com/4935454/170634089-6b6c7c34-300c-464c-a4f5-85ebbee117c6.png">
+
+<img width="1227" alt="Screen Shot 2022-05-26 at 9 53 18 PM" src="https://user-images.githubusercontent.com/4935454/170634100-073041e7-c999-47d2-8214-b9ab03c1b779.png">
 
 
 #### Presentation of 'Maha' at Bay Area Hadoop Meetup held on 29th Oct 2019:
