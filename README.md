@@ -574,7 +574,11 @@ SELECT 'Student ID', 'Total Marks', "Student Name", "Student Status" ,"Admitted 
 
 <img width="1234" alt="Screen Shot 2022-05-26 at 9 53 24 PM" src="https://user-images.githubusercontent.com/4935454/170634089-6b6c7c34-300c-464c-a4f5-85ebbee117c6.png">
 
-<img width="1227" alt="Screen Shot 2022-05-26 at 9 53 18 PM" src="https://user-images.githubusercontent.com/4935454/170634100-073041e7-c999-47d2-8214-b9ab03c1b779.png">
+<img width="1225" alt="Screen Shot 2022-05-26 at 10 50 22 PM" src="https://user-images.githubusercontent.com/4935454/170638543-9ce299b1-e1f5-439f-870e-156d8be30ede.png">
+
+<img width="1348" alt="Screen Shot 2022-05-26 at 10 52 23 PM" src="https://user-images.githubusercontent.com/4935454/170638958-8f2b6f9a-dc2c-49f2-8f3e-e043892803a1.png">
+<img width="988" alt="Screen Shot 2022-05-26 at 10 53 58 PM" src="https://user-images.githubusercontent.com/4935454/170638965-1102ed52-8a7d-4f45-afea-813a8f2c7ff1.png">
+<img width="1358" alt="Screen Shot 2022-05-26 at 10 54 16 PM" src="https://user-images.githubusercontent.com/4935454/170638967-53d51946-52ff-4944-a587-6f9309d1a8a3.png">
 
 
 #### Presentation of 'Maha' at Bay Area Hadoop Meetup held on 29th Oct 2019:
