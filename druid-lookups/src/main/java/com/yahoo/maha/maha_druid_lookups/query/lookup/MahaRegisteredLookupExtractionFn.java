@@ -12,14 +12,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.query.extraction.ExtractionFn;
-import org.apache.druid.query.lookup.LookupReferencesManager;
+import org.apache.druid.query.lookup.*;
 
 import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Strings;
@@ -234,10 +233,13 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
             // http://www.javamex.com/tutorials/double_checked_locking.shtml
             synchronized (delegateLock) {
                 if (null == delegate) {
+                    Optional<LookupExtractorFactoryContainer> lookupExtractorFactoryContainerOptional =  manager.get(getLookup());
+
+                    if (!lookupExtractorFactoryContainerOptional.isPresent()) {
+                       throw new IllegalStateException(String.format("Lookup [%s] not found", getLookup()));
+                    }
                     delegate = new MahaLookupExtractionFn(
-                            Preconditions.checkNotNull(manager.get(getLookup())
-                                    , "Lookup [%s] not found", getLookup()
-                            ).get().getLookupExtractorFactory().get()
+                            lookupExtractorFactoryContainerOptional.get().getLookupExtractorFactory().get()
                             , isRetainMissingValue()
                             , getReplaceMissingValueWith()
                             , isInjective()
