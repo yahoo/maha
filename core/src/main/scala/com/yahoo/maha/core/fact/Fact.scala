@@ -1152,7 +1152,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     require(tableMap.nonEmpty, "no tables found")
     require(tableMap.contains(from), s"from table not found : $from")
     require(availableOnwardsDate.isDefined, s"availableOnwardsDate parameter must be defined in withAvailableOnwardsDate in $name")
-    dateValidate(name, availableOnwardsDate.get, engine)
+    // dateValidate(name, availableOnwardsDate.get, engine)
 
     val fromTable = tableMap(from)
 
