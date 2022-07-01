@@ -129,7 +129,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
     assert(bcOption.get.facts.keys.exists(_ == "fact3") === true, "second onwardsDate failed")
   }
 
-  test("withAvailableOnwardsDate: Should fail with 1 availableOnwardsDate on the same Engine") {
+  ignore("withAvailableOnwardsDate: Should fail with 1 availableOnwardsDate on the same Engine") {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
