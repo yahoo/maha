@@ -1054,7 +1054,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
         dimColMap += (d.name -> d)
     }
 
-    require(dimColMap.values.exists(_.isForeignKey), s"Fact has no foreign keys after discarding $discarding")
+    require(!fromTable.dimCols.exists(_.isForeignKey) || dimColMap.values.exists(_.isForeignKey), s"Fact has no foreign keys after discarding $discarding")
 
     overrideFactCols foreach {
       f =>
