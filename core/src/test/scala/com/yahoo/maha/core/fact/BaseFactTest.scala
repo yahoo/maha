@@ -380,4 +380,24 @@ trait BaseFactTest extends AnyFunSuite with Matchers {
       .newViewTableRollUp(unionViewAccount, "campaign_adjustment_view", Set("campaign_id"))
   }
 
+  def factWithNoForeignKeys : FactBuilder = {
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      Fact.newFact(
+        "fact1", DailyGrain, HiveEngine, Set(AdvertiserSchema),
+        Set(
+          DimCol("account_id", IntType())
+          , DimCol("campaign_id", IntType())
+          , DimCol("ad_group_id", IntType())
+          , DimCol("ad_id", IntType())
+          , DimCol("stats_source", IntType(3))
+          , DimCol("price_type", IntType(3))
+          , DimCol("landing_page_url", StrType())
+        ),
+        Set(
+          FactCol("impressions", IntType())
+          , FactCol("clicks", IntType())
+        )
+      )
+    }
+  }
 }
