@@ -131,6 +131,43 @@ exec "$JAVA_BIN"/java `cat "$CONFDIR"/"$WHATAMI"/jvm.config | xargs` \
   `cat "$CONFDIR"/$WHATAMI/main.config | xargs`
 ```
 
+* S3A Configuration  
+  * If encounter the following error:
+  ```
+  Caused by: java.lang.ClassNotFoundException: Class org.apache.hadoop.fs.s3a.S3AFileSystem not found
+          at org.apache.hadoop.conf.Configuration.getClassByName(Configuration.java:2273) ~[hadoop-common-2.8.5.jar:?]
+          at org.apache.hadoop.conf.Configuration.getClass(Configuration.java:2367) ~[hadoop-common-2.8.5.jar:?]
+          ... 19 more
+  ```
+  This is caused by lack of Hadoop dependency: [hadoop-aws](https://hadoop.apache.org/docs/stable/hadoop-aws/tools/hadoop-aws/index.html).
+  <br>  
+  **Solution:**
+  
+  Include the hadoop-aws-2.8.5.jar in class path `<druid_root>/hadoop-dependencies/hadoop-client/2.8.5/*`, and then follow the above `HDFS Configuration` solution.  
+
+  <br>
+
+  * If encounter the following error:
+  ```
+  com.amazonaws.AmazonClientException: No AWS Credentials provided by BasicAWSCredentialsProvider EnvironmentVariableCredentialsProvider SharedInstanceProfileCredentialsProvider : com.amazonaws.SdkClientException: Failed to connect to service endpoint: 
+          at org.apache.hadoop.fs.s3a.S3AUtils.translateException(S3AUtils.java:125) ~[hadoop-aws-2.8.5.jar:?]
+          at org.apache.hadoop.fs.s3a.S3AFileSystem.verifyBucketExists(S3AFileSystem.java:288) ~[hadoop-aws-2.8.5.jar:?]
+          at org.apache.hadoop.fs.s3a.S3AFileSystem.initialize(S3AFileSystem.java:236) ~[hadoop-aws-2.8.5.jar:?]
+          at org.apache.hadoop.fs.FileSystem.createFileSystem(FileSystem.java:2812) ~[hadoop-common-2.8.5.jar:?]
+  ```
+  This is caused by missing correct AWS credentials.
+  <br>  
+  **Solution:**
+  
+  Here are a few ways to authenticate with s3: ([link](https://hadoop.apache.org/docs/stable/hadoop-aws/tools/hadoop-aws/index.html#Authenticating_with_S3)). Besides, for local development, it also supports to use credentials from the `~/.aws/credentials` file, which is not by default to pick up credential from it, but adding the following property in `<druid_root>/conf/druid/single-server/micro-quickstart/_common/core-site.xml` will make it work:  
+  ```
+  <property>
+    <name>fs.s3a.aws.credentials.provider</name>
+    <value>com.amazonaws.auth.DefaultAWSCredentialsProviderChain</value>
+  </property>
+  ```
+
+
 ### Set up Dynamic Schema Lookups:
 
 Steps:
