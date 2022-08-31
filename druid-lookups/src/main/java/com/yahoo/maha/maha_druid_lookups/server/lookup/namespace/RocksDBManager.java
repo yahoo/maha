@@ -154,10 +154,11 @@ public class RocksDBManager {
         if (extractionNamespace.getRocksDbInstanceHDFSPath().contains("s3a")) {
             URI s3aUri = new URI(extractionNamespace.getRocksDbInstanceHDFSPath());
             String nameNodePath = s3aUri.toString();
-            LOG.debug("intended namenode path for lookup: " + nameNodePath);
-            LOG.debug("config fs.defaultFS:" + config.get("fs.defaultFS"));
+            LOG.info("[s3a] intended namenode path for lookup: " + nameNodePath);
+            LOG.info("[s3a] config fs.defaultFS:" + config.get("fs.defaultFS"));
+            
             if(!config.get("fs.defaultFS").equals(nameNodePath)) {
-                LOG.debug("default config defaulFS is not equal to intended one, overriding..");
+                LOG.info("[s3a] default config defaulFS is not equal to intended one, overriding..");
                 //make sure only one new instance will be created for the targeted cluster
                 synchronized (overrideConfig) {
                     overrideConfig.set("fs.defaultFS", nameNodePath);
