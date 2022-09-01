@@ -23,6 +23,7 @@ import org.apache.hadoop.fs.FsUrlStreamHandlerFactory;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.s3a.S3AFileSystem;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.joda.time.Period;
 import org.rocksdb.*;
@@ -31,6 +32,8 @@ import org.zeroturnaround.zip.ZipUtil;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -89,6 +92,10 @@ public class RocksDBManager {
         config.set("fs.file.impl",
                 LocalFileSystem.class.getName()
         );
+        config.set("fs.s3a.impl",
+                S3AFileSystem.class.getName()
+        );
+
         this.localStorageDirectory = mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_LOCATION_PROP_NAME, TEMPORARY_PATH);
         this.blockCacheSizeInMb = Long.parseLong(mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME, String.valueOf(DEFAULT_BLOCK_CACHE_SIZE_IN_MB)));
         Preconditions.checkArgument(blockCacheSizeInMb > 0);
@@ -99,7 +106,7 @@ public class RocksDBManager {
     }
 
     public String createDB(final RocksDBExtractionNamespace extractionNamespace,
-                           final String lastVersion) throws RocksDBException, IOException {
+                           final String lastVersion) throws RocksDBException, IOException, URISyntaxException {
 
 
         String loadTime = null;
@@ -134,6 +141,24 @@ public class RocksDBManager {
             LOG.debug("config fs.defaultFS:" + config.get("fs.defaultFS"));
             if(!config.get("fs.defaultFS").equals(nameNodePath)) {
                 LOG.debug("default config defaulFS is not equal to intended one, overriding..");
+                //make sure only one new instance will be created for the targeted cluster
+                synchronized (overrideConfig) {
+                    overrideConfig.set("fs.defaultFS", nameNodePath);
+                    if (overrideFileSystem == null) {
+                        overrideFileSystem = FileSystem.newInstance(overrideConfig);
+                    }
+                }
+            }
+        }
+
+        if (extractionNamespace.getRocksDbInstanceHDFSPath().contains("s3a")) {
+            URI s3aUri = new URI(extractionNamespace.getRocksDbInstanceHDFSPath());
+            String nameNodePath = s3aUri.toString();
+            LOG.info("[s3a] intended namenode path for lookup: " + nameNodePath);
+            LOG.info("[s3a] config fs.defaultFS:" + config.get("fs.defaultFS"));
+            
+            if(!config.get("fs.defaultFS").equals(nameNodePath)) {
+                LOG.info("[s3a] default config defaulFS is not equal to intended one, overriding..");
                 //make sure only one new instance will be created for the targeted cluster
                 synchronized (overrideConfig) {
                     overrideConfig.set("fs.defaultFS", nameNodePath);
