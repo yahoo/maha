@@ -1325,6 +1325,21 @@ trait TestWebService {
                      |  }
                      |  ]""".stripMargin
       Ok(res)
+
+    case POST -> Root / ("alternative_endpoint") =>
+      val groupby =
+        """[
+          |  {
+          |    "timestamp" : "2012-01-01T00:00:00.000Z",
+          |    "event" : {
+          |     "Day" : "2022-01-01",
+          |     "Campaign ID": 12345,
+          |     "Impressions":17,
+          |     "Pricing Type": "Sure, why not."
+          |    }
+          |  }
+          |  ]""".stripMargin
+      Ok(groupby)
   }
 
 }

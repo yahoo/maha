@@ -59,6 +59,7 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
     registryBuilder.register(pubfact2())
     registryBuilder.register(pubfact3())
     registryBuilder.register(pubfact4())
+    registryBuilder.register(alternativeUrlFact())
   }
 
   val siteNameMap = Map(
@@ -402,6 +403,53 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
         underlyingTableName = Some("fact1")
       )
     }.toPublicFact("k_stats_select",
+      Set(
+        PubCol("My Date", "Day", InBetweenEquality),
+        PubCol("id", "Keyword ID", InEquality),
+        PubCol("campaign_id", "Campaign ID", InEquality),
+        PubCol("advertiser_id", "Advertiser ID", InEquality),
+        PubCol("price_type", "Pricing Type", In),
+        PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
+      ),
+      Set(
+        PublicFactCol("impressions", "Impressions", InBetweenEquality)
+        , PublicFactCol("clicks", "Clicks", InBetweenEquality)
+      ),
+      Set(),
+      getMaxDaysWindow, getMaxDaysLookBack, renderLocalTimeFilter = false, dimRevision = 2
+    )
+  }
+
+  private[this] def alternativeUrlFact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    val factBuilder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "baseTable", HourlyGrain, DruidEngine, Set(AdvertiserSchema),
+        Set(
+          DimCol("id", IntType(), annotations = Set(ForeignKey("keyword")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", 8 -> "CPV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DruidFuncDimCol("Derived Pricing Type", IntType(3), DECODE_DIM("{price_type}", "7", "6", "2", "1", "{price_type}"))
+          , DruidFuncDimCol("My Date", DateType(), DRUID_TIME_FORMAT("YYYY-MM-dd HH"))
+
+        ),
+        Set(
+          FactCol("impressions", IntType(3, 1))
+          , FactCol("clicks", IntType(3, 0, 1, 800))
+        ),
+        annotations = Set(DruidGroupByStrategyV2, TierUrl("http://localhost:6667/mock/alternative_endpoint")),
+        underlyingTableName = Some("fact1")
+      )
+    }
+
+    factBuilder.newRollUp("rollupTable", "baseTable"
+      , discarding = Set("Derived Pricing Type")
+      , overrideAnnotations = Set(DruidGroupByStrategyV2, TierUrl("invalid"))
+      , availableOnwardsDate = todayMinusTwoYears
+    )
+
+
+    factBuilder.toPublicFact("alternative_url_fact",
       Set(
         PubCol("My Date", "Day", InBetweenEquality),
         PubCol("id", "Keyword ID", InEquality),
@@ -3231,4 +3279,157 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
         assert(expectedSet.size == count)
     }
   }
+
+  test("Hit alternative URL in overridden rollup.") {
+
+    val jsonString =
+      s"""
+         |{
+         |   "cube":"alternative_url_fact",
+         |   "sortBy":[
+         |      {
+         |         "field":"Impressions",
+         |         "order":"DESC"
+         |      }
+         |   ],
+         |   "selectFields":[
+         |      {
+         |         "field":"Day"
+         |      },
+         |      {
+         |        "field":"Campaign ID"
+         |      },
+         |      {
+         |         "field":"Pricing Type"
+         |      },
+         |      {
+         |         "field":"Impressions"
+         |      }
+         |   ],
+         |   "paginationStartIndex":0,
+         |   "filterExpressions":[
+         |      {
+         |         "operator":"between",
+         |         "field":"Day",
+         |         "from":"$fromDate",
+         |         "to":"$toDate"
+         |      },
+         |      {
+         |        "field": "Advertiser ID",
+         |        "operator":"=",
+         |        "value":12345
+         |      }
+         |   ],
+         |   "rowsPerPage":1000
+         |}
+       """.stripMargin
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString, AdvertiserSchema))
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    withDruidQueryExecutor("http://localhost:6667/mock/whiteGloveGroupBy") {
+      druidExecutor =>
+
+        val queryExecContext: QueryExecutorContext = new QueryExecutorContext
+        queryExecContext.register(druidExecutor)
+
+
+        val result = queryPipelineTry.toOption.get.execute(queryExecContext)
+        assert(result.isSuccess)
+        val expectedSet = Set(
+          "Row(Map(Day -> 0, Campaign ID -> 1, Pricing Type -> 2, Impressions -> 3),ArrayBuffer(2022-01-01, 12345, Sure, why not., 17))"
+        )
+        var count = 0
+        result.get.rowList.foreach {
+          row =>
+            assert(expectedSet.contains(row.toString))
+            count += 1
+        }
+        assert(expectedSet.size == count)
+
+    }
+  }
+
+    test("Demonstrate overrideAnnotations on rollup level are ignored.") {
+
+      val jsonString =
+        s"""
+           |{
+           |   "cube":"alternative_url_fact",
+           |   "sortBy":[
+           |      {
+           |         "field":"Impressions",
+           |         "order":"DESC"
+           |      }
+           |   ],
+           |   "selectFields":[
+           |      {
+           |         "field":"Day"
+           |      },
+           |      {
+           |        "field":"Campaign ID"
+           |      },
+           |      {
+           |         "field":"Impressions"
+           |      }
+           |   ],
+           |   "paginationStartIndex":0,
+           |   "filterExpressions":[
+           |      {
+           |         "operator":"between",
+           |         "field":"Day",
+           |         "from":"$fromDate",
+           |         "to":"$toDate"
+           |      },
+           |      {
+           |        "field": "Advertiser ID",
+           |        "operator":"=",
+           |        "value":12345
+           |      }
+           |   ],
+           |   "rowsPerPage":1000
+           |}
+         """.stripMargin
+      val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString, AdvertiserSchema))
+      val registry = defaultRegistry
+      val requestModel = getRequestModel(request, registry)
+      assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+      val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+      altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+      val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+      val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+
+      assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+      withDruidQueryExecutor("http://localhost:6667/mock/whiteGloveGroupBy") {
+        druidExecutor =>
+
+          val queryExecContext: QueryExecutorContext = new QueryExecutorContext
+          queryExecContext.register(druidExecutor)
+
+
+          val result = queryPipelineTry.toOption.get.execute(queryExecContext)
+          assert(result.isSuccess)
+          val expectedSet = Set(
+            "Row(Map(Day -> 0, Campaign ID -> 1, Impressions -> 2),ArrayBuffer(2022-01-01, 12345, 17))"
+          )
+          var count = 0
+          result.get.rowList.foreach {
+            row =>
+              assert(expectedSet.contains(row.toString))
+              count += 1
+          }
+          assert(expectedSet.size == count)
+
+      }
+    }
 }

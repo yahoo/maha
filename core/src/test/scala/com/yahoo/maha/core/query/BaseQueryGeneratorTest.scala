@@ -4,7 +4,6 @@ package com.yahoo.maha.core.query
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.Executors
-
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing._
@@ -37,6 +36,9 @@ trait BaseQueryGeneratorTest {
   protected[this] val toDateTime = DateTimeBetweenFilterHelper.iso8601FormattedString(baseDate)
   protected[this] val toDateTimeMinusTwoHours = DateTimeBetweenFilterHelper.iso8601FormattedString(baseDate.minusHours(2))
   protected[this] val toDateTimeMinusTenMinutes = DateTimeBetweenFilterHelper.iso8601FormattedString(baseDate.minusMinutes(10))
+
+  protected[this] val today = DateTime.now(DateTimeZone.UTC)
+  val todayMinusTwoYears = Some(DailyGrain.toFormattedString(today.minusYears(2)))
 
   protected[this] val fromDateHive = fromDate.replaceAll("-","")
   protected[this] val toDateHive = toDate.replaceAll("-","")

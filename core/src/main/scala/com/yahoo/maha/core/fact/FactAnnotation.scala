@@ -48,6 +48,8 @@ case object DruidGroupByStrategyV1 extends FactAnnotationInstance with WithDruid
 case object DruidGroupByStrategyV2 extends FactAnnotationInstance with WithDruidEngine
 case class DruidGroupByIsSingleThreaded(isSingleThreaded: Boolean) extends FactAnnotationInstance with WithDruidEngine
 
+case class TierUrl(url: String) extends FactAnnotationInstance with WithDruidEngine
+
 sealed trait QueryCondition {
   def eval(query: QueryContext): Boolean
 }
