@@ -44,7 +44,9 @@ class PostgresQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAnd
   if (StringUtils.isNotBlank(userDir)) {
     System.setProperty("java.io.tmpdir", userDir+"/target")
   }
-  private val pg = EmbeddedPostgres.start()
+  private val pg = EmbeddedPostgres.builder()
+    .setLocaleConfig("locale","en_US.UTF-8")
+    .start()
   private val db = UUID.randomUUID().toString.replace("-", "")
 
   override protected def beforeAll(): Unit = {

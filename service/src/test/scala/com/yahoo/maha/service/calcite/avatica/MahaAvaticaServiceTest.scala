@@ -153,7 +153,7 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
     val rows = result.firstFrame.rows
     var count = 0
     rows.iterator().forEachRemaining(s=> {
-      assert(s.asInstanceOf[Array[String]](2).contains("student_performance"))
+      assert(s.asInstanceOf[Array[String]](2).contains("student_performance") || s.asInstanceOf[Array[String]](2).contains("druid_performance"))
       count+=1
     })
     val factMaps = mahaServiceConfig.registry.values.map{
