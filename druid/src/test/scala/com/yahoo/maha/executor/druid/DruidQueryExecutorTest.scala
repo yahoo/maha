@@ -59,7 +59,6 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
     registryBuilder.register(pubfact2())
     registryBuilder.register(pubfact3())
     registryBuilder.register(pubfact4())
-    registryBuilder.register(alternativeUrlFact())
   }
 
   val siteNameMap = Map(
@@ -420,52 +419,6 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
     )
   }
 
-  private[this] def alternativeUrlFact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
-    val factBuilder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-      Fact.newFact(
-        "baseTable", HourlyGrain, DruidEngine, Set(AdvertiserSchema),
-        Set(
-          DimCol("id", IntType(), annotations = Set(ForeignKey("keyword")))
-          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
-          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
-          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", 8 -> "CPV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
-          , DruidFuncDimCol("Derived Pricing Type", IntType(3), DECODE_DIM("{price_type}", "7", "6", "2", "1", "{price_type}"))
-          , DruidFuncDimCol("My Date", DateType(), DRUID_TIME_FORMAT("YYYY-MM-dd HH"))
-
-        ),
-        Set(
-          FactCol("impressions", IntType(3, 1))
-          , FactCol("clicks", IntType(3, 0, 1, 800))
-        ),
-        annotations = Set(DruidGroupByStrategyV2),
-        underlyingTableName = Some("fact1")
-      )
-    }
-
-    factBuilder.newRollUp("rollupTable", "baseTable"
-      , discarding = Set("Derived Pricing Type")
-      , overrideAnnotations = Set(DruidGroupByStrategyV2)
-      , availableOnwardsDate = todayMinusTwoYears
-    )
-
-
-    factBuilder.toPublicFact("alternative_url_fact",
-      Set(
-        PubCol("My Date", "Day", InBetweenEquality),
-        PubCol("id", "Keyword ID", InEquality),
-        PubCol("campaign_id", "Campaign ID", InEquality),
-        PubCol("advertiser_id", "Advertiser ID", InEquality),
-        PubCol("price_type", "Pricing Type", In),
-        PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
-      ),
-      Set(
-        PublicFactCol("impressions", "Impressions", InBetweenEquality)
-        , PublicFactCol("clicks", "Clicks", InBetweenEquality)
-      ),
-      Set(),
-      getMaxDaysWindow, getMaxDaysLookBack, renderLocalTimeFilter = false, dimRevision = 2
-    )
-  }
 
 
   private[this] def withDruidQueryExecutor(url: String,
