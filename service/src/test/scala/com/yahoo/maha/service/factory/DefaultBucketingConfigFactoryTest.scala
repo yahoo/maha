@@ -153,5 +153,98 @@ class DefaultBucketingConfigFactoryTest extends BaseFactoryTest {
     assert(dryRunPercent(Version.v0).equals(10))
     assert(dryRunPercent(Version.v1).equals(10))
     assert(whitelist("uid").equals(Version.v0))
+    assert(bucketingConfigResult.toOption.get.getConfigForCube("mycube").get.uriDistribution.isEmpty)
+  }
+
+  test("Demonstrate setting of a URI config.") {
+    val jsonString =
+      """{"cube":
+        |[{
+        |    "cube": "mycube",
+        |    "internal":
+        |    [{
+        |      "revision": 0,
+        |      "percent": 10
+        |     },
+        |     {
+        |       "revision": 1,
+        |       "percent": 90
+        |     }],
+        |     "external":
+        |     [{
+        |        "revision": 0,
+        |        "percent": 90
+        |      },
+        |      {
+        |        "revision": 1,
+        |        "percent": 10
+        |     }],
+        |     "dryRun":
+        |     [{
+        |        "revision": 0,
+        |        "percent": 10,
+        |        "engine" : "Oracle"
+        |     }, {
+        |        "revision": 1,
+        |        "percent": 10
+        |     }],
+        |     "userWhiteList": [{
+        |        "user" : "uid",
+        |        "revision": 0
+        |     }],
+        |     "uriConfig": [
+        |       {
+        |         "uri": "localhost:1234",
+        |         "percent": 10
+        |       }
+        |     ]
+        |}],
+        |"queryGenerator": [
+        |{
+        |    "engine": "hive",
+        |    "internal":
+        |    [{
+        |      "revision": 0,
+        |      "percent": 20
+        |     },
+        |     {
+        |       "revision": 1,
+        |       "percent": 80
+        |     }],
+        |     "external":
+        |     [{
+        |        "revision": 0,
+        |        "percent": 90
+        |      },
+        |      {
+        |        "revision": 1,
+        |        "percent": 10
+        |     }],
+        |     "dryRun":
+        |     [{
+        |        "revision": 0,
+        |        "percent": 10
+        |     }, {
+        |         "revision": 1,
+        |         "percent": 10
+        |     }],
+        |     "userWhiteList": [{
+        |        "user" : "uid",
+        |        "revision": 0
+        |     }]
+        |}]}""".stripMargin
+
+    val factoryResult = getFactory[BucketingConfigFactory]("com.yahoo.maha.service.factory.DefaultBucketingConfigFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    val json = parse(jsonString)
+    val bucketingConfigResult = factory.fromJson(json)
+    assert(bucketingConfigResult.isSuccess, bucketingConfigResult)
+    assert(factory.supportedProperties == List.empty)
+    val cubeResult = bucketingConfigResult.toOption.get.getConfigForCube("mycube").get
+    val uriResult = cubeResult.uriPercentage("localhost:1234")
+    assert(uriResult == 10)
+    assert(cubeResult.uriDistribution.isDefined && cubeResult.uriDistribution.get.sample().equals("localhost:1234"))
+
   }
 }

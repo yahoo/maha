@@ -202,11 +202,13 @@ object DefaultBucketingConfigFactory {
   case class RevisionPercentConfig(revision: Int, percent: Int)
   case class RevisionPercentEngineConfig(revision: Int, percent: Int, engine: Option[Engine])
   case class UserRevisionConfig(user: String, revision: Int)
+  case class UriConfig(executor: String, percent: Int)
   case class CubeConfig(cube: String
                         , internal: List[RevisionPercentConfig]
                         , external: List[RevisionPercentConfig]
                         , dryRun: List[RevisionPercentEngineConfig]
-                        , userWhiteList: List[UserRevisionConfig])
+                        , userWhiteList: List[UserRevisionConfig]
+                        , uriConfig: List[UriConfig] = List.empty)
   case class QueryGenConfig(engine: String
                         , internal: List[RevisionPercentConfig]
                         , external: List[RevisionPercentConfig]
@@ -236,11 +238,15 @@ object DefaultBucketingConfigFactory {
     , fieldExtended[Option[Engine]]("engine"))
   implicit def urcJSON: JSONR[UserRevisionConfig] = UserRevisionConfig.applyJSON(fieldExtended[String]("user")
     , fieldExtended[Int]("revision"))
+
+  implicit def ucJSON: JSONR[UriConfig] = UriConfig.applyJSON(fieldExtended[String]("uri")
+  , fieldExtended[Int]("percent"))
   implicit def cubeConfigJSON: JSONR[CubeConfig] = CubeConfig.applyJSON(fieldExtended[String]("cube")
     , fieldExtended[List[RevisionPercentConfig]]("internal")
     , fieldExtended[List[RevisionPercentConfig]]("external")
     , fieldExtended[List[RevisionPercentEngineConfig]]("dryRun")
     , fieldExtended[List[UserRevisionConfig]]("userWhiteList")
+    , optionalFieldExtended[List[UriConfig]]("uriConfig", List.empty)
   )
   implicit def queryGenConfigJSON: JSONR[QueryGenConfig] = QueryGenConfig.applyJSON(fieldExtended[String]("engine")
     , fieldExtended[List[RevisionPercentConfig]]("internal")
@@ -279,6 +285,10 @@ object DefaultBucketingConfigFactory {
                 case UserRevisionConfig(u, r) => (u, r)
               }.toMap
               bldr.userWhiteList(userWhiteList)
+              val uriConfig = cubeConfig.uriConfig.map {
+                case UriConfig(ex, rev) => (ex, rev)
+              }.toMap
+              bldr.uriConfig(uriConfig)
               (cubeConfig.cube, bldr.build())
             }.leftMap(t => FailedToConstructFactory(t.getMessage, Option(t)).asInstanceOf[MahaServiceError]).toValidationNel
         }.sequence[MahaServiceConfig.MahaConfigResult, (String, CubeBucketingConfig)]

@@ -4,8 +4,13 @@ package com.yahoo.maha.core.bucketing
 
 import com.yahoo.maha.core.Engine
 import com.yahoo.maha.core.query.Version
-import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
+import org.apache.commons.math3.distribution.{EnumeratedDistribution, EnumeratedIntegerDistribution}
 import org.apache.commons.math3.exception.MathArithmeticException
+
+import java.util
+import scala.collection.JavaConverters
+import scala.collection.mutable.ListBuffer
+import org.apache.commons.math3.util.Pair
 
 /**
   * Created by shrav87 on 8/23/16.
@@ -14,7 +19,8 @@ import org.apache.commons.math3.exception.MathArithmeticException
 case class CubeBucketingConfig(internalBucketPercentage:Map[Int,Int] = Map.empty, //revision,%
                                externalBucketPercentage:Map[Int,Int] = Map.empty,
                                dryRunPercentage: Map[Int,Tuple2[Int, Option[Engine]]] = Map.empty, //revision,[%dryRun, Optional Engine]
-                               userWhiteList:Map[String,Int] = Map.empty // userId,rev
+                               userWhiteList:Map[String,Int] = Map.empty, // userId,rev
+                               uriPercentage: Map[String, Int]
                             ) {
   validate("")
 
@@ -34,6 +40,16 @@ case class CubeBucketingConfig(internalBucketPercentage:Map[Int,Int] = Map.empty
     }
   }
 
+  var uriBuffer = new ListBuffer[Pair[String, java.lang.Double]]
+  uriPercentage.foreach(
+    a => {
+      val myPair = new Pair(a._1, java.lang.Double.valueOf(a._2.toDouble/100))
+      uriBuffer += myPair
+    }
+  )
+  val uriDistribution: Option[EnumeratedDistribution[String]] =
+    if(uriBuffer.isEmpty) None else Some(new EnumeratedDistribution[String](JavaConverters.seqAsJavaList(uriBuffer.toSeq)))
+
   def validate(cubeName:String) = {
     val internalSum = internalBucketPercentage.values.sum
     require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum, cube: $cubeName")
@@ -52,6 +68,7 @@ class CubeBucketingConfigBuilder {
   private var externalBucketPercentage: Map[Int, Int] = Map.empty
   private var dryRunPercentage: Map[Int, Tuple2[Int, Option[Engine]]] = Map.empty
   private var userWhiteList: Map[String, Int] = Map.empty
+  private var uriConfig: Map[String, Int] = Map.empty
 
   def internalBucketPercentage(map: Map[Int, Int]): CubeBucketingConfigBuilder = {
     internalBucketPercentage = map
@@ -73,8 +90,13 @@ class CubeBucketingConfigBuilder {
     this
   }
 
+  def uriConfig(map: Map[String, Int]): CubeBucketingConfigBuilder = {
+    uriConfig = map
+    this
+  }
+
   def build(): CubeBucketingConfig = {
-    new CubeBucketingConfig(internalBucketPercentage.toMap, externalBucketPercentage.toMap, dryRunPercentage.toMap, userWhiteList.toMap)
+    new CubeBucketingConfig(internalBucketPercentage.toMap, externalBucketPercentage.toMap, dryRunPercentage.toMap, userWhiteList.toMap, uriConfig.toMap)
   }
 }
 

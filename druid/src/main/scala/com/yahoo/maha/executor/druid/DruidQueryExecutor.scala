@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets
 import com.google.common.cache.{CacheBuilder, CacheLoader}
 import org.asynchttpclient.Response
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.fact.{FactColumn, TierUrl}
+import com.yahoo.maha.core.fact.FactColumn
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid._
 import grizzled.slf4j.Logging
@@ -432,11 +432,8 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
       throw new UnsupportedOperationException(s"DruidQueryExecutor does not support query with engine=${query.engine}")
     } else {
       val isFactDriven = query.queryContext.requestModel.isFactDriven
-      if (isFactDriven && query.queryContext.asInstanceOf[FactQueryContext].factBestCandidate.fact.annotations.collect { case a: TierUrl => a }.nonEmpty)
-        url = query.queryContext.asInstanceOf[FactQueryContext]
-          .factBestCandidate.fact
-          .annotations.filter(p => p.isInstanceOf[TierUrl]).head
-          .asInstanceOf[TierUrl].url
+      if (isFactDriven && query.queryContext.requestModel.uri != null)
+        url = query.queryContext.requestModel.uri
 
       val headersWithAuthHeader = if (config.headers.isDefined) {
         Some(config.headers.get ++ authHeaderProvider.getAuthHeaders)

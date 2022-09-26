@@ -192,7 +192,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
         Fact.newFact(
           "student_performance", DailyGrain, OracleEngine, Set(StudentSchema),
           Set(
-              DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+            DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("batch_id", IntType(), annotations = Set(ForeignKey("batch")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher")))
@@ -200,7 +200,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("science_lab_volunteer_id", IntType(), annotations = Set(ForeignKey("science_lab_volunteers")))
             , DimCol("tutor_id", IntType(), annotations = Set(ForeignKey("tutors")))
             , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
-            , DimCol("group_id", IntType(), annotations = Set(ForeignKey("grp"))) 
+            , DimCol("group_id", IntType(), annotations = Set(ForeignKey("grp")))
             , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
@@ -210,25 +210,25 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           ),
           Set(
             FactCol("total_marks", IntType())
-            ,FactCol("obtained_marks", IntType())
-            ,OracleDerFactCol("Performance Factor", DecType(10,2), "{obtained_marks}" /- "{total_marks}")
+            , FactCol("obtained_marks", IntType())
+            , OracleDerFactCol("Performance Factor", DecType(10, 2), "{obtained_marks}" /- "{total_marks}")
           )
         )
       }
 
       ColumnContext.withColumnContext {
         implicit dc: ColumnContext =>
-          builder.withAlternativeEngine("hive_student_performance","student_performance", HiveEngine)
+          builder.withAlternativeEngine("hive_student_performance", "student_performance", HiveEngine)
       }
 
       ColumnContext.withColumnContext {
         implicit dc: ColumnContext =>
-          builder.withAlternativeEngine("presto_student_performance","student_performance", PrestoEngine)
+          builder.withAlternativeEngine("presto_student_performance", "student_performance", PrestoEngine)
       }
 
       ColumnContext.withColumnContext {
         implicit dc: ColumnContext =>
-          builder.withAlternativeEngine("dr_student_performance","student_performance", DruidEngine)
+          builder.withAlternativeEngine("dr_student_performance", "student_performance", DruidEngine)
       }
 
       builder.toPublicFact("student_performance",
@@ -258,7 +258,66 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
         getMaxDaysWindow, getMaxDaysLookBack, revision = 3, dimRevision = 1
       )
     }
+
     registry.register(pubfactStudentPerf)
+
+    def pubfactDruidOnly: PublicFact = {
+      val builder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        import com.yahoo.maha.core.OracleExpression._
+        Fact.newFact(
+          "druid_perf", DailyGrain, DruidEngine, Set(StudentSchema),
+          Set(
+            DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+            , DimCol("batch_id", IntType(), annotations = Set(ForeignKey("batch")))
+            , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+            , DimCol("researcher_id", IntType(), annotations = Set(ForeignKey("researcher_druid")))
+            , DimCol("class_volunteer_id", IntType(), annotations = Set(ForeignKey("class_volunteers")))
+            , DimCol("science_lab_volunteer_id", IntType(), annotations = Set(ForeignKey("science_lab_volunteers")))
+            , DimCol("tutor_id", IntType(), annotations = Set(ForeignKey("tutors")))
+            , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
+            , DimCol("group_id", IntType(), annotations = Set(ForeignKey("researcher_druid")))
+            , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
+            , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
+            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("date", DateType())
+            , DimCol("month", DateType())
+            , DimCol("top_student_id", IntType())
+          ),
+          Set(
+            FactCol("total_marks", IntType())
+            , FactCol("obtained_marks", IntType())
+          )
+        )
+      }
+
+      builder.toPublicFact("druid_performance",
+        Set(
+          PubCol("class_id", "Class ID", InEquality),
+          PubCol("batch_id", "Batch ID", InEquality),
+          PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
+          PubCol("researcher_id", "Researcher ID", InBetweenEqualityFieldEquality),
+          PubCol("class_volunteer_id", "Class Volunteer ID", InBetweenEqualityFieldEquality),
+          PubCol("science_lab_volunteer_id", "Science Lab Volunteer ID", InBetweenEqualityFieldEquality),
+          PubCol("tutor_id", "Tutor ID", InBetweenEqualityFieldEquality),
+          PubCol("lab_id", "Lab ID", InBetweenEqualityFieldEquality),
+          PubCol("section_id", "Section ID", InEquality),
+          PubCol("group_id", "Group ID", InEquality),
+          PubCol("date", "Day", Equality),
+          PubCol("month", "Month", InEquality),
+          PubCol("year", "Year", Equality),
+          PubCol("comment", "Remarks", InEqualityLike),
+          PubCol("top_student_id", "Top Student ID", FieldEquality)
+        ),
+        Set(
+          PublicFactCol("total_marks", "Total Marks", InBetweenEqualityFieldEquality),
+          PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEqualityFieldEquality)
+        ),
+        Set.empty,
+        getMaxDaysWindow, getMaxDaysLookBack
+      )
+    }
+
+    registry.register(pubfactDruidOnly)
   }
 
 }
@@ -942,6 +1001,28 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
       }
     }
 
+    val druid_dim: PublicDimension = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        Dimension.newDimension("researcher_druid", OracleEngine, LevelFour, Set(StudentSchema),
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
+            , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(OracleHashPartitioning)
+        ).toPublicDimension("researcher_druid", "researcher_druid",
+          Set(
+            PubCol("id", "Group ID", InBetweenEqualityFieldEquality)
+            , PubCol("name", "Group Name", EqualityFieldEquality)
+            , PubCol("lab_id", "Lab ID", InEqualityFieldEquality)
+            , PubCol("student_id", "Student ID", InEqualityFieldEquality)
+          )
+        )
+      }
+    }
+
     registry.register(section_dim)
     registry.register(class_dim)
     registry.register(batch_dim)
@@ -954,5 +1035,6 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
     registry.register(science_lab_volunteer_dim)
     registry.register(tutor_dim)
     registry.register(group_dim)
+    registry.register(druid_dim)
   }
 }
