@@ -13,7 +13,7 @@ import scala.util.Try
 /**
   * Created by surabhip on 8/25/16.
   */
-case class CubeBucketSelected(revision: Int, dryRunRevision: Option[Int], dryRunEngine: Option[Engine])
+case class CubeBucketSelected(revision: Int, dryRunRevision: Option[Int], dryRunEngine: Option[Engine], uri: String = null)
 case class QueryGenBucketSelected(queryGenVersion: Version, dryRunQueryGenVersion: Option[Version])
 
 case class UserInfo(userId: String, isInternal: Boolean)
@@ -71,8 +71,10 @@ class BucketSelector(registry: Registry, val bucketingConfig: BucketingConfig) e
         dryRunEngine = dryRunBucket._2
       }
 
-      info(s"Buckets Selected: cube: $cube, revision: $revision, dryRunRevision: $dryRunRevision dryrunEngine: $dryRunEngine")
-      new CubeBucketSelected(revision, dryRunRevision, dryRunEngine)
+      val uri = selectUri(cubeConfig, requestParams)
+
+      info(s"Buckets Selected: cube: $cube, revision: $revision, dryRunRevision: $dryRunRevision dryrunEngine: $dryRunEngine URI: $uri")
+      new CubeBucketSelected(revision, dryRunRevision, dryRunEngine, uri)
     }
   }
 
@@ -144,5 +146,13 @@ class BucketSelector(registry: Registry, val bucketingConfig: BucketingConfig) e
       }
     }
     (None, None)
+  }
+
+  private def selectUri(config: Option[CubeBucketingConfig], requestParams: BucketParams): (String) = {
+    if(config.isDefined && config.get.uriDistribution.isDefined) {
+      config.get.uriDistribution.get.sample()
+    } else {
+      null
+    }
   }
 }

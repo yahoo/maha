@@ -160,6 +160,7 @@ case class RequestModel(cube: String
                         , requestedFkAliasToPublicDimensionMap: Map[String, PublicDimension]
                         , orFilterMeta: Set[OrFilterMeta]
                         , dimensionRelations: DimensionRelations
+                        , uri: String = null
   ) {
 
   val requestColsSet: Set[String] = requestCols.map(_.alias).toSet
@@ -321,6 +322,7 @@ object RequestModel extends Logging {
            , userTimeZoneProvider: UserTimeZoneProvider
            , utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider
            , revision: Option[Int] = None
+           , uri: String = null
           ) : Try[RequestModel] = {
     Try {
       registry.getFact(request.cube, revision) match {
@@ -1197,7 +1199,8 @@ object RequestModel extends Logging {
             outerFilters = allOuterFilters,
             requestedFkAliasToPublicDimensionMap = allRequestedFkAliasToPublicDimMap,
             orFilterMeta = allOrFilterMeta.toSet,
-            dimensionRelations = dimensionRelations
+            dimensionRelations = dimensionRelations,
+            uri = uri
            )
       }
     }
@@ -1472,7 +1475,7 @@ object RequestModelFactory extends Logging {
     selectedBucketsTry match {
       case Success(buckets: CubeBucketSelected) =>
         for {
-          defaultRequestModel <- RequestModel.from(request, registry, userTimeZoneProvider, utcTimeProvider, Some(buckets.revision))
+          defaultRequestModel <- RequestModel.from(request, registry, userTimeZoneProvider, utcTimeProvider, Some(buckets.revision), buckets.uri)
         } yield {
           val dryRunModel: Option[Try[RequestModel]] = if (buckets.dryRunRevision.isDefined) {
             Option(Try {
@@ -1494,7 +1497,7 @@ object RequestModelFactory extends Logging {
                     throw new IllegalArgumentException(s"Unknown engine: $a")
                 }
               } else request
-              RequestModel.from(updatedRequest, registry, userTimeZoneProvider, utcTimeProvider, buckets.dryRunRevision)
+              RequestModel.from(updatedRequest, registry, userTimeZoneProvider, utcTimeProvider, buckets.dryRunRevision, buckets.uri)
             }.flatten)
           } else None
           RequestModelResult(defaultRequestModel, dryRunModel)

@@ -639,6 +639,11 @@ class MahaServiceTest extends BaseFactoryTest {
     val newPercentage = dynamicServiceConfig.toOption.get.registry("er").bucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage
     Thread.sleep(1000)
     assert(newPercentage.equals(Map(0 -> 20, 1 -> 80)))
+
+    val cubeUriSettings = dynamicServiceConfig.toOption.get.registry("er").bucketSelector.bucketingConfig.getConfigForCube("student_performance").get.uriPercentage
+    assert(cubeUriSettings("localhost:1234") == 10)
+    assert(cubeUriSettings("http://www.alphabetsoup.com") == 90)
+
   }
 
   val dynamicConfigJson = s"""{
@@ -844,7 +849,17 @@ class MahaServiceTest extends BaseFactoryTest {
 							"engine": "Oracle"
 						}],
 						"userWhiteList": [
-						]
+						],
+            "uriConfig": [
+              {
+                "uri": "localhost:1234",
+                "percent": 10
+              },
+              {
+                "uri": "http://www.alphabetsoup.com",
+                "percent": 90
+              }
+            ]
 					}
 				],
 				"queryGenerator": []

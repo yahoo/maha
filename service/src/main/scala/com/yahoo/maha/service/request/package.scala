@@ -9,6 +9,7 @@ import org.json4s.{JValue, _}
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.scalaz.JsonScalaz
 import org.json4s.scalaz.JsonScalaz.{JSONR, _}
+import _root_.scalaz._
 
 /**
   * Created by hiral on 2/11/16.
@@ -45,6 +46,15 @@ package object request extends Logging {
             UncategorizedError(name, s"unexpected value : $was expected : ${expected.getSimpleName}", List.empty)
           case a => a
         }
+    }
+  }
+
+  def optionalFieldExtended[A: JSONR](name: String, default: A)(json: JValue): Result[A] = {
+    val result = field[A](name)(json)
+    if (result.isSuccess)
+      result
+    else {
+      Validation.success[Error, A](default).asInstanceOf[Result[A]]
     }
   }
 

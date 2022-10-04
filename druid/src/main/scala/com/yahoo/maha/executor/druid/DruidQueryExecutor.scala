@@ -5,7 +5,6 @@ package com.yahoo.maha.executor.druid
 import java.io.Closeable
 import java.math.MathContext
 import java.nio.charset.StandardCharsets
-
 import com.google.common.cache.{CacheBuilder, CacheLoader}
 import org.asynchttpclient.Response
 import com.yahoo.maha.core._
@@ -402,7 +401,7 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
     , config.retryDelayMillis
     , config.maxRetry
   )
-  val url = config.url
+  var url = config.url
 
   override def close(): Unit = httpUtils.close()
 
@@ -432,6 +431,10 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
     if (!acceptEngine(query.engine)) {
       throw new UnsupportedOperationException(s"DruidQueryExecutor does not support query with engine=${query.engine}")
     } else {
+      val isFactDriven = query.queryContext.requestModel.isFactDriven
+      if (isFactDriven && query.queryContext.requestModel.uri != null)
+        url = query.queryContext.requestModel.uri
+
       val headersWithAuthHeader = if (config.headers.isDefined) {
         Some(config.headers.get ++ authHeaderProvider.getAuthHeaders)
       } else {
@@ -444,7 +447,6 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
       rowList match {
         case rl if rl.isInstanceOf[IndexedRowList] =>
           val irl = rl.asInstanceOf[IndexedRowList]
-          val isFactDriven = query.queryContext.requestModel.isFactDriven
           val performJoin = irl.size > 0
           var pagination: Option[JValue] = null
           val result = Try {

@@ -420,6 +420,7 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
   }
 
 
+
   private[this] def withDruidQueryExecutor(url: String,
                                            enableFallbackOnUncoveredIntervals: Boolean = false,
                                            allowPartialIfResultExceedsMaxRowLimit:Boolean = false)(fn: DruidQueryExecutor => Unit): Unit ={
