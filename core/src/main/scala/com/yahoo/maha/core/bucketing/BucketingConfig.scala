@@ -20,7 +20,7 @@ case class CubeBucketingConfig(internalBucketPercentage:Map[Int,Int] = Map.empty
                                externalBucketPercentage:Map[Int,Int] = Map.empty,
                                dryRunPercentage: Map[Int,Tuple2[Int, Option[Engine]]] = Map.empty, //revision,[%dryRun, Optional Engine]
                                userWhiteList:Map[String,Int] = Map.empty, // userId,rev
-                               uriPercentage: Map[String, Int]
+                               uriPercentage: Map[String, Int] = Map.empty
                             ) {
   validate("")
 
