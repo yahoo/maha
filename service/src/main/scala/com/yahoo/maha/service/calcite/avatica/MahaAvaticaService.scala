@@ -113,7 +113,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
     }
 
     override def apply(prepareRequest: Service.PrepareRequest): Service.PrepareResponse = {
-        new PrepareResponse(new StatementHandle(prepareRequest.connectionId, statementIdCounter.getAndIncrement() , null),rpcMetadataResponse);
+        new PrepareResponse(new StatementHandle(prepareRequest.connectionId, statementIdCounter.getAndIncrement() , getSignature()),rpcMetadataResponse);
     }
 
     override def apply(executeRequest: Service.ExecuteRequest): Service.ExecuteResponse = {
@@ -178,6 +178,17 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
 
     override def setRpcMetadata(rpcMetadataResponse: Service.RpcMetadataResponse): Unit = ???
 
+    private def getSignature(): Signature = {
+        val columns = new util.ArrayList[ColumnMetaData]
+        val params = new util.ArrayList[AvaticaParameter]
+        val cursorFactory = CursorFactory.create(Style.LIST, classOf[String], util.Arrays.asList())
+        Array("Column Name", "Column Type", "Data Type", "Comment").zipWithIndex.foreach {
+            case (columnName, index) => {
+                columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
+            }
+        }
+         Signature.create(columns, "", params, cursorFactory, StatementType.SELECT)
+    }
     def toComment(pubCol: PublicColumn):String = {
         s""" ${pubCol.alias}, allowed filters: ${pubCol.filters}, restricted schemas: ${pubCol.restrictedSchemas}, Is required: ${pubCol.required} """
     }
@@ -359,17 +370,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                 val pubFactOption = registry.getFact(describeSqlNode.cube)
                 require(pubFactOption.isDefined, s"Failed to find the cube ${describeSqlNode.cube} in the registry fact map")
                 val publicFact = pubFactOption.get
-                val columnsByAliasMap = pubFactOption.get.columnsByAliasMap
-
-                val columns = new util.ArrayList[ColumnMetaData]
-                val params = new util.ArrayList[AvaticaParameter]
-                val cursorFactory = CursorFactory.create(Style.LIST, classOf[String], util.Arrays.asList())
-                Array("Column Name", "Column Type", "Data Type", "Comment").zipWithIndex.foreach {
-                    case (columnName, index) => {
-                        columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
-                    }
-                }
-                val signature: Signature = Signature.create(columns, "", params, cursorFactory, StatementType.SELECT)
+                val signature: Signature = getSignature()
                 val rows = new util.ArrayList[Object]()
                 publicFact.dimCols.foreach {
                     dimCol=>
