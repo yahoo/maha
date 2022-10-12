@@ -113,7 +113,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
     }
 
     override def apply(prepareRequest: Service.PrepareRequest): Service.PrepareResponse = {
-        new PrepareResponse(new StatementHandle(prepareRequest.connectionId, statementIdCounter.getAndIncrement() , getSignature()),rpcMetadataResponse);
+        new PrepareResponse(new StatementHandle(prepareRequest.connectionId, statementIdCounter.getAndIncrement() , getSignature(prepareRequest.sql)),rpcMetadataResponse);
     }
 
     override def apply(executeRequest: Service.ExecuteRequest): Service.ExecuteResponse = {
@@ -178,7 +178,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
 
     override def setRpcMetadata(rpcMetadataResponse: Service.RpcMetadataResponse): Unit = ???
 
-    private def getSignature(): Signature = {
+    private def getSignature(sql:String): Signature = {
         val columns = new util.ArrayList[ColumnMetaData]
         val params = new util.ArrayList[AvaticaParameter]
         val cursorFactory = CursorFactory.create(Style.LIST, classOf[String], util.Arrays.asList())
@@ -187,7 +187,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                 columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
             }
         }
-         Signature.create(columns, "", params, cursorFactory, StatementType.SELECT)
+         Signature.create(columns, sql, params, cursorFactory, StatementType.SELECT)
     }
     def toComment(pubCol: PublicColumn):String = {
         s""" ${pubCol.alias}, allowed filters: ${pubCol.filters}, restricted schemas: ${pubCol.restrictedSchemas}, Is required: ${pubCol.required} """
@@ -370,7 +370,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                 val pubFactOption = registry.getFact(describeSqlNode.cube)
                 require(pubFactOption.isDefined, s"Failed to find the cube ${describeSqlNode.cube} in the registry fact map")
                 val publicFact = pubFactOption.get
-                val signature: Signature = getSignature()
+                val signature: Signature = getSignature(sql)
                 val rows = new util.ArrayList[Object]()
                 publicFact.dimCols.foreach {
                     dimCol=>
