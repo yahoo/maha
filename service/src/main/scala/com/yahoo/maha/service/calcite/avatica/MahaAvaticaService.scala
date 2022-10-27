@@ -372,15 +372,23 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                 val publicFact = pubFactOption.get
                 val signature: Signature = getSignature(sql)
                 val rows = new util.ArrayList[Object]()
+                val distinctCols = scala.collection.mutable.Set[Array[String]]()
+
                 publicFact.dimCols.foreach {
                     dimCol=>
                         val row = Array(dimCol.alias, DIMENSION_COLUMN, getDataType(dimCol, publicFact) , toComment(dimCol))
-                        rows.add(row)
+                        if(!distinctCols.contains(row)) {
+                            distinctCols.add(row)
+                            rows.add(row)
+                        }
                 }
                 publicFact.factCols.foreach {
                     factCol=>
                         val row = Array(factCol.alias, METRIC_COLUMN, getDataType(factCol, publicFact) , toComment(factCol))
-                        rows.add(row)
+                        if(!distinctCols.contains(row)) {
+                            distinctCols.add(row)
+                            rows.add(row)
+                        }
                 }
                 publicFact.foreignKeySources.foreach {
                     dimensionCube =>
@@ -391,7 +399,10 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                             dim.columnsByAliasMap.foreach {
                                 case (alias, dimCol)=>
                                     val row = Array(dimCol.alias, DIMENSION_JOIN_COLUMN, getDataTypeFromDim(dimCol, dim) , toComment(dimCol))
-                                    rows.add(row)
+                                    if(!distinctCols.contains(row)) {
+                                        distinctCols.add(row)
+                                        rows.add(row)
+                                    }
                             }
                         }
                 }
