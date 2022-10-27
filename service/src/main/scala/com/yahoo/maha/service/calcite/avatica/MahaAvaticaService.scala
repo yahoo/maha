@@ -379,15 +379,11 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                 publicFact.dimCols.foreach {
                     dimCol=>
                         val row = Array(dimCol.alias, DIMENSION_COLUMN, getDataType(dimCol, publicFact) , toComment(dimCol))
-//                        for(v <- row){println(v)}
-//                        println(dimCol.alias)
                         if(distinctCols.add(dimCol.alias)) rows.add(row)
                 }
                 publicFact.factCols.foreach {
                     factCol=>
                         val row = Array(factCol.alias, METRIC_COLUMN, getDataType(factCol, publicFact) , toComment(factCol))
-//                        for(v <- row){println(v)}
-//                        println(factCol.alias)
                         if(distinctCols.add(factCol.alias)) rows.add(row)
 
                 }
@@ -400,8 +396,6 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                             dim.columnsByAliasMap.foreach {
                                 case (alias, dimCol)=>
                                     val row = Array(dimCol.alias, DIMENSION_JOIN_COLUMN, getDataTypeFromDim(dimCol, dim) , toComment(dimCol))
-//                                    for(v <- row){println(v)}
-//                                    println(dimCol.alias)
                                     if(distinctCols.add(dimCol.alias)) rows.add(row)
                             }
                         }
