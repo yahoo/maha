@@ -143,7 +143,6 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
     assert(result.results.size() == 1)
     val frame = result.results.get(0).firstFrame
     assert(frame!=null)
-    var count = 0;
     val rowsIt = frame.rows.iterator();
     val distinctCols = scala.collection.mutable.Set[String]()
     rowsIt.forEachRemaining(s=> {
