@@ -385,7 +385,6 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                     factCol=>
                         val row = Array(factCol.alias, METRIC_COLUMN, getDataType(factCol, publicFact) , toComment(factCol))
                         if(distinctCols.add(factCol.alias)) rows.add(row)
-
                 }
                 publicFact.foreignKeySources.foreach {
                     dimensionCube =>
