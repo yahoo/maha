@@ -126,6 +126,30 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
 
   }
 
+  test("Test that Describe table request returns distinct rows") {
+    val mahaAvaticaService = new DefaultMahaAvaticaService(executeFunction,
+      DefaultMahaCalciteSqlParser(mahaServiceConfig),
+      mahaService,
+      new DefaultAvaticaRowListTransformer(),
+      (schma)=> ExampleSchema.namesToValuesMap(schma),
+      REGISTRY,
+      StudentSchema,
+      ReportingRequest,
+      new DefaultConnectionUserInfoProvider
+    )
+
+    mahaAvaticaService(new OpenConnectionRequest(connectionID, Maps.newHashMap()))
+    val result =  mahaAvaticaService(new PrepareAndExecuteRequest(connectionID, 1, "describe student_performance", 10))
+    assert(result.results.size() == 1)
+    val frame = result.results.get(0).firstFrame
+    assert(frame!=null)
+    val rowsIt = frame.rows.iterator();
+    val distinctCols = scala.collection.mutable.Set[String]()
+    rowsIt.forEachRemaining(s=> {
+      assert(distinctCols.add(s.asInstanceOf[Array[String]](0))==true)
+    })
+  }
+
   test("Noop avatica service") {
     val noopMahaAvaticaService = new NoopMahaAvaticaService()
     noopMahaAvaticaService.apply(new PrepareAndExecuteRequest("", 1, "", 10))
