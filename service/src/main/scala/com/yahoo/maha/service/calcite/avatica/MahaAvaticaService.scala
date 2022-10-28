@@ -1,11 +1,13 @@
 package com.yahoo.maha.service.calcite.avatica;
 
 import java.util
+import java.util.Arrays
+
 import org.apache.calcite.avatica.{AvaticaParameter, ColumnMetaData, ConnectionPropertiesImpl, Meta, MetaImpl}
 import org.apache.calcite.avatica.Meta.{ConnectionProperties, CursorFactory, Frame, Signature, StatementHandle, StatementType, Style}
 import org.apache.calcite.avatica.remote.Service._
-
 import java.util.concurrent.atomic.AtomicInteger
+
 import org.apache.calcite.avatica.remote.Service
 import com.yahoo.maha.core.{PublicColumn, Schema}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
@@ -372,15 +374,17 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                 val publicFact = pubFactOption.get
                 val signature: Signature = getSignature(sql)
                 val rows = new util.ArrayList[Object]()
+                val distinctCols = scala.collection.mutable.Set[String]()
+
                 publicFact.dimCols.foreach {
                     dimCol=>
                         val row = Array(dimCol.alias, DIMENSION_COLUMN, getDataType(dimCol, publicFact) , toComment(dimCol))
-                        rows.add(row)
+                        if(distinctCols.add(dimCol.alias)) rows.add(row)
                 }
                 publicFact.factCols.foreach {
                     factCol=>
                         val row = Array(factCol.alias, METRIC_COLUMN, getDataType(factCol, publicFact) , toComment(factCol))
-                        rows.add(row)
+                        if(distinctCols.add(factCol.alias)) rows.add(row)
                 }
                 publicFact.foreignKeySources.foreach {
                     dimensionCube =>
@@ -391,7 +395,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                             dim.columnsByAliasMap.foreach {
                                 case (alias, dimCol)=>
                                     val row = Array(dimCol.alias, DIMENSION_JOIN_COLUMN, getDataTypeFromDim(dimCol, dim) , toComment(dimCol))
-                                    rows.add(row)
+                                    if(distinctCols.add(dimCol.alias)) rows.add(row)
                             }
                         }
                 }
