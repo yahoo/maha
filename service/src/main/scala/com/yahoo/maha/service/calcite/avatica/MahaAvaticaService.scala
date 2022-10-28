@@ -320,16 +320,16 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                                     TABLE_SCHEM,
                                     publicFact.name,
                                     dimCol.alias,
-                                    getSqlDataType(dimCol, publicFact),
-                                    getDataType(dimCol, publicFact),
+                                    getSqlDataTypeFromDim(dimCol, dimCubeOption.get),
+                                    getDataTypeFromDim(dimCol, dimCubeOption.get),
                                     COLUMN_SIZE,
                                     BUFFER_LENGTH,
-                                    if(getDataType(dimCol, publicFact).equals("DecType")) 38 else null, //DECIMAL_DIGITS
+                                    if(getDataTypeFromDim(dimCol, dimCubeOption.get).equals("DecType")) 38 else null, //DECIMAL_DIGITS
                                     NUM_PREC_RADIX,
                                     NULLABLE,
                                     toComment(dimCol),
                                     toComment(dimCol),
-                                    getSqlDataType(dimCol, publicFact),
+                                    getSqlDataTypeFromDim(dimCol, dimCubeOption.get),
                                     SQL_DATETIME_SUB,
                                     CHAR_OCTET_LENGTH,
                                     ordinalPos, //ORDINAL_POSITION
