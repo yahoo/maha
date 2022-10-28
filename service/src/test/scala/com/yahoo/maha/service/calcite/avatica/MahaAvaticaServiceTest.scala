@@ -150,6 +150,34 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
     })
   }
 
+  test("Test that datatypes are returned correctly") {
+    val mahaAvaticaService = new DefaultMahaAvaticaService(executeFunction,
+      DefaultMahaCalciteSqlParser(mahaServiceConfig),
+      mahaService,
+      new DefaultAvaticaRowListTransformer(),
+      (schma)=> ExampleSchema.namesToValuesMap(schma),
+      REGISTRY,
+      StudentSchema,
+      ReportingRequest,
+      new DefaultConnectionUserInfoProvider
+    )
+
+    mahaAvaticaService(new OpenConnectionRequest(connectionID, Maps.newHashMap()))
+    val result =  mahaAvaticaService(new PrepareAndExecuteRequest(connectionID, 1, "describe student_performance", 10))
+    assert(result.results.size() == 1)
+    val frame = result.results.get(0).firstFrame
+    assert(frame!=null)
+    val rowsIt = frame.rows.iterator();
+    val distinctCols = scala.collection.mutable.Set[String]()
+    rowsIt.forEachRemaining(s=> {
+      //Section ID is a DimCol from FactTable, Performance Factor is a FactCol from FactTable, Student Name is a DimCol from DimTable
+      if(s.asInstanceOf[Array[String]](0).equals("Section ID")) assert(s.asInstanceOf[Array[String]](2).equals("IntType"))
+      else if(s.asInstanceOf[Array[String]](0).equals("Performance Factor")) assert(s.asInstanceOf[Array[String]](2).equals("DecType"))
+      else if(s.asInstanceOf[Array[String]](0).equals("Student Name")) assert(s.asInstanceOf[Array[String]](2).equals("StrType"))
+      //println(s.asInstanceOf[Array[String]](0)+" +++ "+s.asInstanceOf[Array[String]](1)+" +++ "+ s.asInstanceOf[Array[String]](2) + " +++ " + s.asInstanceOf[Array[String]](3) + " ")
+    })
+  }
+
   test("Noop avatica service") {
     val noopMahaAvaticaService = new NoopMahaAvaticaService()
     noopMahaAvaticaService.apply(new PrepareAndExecuteRequest("", 1, "", 10))
