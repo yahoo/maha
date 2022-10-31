@@ -168,12 +168,12 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
     val frame = result.results.get(0).firstFrame
     assert(frame!=null)
     val rowsIt = frame.rows.iterator();
-    val distinctCols = scala.collection.mutable.Set[String]()
     rowsIt.forEachRemaining(s=> {
-      //Section ID is a DimCol from FactTable, Performance Factor is a FactCol from FactTable, Student Name is a DimCol from DimTable
-      if(s.asInstanceOf[Array[String]](0).equals("Section ID")) assert(s.asInstanceOf[Array[String]](2).equals("IntType"))
-      else if(s.asInstanceOf[Array[String]](0).equals("Performance Factor")) assert(s.asInstanceOf[Array[String]](2).equals("DecType"))
-      else if(s.asInstanceOf[Array[String]](0).equals("Student Name")) assert(s.asInstanceOf[Array[String]](2).equals("StrType"))
+      //Section ID,Date are DimCol from FactTable, Performance Factor is a FactCol from FactTable, Student Name is a DimCol from DimTable
+      if(s.asInstanceOf[Array[String]](0).equals("Section ID")) assert(s.asInstanceOf[Array[String]](2).equals("bigint"))
+      else if(s.asInstanceOf[Array[String]](0).equals("Performance Factor")) assert(s.asInstanceOf[Array[String]](2).equals("float"))
+      else if(s.asInstanceOf[Array[String]](0).equals("Student Name")) assert(s.asInstanceOf[Array[String]](2).equals("varchar"))
+      else if(s.asInstanceOf[Array[String]](0).equals("Date")) assert(s.asInstanceOf[Array[String]](2).equals("timestamp"))
       //println(s.asInstanceOf[Array[String]](0)+" +++ "+s.asInstanceOf[Array[String]](1)+" +++ "+ s.asInstanceOf[Array[String]](2) + " +++ " + s.asInstanceOf[Array[String]](3) + " ")
     })
   }
