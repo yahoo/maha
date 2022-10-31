@@ -570,4 +570,27 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.cube contains "student_performance")
     request.toString shouldNot contain ("sp")
     }
+
+  test("test superset table query") {
+    val sql = s"""
+          select "Student ID" as "Student ID", SUM('Total Marks') from student_performance
+          where "Student ID" = 123
+              AND "Class ID" = 234
+              AND "Total Marks" > 0
+          GROUP BY "Student ID"
+          """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    assert(request.requestType === SyncRequest)
+    assert(request.selectFields.size > 1)
+    assert(request.selectFields.map(_.field).contains("Student ID"))
+    assert(request.selectFields.map(_.field).contains("Total Marks"))
+    assert(request.filterExpressions.size == 3)
+    assert(request.queryType == GroupByQuery)
+
+    val ser = ReportingRequest.serialize(request)
+    assert(ser != null)
+  }
 }
