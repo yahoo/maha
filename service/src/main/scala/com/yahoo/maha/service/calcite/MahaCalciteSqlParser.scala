@@ -190,8 +190,14 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                 val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlCharStringLiteral), columnAliasToColumnMap)
                 arrayBuffer += Field(publicCol.alias, None, None)
               case sqlBasicCall: SqlBasicCall =>
-                val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlBasicCall.operands(0)), columnAliasToColumnMap)
-                arrayBuffer += Field(publicCol.alias, None, None)
+                sqlBasicCall.operands(0) match {
+                  case innerSqlBasicCall: SqlBasicCall =>
+                    val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(innerSqlBasicCall.operands(0)), columnAliasToColumnMap)
+                    arrayBuffer += Field(publicCol.alias, None, None)
+                  case sqlIdentifier: SqlIdentifier =>
+                    val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlIdentifier), columnAliasToColumnMap)
+                    arrayBuffer += Field(publicCol.alias, None, None)
+                }
               case other: AnyRef =>
                 val errMsg = s"sqlNode type${other.getClass.toString} in getSelectList is not yet supported"
                 logger.error(errMsg);
