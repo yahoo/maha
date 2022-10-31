@@ -173,7 +173,7 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
       if(s.asInstanceOf[Array[String]](0).equals("Section ID")) assert(s.asInstanceOf[Array[String]](2).equals("bigint"))
       else if(s.asInstanceOf[Array[String]](0).equals("Performance Factor")) assert(s.asInstanceOf[Array[String]](2).equals("float"))
       else if(s.asInstanceOf[Array[String]](0).equals("Student Name")) assert(s.asInstanceOf[Array[String]](2).equals("varchar"))
-      else if(s.asInstanceOf[Array[String]](0).equals("Date")) assert(s.asInstanceOf[Array[String]](2).equals("timestamp"))
+      else if(s.asInstanceOf[Array[String]](0).equals("Date")) assert(s.asInstanceOf[Array[String]](2).equals("date"))
       //println(s.asInstanceOf[Array[String]](0)+" +++ "+s.asInstanceOf[Array[String]](1)+" +++ "+ s.asInstanceOf[Array[String]](2) + " +++ " + s.asInstanceOf[Array[String]](3) + " ")
     })
   }

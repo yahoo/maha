@@ -199,8 +199,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val name = dimCol.name
         val list =  publicFact.factList.map(fact=> fact.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
         if (list.nonEmpty) {
-            print(list.head.dataType.getClass.getSimpleName)
-            dataTypeMap1.getOrElse(list.head.dataType.getClass.getSimpleName, "")
+            dataTypeMap.getOrElse(list.head.dataType.getClass.getSimpleName, "")
         } else ""
     }
 
@@ -208,7 +207,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val name = dimCol.name
         val list =  publicDim.dimList.map(d=> d.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
         if(list.nonEmpty) {
-            dataTypeMap1.getOrElse(list.head.dataType.getClass.getSimpleName, "")
+            dataTypeMap.getOrElse(list.head.dataType.getClass.getSimpleName, "")
         } else ""
     }
 
@@ -494,11 +493,11 @@ object MahaAvaticaServiceHelper extends Logging {
         "IS_AUTOINCREMENT" -> "String",
         "IS_GENERATEDCOLUMN" -> "String"
     )
-    val dataTypeMap1: Map[String, String] = Map(
+    val dataTypeMap: Map[String, String] = Map(
         "IntType" -> "bigint",
         "StrType" -> "varchar",
         "DecType" -> "float",
-        "DateType" -> "timestamp",
+        "DateType" -> "date",
         "TimestampType" -> "timestamp",
         "PassthroughType" -> "varchar"
     )
