@@ -199,7 +199,8 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val name = dimCol.name
         val list =  publicFact.factList.map(fact=> fact.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
         if (list.nonEmpty) {
-            list.head.dataType.getClass.getSimpleName
+            print(list.head.dataType.getClass.getSimpleName)
+            dataTypeMap1.getOrElse(list.head.dataType.getClass.getSimpleName, "")
         } else ""
     }
 
@@ -207,7 +208,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val name = dimCol.name
         val list =  publicDim.dimList.map(d=> d.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
         if(list.nonEmpty) {
-            list.head.dataType.getClass.getSimpleName
+            dataTypeMap1.getOrElse(list.head.dataType.getClass.getSimpleName, "")
         } else ""
     }
 
@@ -257,7 +258,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                     getDataType(dimCol, publicFact),
                     COLUMN_SIZE,
                     BUFFER_LENGTH,
-                    if(getDataType(dimCol, publicFact).equals("DecType")) 38 else null, //DECIMAL_DIGITS
+                    if(getDataType(dimCol, publicFact).equals("float")) 38 else null, //DECIMAL_DIGITS
                     NUM_PREC_RADIX,
                     NULLABLE,
                     toComment(dimCol),
@@ -288,7 +289,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                     getDataType(factCol, publicFact),
                     COLUMN_SIZE,
                     BUFFER_LENGTH,
-                    if(getDataType(factCol, publicFact).equals("DecType")) 38 else null, //DECIMAL_DIGITS
+                    if(getDataType(factCol, publicFact).equals("float")) 38 else null, //DECIMAL_DIGITS
                     NUM_PREC_RADIX,
                     NULLABLE,
                     toComment(factCol),
@@ -326,7 +327,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                                     getDataTypeFromDim(dimCol, dimCubeOption.get),
                                     COLUMN_SIZE,
                                     BUFFER_LENGTH,
-                                    if(getDataTypeFromDim(dimCol, dimCubeOption.get).equals("DecType")) 38 else null, //DECIMAL_DIGITS
+                                    if(getDataTypeFromDim(dimCol, dimCubeOption.get).equals("float")) 38 else null, //DECIMAL_DIGITS
                                     NUM_PREC_RADIX,
                                     NULLABLE,
                                     toComment(dimCol),
@@ -492,6 +493,14 @@ object MahaAvaticaServiceHelper extends Logging {
         "SOURCE_DATA_TYPE" -> "String",
         "IS_AUTOINCREMENT" -> "String",
         "IS_GENERATEDCOLUMN" -> "String"
+    )
+    val dataTypeMap1: Map[String, String] = Map(
+        "IntType" -> "bigint",
+        "StrType" -> "varchar",
+        "DecType" -> "float",
+        "DateType" -> "timestamp",
+        "TimestampType" -> "timestamp",
+        "PassthroughType" -> "varchar"
     )
     val COLUMN_SIZE = 20
     val BUFFER_LENGTH = 10 //unused
