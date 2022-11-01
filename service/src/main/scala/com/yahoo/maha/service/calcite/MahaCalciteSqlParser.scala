@@ -38,7 +38,6 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     val parser: SqlParser = SqlParser.create(sql, config)
     try {
       val topSqlNode: SqlNode = parser.parseQuery
-
       val sqlNode:SqlNode = topSqlNode match {
          case sqlSelect: SqlSelect=> sqlSelect
          case sqlOrderBy: SqlOrderBy=> sqlOrderBy.query

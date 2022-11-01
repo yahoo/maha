@@ -599,6 +599,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val ser = ReportingRequest.serialize(request)
     assert(ser != null)
   }
+
   test("test superset table query - testing sum(colName), aliases, aliases in order by Desc") {
     val sql = s"""
           select "Student ID" as "ABC", SUM('Total Marks') AS "XYZ" from student_performance
@@ -628,6 +629,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val ser = ReportingRequest.serialize(request)
     assert(ser != null)
   }
+
   test("test superset table query - testing sum(colName), complex aliases, aliases in order by Desc") {
     val sql = s"""
           select SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
