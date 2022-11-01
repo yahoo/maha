@@ -306,7 +306,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
           ArrayBuffer.empty
         }
         else
-        ArrayBuffer.empty += LessThanFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
+          ArrayBuffer.empty += LessThanFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
       case SqlKind.GREATER_THAN_OR_EQUAL =>
         if(toLiteral(operands(0)).equals(DailyGrain.DAY_FILTER_FIELD)) {
           fromDate = DailyGrain.toFormattedString(DateTime.parse(toLiteral(operands(1)),DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")))
