@@ -13,6 +13,7 @@ import org.apache.calcite.sql.parser.{SqlParseException, SqlParser}
 import org.apache.calcite.sql.validate.{SqlConformance, SqlConformanceEnum}
 import org.apache.commons.lang.StringUtils
 import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.format.DateTimeFormat
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -22,10 +23,12 @@ trait MahaCalciteSqlParser {
 
 case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) extends MahaCalciteSqlParser with Logging {
 
-  lazy protected[this] val fromDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
-  lazy protected[this] val toDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
+  lazy protected[this] val defaultFromDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
+  lazy protected[this] val defaultToDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
+  var fromDate : String = _
+  var toDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
 
-  val DEFAULT_DAY_FILTER : Filter = BetweenFilter("Day", fromDate, toDate)
+  val DEFAULT_DAY_FILTER : Filter = BetweenFilter("Day", defaultFromDate, defaultToDate)
   val DAY = "Day"
   val config = SqlParser.config().withConformance(SqlConformanceEnum.LENIENT)
   import scala.collection.JavaConverters._
@@ -298,7 +301,21 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
       case SqlKind.IS_NULL =>
         ArrayBuffer.empty += IsNullFilter(toLiteral(operands(0))).asInstanceOf[Filter]
       case SqlKind.LESS_THAN=>
+        if(toLiteral(operands(0)).equals(DailyGrain.DAY_FILTER_FIELD)) {
+          toDate = DailyGrain.toFormattedString(DateTime.parse(toLiteral(operands(1)), DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")))
+          ArrayBuffer.empty
+        }
+        else
         ArrayBuffer.empty += LessThanFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
+      case SqlKind.GREATER_THAN_OR_EQUAL =>
+        if(toLiteral(operands(0)).equals(DailyGrain.DAY_FILTER_FIELD)) {
+          fromDate = DailyGrain.toFormattedString(DateTime.parse(toLiteral(operands(1)),DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")))
+        }
+        else {
+          val errMsg = s"SqlKind.GREATER_THAN_OR_EQUAL filter is supported only for Day column"
+          logger.error(errMsg);
+        }
+        ArrayBuffer.empty
     }
   }
 
@@ -328,6 +345,9 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
           attributeAndMetricFilters += filter
         }
     }
+
+    if (fromDate != null)
+      dayFilter = Option(BetweenFilter("Day", fromDate, toDate))
 
     if (dayFilter.isEmpty)
       dayFilter = Option(DEFAULT_DAY_FILTER)
