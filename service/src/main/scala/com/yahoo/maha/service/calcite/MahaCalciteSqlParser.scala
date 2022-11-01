@@ -29,6 +29,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
   val DAY = "Day"
   val config = SqlParser.config().withConformance(SqlConformanceEnum.LENIENT)
   import scala.collection.JavaConverters._
+  val queryAliasToColumnNameMap = scala.collection.mutable.Map[String, String]()
 
   override def parse(sql: String, schema: Schema, registryName:String): MahaSqlNode = {
     require(!StringUtils.isEmpty(sql), MahaCalciteSqlParserError("Sql can not be empty", sql))
@@ -37,25 +38,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     val parser: SqlParser = SqlParser.create(sql, config)
     try {
       val topSqlNode: SqlNode = parser.parseQuery
-      val orderByList: IndexedSeq[SortBy] = {
-        if (topSqlNode.isInstanceOf[SqlOrderBy]) {
-          val orderBySql = topSqlNode.asInstanceOf[SqlOrderBy]
-          orderBySql.orderList.asScala.map {
-            case sqlOrderByBasic:SqlBasicCall=>
-              require(sqlOrderByBasic.operands.size>0, s"Missing field and Order by Clause ${sqlOrderByBasic}")
-              val order:Order = {
-                if (sqlOrderByBasic.getOperator!=null && sqlOrderByBasic.getKind == SqlKind.DESCENDING) {
-                  DESC
-                } else ASC
-              }
-              SortBy(toLiteral(sqlOrderByBasic.operands(0)), order)
-            case sqlString:SqlCharStringLiteral=>
-              SortBy(toLiteral(sqlString), ASC)
-            case other =>
-             throw new IllegalArgumentException(s"Maha Calcite: order by case ${other} not supported")
-          }.toIndexedSeq
-        } else IndexedSeq.empty
-      }
+
       val sqlNode:SqlNode = topSqlNode match {
          case sqlSelect: SqlSelect=> sqlSelect
          case sqlOrderBy: SqlOrderBy=> sqlOrderBy.query
@@ -94,6 +77,27 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
           val columnAliasToColumnMap:Map[String, PublicColumn] = publicFact.get.getAllDomainColumnAliasToPublicColumnMap(registry)
           val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get, columnAliasToColumnMap)
           val (filterExpression, dayFilterOption, hourFilterOption, minuteFilterOption, numDays) = getFilterList(sqlSelect, publicFact.get)
+          val orderByList: IndexedSeq[SortBy] = {
+            if (topSqlNode.isInstanceOf[SqlOrderBy]) {
+              val orderBySql = topSqlNode.asInstanceOf[SqlOrderBy]
+              orderBySql.orderList.asScala.map {
+                case sqlOrderByBasic:SqlBasicCall=>
+                  require(sqlOrderByBasic.operands.size>0, s"Missing field and Order by Clause ${sqlOrderByBasic}")
+                  val order:Order = {
+                    if (sqlOrderByBasic.getOperator!=null && sqlOrderByBasic.getKind == SqlKind.DESCENDING) {
+                      DESC
+                    } else ASC
+                  }
+                  SortBy(queryAliasToColumnNameMap.getOrElse(toLiteral(sqlOrderByBasic.operands(0)),toLiteral(sqlOrderByBasic.operands(0))), order)
+                case sqlString:SqlCharStringLiteral=>
+                  SortBy(queryAliasToColumnNameMap.getOrElse(toLiteral(sqlString),toLiteral(sqlString)), ASC)
+                case sqlString:SqlIdentifier=>
+                  SortBy(queryAliasToColumnNameMap.getOrElse(toLiteral(sqlString),toLiteral(sqlString)), ASC)
+                case other =>
+                  throw new IllegalArgumentException(s"Maha Calcite: order by case ${other} not supported")
+              }.toIndexedSeq
+            } else IndexedSeq.empty
+          }
           SelectSqlNode(
             new ReportingRequest(
               cube=publicFact.get.name,
@@ -193,13 +197,28 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                 sqlBasicCall.operands(0) match {
                   case innerSqlBasicCall: SqlBasicCall =>
                     val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(innerSqlBasicCall.operands(0)), columnAliasToColumnMap)
-                    arrayBuffer += Field(publicCol.alias, None, None)
+                    if(sqlBasicCall.operands.length>1) {
+                      val alias = toLiteral(sqlBasicCall.operands(1))
+                      queryAliasToColumnNameMap += (alias -> publicCol.alias)
+                      arrayBuffer += Field(publicCol.alias, Option(alias), None)
+                    }
+                    else arrayBuffer += Field(publicCol.alias, None, None)
                   case sqlIdentifier: SqlIdentifier =>
                     val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlIdentifier), columnAliasToColumnMap)
-                    arrayBuffer += Field(publicCol.alias, None, None)
+                    if(sqlBasicCall.operands.length>1) {
+                      val alias = toLiteral(sqlBasicCall.operands(1))
+                      queryAliasToColumnNameMap += (alias -> publicCol.alias)
+                      arrayBuffer += Field(publicCol.alias, Option(alias), None)
+                    }
+                    else arrayBuffer += Field(publicCol.alias, None, None)
                   case sqlCharStringLiteral: SqlCharStringLiteral =>
                     val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlCharStringLiteral), columnAliasToColumnMap)
-                    arrayBuffer += Field(publicCol.alias, None, None)
+                    if(sqlBasicCall.operands.length>1) {
+                      val alias = toLiteral(sqlBasicCall.operands(1))
+                      queryAliasToColumnNameMap += (alias -> publicCol.alias)
+                      arrayBuffer += Field(publicCol.alias, Option(alias), None)
+                    }
+                    else arrayBuffer += Field(publicCol.alias, None, None)
                 }
               case other: AnyRef =>
                 val errMsg = s"sqlNode type${other.getClass.toString} in getSelectList is not yet supported"
