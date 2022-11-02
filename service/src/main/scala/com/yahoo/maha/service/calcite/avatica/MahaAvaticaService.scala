@@ -496,7 +496,7 @@ object MahaAvaticaServiceHelper extends Logging {
     val dataTypeMap: Map[String, String] = Map(
         "IntType" -> "bigint",
         "StrType" -> "varchar",
-        "DecType" -> "float",
+        "DecType" -> "double",
         "DateType" -> "date",
         "TimestampType" -> "timestamp",
         "PassthroughType" -> "varchar"
