@@ -655,6 +655,31 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     request.sortBy.head.field shouldBe "Total Marks"
     request.sortBy.head.order.toString shouldBe "DESC"
 
+    assert(request.dayFilter.toString contains "BetweenFilter(Day")
+
+    val ser = ReportingRequest.serialize(request)
+    assert(ser != null)
+  }
+
+  test("test superset table query - testing Day filters") {
+    val sql = s"""
+          select SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
+          where "Student ID" = 123
+              AND "Class ID" = 234
+              AND "Total Marks" >= 0
+              AND "Day" >= '2022-10-26 00:00:00.000000'
+              AND "Day" < '2022-10-27 00:00:00.000000'
+          GROUP BY "ABC"
+          ORDER BY "SUM(Total Marks)" DESC
+          """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    assert(request.dayFilter.toString contains "BetweenFilter(Day,2022-10-26,2022-10-27)")
+    assert((request.dayFilter.toString contains "GreaterFilter(Total Marks,0)")==false)
+
     val ser = ReportingRequest.serialize(request)
     assert(ser != null)
   }
