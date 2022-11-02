@@ -570,4 +570,92 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.cube contains "student_performance")
     request.toString shouldNot contain ("sp")
     }
+
+  test("test superset table query - testing sum(colName), aliases, aliases in order by Asc") {
+    val sql = s"""
+          select "Student ID" as "ABC", SUM('Total Marks') AS "XYZ" from student_performance
+          where "Student ID" = 123
+              AND "Class ID" = 234
+              AND "Total Marks" > 0
+          GROUP BY "ABC"
+          ORDER BY "XYZ" ASC
+          """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    assert(request.requestType === SyncRequest)
+    assert(request.selectFields.size > 1)
+    assert(request.selectFields.map(_.field).contains("Student ID"))
+    assert(request.selectFields.map(_.field).contains("Total Marks"))
+    assert(request.filterExpressions.size == 3)
+    assert(request.queryType == GroupByQuery)
+
+    request.sortBy.size shouldBe 1
+    request.sortBy.head.field shouldBe "Total Marks"
+    request.sortBy.head.order.toString shouldBe "ASC"
+
+    val ser = ReportingRequest.serialize(request)
+    assert(ser != null)
+  }
+
+  test("test superset table query - testing sum(colName), aliases, aliases in order by Desc") {
+    val sql = s"""
+          select "Student ID" as "ABC", SUM('Total Marks') AS "XYZ" from student_performance
+          where "Student ID" = 123
+              AND "Class ID" = 234
+              AND "Total Marks" > 0
+          GROUP BY "ABC"
+          ORDER BY "XYZ" DESC
+          """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    assert(request.requestType === SyncRequest)
+    assert(request.selectFields.size > 1)
+    assert(request.selectFields.map(_.field).contains("Student ID"))
+    assert(request.selectFields.head.alias.get.equals("ABC"))
+    assert(request.selectFields.map(_.field).contains("Total Marks"))
+    assert(request.filterExpressions.size == 3)
+    assert(request.queryType == GroupByQuery)
+
+    request.sortBy.size shouldBe 1
+    request.sortBy.head.field shouldBe "Total Marks"
+    request.sortBy.head.order.toString shouldBe "DESC"
+
+    val ser = ReportingRequest.serialize(request)
+    assert(ser != null)
+  }
+
+  test("test superset table query - testing sum(colName), complex aliases, aliases in order by Desc") {
+    val sql = s"""
+          select SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
+          where "Student ID" = 123
+              AND "Class ID" = 234
+              AND "Total Marks" > 0
+          GROUP BY "ABC"
+          ORDER BY "SUM(Total Marks)" DESC
+          """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    assert(request.requestType === SyncRequest)
+    assert(request.selectFields.size > 1)
+    assert(request.selectFields.map(_.field).contains("Student ID"))
+    assert(request.selectFields.head.alias.get.equals("SUM(Total Marks)"))
+    assert(request.selectFields.map(_.field).contains("Total Marks"))
+    assert(request.queryType == GroupByQuery)
+
+    request.sortBy.size shouldBe 1
+    request.sortBy.head.field shouldBe "Total Marks"
+    request.sortBy.head.order.toString shouldBe "DESC"
+
+    val ser = ReportingRequest.serialize(request)
+    assert(ser != null)
+  }
 }
