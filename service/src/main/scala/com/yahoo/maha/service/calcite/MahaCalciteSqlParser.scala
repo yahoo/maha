@@ -84,13 +84,13 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
               val orderBySql = topSqlNode.asInstanceOf[SqlOrderBy]
               orderBySql.orderList.asScala.map {
                 case sqlOrderByBasic:SqlBasicCall=>
-                  require(sqlOrderByBasic.operands.size>0, s"Missing field and Order by Clause ${sqlOrderByBasic}")
+                  require(sqlOrderByBasic.getOperandList.size()>0, s"Missing field and Order by Clause ${sqlOrderByBasic}")
                   val order:Order = {
                     if (sqlOrderByBasic.getOperator!=null && sqlOrderByBasic.getKind == SqlKind.DESCENDING) {
                       DESC
                     } else ASC
                   }
-                  SortBy(queryAliasToColumnNameMap.getOrElse(toLiteral(sqlOrderByBasic.operands(0)),toLiteral(sqlOrderByBasic.operands(0))), order)
+                  SortBy(queryAliasToColumnNameMap.getOrElse(toLiteral(sqlOrderByBasic.getOperandList.get(0)),toLiteral(sqlOrderByBasic.getOperandList.get(0))), order)
                 case sqlString:SqlCharStringLiteral=>
                   SortBy(queryAliasToColumnNameMap.getOrElse(toLiteral(sqlString),toLiteral(sqlString)), ASC)
                 case sqlString:SqlIdentifier=>
@@ -149,7 +149,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     val sqlFromNode = sqlNode match {
       case sqlBasicCall: SqlBasicCall =>
         sqlBasicCall.getOperator.kind match {
-          case SqlKind.AS => sqlBasicCall.getOperands()(0)
+          case SqlKind.AS => sqlBasicCall.getOperandList().get(0)
           case _ => sqlNode
         }
       case _ => sqlNode
@@ -196,27 +196,27 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                 val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlCharStringLiteral), columnAliasToColumnMap)
                 arrayBuffer += Field(publicCol.alias, None, None)
               case sqlBasicCall: SqlBasicCall =>
-                sqlBasicCall.operands(0) match {
+                sqlBasicCall.getOperandList.get(0) match {
                   case innerSqlBasicCall: SqlBasicCall =>
-                    val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(innerSqlBasicCall.operands(0)), columnAliasToColumnMap)
-                    if(sqlBasicCall.operands.length>1) {
-                      val alias = toLiteral(sqlBasicCall.operands(1))
+                    val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(innerSqlBasicCall.getOperandList.get(0)), columnAliasToColumnMap)
+                    if(sqlBasicCall.getOperandList.size()>1) {
+                      val alias = toLiteral(sqlBasicCall.getOperandList.get(1))
                       queryAliasToColumnNameMap += (alias -> publicCol.alias)
                       arrayBuffer += Field(publicCol.alias, Option(alias), None)
                     }
                     else arrayBuffer += Field(publicCol.alias, None, None)
                   case sqlIdentifier: SqlIdentifier =>
                     val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlIdentifier), columnAliasToColumnMap)
-                    if(sqlBasicCall.operands.length>1) {
-                      val alias = toLiteral(sqlBasicCall.operands(1))
+                    if(sqlBasicCall.getOperandList.size>1) {
+                      val alias = toLiteral(sqlBasicCall.getOperandList.get(1))
                       queryAliasToColumnNameMap += (alias -> publicCol.alias)
                       arrayBuffer += Field(publicCol.alias, Option(alias), None)
                     }
                     else arrayBuffer += Field(publicCol.alias, None, None)
                   case sqlCharStringLiteral: SqlCharStringLiteral =>
                     val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlCharStringLiteral), columnAliasToColumnMap)
-                    if(sqlBasicCall.operands.length>1) {
-                      val alias = toLiteral(sqlBasicCall.operands(1))
+                    if(sqlBasicCall.getOperandList.size>1) {
+                      val alias = toLiteral(sqlBasicCall.getOperandList.get(1))
                       queryAliasToColumnNameMap += (alias -> publicCol.alias)
                       arrayBuffer += Field(publicCol.alias, Option(alias), None)
                     }
@@ -272,34 +272,34 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
   def constructFilters(sqlNode: SqlNode): ArrayBuffer[Filter] = {
     require(sqlNode.isInstanceOf[SqlBasicCall], s"type ${sqlNode.getKind} not supported in construct current filter")
     val sqlBasicCall: SqlBasicCall = sqlNode.asInstanceOf[SqlBasicCall]
-    val operands = sqlBasicCall.getOperands
+    val operands = sqlBasicCall.getOperandList
     sqlBasicCall.getOperator.kind match {
       case SqlKind.AND =>
-        constructFilters(operands(0)) ++ constructFilters(operands(1))
+        constructFilters(operands.get(0)) ++ constructFilters(operands.get(1))
       case SqlKind.NOT_IN =>
-        val notInList: List[String] = operands(1).asInstanceOf[SqlNodeList].toArray.toList.map(sqlNode => toLiteral(sqlNode))
-        ArrayBuffer.empty += NotInFilter(toLiteral(operands(0)), notInList).asInstanceOf[Filter]
+        val notInList: List[String] = operands.get(1).asInstanceOf[SqlNodeList].getList.asScala.map(sqlNode=> toLiteral(sqlNode)).toList
+        ArrayBuffer.empty += NotInFilter(toLiteral(operands.get(0)), notInList).asInstanceOf[Filter]
       case SqlKind.OR =>
-        val mergeBuffer: ArrayBuffer[Filter] = constructFilters(operands(0)) ++ constructFilters(operands(1))
+        val mergeBuffer: ArrayBuffer[Filter] = constructFilters(operands.get(0)) ++ constructFilters(operands.get(1))
         ArrayBuffer.empty += OrFilter(mergeBuffer.toList).asInstanceOf[Filter]
       case SqlKind.EQUALS =>
-        ArrayBuffer.empty += EqualityFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
+        ArrayBuffer.empty += EqualityFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
       case SqlKind.NOT_EQUALS =>
-        ArrayBuffer.empty += NotEqualToFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
+        ArrayBuffer.empty += NotEqualToFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
       case SqlKind.GREATER_THAN =>
-        ArrayBuffer.empty += GreaterThanFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
+        ArrayBuffer.empty += GreaterThanFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
       case SqlKind.IN =>
-        val inList: List[String] = operands(1).asInstanceOf[SqlNodeList].toArray.toList.map(sqlNode => toLiteral(sqlNode))
-        ArrayBuffer.empty += InFilter(toLiteral(operands(0)), inList).asInstanceOf[Filter]
+        val inList: List[String] = operands.get(1).asInstanceOf[SqlNodeList].getList.asScala.map(sqlNode => toLiteral(sqlNode)).toList
+        ArrayBuffer.empty += InFilter(toLiteral(operands.get(0)), inList).asInstanceOf[Filter]
       case SqlKind.BETWEEN =>
-        ArrayBuffer.empty += BetweenFilter(toLiteral(operands(0)), toLiteral(operands(1)), toLiteral(operands(2))).asInstanceOf[Filter]
+        ArrayBuffer.empty += BetweenFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1)), toLiteral(operands.get(2))).asInstanceOf[Filter]
       case SqlKind.LIKE =>
         if (sqlBasicCall.getOperator.asInstanceOf[SqlLikeOperator].isNegated)
-          ArrayBuffer.empty += NotLikeFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
+          ArrayBuffer.empty += NotLikeFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
         else
-          ArrayBuffer.empty += LikeFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
+          ArrayBuffer.empty += LikeFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
       case SqlKind.IS_NULL =>
-        ArrayBuffer.empty += IsNullFilter(toLiteral(operands(0))).asInstanceOf[Filter]
+        ArrayBuffer.empty += IsNullFilter(toLiteral(operands.get(0))).asInstanceOf[Filter]
       case SqlKind.LESS_THAN=>
         if(toLiteral(operands(0)).equals(DailyGrain.DAY_FILTER_FIELD)) {
           toDate = DailyGrain.toFormattedString(DateTime.parse(toLiteral(operands(1)), DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")))
