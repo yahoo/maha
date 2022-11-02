@@ -274,11 +274,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
       case SqlKind.AND =>
         constructFilters(operands.get(0)) ++ constructFilters(operands.get(1))
       case SqlKind.NOT_IN =>
-//        val notInList: List[String] = operands.get(1).asInstanceOf[SqlNodeList].getList.stream().map(Node => toLiteral(sqlNode)).collect(Coll)
-//        var notInList: List[String]
-//        operands.get(1).asInstanceOf[SqlNodeList].forEach(sqlNode: SqlNode =>{
-//          notInList.add
-//        })
+        val notInList: List[String] = operands.get(1).asInstanceOf[SqlNodeList].getList.asScala.map(sqlNode=> toLiteral(sqlNode)).toList
         ArrayBuffer.empty += NotInFilter(toLiteral(operands.get(0)), notInList).asInstanceOf[Filter]
       case SqlKind.OR =>
         val mergeBuffer: ArrayBuffer[Filter] = constructFilters(operands.get(0)) ++ constructFilters(operands.get(1))
@@ -290,7 +286,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
       case SqlKind.GREATER_THAN =>
         ArrayBuffer.empty += GreaterThanFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
       case SqlKind.IN =>
-        val inList: List[String] = operands.get(1).asInstanceOf[SqlNodeList].toArray.toList.map(sqlNode => toLiteral(sqlNode))
+        val inList: List[String] = operands.get(1).asInstanceOf[SqlNodeList].getList.asScala.map(sqlNode => toLiteral(sqlNode)).toList
         ArrayBuffer.empty += InFilter(toLiteral(operands.get(0)), inList).asInstanceOf[Filter]
       case SqlKind.BETWEEN =>
         ArrayBuffer.empty += BetweenFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1)), toLiteral(operands.get(2))).asInstanceOf[Filter]
