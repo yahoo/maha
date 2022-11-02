@@ -301,18 +301,27 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
       case SqlKind.IS_NULL =>
         ArrayBuffer.empty += IsNullFilter(toLiteral(operands.get(0))).asInstanceOf[Filter]
       case SqlKind.LESS_THAN=>
-        if(toLiteral(operands(0)).equals(DailyGrain.DAY_FILTER_FIELD)) {
-          toDate = DailyGrain.toFormattedString(DateTime.parse(toLiteral(operands(1)), DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")))
+        if(toLiteral(operands.get(0)).equals(DailyGrain.DAY_FILTER_FIELD)) {
+          toDate = DailyGrain.toFormattedString(DateTime.parse(toLiteral(operands.get(1)), DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")))
           ArrayBuffer.empty
         }
         else
-          ArrayBuffer.empty += LessThanFilter(toLiteral(operands(0)), toLiteral(operands(1))).asInstanceOf[Filter]
+          ArrayBuffer.empty += LessThanFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
       case SqlKind.GREATER_THAN_OR_EQUAL =>
-        if(toLiteral(operands(0)).equals(DailyGrain.DAY_FILTER_FIELD)) {
-          fromDate = DailyGrain.toFormattedString(DateTime.parse(toLiteral(operands(1)),DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")))
+        if(toLiteral(operands.get(0)).equals(DailyGrain.DAY_FILTER_FIELD)) {
+          fromDate = DailyGrain.toFormattedString(DateTime.parse(toLiteral(operands.get(1)),DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")))
         }
         else {
           val errMsg = s"SqlKind.GREATER_THAN_OR_EQUAL filter is supported only for Day column"
+          logger.error(errMsg);
+        }
+        ArrayBuffer.empty
+      case SqlKind.LESS_THAN_OR_EQUAL=>
+        if(toLiteral(operands.get(0)).equals(DailyGrain.DAY_FILTER_FIELD)) {
+          toDate = DailyGrain.toFormattedString(DateTime.parse(toLiteral(operands.get(1)), DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")))
+        }
+        else {
+          val errMsg = s"SqlKind.LESSER_THAN_OR_EQUAL filter is supported only for Day column"
           logger.error(errMsg);
         }
         ArrayBuffer.empty
