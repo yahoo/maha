@@ -677,7 +677,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
     assert(request.dayFilter.toString contains "BetweenFilter(Day,2022-10-26,2022-10-27)")
-    assert((request.hourFilter.toString contains "BetweenFilter(Hour,15,19)")==false)
+    assert((request.hourFilter.toString contains "BetweenFilter(Hour,07,07)"))
 
     val ser = ReportingRequest.serialize(request)
     assert(ser != null)
@@ -725,7 +725,6 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     //print(request)
     assert(request.dayFilter.toString contains "BetweenFilter(Day,2022-10-26,2022-10-27)")
     assert(request.hourFilter.toString contains "BetweenFilter(Hour,09,07)")
-    assert((request.dayFilter.toString contains "GreaterFilter(Total Marks,0)")==false)
 
     val ser = ReportingRequest.serialize(request)
     assert(ser != null)
