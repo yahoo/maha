@@ -272,29 +272,22 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     validate(filterList)
   }
 
-  def addDayFilterDays(operandNode: SqlNode, whichDate: String, dateNode: SqlNode, sqlKind: SqlKind): Boolean = {
-    if(toLiteral(operandNode).equals(DailyGrain.DAY_FILTER_FIELD)) {
-      val parsers:Array[DateTimeParser] = Array(DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").getParser(),
-        DateTimeFormat.forPattern("yyyy-MM-dd HH").getParser(),
-        DateTimeFormat.forPattern("yyyy-MM-dd").getParser()
-      )
-      val dateTimeFormatter = new DateTimeFormatterBuilder().append(null,parsers).toFormatter()
-      val date = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode)))
-      val hour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode)))
-      if(sqlKind==SqlKind.GREATER_THAN_OR_EQUAL || sqlKind==SqlKind.GREATER_THAN) {
-        fromDate = date
-        fromHour = hour
-      }
-      else if(sqlKind==SqlKind.LESS_THAN_OR_EQUAL || sqlKind==SqlKind.LESS_THAN) {
-        toDate = date
-        toHour = hour
-      }
-      true
-    }
-    else{
-      if(sqlKind==SqlKind.GREATER_THAN_OR_EQUAL || sqlKind==SqlKind.LESS_THAN_OR_EQUAL)
-        logger.error(s"${sqlKind} filter is supported only for Day column")
-      false
+  def addDateFilter(operandNode: SqlNode, dateNode: SqlNode, sqlKind: SqlKind, dateNode2: SqlNode=null) = {
+    val parsers:Array[DateTimeParser] = Array(DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").getParser(),
+      DateTimeFormat.forPattern("yyyy-MM-dd HH").getParser(),
+      DateTimeFormat.forPattern("yyyy-MM-dd").getParser()
+    )
+    val dateTimeFormatter = new DateTimeFormatterBuilder().append(null,parsers).toFormatter()
+    val date = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode)))
+    val hour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode)))
+    if(sqlKind==SqlKind.GREATER_THAN_OR_EQUAL || sqlKind==SqlKind.GREATER_THAN)
+      (fromDate,fromHour) = (date,hour)
+    else if(sqlKind==SqlKind.LESS_THAN_OR_EQUAL || sqlKind==SqlKind.LESS_THAN)
+      (toDate,toHour) = (date,hour)
+    else if(sqlKind==SqlKind.BETWEEN) {
+      (fromDate,fromHour) = (date,hour)
+      toDate = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode2)))
+      toHour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode2)))
     }
   }
 
@@ -302,7 +295,13 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     require(sqlNode.isInstanceOf[SqlBasicCall], s"type ${sqlNode.getKind} not supported in construct current filter")
     val sqlBasicCall: SqlBasicCall = sqlNode.asInstanceOf[SqlBasicCall]
     val operands = sqlBasicCall.getOperandList
-    sqlBasicCall.getOperator.kind match {
+    if(toLiteral(operands.get(0)).equals(DailyGrain.DAY_FILTER_FIELD)){
+      if(sqlBasicCall.getOperator.kind equals SqlKind.BETWEEN)
+        addDateFilter(operands.get(0), operands.get(1), sqlBasicCall.getOperator.kind,operands.get(2))
+      else addDateFilter(operands.get(0), operands.get(1), sqlBasicCall.getOperator.kind)
+      ArrayBuffer.empty
+    }
+    else sqlBasicCall.getOperator.kind match {
       case SqlKind.AND =>
         constructFilters(operands.get(0)) ++ constructFilters(operands.get(1))
       case SqlKind.NOT_IN =>
@@ -316,10 +315,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
       case SqlKind.NOT_EQUALS =>
         ArrayBuffer.empty += NotEqualToFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
       case SqlKind.GREATER_THAN =>
-        if(addDayFilterDays(operands.get(0), "from", operands.get(1), SqlKind.GREATER_THAN))
-          ArrayBuffer.empty
-        else
-          ArrayBuffer.empty += GreaterThanFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
+        ArrayBuffer.empty += GreaterThanFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
       case SqlKind.IN =>
         val inList: List[String] = operands.get(1).asInstanceOf[SqlNodeList].getList.asScala.map(sqlNode => toLiteral(sqlNode)).toList
         ArrayBuffer.empty += InFilter(toLiteral(operands.get(0)), inList).asInstanceOf[Filter]
@@ -333,15 +329,12 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
       case SqlKind.IS_NULL =>
         ArrayBuffer.empty += IsNullFilter(toLiteral(operands.get(0))).asInstanceOf[Filter]
       case SqlKind.LESS_THAN=>
-        if(addDayFilterDays(operands.get(0), "to", operands.get(1), SqlKind.LESS_THAN))
-          ArrayBuffer.empty
-        else
-          ArrayBuffer.empty += LessThanFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
+        ArrayBuffer.empty += LessThanFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
       case SqlKind.GREATER_THAN_OR_EQUAL =>
-        addDayFilterDays(operands.get(0), "from", operands.get(1), SqlKind.GREATER_THAN_OR_EQUAL)
+        logger.error(s"GREATER_THAN_OR_EQUAL filter is supported only for Day column")
         ArrayBuffer.empty
       case SqlKind.LESS_THAN_OR_EQUAL=>
-        addDayFilterDays(operands.get(0), "to", operands.get(1), SqlKind.LESS_THAN_OR_EQUAL)
+        logger.error(s"LESS_THAN_OR_EQUAL filter is supported only for Day column")
         ArrayBuffer.empty
     }
   }
