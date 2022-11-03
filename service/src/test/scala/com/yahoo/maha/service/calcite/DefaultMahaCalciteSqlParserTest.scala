@@ -661,14 +661,13 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(ser != null)
   }
 
-  test("test superset table query - testing Day filters") {
+  test("testing Between filters for day and hour") {
     val sql = s"""
-          select SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
+          select "Hour" as "_hour", SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
           where "Student ID" = 123
               AND "Class ID" = 234
               AND "Total Marks" >= 0
-              AND "Day" >= '2022-10-26 00:00:00.000000'
-              AND "Day" < '2022-10-27 00:00:00.000000'
+              AND "Day" BETWEEN '2022-10-26' AND '2022-10-27'
           GROUP BY "ABC"
           ORDER BY "SUM(Total Marks)" DESC
           """
@@ -678,13 +677,13 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
     assert(request.dayFilter.toString contains "BetweenFilter(Day,2022-10-26,2022-10-27)")
-    assert((request.dayFilter.toString contains "GreaterFilter(Total Marks,0)")==false)
+    assert((request.hourFilter.toString contains "BetweenFilter(Hour,15,19)")==false)
 
     val ser = ReportingRequest.serialize(request)
     assert(ser != null)
   }
 
-  test("test superset table query - testing Day+Hour filters") {
+  test("test table query - testing Day filters in format yyyy-MM-dd, with no hour column ") {
     val sql = s"""
           select SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
           where "Student ID" = 123
@@ -701,6 +700,31 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
     assert(request.dayFilter.toString contains "BetweenFilter(Day,2022-10-26,2022-10-27)")
+    assert((request.dayFilter.toString contains "GreaterFilter(Total Marks,0)")==false)
+    assert((request.hourFilter.toString contains "BetweenFilter(Hour,07,07)")==false)
+
+    val ser = ReportingRequest.serialize(request)
+    assert(ser != null)
+  }
+
+  test("test superset table query - testing Day+Hour filters ") {
+    val sql = s"""
+          select "Hour", SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
+          where "Student ID" = 123
+              AND "Class ID" = 234
+              AND "Total Marks" >= 0
+              AND "Day" >= '2022-10-26 02:00:00.000000'
+              AND "Day" < '2022-10-27 00:00:00.000000'
+          GROUP BY "ABC"
+          ORDER BY "SUM(Total Marks)" DESC
+          """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    assert(request.dayFilter.toString contains "BetweenFilter(Day,2022-10-26,2022-10-27)")
+    assert(request.hourFilter.toString contains "BetweenFilter(Hour,09,07)")
     assert((request.dayFilter.toString contains "GreaterFilter(Total Marks,0)")==false)
 
     val ser = ReportingRequest.serialize(request)
