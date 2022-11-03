@@ -27,6 +27,8 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
   lazy protected[this] val defaultToDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
   var fromDate : String = _
   var toDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
+  var fromHour : String = _
+  var toHour : String = _
 
   val DEFAULT_DAY_FILTER : Filter = BetweenFilter("Day", defaultFromDate, defaultToDate)
   val DAY = "Day"
@@ -188,6 +190,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                   sqlIdentifier.names.asScala.foreach(
                     c => {
                       val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, c, columnAliasToColumnMap)
+                      queryAliasToColumnNameMap += (publicCol.alias -> publicCol.alias)
                       arrayBuffer += Field(publicCol.alias, None, None)
                     }
                   )
@@ -271,26 +274,28 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
 
   def addDayFilterDays(operandNode: SqlNode, whichDate: String, dateNode: SqlNode, sqlKind: SqlKind): Boolean = {
     if(toLiteral(operandNode).equals(DailyGrain.DAY_FILTER_FIELD)) {
-
       val parsers:Array[DateTimeParser] = Array(DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").getParser(),
         DateTimeFormat.forPattern("yyyy-MM-dd HH").getParser(),
-        DateTimeFormat.forPattern("yyyy-MM-dd").getParser())
-
-      val dateTimeFormatterBuilder: DateTimeFormatterBuilder = new DateTimeFormatterBuilder().append(null,parsers)
-      val formatter:DateTimeFormatter = dateTimeFormatterBuilder.toFormatter()
-      val date = DailyGrain.toFormattedString(formatter.parseDateTime(toLiteral(dateNode)))
-
-      if(sqlKind==SqlKind.GREATER_THAN_OR_EQUAL || sqlKind==SqlKind.GREATER_THAN)
+        DateTimeFormat.forPattern("yyyy-MM-dd").getParser()
+      )
+      val dateTimeFormatter = new DateTimeFormatterBuilder().append(null,parsers).toFormatter()
+      val date = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode)))
+      val hour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode)))
+      if(sqlKind==SqlKind.GREATER_THAN_OR_EQUAL || sqlKind==SqlKind.GREATER_THAN) {
         fromDate = date
-      else if(sqlKind==SqlKind.LESS_THAN_OR_EQUAL || sqlKind==SqlKind.LESS_THAN)
+        fromHour = hour
+      }
+      else if(sqlKind==SqlKind.LESS_THAN_OR_EQUAL || sqlKind==SqlKind.LESS_THAN) {
         toDate = date
-
-      if(sqlKind==SqlKind.GREATER_THAN_OR_EQUAL || sqlKind==SqlKind.LESS_THAN_OR_EQUAL)
-        logger.error(s"${sqlKind} filter is supported only for Day column")
-
+        toHour = hour
+      }
       true
     }
-    else false
+    else{
+      if(sqlKind==SqlKind.GREATER_THAN_OR_EQUAL || sqlKind==SqlKind.LESS_THAN_OR_EQUAL)
+        logger.error(s"${sqlKind} filter is supported only for Day column")
+      false
+    }
   }
 
   def constructFilters(sqlNode: SqlNode): ArrayBuffer[Filter] = {
@@ -368,11 +373,14 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
         }
     }
 
-    if (fromDate != null)
-      dayFilter = Option(BetweenFilter("Day", fromDate, toDate))
+    if (dayFilter.isEmpty) {
+      if (fromDate != null)
+        dayFilter = Option(BetweenFilter("Day", fromDate, toDate))
+      else dayFilter = Option(DEFAULT_DAY_FILTER)
+    }
 
-    if (dayFilter.isEmpty)
-      dayFilter = Option(DEFAULT_DAY_FILTER)
+    if (hourFilter.isEmpty && queryAliasToColumnNameMap.exists(_._2 == "Hour") && fromHour != null && toHour != null)
+      hourFilter = Option(BetweenFilter("Hour",fromHour,toHour))
 
     //validate day filter
     require(dayFilter.isDefined, "Day filter not found in list of filters!")
