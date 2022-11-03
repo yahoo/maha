@@ -13,7 +13,7 @@ import org.apache.calcite.sql.parser.{SqlParseException, SqlParser}
 import org.apache.calcite.sql.validate.{SqlConformance, SqlConformanceEnum}
 import org.apache.commons.lang.StringUtils
 import org.joda.time.{DateTime, DateTimeZone}
-import org.joda.time.format.DateTimeFormat
+import org.joda.time.format.{DateTimeFormat,DateTimeFormatter,DateTimeFormatterBuilder,DateTimeParser}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -271,7 +271,14 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
 
   def addDayFilterDays(operandNode: SqlNode, whichDate: String, dateNode: SqlNode, sqlKind: SqlKind): Boolean = {
     if(toLiteral(operandNode).equals(DailyGrain.DAY_FILTER_FIELD)) {
-      val date = DailyGrain.toFormattedString(DateTime.parse(toLiteral(dateNode),DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS")))
+
+      val parsers:Array[DateTimeParser] = Array(DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").getParser(),
+        DateTimeFormat.forPattern("yyyy-MM-dd HH").getParser(),
+        DateTimeFormat.forPattern("yyyy-MM-dd").getParser())
+
+      val dateTimeFormatterBuilder: DateTimeFormatterBuilder = new DateTimeFormatterBuilder().append(null,parsers)
+      val formatter:DateTimeFormatter = dateTimeFormatterBuilder.toFormatter()
+      val date = DailyGrain.toFormattedString(formatter.parseDateTime(toLiteral(dateNode)))
 
       if(sqlKind==SqlKind.GREATER_THAN_OR_EQUAL || sqlKind==SqlKind.GREATER_THAN)
         fromDate = date
