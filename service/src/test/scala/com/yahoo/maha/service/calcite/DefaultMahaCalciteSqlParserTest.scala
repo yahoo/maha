@@ -23,7 +23,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
     assert(request.requestType === SyncRequest)
-    assert(request.selectFields.size == 13)
+    assert(request.selectFields.size == 14)
     assert(request.filterExpressions.size > 0)
 
     assert(request.filterExpressions.toString contains "EqualityFilter(Student ID,123,false,false)")
@@ -112,8 +112,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(ser != null)
 
     val expected  =
-        s"""{"queryType":"groupby","cube":"student_performance","reportDisplayName":null,"schema":"student","requestType":"SyncRequest","forceDimensionDriven":false,"selectFields":[{"field":"Total Marks","alias":null,"value":null},{"field":"Marks Obtained","alias":null,"value":null},{"field":"Performance Factor","alias":null,"value":null},{"field":"Day","alias":null,"value":null},{"field":"Class ID","alias":null,"value":null},{"field":"Year","alias":null,"value":null},{"field":"Group ID","alias":null,"value":null},{"field":"Student ID","alias":null,"value":null},{"field":"Remarks","alias":null,"value":null},{"field":"Batch ID","alias":null,"value":null},{"field":"Month","alias":null,"value":null},{"field":"Top Student ID","alias":null,"value":null},{"field":"Section ID","alias":null,"value":null}],"filterExpressions":[{"field":"Student ID","operator":"=","value":"123"},{"field":"Class ID","operator":"=","value":"234"},{"field":"Total Marks","operator":">","value":"0"},{"field":"Day","operator":"Between","from":"${fromDate}","to":"${toDate}"}],"sortBy":[{"field":"Class ID","order":"ASC"},{"field":"Total Marks","order":"DESC"}],"paginationStartIndex":0,"rowsPerPage":-1,"includeRowCount":false}""".stripMargin
-
+        s"""{"queryType":"groupby","cube":"student_performance","reportDisplayName":null,"schema":"student","requestType":"SyncRequest","forceDimensionDriven":false,"selectFields":[{"field":"Total Marks","alias":null,"value":null},{"field":"Marks Obtained","alias":null,"value":null},{"field":"Performance Factor","alias":null,"value":null},{"field":"Day","alias":null,"value":null},{"field":"Class ID","alias":null,"value":null},{"field":"Hour","alias":null,"value":null},{"field":"Year","alias":null,"value":null},{"field":"Group ID","alias":null,"value":null},{"field":"Student ID","alias":null,"value":null},{"field":"Remarks","alias":null,"value":null},{"field":"Batch ID","alias":null,"value":null},{"field":"Month","alias":null,"value":null},{"field":"Top Student ID","alias":null,"value":null},{"field":"Section ID","alias":null,"value":null}],"filterExpressions":[{"field":"Student ID","operator":"=","value":"123"},{"field":"Class ID","operator":"=","value":"234"},{"field":"Total Marks","operator":">","value":"0"},{"field":"Day","operator":"Between","from":"${fromDate}","to":"${toDate}"}],"sortBy":[{"field":"Class ID","order":"ASC"},{"field":"Total Marks","order":"DESC"}],"paginationStartIndex":0,"rowsPerPage":-1,"includeRowCount":false}""".stripMargin
     ser should equal (expected) (after being whiteSpaceNormalised)
 
     //TODO: need to validate the necessary group by columns present for select * (validator?)
@@ -153,10 +152,10 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
-    //print(request)
+    print(request)
     assert(request.requestType === SyncRequest)
-    assert(request.numDays == 1)
-    assert(request.dayFilter.toString contains "EqualityFilter(Day,2021-04-20,false,false)")
+    assert(request.numDays == 0)
+    assert(request.dayFilter.toString contains "BetweenFilter(Day,2021-04-20,2021-04-20)")
   }
 
   test("test between filter") {
@@ -186,6 +185,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    println(request)
     assert(request.selectFields.size == 4)
     assert(request.selectFields.map(_.field).contains("Student Name"))
     assert(request.filterExpressions.size == 1)
@@ -273,7 +273,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     assert(request.requestType === SyncRequest)
-    assert(request.selectFields.size == 13)
+    assert(request.selectFields.size == 14)
     assert(request.filterExpressions.nonEmpty)
     assert(request.cube == "student_performance")
 
@@ -675,9 +675,9 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
-    //print(request)
+    print(request)
     assert(request.dayFilter.toString contains "BetweenFilter(Day,2022-10-26,2022-10-27)")
-    assert((request.hourFilter.toString contains "BetweenFilter(Hour,07,07)"))
+    assert(request.hourFilter.toString contains "BetweenFilter(Hour,07,07)")
 
     val ser = ReportingRequest.serialize(request)
     assert(ser != null)
@@ -698,7 +698,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
-    //print(request)
+    print(request)
     assert(request.dayFilter.toString contains "BetweenFilter(Day,2022-10-26,2022-10-27)")
     assert((request.dayFilter.toString contains "GreaterFilter(Total Marks,0)")==false)
     assert((request.hourFilter.toString contains "BetweenFilter(Hour,07,07)")==false)

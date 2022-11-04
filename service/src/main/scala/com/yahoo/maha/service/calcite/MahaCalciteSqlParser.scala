@@ -25,10 +25,9 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
 
   lazy protected[this] val defaultFromDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
   lazy protected[this] val defaultToDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
-  var fromDate : String = _
+  var fromDate,fromHour : String = _
   var toDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
-  var fromHour : String = _
-  var toHour : String = _
+  var toHour : String = HourlyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
 
   val DEFAULT_DAY_FILTER : Filter = BetweenFilter("Day", defaultFromDate, defaultToDate)
   val DAY = "Day"
@@ -280,12 +279,23 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     val dateTimeFormatter = new DateTimeFormatterBuilder().append(null,parsers).toFormatter()
     val date = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode)))
     val hour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode)))
-    if(sqlKind==SqlKind.GREATER_THAN_OR_EQUAL || sqlKind==SqlKind.GREATER_THAN)
-      (fromDate,fromHour) = (date,hour)
-    else if(sqlKind==SqlKind.LESS_THAN_OR_EQUAL || sqlKind==SqlKind.LESS_THAN)
-      (toDate,toHour) = (date,hour)
+    if(sqlKind==SqlKind.GREATER_THAN_OR_EQUAL || sqlKind==SqlKind.GREATER_THAN) {
+      fromDate = date
+      fromHour = hour
+    }
+    else if(sqlKind==SqlKind.LESS_THAN_OR_EQUAL || sqlKind==SqlKind.LESS_THAN) {
+      toDate = date
+      toHour = hour
+    }
+    else if(sqlKind==SqlKind.EQUALS) {
+      fromDate = date
+      fromHour = hour
+      toDate = date
+      toHour = hour
+    }
     else if(sqlKind==SqlKind.BETWEEN) {
-      (fromDate,fromHour) = (date,hour)
+      fromDate = date
+      fromHour = hour
       toDate = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode2)))
       toHour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode2)))
     }
@@ -372,7 +382,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
       else dayFilter = Option(DEFAULT_DAY_FILTER)
     }
 
-    if (hourFilter.isEmpty && queryAliasToColumnNameMap.exists(_._2 == "Hour") && fromHour != null && toHour != null)
+    if (hourFilter.isEmpty && queryAliasToColumnNameMap.exists(_._2 == "Hour") && fromHour != null)
       hourFilter = Option(BetweenFilter("Hour",fromHour,toHour))
 
     //validate day filter
