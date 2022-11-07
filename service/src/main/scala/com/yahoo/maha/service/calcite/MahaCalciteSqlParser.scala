@@ -25,17 +25,19 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
 
   lazy protected[this] val defaultFromDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
   lazy protected[this] val defaultToDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
-  var fromDate,fromHour : String = _
-  var toDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
-  var toHour : String = HourlyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
+  val parsers:Array[DateTimeParser] = Array(DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").getParser(),
+    DateTimeFormat.forPattern("yyyy-MM-dd HH").getParser(),
+    DateTimeFormat.forPattern("yyyy-MM-dd").getParser()
+  )
+  val dateTimeFormatter = new DateTimeFormatterBuilder().append(null,parsers).toFormatter()
 
   val DEFAULT_DAY_FILTER : Filter = BetweenFilter("Day", defaultFromDate, defaultToDate)
   val DAY = "Day"
   val config = SqlParser.config().withConformance(SqlConformanceEnum.LENIENT)
   import scala.collection.JavaConverters._
-  val queryAliasToColumnNameMap = scala.collection.mutable.Map[String, String]()
 
   override def parse(sql: String, schema: Schema, registryName:String): MahaSqlNode = {
+    val mahaSqlRequestContext = MahaSqlRequestContext()
     require(!StringUtils.isEmpty(sql), MahaCalciteSqlParserError("Sql can not be empty", sql))
     require(mahaServiceConfig.registry.contains(registryName), s"failed to find the registry ${registryName} in the mahaService Config")
     val registry:Registry  = mahaServiceConfig.registry.get(registryName).get.registry
@@ -78,8 +80,8 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
           val publicFact = getCube(fromTable, registry)
           require(publicFact.isDefined,MahaCalciteSqlParserError(s"Failed to find the cube $fromTable", sql))
           val columnAliasToColumnMap:Map[String, PublicColumn] = publicFact.get.getAllDomainColumnAliasToPublicColumnMap(registry)
-          val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get, columnAliasToColumnMap)
-          val (filterExpression, dayFilterOption, hourFilterOption, minuteFilterOption, numDays) = getFilterList(sqlSelect, publicFact.get)
+          val selectFields = getSelectList(sqlSelect.getSelectList, publicFact.get, columnAliasToColumnMap,mahaSqlRequestContext)
+          val (filterExpression, dayFilterOption, hourFilterOption, minuteFilterOption, numDays) = getFilterList(sqlSelect, publicFact.get,mahaSqlRequestContext)
           val orderByList: IndexedSeq[SortBy] = {
             if (topSqlNode.isInstanceOf[SqlOrderBy]) {
               val orderBySql = topSqlNode.asInstanceOf[SqlOrderBy]
@@ -91,11 +93,11 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                       DESC
                     } else ASC
                   }
-                  SortBy(queryAliasToColumnNameMap.getOrElse(toLiteral(sqlOrderByBasic.getOperandList.get(0)),toLiteral(sqlOrderByBasic.getOperandList.get(0))), order)
+                  SortBy(mahaSqlRequestContext.queryAliasToColumnNameMap.getOrElse(toLiteral(sqlOrderByBasic.getOperandList.get(0)),toLiteral(sqlOrderByBasic.getOperandList.get(0))), order)
                 case sqlString:SqlCharStringLiteral=>
-                  SortBy(queryAliasToColumnNameMap.getOrElse(toLiteral(sqlString),toLiteral(sqlString)), ASC)
+                  SortBy(mahaSqlRequestContext.queryAliasToColumnNameMap.getOrElse(toLiteral(sqlString),toLiteral(sqlString)), ASC)
                 case sqlString:SqlIdentifier=>
-                  SortBy(queryAliasToColumnNameMap.getOrElse(toLiteral(sqlString),toLiteral(sqlString)), ASC)
+                  SortBy(mahaSqlRequestContext.queryAliasToColumnNameMap.getOrElse(toLiteral(sqlString),toLiteral(sqlString)), ASC)
                 case other =>
                   throw new IllegalArgumentException(s"Maha Calcite: order by case ${other} not supported")
               }.toIndexedSeq
@@ -169,7 +171,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     }
   }
 
-  def getSelectList(sqlNode: SqlNode, publicFact: PublicFact, columnAliasToColumnMap:Map[String, PublicColumn]) : IndexedSeq[Field] = {
+  def getSelectList(sqlNode: SqlNode, publicFact: PublicFact, columnAliasToColumnMap:Map[String, PublicColumn], mahaSqlRequestContext:MahaSqlRequestContext) : IndexedSeq[Field] = {
     sqlNode match {
       case sqlNodeList: SqlNodeList =>
         if (sqlNodeList.size() > 0) {
@@ -189,7 +191,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                   sqlIdentifier.names.asScala.foreach(
                     c => {
                       val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, c, columnAliasToColumnMap)
-                      queryAliasToColumnNameMap += (publicCol.alias -> publicCol.alias)
+                      mahaSqlRequestContext.queryAliasToColumnNameMap += (publicCol.alias -> publicCol.alias)
                       arrayBuffer += Field(publicCol.alias, None, None)
                     }
                   )
@@ -203,7 +205,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                     val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(innerSqlBasicCall.getOperandList.get(0)), columnAliasToColumnMap)
                     if(sqlBasicCall.getOperandList.size()>1) {
                       val alias = toLiteral(sqlBasicCall.getOperandList.get(1))
-                      queryAliasToColumnNameMap += (alias -> publicCol.alias)
+                      mahaSqlRequestContext.queryAliasToColumnNameMap += (alias -> publicCol.alias)
                       arrayBuffer += Field(publicCol.alias, Option(alias), None)
                     }
                     else arrayBuffer += Field(publicCol.alias, None, None)
@@ -211,7 +213,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                     val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlIdentifier), columnAliasToColumnMap)
                     if(sqlBasicCall.getOperandList.size>1) {
                       val alias = toLiteral(sqlBasicCall.getOperandList.get(1))
-                      queryAliasToColumnNameMap += (alias -> publicCol.alias)
+                      mahaSqlRequestContext.queryAliasToColumnNameMap += (alias -> publicCol.alias)
                       arrayBuffer += Field(publicCol.alias, Option(alias), None)
                     }
                     else arrayBuffer += Field(publicCol.alias, None, None)
@@ -219,7 +221,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
                     val publicCol: PublicColumn = getColumnFromPublicFact(publicFact, toLiteral(sqlCharStringLiteral), columnAliasToColumnMap)
                     if(sqlBasicCall.getOperandList.size>1) {
                       val alias = toLiteral(sqlBasicCall.getOperandList.get(1))
-                      queryAliasToColumnNameMap += (alias -> publicCol.alias)
+                      mahaSqlRequestContext.queryAliasToColumnNameMap += (alias -> publicCol.alias)
                       arrayBuffer += Field(publicCol.alias, Option(alias), None)
                     }
                     else arrayBuffer += Field(publicCol.alias, None, None)
@@ -243,14 +245,14 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     columnAliasToColumnMap.get(alias).get
   }
 
-  def getFilterList(sqlNode: SqlNode, publicFact: PublicFact) : (IndexedSeq[Filter], Option[Filter], Option[Filter], Option[Filter], Int) = {
+  def getFilterList(sqlNode: SqlNode, publicFact: PublicFact, mahaSqlRequestContext: MahaSqlRequestContext) : (IndexedSeq[Filter], Option[Filter], Option[Filter], Option[Filter], Int) = {
     val sqlWhere = sqlNode.asInstanceOf[SqlSelect].getWhere
     val sqlHaving = sqlNode.asInstanceOf[SqlSelect].getHaving
     var filterList = ArrayBuffer.empty[Filter]
 
     sqlWhere match {
       case sqlBasicCall: SqlBasicCall =>
-        filterList = filterList ++ constructFilters(sqlBasicCall)
+        filterList = filterList ++ constructFilters(sqlBasicCall, mahaSqlRequestContext)
       case others: AnyRef =>
         logger.error(s"sqlNode type ${sqlNode.getKind} in getSelectList is not yet supported")
         return (IndexedSeq.empty, None, None, None, 1)
@@ -261,64 +263,60 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
 
     sqlHaving match {
       case sqlBasicCall: SqlBasicCall =>
-        filterList = filterList ++ constructFilters(sqlBasicCall)
+        filterList = filterList ++ constructFilters(sqlBasicCall, mahaSqlRequestContext)
       case others: AnyRef =>
         logger.error(s"sqlNode type ${sqlNode.getKind} in getSelectList is not yet supported")
         (IndexedSeq.empty, None, None, None, 1)
       case null =>
         logger.debug("Empty HAVING clause.")
     }
-    validate(filterList)
+    validate(filterList, mahaSqlRequestContext)
   }
 
-  def addDateFilter(operandNode: SqlNode, dateNode: SqlNode, sqlKind: SqlKind, dateNode2: SqlNode=null) = {
-    val parsers:Array[DateTimeParser] = Array(DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").getParser(),
-      DateTimeFormat.forPattern("yyyy-MM-dd HH").getParser(),
-      DateTimeFormat.forPattern("yyyy-MM-dd").getParser()
-    )
-    val dateTimeFormatter = new DateTimeFormatterBuilder().append(null,parsers).toFormatter()
+  def addDateFilter(operandNode: SqlNode, dateNode: SqlNode, sqlKind: SqlKind, mahaSqlRequestContext: MahaSqlRequestContext, dateNode2: SqlNode=null) = {
+
     val date = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode)))
     val hour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode)))
     if(sqlKind==SqlKind.GREATER_THAN_OR_EQUAL || sqlKind==SqlKind.GREATER_THAN) {
-      fromDate = date
-      fromHour = hour
+      mahaSqlRequestContext.fromDate = date
+      mahaSqlRequestContext.fromHour = hour
     }
     else if(sqlKind==SqlKind.LESS_THAN_OR_EQUAL || sqlKind==SqlKind.LESS_THAN) {
-      toDate = date
-      toHour = hour
+      mahaSqlRequestContext.toDate = date
+      mahaSqlRequestContext.toHour = hour
     }
     else if(sqlKind==SqlKind.EQUALS) {
-      fromDate = date
-      fromHour = hour
-      toDate = date
-      toHour = hour
+      mahaSqlRequestContext.fromDate = date
+      mahaSqlRequestContext.fromHour = hour
+      mahaSqlRequestContext.toDate = date
+      mahaSqlRequestContext.toHour = hour
     }
     else if(sqlKind==SqlKind.BETWEEN) {
-      fromDate = date
-      fromHour = hour
-      toDate = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode2)))
-      toHour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode2)))
+      mahaSqlRequestContext.fromDate = date
+      mahaSqlRequestContext.fromHour = hour
+      mahaSqlRequestContext.toDate = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode2)))
+      mahaSqlRequestContext.toHour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(toLiteral(dateNode2)))
     }
   }
 
-  def constructFilters(sqlNode: SqlNode): ArrayBuffer[Filter] = {
+  def constructFilters(sqlNode: SqlNode, mahaSqlRequestContext: MahaSqlRequestContext): ArrayBuffer[Filter] = {
     require(sqlNode.isInstanceOf[SqlBasicCall], s"type ${sqlNode.getKind} not supported in construct current filter")
     val sqlBasicCall: SqlBasicCall = sqlNode.asInstanceOf[SqlBasicCall]
     val operands = sqlBasicCall.getOperandList
     if(toLiteral(operands.get(0)).equals(DailyGrain.DAY_FILTER_FIELD)){
       if(sqlBasicCall.getOperator.kind equals SqlKind.BETWEEN)
-        addDateFilter(operands.get(0), operands.get(1), sqlBasicCall.getOperator.kind,operands.get(2))
-      else addDateFilter(operands.get(0), operands.get(1), sqlBasicCall.getOperator.kind)
+        addDateFilter(operands.get(0), operands.get(1), sqlBasicCall.getOperator.kind, mahaSqlRequestContext, operands.get(2))
+      else addDateFilter(operands.get(0), operands.get(1), sqlBasicCall.getOperator.kind, mahaSqlRequestContext)
       ArrayBuffer.empty
     }
     else sqlBasicCall.getOperator.kind match {
       case SqlKind.AND =>
-        constructFilters(operands.get(0)) ++ constructFilters(operands.get(1))
+        constructFilters(operands.get(0), mahaSqlRequestContext) ++ constructFilters(operands.get(1), mahaSqlRequestContext)
       case SqlKind.NOT_IN =>
         val notInList: List[String] = operands.get(1).asInstanceOf[SqlNodeList].getList.asScala.map(sqlNode=> toLiteral(sqlNode)).toList
         ArrayBuffer.empty += NotInFilter(toLiteral(operands.get(0)), notInList).asInstanceOf[Filter]
       case SqlKind.OR =>
-        val mergeBuffer: ArrayBuffer[Filter] = constructFilters(operands.get(0)) ++ constructFilters(operands.get(1))
+        val mergeBuffer: ArrayBuffer[Filter] = constructFilters(operands.get(0), mahaSqlRequestContext) ++ constructFilters(operands.get(1), mahaSqlRequestContext)
         ArrayBuffer.empty += OrFilter(mergeBuffer.toList).asInstanceOf[Filter]
       case SqlKind.EQUALS =>
         ArrayBuffer.empty += EqualityFilter(toLiteral(operands.get(0)), toLiteral(operands.get(1))).asInstanceOf[Filter]
@@ -355,7 +353,7 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     else ""
   }
 
-  def validate(arrayBuffer: ArrayBuffer[Filter]): (IndexedSeq[Filter], Option[Filter], Option[Filter], Option[Filter], Int)= {
+  def validate(arrayBuffer: ArrayBuffer[Filter], mahaSqlRequestContext: MahaSqlRequestContext): (IndexedSeq[Filter], Option[Filter], Option[Filter], Option[Filter], Int)= {
     val attributeAndMetricFilters = ArrayBuffer.empty[Filter]
     var dayFilter: Option[Filter] = None
     var hourFilter: Option[Filter] = None
@@ -377,13 +375,13 @@ case class DefaultMahaCalciteSqlParser(mahaServiceConfig: MahaServiceConfig) ext
     }
 
     if (dayFilter.isEmpty) {
-      if (fromDate != null)
-        dayFilter = Option(BetweenFilter("Day", fromDate, toDate))
+      if (mahaSqlRequestContext.fromDate != null)
+        dayFilter = Option(BetweenFilter("Day", mahaSqlRequestContext.fromDate, mahaSqlRequestContext.toDate))
       else dayFilter = Option(DEFAULT_DAY_FILTER)
     }
 
-    if (hourFilter.isEmpty && queryAliasToColumnNameMap.exists(_._2 == "Hour") && fromHour != null)
-      hourFilter = Option(BetweenFilter("Hour",fromHour,toHour))
+    if (hourFilter.isEmpty && mahaSqlRequestContext.queryAliasToColumnNameMap.exists(_._2 == "Hour") && mahaSqlRequestContext.fromHour != null)
+      hourFilter = Option(BetweenFilter("Hour", mahaSqlRequestContext.fromHour, mahaSqlRequestContext.toHour))
 
     //validate day filter
     require(dayFilter.isDefined, "Day filter not found in list of filters!")
