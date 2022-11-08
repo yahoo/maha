@@ -12,6 +12,12 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
 
   val defaultMahaCalciteSqlParser = DefaultMahaCalciteSqlParser(mahaServiceConfig)
 
+  val parsers:Array[DateTimeParser] = Array(DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").getParser(),
+    DateTimeFormat.forPattern("yyyy-MM-dd HH").getParser(),
+    DateTimeFormat.forPattern("yyyy-MM-dd").getParser()
+  )
+  val dateTimeFormatter = new DateTimeFormatterBuilder().append(null,parsers).toFormatter()
+
   test("test base sql parsing") {
 
     val sql = s"""
@@ -663,12 +669,15 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
   }
 
   test("testing Between filters for day and hour") {
+    val from = "2022-10-26"
+    val to = "2022-10-27"
+
     val sql = s"""
           select "Hour" as "_hour", SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
           where "Student ID" = 123
               AND "Class ID" = 234
               AND "Total Marks" >= 0
-              AND "Day" BETWEEN '2022-10-26' AND '2022-10-27'
+              AND "Day" BETWEEN '$from' AND '$to'
           GROUP BY "ABC"
           ORDER BY "SUM(Total Marks)" DESC
           """
@@ -677,21 +686,27 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
-    assert(request.dayFilter.toString contains "BetweenFilter(Day,2022-10-26,2022-10-27)")
-    assert(request.hourFilter.toString contains "BetweenFilter(Hour,07,07)")
+    val fromDateDay = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(from))
+    val toDateDay = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(to))
+    val fromDateHour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(from))
+    val toDateHour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(to))
+    assert(request.dayFilter.toString contains s"BetweenFilter(Day,$fromDateDay,$toDateDay)")
+    assert(request.hourFilter.toString contains s"BetweenFilter(Hour,$fromDateHour,$toDateHour)")
 
     val ser = ReportingRequest.serialize(request)
     assert(ser != null)
   }
 
   test("test table query - testing Day filters in format yyyy-MM-dd, with no hour column ") {
+    val from = "2022-10-26"
+    val to = "2022-10-27"
     val sql = s"""
           select SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
           where "Student ID" = 123
               AND "Class ID" = 234
               AND "Total Marks" >= 0
-              AND "Day" >= '2022-10-26'
-              AND "Day" < '2022-10-27'
+              AND "Day" >= '$from'
+              AND "Day" < '$to'
           GROUP BY "ABC"
           ORDER BY "SUM(Total Marks)" DESC
           """
@@ -700,9 +715,11 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
-    assert(request.dayFilter.toString contains "BetweenFilter(Day,2022-10-26,2022-10-27)")
-    assert((request.dayFilter.toString contains "GreaterFilter(Total Marks,0)")==false)
-    assert((request.hourFilter.toString contains "BetweenFilter(Hour,07,07)")==false)
+    val fromDateDay = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(from))
+    val toDateDay = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(to))
+    assert(request.dayFilter.toString contains s"BetweenFilter(Day,$fromDateDay,$toDateDay)")
+    assert(request.hourFilter.isEmpty)
+    assert((request.filterExpressions.toString contains "GreaterFilter(Total Marks,0)")==false)
 
     val ser = ReportingRequest.serialize(request)
     assert(ser != null)
@@ -726,11 +743,6 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
-    val parsers:Array[DateTimeParser] = Array(DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").getParser(),
-      DateTimeFormat.forPattern("yyyy-MM-dd HH").getParser(),
-      DateTimeFormat.forPattern("yyyy-MM-dd").getParser()
-    )
-    val dateTimeFormatter = new DateTimeFormatterBuilder().append(null,parsers).toFormatter()
     val fromDateDay = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(from))
     val toDateDay = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(to))
     val fromDateHour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(from))
