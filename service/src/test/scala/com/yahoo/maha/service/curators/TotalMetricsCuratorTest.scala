@@ -32,13 +32,13 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
 
 
   def stageData(): Unit = {
-    val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment, month, top_student_id, batch_id, group_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+    val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment, month, top_student_id, batch_id, group_id, hour)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
     val rows: List[Seq[Any]] = List(
-      Seq(1, 100, 213, 200, 135, yesterday.toString, "some comment 1", yesterday.toString, 213, 6, 3),
-      Seq(1, 100, 213, 198, 120, yesterday.toString, "some comment 2", yesterday.toString, 213, 9, 3),
-      Seq(1, 500, 213, 197, 190, yesterday.toString, "some comment 3", yesterday.toString, 213, 8, 3)
+      Seq(1, 100, 213, 200, 135, yesterday.toString, "some comment 1", yesterday.toString, 213, 6, 3, 12),
+      Seq(1, 100, 213, 198, 120, yesterday.toString, "some comment 2", yesterday.toString, 213, 9, 3, 12),
+      Seq(1, 500, 213, 197, 190, yesterday.toString, "some comment 3", yesterday.toString, 213, 8, 3, 12)
     )
 
     rows.foreach {
