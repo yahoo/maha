@@ -246,6 +246,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val publicFact = pubFactOption.get
         val rows = new util.ArrayList[Object]()
         var ordinalPos = 1
+        val distinctCols = scala.collection.mutable.Set[String]()
         publicFact.dimCols.foreach {
             dimCol=>
                 val row = Array(
@@ -274,7 +275,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                     IS_AUTOINCREMENT,
                     IS_GENERATEDCOLUMN
                 )
-                rows.add(row)
+                if(distinctCols.add(dimCol.alias)) rows.add(row)
                 ordinalPos += 1
         }
         publicFact.factCols.foreach {
@@ -305,7 +306,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                     IS_AUTOINCREMENT,
                     IS_GENERATEDCOLUMN
                 )
-                rows.add(row)
+                if(distinctCols.add(factCol.alias)) rows.add(row)
                 ordinalPos+=1
 
         }
@@ -343,7 +344,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                                     IS_AUTOINCREMENT,
                                     IS_GENERATEDCOLUMN
                                 )
-                                rows.add(row)
+                                if(distinctCols.add(dimCol.alias)) rows.add(row)
                                 ordinalPos+=1
                         }
                 }
