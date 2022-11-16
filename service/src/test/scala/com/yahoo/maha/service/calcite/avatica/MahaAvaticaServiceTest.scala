@@ -150,6 +150,27 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
     })
   }
 
+  test("Test that getColsForCube() request returns distinct rows") {
+    val mahaAvaticaService = new DefaultMahaAvaticaService(executeFunction,
+      DefaultMahaCalciteSqlParser(mahaServiceConfig),
+      mahaService,
+      new DefaultAvaticaRowListTransformer(),
+      (schma)=> ExampleSchema.namesToValuesMap(schma),
+      REGISTRY,
+      StudentSchema,
+      ReportingRequest,
+      new DefaultConnectionUserInfoProvider
+    )
+    mahaAvaticaService(new OpenConnectionRequest(connectionID, Maps.newHashMap()))
+
+    val cube = "student_performance"
+    val rowsIt = mahaAvaticaService.getColsForCube(mahaAvaticaService.getRegistryForFact(cube),cube)._1.rows.iterator()
+    val distinctCols = scala.collection.mutable.Set[String]()
+    rowsIt.forEachRemaining(s=> {
+      assert(distinctCols.add(s.asInstanceOf[Array[Object]](3).toString)==true)
+    })
+  }
+
   test("Test that datatypes are returned correctly") {
     val mahaAvaticaService = new DefaultMahaAvaticaService(executeFunction,
       DefaultMahaCalciteSqlParser(mahaServiceConfig),
