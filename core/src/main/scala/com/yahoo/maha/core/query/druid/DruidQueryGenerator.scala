@@ -3,7 +3,6 @@
 package com.yahoo.maha.core.query.druid
 
 import java.util.UUID
-
 import com.fasterxml.jackson.annotation.JsonInclude.Include
 import com.google.common.collect.{Lists, Maps}
 import com.yahoo.maha.core.DruidDerivedFunction._
@@ -40,7 +39,7 @@ import org.apache.druid.query.scan.ScanResultValue
 import org.apache.druid.query.spec.{MultipleIntervalSegmentSpec, QuerySegmentSpec}
 import org.apache.druid.query.timeseries.TimeseriesResultValue
 import org.apache.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
-import org.apache.druid.query.{Druids, Result}
+import org.apache.druid.query.{DataSource, Druids, Result, TableDataSource, UnionDataSource}
 import org.apache.druid.segment.column.ValueType
 import org.joda.time.{DateTime, DateTimeZone, Interval, Period}
 
@@ -298,11 +297,22 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     return requestModel.startIndex < maximumMaxRows;
   }
 
+  def createDataSource(dataSource: String): DataSource = {
+    if(dataSource.split(",").length <= 1)
+      new TableDataSource(dataSource)
+    else {
+      val unionSources = dataSource.split(",").toSet
+      val unionSourcesObject: List[TableDataSource] = unionSources.map(source => new TableDataSource(source)).toList
+      new UnionDataSource(unionSourcesObject.asJava)
+    }
+  }
+
   private[this] def generateFactQuery(dims: SortedSet[DimensionBundle], queryContext: FactQueryContext): Query = {
 
     val context: java.util.Map[String, AnyRef] = Maps.newHashMap[String, AnyRef]()
     val fact = queryContext.factBestCandidate.fact
-    val dataSource = fact.underlyingTableName.getOrElse(fact.name)
+    val dataSource = createDataSource(fact.underlyingTableName.getOrElse(fact.name))
+
     val model = queryContext.requestModel
     val requestIdValue = model.additionalParameters.getOrElse(Parameter.RequestId, RequestIdValue(UUID.randomUUID().toString))
     val requestId = requestIdValue.asInstanceOf[RequestIdValue].value
