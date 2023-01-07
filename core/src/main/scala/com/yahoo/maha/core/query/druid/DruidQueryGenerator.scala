@@ -299,7 +299,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
   def createDataSource(dataSource: String): DataSource = {
     if(dataSource.split(",").length <= 1)
-      new TableDataSource(dataSource)
+      new TableDataSource(dataSource.split(",").head)
     else {
       val unionSources = dataSource.split(",").toSet
       val unionSourcesObject: List[TableDataSource] = unionSources.map(source => new TableDataSource(source)).toList

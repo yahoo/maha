@@ -3995,7 +3995,48 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
         val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
         assert(result.contains("Day") && result.contains("selector") && result.contains(DailyGrain.toFullFormattedString(baseDate)), result)
-        println(result)
+        assert(result.contains(""""dataSource":{"type":"union","dataSources":[{"type":"table","name":"fact1"},{"type":"table","name":"fact2"}]}"""))
+    }
+  }
+
+  test("Generate a single-source query at daily grain with datetime between filter with timestamp type for Day, with malformed csv") {
+    val cubes = List("k_stats_daily_grain_ts_dtf3")
+    cubes.foreach {
+      cube =>
+        val jsonString =
+          s"""{
+                          "cube": "$cube",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Week"},
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Source"},
+                            {"field": "Clicks"},
+                            {"field": "CTR"},
+                            {"field": "Reblogs"},
+                            {"field": "Reblog Rate"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "datetimebetween", "from": "${fromDateTime}", "to": "$toDateTime", "format": "$iso8601Format"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+        val request: ReportingRequest = getReportingRequestSync(jsonString)
+        val requestModel = getRequestModel(request, defaultRegistry)
+        assert(requestModel.isSuccess, requestModel.errorMessage("Failed to get request model"))
+        val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+        assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+        val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+        assert(result.contains("Day") && result.contains("selector") && result.contains(DailyGrain.toFullFormattedString(baseDate)), result)
+        assert(result.contains("\"dataSource\":{\"type\":\"table\",\"name\":\"fact1\"}"))
     }
   }
 
