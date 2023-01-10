@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>6.109-SNAPSHOT</version>
+        <version>6.121-SNAPSHOT</version>
     </parent>
 
     <name>maha service</name>
@@ -76,7 +76,7 @@
         <dependency>
             <groupId>org.apache.calcite</groupId>
             <artifactId>calcite-core</artifactId>
-            <version>1.26.0</version>
+            <version>1.32.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>log4j</groupId>

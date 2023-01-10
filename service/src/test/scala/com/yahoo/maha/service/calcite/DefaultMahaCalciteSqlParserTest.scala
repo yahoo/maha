@@ -6,10 +6,17 @@ import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.BaseMahaServiceTest
 import org.apache.calcite.sql.parser.SqlParseException
 import org.scalatest.matchers.should.Matchers
+import org.joda.time.format.{DateTimeFormat,DateTimeFormatterBuilder,DateTimeParser}
 
 class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers {
 
   val defaultMahaCalciteSqlParser = DefaultMahaCalciteSqlParser(mahaServiceConfig)
+
+  val parsers:Array[DateTimeParser] = Array(DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").getParser(),
+    DateTimeFormat.forPattern("yyyy-MM-dd HH").getParser(),
+    DateTimeFormat.forPattern("yyyy-MM-dd").getParser()
+  )
+  val dateTimeFormatter = new DateTimeFormatterBuilder().append(null,parsers).toFormatter()
 
   test("test base sql parsing") {
 
@@ -23,7 +30,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
     assert(request.requestType === SyncRequest)
-    assert(request.selectFields.size == 13)
+    assert(request.selectFields.size == 14)
     assert(request.filterExpressions.size > 0)
 
     assert(request.filterExpressions.toString contains "EqualityFilter(Student ID,123,false,false)")
@@ -112,8 +119,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(ser != null)
 
     val expected  =
-        s"""{"queryType":"groupby","cube":"student_performance","reportDisplayName":null,"schema":"student","requestType":"SyncRequest","forceDimensionDriven":false,"selectFields":[{"field":"Total Marks","alias":null,"value":null},{"field":"Marks Obtained","alias":null,"value":null},{"field":"Performance Factor","alias":null,"value":null},{"field":"Day","alias":null,"value":null},{"field":"Class ID","alias":null,"value":null},{"field":"Year","alias":null,"value":null},{"field":"Group ID","alias":null,"value":null},{"field":"Student ID","alias":null,"value":null},{"field":"Remarks","alias":null,"value":null},{"field":"Batch ID","alias":null,"value":null},{"field":"Month","alias":null,"value":null},{"field":"Top Student ID","alias":null,"value":null},{"field":"Section ID","alias":null,"value":null}],"filterExpressions":[{"field":"Student ID","operator":"=","value":"123"},{"field":"Class ID","operator":"=","value":"234"},{"field":"Total Marks","operator":">","value":"0"},{"field":"Day","operator":"Between","from":"${fromDate}","to":"${toDate}"}],"sortBy":[{"field":"Class ID","order":"ASC"},{"field":"Total Marks","order":"DESC"}],"paginationStartIndex":0,"rowsPerPage":-1,"includeRowCount":false}""".stripMargin
-
+        s"""{"queryType":"groupby","cube":"student_performance","reportDisplayName":null,"schema":"student","requestType":"SyncRequest","forceDimensionDriven":false,"selectFields":[{"field":"Total Marks","alias":null,"value":null},{"field":"Marks Obtained","alias":null,"value":null},{"field":"Performance Factor","alias":null,"value":null},{"field":"Day","alias":null,"value":null},{"field":"Class ID","alias":null,"value":null},{"field":"Hour","alias":null,"value":null},{"field":"Year","alias":null,"value":null},{"field":"Group ID","alias":null,"value":null},{"field":"Student ID","alias":null,"value":null},{"field":"Remarks","alias":null,"value":null},{"field":"Batch ID","alias":null,"value":null},{"field":"Month","alias":null,"value":null},{"field":"Top Student ID","alias":null,"value":null},{"field":"Section ID","alias":null,"value":null}],"filterExpressions":[{"field":"Student ID","operator":"=","value":"123"},{"field":"Class ID","operator":"=","value":"234"},{"field":"Total Marks","operator":">","value":"0"},{"field":"Day","operator":"Between","from":"${fromDate}","to":"${toDate}"}],"sortBy":[{"field":"Class ID","order":"ASC"},{"field":"Total Marks","order":"DESC"}],"paginationStartIndex":0,"rowsPerPage":-1,"includeRowCount":false}""".stripMargin
     ser should equal (expected) (after being whiteSpaceNormalised)
 
     //TODO: need to validate the necessary group by columns present for select * (validator?)
@@ -155,8 +161,8 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     //print(request)
     assert(request.requestType === SyncRequest)
-    assert(request.numDays == 1)
-    assert(request.dayFilter.toString contains "EqualityFilter(Day,2021-04-20,false,false)")
+    assert(request.numDays == 0)
+    assert(request.dayFilter.toString contains "BetweenFilter(Day,2021-04-20,2021-04-20)")
   }
 
   test("test between filter") {
@@ -186,6 +192,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
     assert(request.selectFields.size == 4)
     assert(request.selectFields.map(_.field).contains("Student Name"))
     assert(request.filterExpressions.size == 1)
@@ -273,7 +280,7 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
     val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
     assert(request.requestType === SyncRequest)
-    assert(request.selectFields.size == 13)
+    assert(request.selectFields.size == 14)
     assert(request.filterExpressions.nonEmpty)
     assert(request.cube == "student_performance")
 
@@ -570,4 +577,180 @@ class DefaultMahaCalciteSqlParserTest extends BaseMahaServiceTest with Matchers 
     assert(request.cube contains "student_performance")
     request.toString shouldNot contain ("sp")
     }
+
+  test("test superset table query - testing sum(colName), aliases, aliases in order by Asc") {
+    val sql = s"""
+          select "Student ID" as "ABC", SUM('Total Marks') AS "XYZ" from student_performance
+          where "Student ID" = 123
+              AND "Class ID" = 234
+              AND "Total Marks" > 0
+          GROUP BY "ABC"
+          ORDER BY "XYZ" ASC
+          """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    assert(request.requestType === SyncRequest)
+    assert(request.selectFields.size > 1)
+    assert(request.selectFields.map(_.field).contains("Student ID"))
+    assert(request.selectFields.map(_.field).contains("Total Marks"))
+    assert(request.filterExpressions.size == 3)
+    assert(request.queryType == GroupByQuery)
+
+    request.sortBy.size shouldBe 1
+    request.sortBy.head.field shouldBe "Total Marks"
+    request.sortBy.head.order.toString shouldBe "ASC"
+
+    val ser = ReportingRequest.serialize(request)
+    assert(ser != null)
+  }
+
+  test("test superset table query - testing sum(colName), aliases, aliases in order by Desc") {
+    val sql = s"""
+          select "Student ID" as "ABC", SUM('Total Marks') AS "XYZ" from student_performance
+          where "Student ID" = 123
+              AND "Class ID" = 234
+              AND "Total Marks" > 0
+          GROUP BY "ABC"
+          ORDER BY "XYZ" DESC
+          """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    assert(request.requestType === SyncRequest)
+    assert(request.selectFields.size > 1)
+    assert(request.selectFields.map(_.field).contains("Student ID"))
+    assert(request.selectFields.head.alias.get.equals("ABC"))
+    assert(request.selectFields.map(_.field).contains("Total Marks"))
+    assert(request.filterExpressions.size == 3)
+    assert(request.queryType == GroupByQuery)
+
+    request.sortBy.size shouldBe 1
+    request.sortBy.head.field shouldBe "Total Marks"
+    request.sortBy.head.order.toString shouldBe "DESC"
+
+    val ser = ReportingRequest.serialize(request)
+    assert(ser != null)
+  }
+
+  test("test superset table query - testing sum(colName), complex aliases, aliases in order by Desc") {
+    val sql = s"""
+          select SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
+          where "Student ID" = 123
+              AND "Class ID" = 234
+              AND "Total Marks" > 0
+          GROUP BY "ABC"
+          ORDER BY "SUM(Total Marks)" DESC
+          """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    assert(request.requestType === SyncRequest)
+    assert(request.selectFields.size > 1)
+    assert(request.selectFields.map(_.field).contains("Student ID"))
+    assert(request.selectFields.head.alias.get.equals("SUM(Total Marks)"))
+    assert(request.selectFields.map(_.field).contains("Total Marks"))
+    assert(request.queryType == GroupByQuery)
+
+    request.sortBy.size shouldBe 1
+    request.sortBy.head.field shouldBe "Total Marks"
+    request.sortBy.head.order.toString shouldBe "DESC"
+
+    assert(request.dayFilter.toString contains "BetweenFilter(Day")
+
+    val ser = ReportingRequest.serialize(request)
+    assert(ser != null)
+  }
+
+  test("testing Between filters for day and hour") {
+    val from = "2022-10-26"
+    val to = "2022-10-27"
+
+    val sql = s"""
+          select "Hour" as "_hour", SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
+          where "Student ID" = 123
+              AND "Class ID" = 234
+              AND "Total Marks" >= 0
+              AND "Day" BETWEEN '$from' AND '$to'
+          GROUP BY "ABC"
+          ORDER BY "SUM(Total Marks)" DESC
+          """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    val fromDateDay = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(from))
+    val toDateDay = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(to))
+    val fromDateHour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(from))
+    val toDateHour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(to))
+    assert(request.dayFilter.toString contains s"BetweenFilter(Day,$fromDateDay,$toDateDay)")
+    assert(request.hourFilter.toString contains s"BetweenFilter(Hour,$fromDateHour,$toDateHour)")
+
+    val ser = ReportingRequest.serialize(request)
+    assert(ser != null)
+  }
+
+  test("test table query - testing Day filters in format yyyy-MM-dd, with no hour column ") {
+    val from = "2022-10-26"
+    val to = "2022-10-27"
+    val sql = s"""
+          select SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
+          where "Student ID" = 123
+              AND "Class ID" = 234
+              AND "Total Marks" >= 0
+              AND "Day" >= '$from'
+              AND "Day" < '$to'
+          GROUP BY "ABC"
+          ORDER BY "SUM(Total Marks)" DESC
+          """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    val fromDateDay = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(from))
+    val toDateDay = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(to))
+    assert(request.dayFilter.toString contains s"BetweenFilter(Day,$fromDateDay,$toDateDay)")
+    assert(request.hourFilter.isEmpty)
+    assert((request.filterExpressions.toString contains "GreaterFilter(Total Marks,0)")==false)
+
+    val ser = ReportingRequest.serialize(request)
+    assert(ser != null)
+  }
+
+  test("test superset table query - testing Day+Hour filters ") {
+    val from = "2022-10-26 18:00:00.000000"
+    val to = "2022-10-27 00:00:00.000000"
+    val sql = s"""
+          select "Hour", SUM('Total Marks') AS "SUM(Total Marks)", "Student ID" as "ABC" from student_performance
+          where "Student ID" = 123
+              AND "Class ID" = 234
+              AND "Total Marks" >= 0
+              AND "Day" >= '$from'
+              AND "Day" < '$to'
+          GROUP BY "ABC"
+          ORDER BY "SUM(Total Marks)" DESC
+          """
+
+    val mahaSqlNode: MahaSqlNode = defaultMahaCalciteSqlParser.parse(sql, StudentSchema, "er")
+    assert(mahaSqlNode.isInstanceOf[SelectSqlNode])
+    val request = mahaSqlNode.asInstanceOf[SelectSqlNode].reportingRequest
+    //print(request)
+    val fromDateDay = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(from))
+    val toDateDay = DailyGrain.toFormattedString(dateTimeFormatter.parseDateTime(to))
+    val fromDateHour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(from))
+    val toDateHour = HourlyGrain.toFormattedString(dateTimeFormatter.parseDateTime(to))
+    assert(request.dayFilter.toString contains s"BetweenFilter(Day,$fromDateDay,$toDateDay)")
+    assert(request.hourFilter.toString contains s"BetweenFilter(Hour,$fromDateHour,$toDateHour)")
+
+    val ser = ReportingRequest.serialize(request)
+    assert(ser != null)
+  }
 }

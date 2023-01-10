@@ -48,6 +48,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
             , DimCol("date", DateType())
+            , DimCol("hour", IntType(2))
             , DimCol("month", DateType())
             , DimCol("top_student_id", IntType())
             ),
@@ -73,6 +74,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("group_id", "Group ID", InEquality),
             PubCol("section_id", "Section ID", InEquality),
             PubCol("date", "Day", Equality),
+            PubCol("hour", "Hour", Equality),
             PubCol("month", "Month", InEquality),
             PubCol("year", "Year", Equality),
             PubCol("comment", "Remarks", InEqualityLike),

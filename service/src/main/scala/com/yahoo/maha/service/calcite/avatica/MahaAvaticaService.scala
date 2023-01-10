@@ -1,11 +1,13 @@
 package com.yahoo.maha.service.calcite.avatica;
 
 import java.util
+import java.util.Arrays
+
 import org.apache.calcite.avatica.{AvaticaParameter, ColumnMetaData, ConnectionPropertiesImpl, Meta, MetaImpl}
 import org.apache.calcite.avatica.Meta.{ConnectionProperties, CursorFactory, Frame, Signature, StatementHandle, StatementType, Style}
 import org.apache.calcite.avatica.remote.Service._
-
 import java.util.concurrent.atomic.AtomicInteger
+
 import org.apache.calcite.avatica.remote.Service
 import com.yahoo.maha.core.{PublicColumn, Schema}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
@@ -113,7 +115,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
     }
 
     override def apply(prepareRequest: Service.PrepareRequest): Service.PrepareResponse = {
-        new PrepareResponse(new StatementHandle(prepareRequest.connectionId, statementIdCounter.getAndIncrement() , null),rpcMetadataResponse);
+        new PrepareResponse(new StatementHandle(prepareRequest.connectionId, statementIdCounter.getAndIncrement() , getSignature(prepareRequest.sql)),rpcMetadataResponse);
     }
 
     override def apply(executeRequest: Service.ExecuteRequest): Service.ExecuteResponse = {
@@ -178,6 +180,17 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
 
     override def setRpcMetadata(rpcMetadataResponse: Service.RpcMetadataResponse): Unit = ???
 
+    private def getSignature(sql:String): Signature = {
+        val columns = new util.ArrayList[ColumnMetaData]
+        val params = new util.ArrayList[AvaticaParameter]
+        val cursorFactory = CursorFactory.create(Style.LIST, classOf[String], util.Arrays.asList())
+        Array("Column Name", "Column Type", "Data Type", "Comment").zipWithIndex.foreach {
+            case (columnName, index) => {
+                columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
+            }
+        }
+         Signature.create(columns, sql, params, cursorFactory, StatementType.SELECT)
+    }
     def toComment(pubCol: PublicColumn):String = {
         s""" ${pubCol.alias}, allowed filters: ${pubCol.filters}, restricted schemas: ${pubCol.restrictedSchemas}, Is required: ${pubCol.required} """
     }
@@ -186,7 +199,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val name = dimCol.name
         val list =  publicFact.factList.map(fact=> fact.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
         if (list.nonEmpty) {
-            list.head.dataType.getClass.getSimpleName
+            dataTypeMap.getOrElse(list.head.dataType.getClass.getSimpleName, "")
         } else ""
     }
 
@@ -194,7 +207,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val name = dimCol.name
         val list =  publicDim.dimList.map(d=> d.columnsByNameMap.get(name)).filter(_.isDefined).map(_.get).toList
         if(list.nonEmpty) {
-            list.head.dataType.getClass.getSimpleName
+            dataTypeMap.getOrElse(list.head.dataType.getClass.getSimpleName, "")
         } else ""
     }
 
@@ -233,6 +246,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
         val publicFact = pubFactOption.get
         val rows = new util.ArrayList[Object]()
         var ordinalPos = 1
+        val distinctCols = scala.collection.mutable.Set[String]()
         publicFact.dimCols.foreach {
             dimCol=>
                 val row = Array(
@@ -244,7 +258,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                     getDataType(dimCol, publicFact),
                     COLUMN_SIZE,
                     BUFFER_LENGTH,
-                    if(getDataType(dimCol, publicFact).equals("DecType")) 38 else null, //DECIMAL_DIGITS
+                    if(getDataType(dimCol, publicFact).equals("float")) 38 else null, //DECIMAL_DIGITS
                     NUM_PREC_RADIX,
                     NULLABLE,
                     toComment(dimCol),
@@ -261,7 +275,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                     IS_AUTOINCREMENT,
                     IS_GENERATEDCOLUMN
                 )
-                rows.add(row)
+                if(distinctCols.add(dimCol.alias)) rows.add(row)
                 ordinalPos += 1
         }
         publicFact.factCols.foreach {
@@ -275,7 +289,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                     getDataType(factCol, publicFact),
                     COLUMN_SIZE,
                     BUFFER_LENGTH,
-                    if(getDataType(factCol, publicFact).equals("DecType")) 38 else null, //DECIMAL_DIGITS
+                    if(getDataType(factCol, publicFact).equals("float")) 38 else null, //DECIMAL_DIGITS
                     NUM_PREC_RADIX,
                     NULLABLE,
                     toComment(factCol),
@@ -292,7 +306,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                     IS_AUTOINCREMENT,
                     IS_GENERATEDCOLUMN
                 )
-                rows.add(row)
+                if(distinctCols.add(factCol.alias)) rows.add(row)
                 ordinalPos+=1
 
         }
@@ -309,16 +323,16 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                                     TABLE_SCHEM,
                                     publicFact.name,
                                     dimCol.alias,
-                                    getSqlDataType(dimCol, publicFact),
-                                    getDataType(dimCol, publicFact),
+                                    getSqlDataTypeFromDim(dimCol, dimCubeOption.get),
+                                    getDataTypeFromDim(dimCol, dimCubeOption.get),
                                     COLUMN_SIZE,
                                     BUFFER_LENGTH,
-                                    if(getDataType(dimCol, publicFact).equals("DecType")) 38 else null, //DECIMAL_DIGITS
+                                    if(getDataTypeFromDim(dimCol, dimCubeOption.get).equals("float")) 38 else null, //DECIMAL_DIGITS
                                     NUM_PREC_RADIX,
                                     NULLABLE,
                                     toComment(dimCol),
                                     toComment(dimCol),
-                                    getSqlDataType(dimCol, publicFact),
+                                    getSqlDataTypeFromDim(dimCol, dimCubeOption.get),
                                     SQL_DATETIME_SUB,
                                     CHAR_OCTET_LENGTH,
                                     ordinalPos, //ORDINAL_POSITION
@@ -330,7 +344,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                                     IS_AUTOINCREMENT,
                                     IS_GENERATEDCOLUMN
                                 )
-                                rows.add(row)
+                                if(distinctCols.add(dimCol.alias)) rows.add(row)
                                 ordinalPos+=1
                         }
                 }
@@ -359,27 +373,19 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                 val pubFactOption = registry.getFact(describeSqlNode.cube)
                 require(pubFactOption.isDefined, s"Failed to find the cube ${describeSqlNode.cube} in the registry fact map")
                 val publicFact = pubFactOption.get
-                val columnsByAliasMap = pubFactOption.get.columnsByAliasMap
-
-                val columns = new util.ArrayList[ColumnMetaData]
-                val params = new util.ArrayList[AvaticaParameter]
-                val cursorFactory = CursorFactory.create(Style.LIST, classOf[String], util.Arrays.asList())
-                Array("Column Name", "Column Type", "Data Type", "Comment").zipWithIndex.foreach {
-                    case (columnName, index) => {
-                        columns.add(MetaImpl.columnMetaData(columnName, index, classOf[String], true))
-                    }
-                }
-                val signature: Signature = Signature.create(columns, "", params, cursorFactory, StatementType.SELECT)
+                val signature: Signature = getSignature(sql)
                 val rows = new util.ArrayList[Object]()
+                val distinctCols = scala.collection.mutable.Set[String]()
+
                 publicFact.dimCols.foreach {
                     dimCol=>
                         val row = Array(dimCol.alias, DIMENSION_COLUMN, getDataType(dimCol, publicFact) , toComment(dimCol))
-                        rows.add(row)
+                        if(distinctCols.add(dimCol.alias)) rows.add(row)
                 }
                 publicFact.factCols.foreach {
                     factCol=>
                         val row = Array(factCol.alias, METRIC_COLUMN, getDataType(factCol, publicFact) , toComment(factCol))
-                        rows.add(row)
+                        if(distinctCols.add(factCol.alias)) rows.add(row)
                 }
                 publicFact.foreignKeySources.foreach {
                     dimensionCube =>
@@ -390,7 +396,7 @@ class DefaultMahaAvaticaService(executeFunction: (MahaRequestContext, MahaServic
                             dim.columnsByAliasMap.foreach {
                                 case (alias, dimCol)=>
                                     val row = Array(dimCol.alias, DIMENSION_JOIN_COLUMN, getDataTypeFromDim(dimCol, dim) , toComment(dimCol))
-                                    rows.add(row)
+                                    if(distinctCols.add(dimCol.alias)) rows.add(row)
                             }
                         }
                 }
@@ -487,6 +493,14 @@ object MahaAvaticaServiceHelper extends Logging {
         "SOURCE_DATA_TYPE" -> "String",
         "IS_AUTOINCREMENT" -> "String",
         "IS_GENERATEDCOLUMN" -> "String"
+    )
+    val dataTypeMap: Map[String, String] = Map(
+        "IntType" -> "bigint",
+        "StrType" -> "varchar",
+        "DecType" -> "double",
+        "DateType" -> "date",
+        "TimestampType" -> "timestamp",
+        "PassthroughType" -> "varchar"
     )
     val COLUMN_SIZE = 20
     val BUFFER_LENGTH = 10 //unused

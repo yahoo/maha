@@ -126,6 +126,79 @@ class MahaAvaticaServiceTest extends BaseMahaServiceTest {
 
   }
 
+  test("Test that Describe table request returns distinct rows") {
+    val mahaAvaticaService = new DefaultMahaAvaticaService(executeFunction,
+      DefaultMahaCalciteSqlParser(mahaServiceConfig),
+      mahaService,
+      new DefaultAvaticaRowListTransformer(),
+      (schma)=> ExampleSchema.namesToValuesMap(schma),
+      REGISTRY,
+      StudentSchema,
+      ReportingRequest,
+      new DefaultConnectionUserInfoProvider
+    )
+
+    mahaAvaticaService(new OpenConnectionRequest(connectionID, Maps.newHashMap()))
+    val result =  mahaAvaticaService(new PrepareAndExecuteRequest(connectionID, 1, "describe student_performance", 10))
+    assert(result.results.size() == 1)
+    val frame = result.results.get(0).firstFrame
+    assert(frame!=null)
+    val rowsIt = frame.rows.iterator();
+    val distinctCols = scala.collection.mutable.Set[String]()
+    rowsIt.forEachRemaining(s=> {
+      assert(distinctCols.add(s.asInstanceOf[Array[String]](0))==true)
+    })
+  }
+
+  test("Test that getColsForCube() request returns distinct rows") {
+    val mahaAvaticaService = new DefaultMahaAvaticaService(executeFunction,
+      DefaultMahaCalciteSqlParser(mahaServiceConfig),
+      mahaService,
+      new DefaultAvaticaRowListTransformer(),
+      (schma)=> ExampleSchema.namesToValuesMap(schma),
+      REGISTRY,
+      StudentSchema,
+      ReportingRequest,
+      new DefaultConnectionUserInfoProvider
+    )
+    mahaAvaticaService(new OpenConnectionRequest(connectionID, Maps.newHashMap()))
+
+    val cube = "student_performance"
+    val rowsIt = mahaAvaticaService.getColsForCube(mahaAvaticaService.getRegistryForFact(cube),cube)._1.rows.iterator()
+    val distinctCols = scala.collection.mutable.Set[String]()
+    rowsIt.forEachRemaining(s=> {
+      assert(distinctCols.add(s.asInstanceOf[Array[Object]](3).toString)==true)
+    })
+  }
+
+  test("Test that datatypes are returned correctly") {
+    val mahaAvaticaService = new DefaultMahaAvaticaService(executeFunction,
+      DefaultMahaCalciteSqlParser(mahaServiceConfig),
+      mahaService,
+      new DefaultAvaticaRowListTransformer(),
+      (schma)=> ExampleSchema.namesToValuesMap(schma),
+      REGISTRY,
+      StudentSchema,
+      ReportingRequest,
+      new DefaultConnectionUserInfoProvider
+    )
+
+    mahaAvaticaService(new OpenConnectionRequest(connectionID, Maps.newHashMap()))
+    val result =  mahaAvaticaService(new PrepareAndExecuteRequest(connectionID, 1, "describe student_performance", 10))
+    assert(result.results.size() == 1)
+    val frame = result.results.get(0).firstFrame
+    assert(frame!=null)
+    val rowsIt = frame.rows.iterator();
+    rowsIt.forEachRemaining(s=> {
+      //Section ID,Date are DimCol from FactTable, Performance Factor is a FactCol from FactTable, Student Name is a DimCol from DimTable
+      if(s.asInstanceOf[Array[String]](0).equals("Section ID")) assert(s.asInstanceOf[Array[String]](2).equals("bigint"))
+      else if(s.asInstanceOf[Array[String]](0).equals("Performance Factor")) assert(s.asInstanceOf[Array[String]](2).equals("double"))
+      else if(s.asInstanceOf[Array[String]](0).equals("Student Name")) assert(s.asInstanceOf[Array[String]](2).equals("varchar"))
+      else if(s.asInstanceOf[Array[String]](0).equals("Date")) assert(s.asInstanceOf[Array[String]](2).equals("date"))
+      //println(s.asInstanceOf[Array[String]](0)+" +++ "+s.asInstanceOf[Array[String]](1)+" +++ "+ s.asInstanceOf[Array[String]](2) + " +++ " + s.asInstanceOf[Array[String]](3) + " ")
+    })
+  }
+
   test("Noop avatica service") {
     val noopMahaAvaticaService = new NoopMahaAvaticaService()
     noopMahaAvaticaService.apply(new PrepareAndExecuteRequest("", 1, "", 10))

@@ -182,7 +182,7 @@ public class URIExtractionNamespaceCacheFactory
 
     private byte[] checkCacheAndReturn(URIExtractionNamespace extractionNamespace, Map<String, List<String>> cache, String key, String valueColumn) {
         if(!cache.containsKey(key) || !extractionNamespace.getNamespaceParseSpec().getColumns().contains(valueColumn)){
-            log.error("Found no value for " + key + " with Namespace Cols: " + extractionNamespace.getNamespaceParseSpec().getColumns().toString() + " and val: " + valueColumn);
+            log.info("Found no value for " + key + " with Namespace Cols: " + extractionNamespace.getNamespaceParseSpec().getColumns().toString() + " and val: " + valueColumn);
             return new byte[0];
         } else {
             return cache.get(key).get(extractionNamespace.getNamespaceParseSpec().getColumns().indexOf(valueColumn)).getBytes();
