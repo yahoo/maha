@@ -93,4 +93,29 @@ class ParameterTest extends AnyFunSuite with Matchers {
 
   }
 
+  test("Should render extra columnInfo") {
+    val inputJson =
+      """
+        |{
+        |  "AdditionalColumnInfo":
+        |  [
+        |    {"field": "colA", "value": "123"},
+        |    {"field": "colB", "value": "potatoes"}
+        |    ]
+        |}
+        |""".stripMargin
+
+    val result = Parameter.deserializeParameters(JsonMethods.parse(inputJson))
+    val expectedOutput = List(Field("colA", None, Some("123")), Field("colB", None, Some("potatoes")))
+    result.getOrElse() match {
+      case m: Map[Parameter, ParameterValue[_]] => {
+        m.size shouldBe 1
+        m(Parameter.AdditionalColumnInfo) shouldBe AdditionalColumnInfoValue(expectedOutput)
+
+      }
+    }
+    val additionalInfoValue = result.getOrElse().asInstanceOf[Map[Parameter, ParameterValue[_]]].get(Parameter.AdditionalColumnInfo)
+    additionalInfoValue.get.asInstanceOf[AdditionalColumnInfoValue].value shouldBe expectedOutput
+  }
+
 }

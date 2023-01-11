@@ -7,15 +7,12 @@ import enumeratum.EnumEntry
 import enumeratum.Enum
 import enumeratum.EnumEntry.{Snakecase, Uppercase}
 import org.json4s.scalaz.JsonScalaz
-
 import scalaz.syntax.applicative._
 import _root_.scalaz.{Success, Validation, syntax}
 import org.json4s.{JValue, _}
 import org.json4s.scalaz.JsonScalaz._
-
 import Validation.FlatMap._
 import grizzled.slf4j.Logging
-import org.json4s.JsonAST.JValue
 
 /**
  * Created by jians on 10/5/15.
@@ -144,6 +141,7 @@ case class JobNameValue(value: String) extends ParameterValue[String]
 case class RegistryNameValue(value: String) extends ParameterValue[String]
 case class HostNameValue(value: String) extends ParameterValue[String]
 case class AllowPushDownNameValue(value: String) extends ParameterValue[String]
+case class AdditionalColumnInfoValue(value: List[Field]) extends ParameterValue[List[Field]]
 
 sealed abstract class Parameter(override val entryName: String) extends EnumEntry with Snakecase with Uppercase
 
@@ -166,6 +164,7 @@ object Parameter extends Enum[Parameter] with Logging {
   case object RegistryName extends Parameter("RegistryName")
   case object HostName extends Parameter("HostName")
   case object AllowPushDownName extends Parameter("AllowPushDown")
+  case object AdditionalColumnInfo extends Parameter("AdditionalColumnInfo")
 
   import syntax.validation._
   def deserializeParameters(json: JValue) : JsonScalaz.Result[Map[Parameter, ParameterValue[_]]] = {
@@ -209,6 +208,7 @@ object Parameter extends Enum[Parameter] with Logging {
           case RegistryName => fieldExtended[String](name)(json).map(ct => p -> RegistryNameValue(ct))
           case HostName => fieldExtended[String](name)(json).map(ct => p -> HostNameValue(ct))
           case AllowPushDownName => fieldExtended[String](name)(json).map(ct => p -> AllowPushDownNameValue(ct))
+          case AdditionalColumnInfo => fieldExtended[List[Field]](name)(json).map(ct => p -> AdditionalColumnInfoValue(ct))
         }
         Option(result)
     }
@@ -237,8 +237,9 @@ object Parameter extends Enum[Parameter] with Logging {
       case JobName => p.entryName -> JString(v.asInstanceOf[JobNameValue].value)
       case RegistryName => p.entryName -> JString(v.asInstanceOf[RegistryNameValue].value)
       case HostName => p.entryName -> JString(v.asInstanceOf[HostNameValue].value)
-      case AllowPushDownName => p.entryName -> JString(v.asInstanceOf[AllowPushDownNameValue].value) 
-   }
+      case AllowPushDownName => p.entryName -> JString(v.asInstanceOf[AllowPushDownNameValue].value)
+      case AdditionalColumnInfo => p.entryName -> JArray(v.asInstanceOf[AdditionalColumnInfoValue].value.map(a => JArray(List(JString(a.field), JString(a.alias.getOrElse("")), JString(a.value.getOrElse(""))))))
+    }
     
   }
   
