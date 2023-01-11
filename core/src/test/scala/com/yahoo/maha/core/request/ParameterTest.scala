@@ -99,7 +99,7 @@ class ParameterTest extends AnyFunSuite with Matchers {
         |{
         |  "AdditionalColumnInfo":
         |  [
-        |    {"field": "currency_id", "value": "123"},
+        |    {"field": "colA", "value": "123"},
         |    {"field": "colB", "value": "potatoes"}
         |    ]
         |}
