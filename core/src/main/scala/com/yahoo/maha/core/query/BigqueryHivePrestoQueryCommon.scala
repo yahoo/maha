@@ -3,6 +3,7 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
+import com.yahoo.maha.core.query.QueryGeneratorHelper.{getAdditionalColData, overrideRenderedCol}
 
 import scala.collection.mutable
 
@@ -240,7 +241,7 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       } else  {
         // Matching case for non rollup expression recursively
         expression match {
-          case col@(PrestoExpression.COL(_, _, _) | BigqueryExpression.COL(_, _, _) | HiveExpression.COL(_, _, _)) =>
+          case col@(PrestoExpression.COL(_, _, _) | BigqueryExpression.COL(_, _, _) | HiveExpression.COL(_, _, _) | PrestoExpression.COL_W_REPLACEMENTS(_, _, _) | BigqueryExpression.COL_W_REPLACEMENTS(_, _, _) | HiveExpression.COL_W_REPLACEMENTS(_, _, _)) =>
             val pattern = "\\{([^}]+)\\}".r
             val colNames = pattern.findAllIn(col.asString).toSet
             for (colName <- colNames) {
@@ -497,7 +498,8 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-        s"""${de.render(name, Map.empty)} $renderedAlias"""
+        val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext), column.asInstanceOf[PrestoDerDimCol], name)
+        s"""${overriddenCol} $renderedAlias"""
       case HivePartDimCol(_, dt, _, _, _, _) =>
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAlias(alias, renderedAlias, column)

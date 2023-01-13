@@ -573,6 +573,8 @@ trait BasePrestoQueryGeneratorTest
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
           , PrestoDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
+          , PrestoDerDimCol("col_test", StrType(), COL("CASE WHEN ({keyword_id}) is not null then ({keyword}) ELSE ({search_term}) END"))
+          , PrestoDerDimCol("col_modifiable_test", StrType(), COL_W_REPLACEMENTS("CASE WHEN ({keyword_id}) is not null then ({keyword}) ELSE ({search_term}) END"))
 
         ),
         Set(
@@ -607,7 +609,9 @@ trait BasePrestoQueryGeneratorTest
           PubCol("column2_id", "Column2 ID", Equality),
           PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality),
           PubCol("network_type", "Network ID", InEquality),
-          PubCol("device_id", "Device ID", InEquality)
+          PubCol("device_id", "Device ID", InEquality),
+          PubCol("col_test", "Test COL Function", InEquality),
+          PubCol("col_modifiable_test", "Test Modifiable COL Function", InEquality)
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
