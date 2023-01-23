@@ -490,6 +490,8 @@ trait BaseHiveQueryGeneratorTest
           , HiveDerDimAggregateCol("Keyword Count Scaled", IntType(), COUNT("{keyword_id} * {stats_source} * 10"))
           , DimCol("internal_bucket_id", StrType())
           , HiveDerDimCol("click_exp_id", StrType(), REGEX_EXTRACT("internal_bucket_id", "(cl-)(.*?)(,|$)", 2, replaceMissingValue = true, "-3"))
+          , HiveDerDimCol("col_test", StrType(), COL("CASE WHEN ({keyword_id}) is not null then ({keyword}) ELSE ({search_term}) END"))
+          , HiveDerDimCol("col_modifiable_test", StrType(), COL_W_REPLACEMENTS("CASE WHEN ({keyword_id}) is not null then ({keyword}) ELSE ({search_term}) END"))
           , HivePartDimCol("frequency", StrType(), partitionLevel = FirstPartitionLevel)
           , HivePartDimCol("utc_date", StrType(), partitionLevel = SecondPartitionLevel)
           , HivePartDimCol("utc_hour", StrType(), partitionLevel = ThirdPartitionLevel)
@@ -533,7 +535,9 @@ trait BaseHiveQueryGeneratorTest
           PubCol("network_type", "Network ID", InEquality),
           PubCol("device_id", "Device ID", InEquality),
           PubCol("internal_bucket_id", "Internal Bucket ID", InEquality),
-          PubCol("click_exp_id", "Click Exp ID", InEquality)
+          PubCol("click_exp_id", "Click Exp ID", InEquality),
+          PubCol("col_test", "Test COL Function", InEquality),
+          PubCol("col_modifiable_test", "Test Modifiable COL Function", InEquality)
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),

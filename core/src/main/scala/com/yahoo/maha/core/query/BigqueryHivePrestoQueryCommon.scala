@@ -490,7 +490,8 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       case HiveDerDimCol(_, dt, _, de, _, _, _) =>
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-        s"""${de.render(name, Map.empty)} $renderedAlias"""
+        val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext), column.asInstanceOf[HiveDerDimCol], name)
+        s"""${overriddenCol} $renderedAlias"""
       case BigqueryDerDimCol(_, dt, _, de, _, _, _) =>
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
