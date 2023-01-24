@@ -3,6 +3,7 @@ package com.yahoo.maha.core.query.presto
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
+import com.yahoo.maha.core.query.QueryGeneratorHelper.getAdditionalColData
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 

@@ -8,7 +8,6 @@ package com.yahoo.maha.core
 
 import java.util
 import java.util.concurrent.atomic.AtomicLong
-
 import com.google.common.collect.Lists
 import com.yahoo.maha.core.ThetaSketchSetOp.ThetaSketchSetOp
 import com.yahoo.maha.core.fact.FactCol
@@ -374,6 +373,10 @@ object PrestoExpression {
     def asString : String = s
   }
 
+  case class COL_W_REPLACEMENTS(s: String, hasRollupExpression: Boolean = false, hasNumericOperation: Boolean = false) extends BasePrestoExpression {
+    def asString: String = s
+  }
+
   case class SUM(s: PrestoExp) extends BasePrestoExpression {
     val hasRollupExpression = true
     val hasNumericOperation = true
@@ -510,7 +513,11 @@ object HiveExpression {
   }
 
   case class COL(s: String, hasRollupExpression: Boolean = false, hasNumericOperation: Boolean = false) extends BaseHiveExpression {
-    def asString : String = s
+    def asString: String = s
+  }
+
+  case class COL_W_REPLACEMENTS(s: String, hasRollupExpression: Boolean = false, hasNumericOperation: Boolean = false) extends BaseHiveExpression {
+    def asString: String = s
   }
 
   case class SUM(s: HiveExp) extends BaseHiveExpression {
@@ -1399,6 +1406,10 @@ object BigqueryExpression {
   }
 
   case class COL(s: String, hasRollupExpression: Boolean = false, hasNumericOperation: Boolean = false) extends BaseBigqueryExpression {
+    def asString: String = s
+  }
+
+  case class COL_W_REPLACEMENTS(s: String, hasRollupExpression: Boolean = false, hasNumericOperation: Boolean = false) extends BaseBigqueryExpression {
     def asString: String = s
   }
 

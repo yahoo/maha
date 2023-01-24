@@ -5,6 +5,7 @@ package com.yahoo.maha.core.query.presto
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
+import com.yahoo.maha.core.query.QueryGeneratorHelper.{getAdditionalColData, overrideRenderedCol}
 import com.yahoo.maha.core.query._
 
 import grizzled.slf4j.Logging
@@ -237,8 +238,9 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
             name
           case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
             val renderedAlias = renderColumnAlias(alias)
+            val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext), column.asInstanceOf[PrestoDerDimCol], name)
             queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-            s"""${de.render(name, Map.empty)} $renderedAlias"""
+            s"""${overriddenCol} $renderedAlias"""
           case FactCol(_, dt, _, rollup, _, _, _) =>
             dt match {
               case DecType(_, _, Some(default), Some(min), Some(max), _) =>
@@ -438,7 +440,8 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           case DimCol(_, dt, _, _, _, _) =>
             name
           case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
-            s"""${de.render(name, Map.empty)}"""
+            val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext), column.asInstanceOf[PrestoDerDimCol], name)
+            s"""${overriddenCol}"""
           case other => throw new IllegalArgumentException(s"Unhandled column type for dimension cols : $other")
         }
       }

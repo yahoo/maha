@@ -6,6 +6,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.{Fact, FactBestCandidate, FactCol, PublicFact}
 import com.yahoo.maha.core.query.Version.{v0, v1, v2}
+import com.yahoo.maha.core.request.{AdditionalColumnInfoValue, Field, Parameter, ReportingRequest}
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
@@ -247,6 +248,8 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
 }
 
 object QueryGeneratorHelper {
+
+  private val logger = LoggerFactory.getLogger(getClass)
   def populateAliasColMapOfRequestCols(columnInfo: ColumnInfo
                                        , queryBuilderContext: QueryBuilderContext
                                        , queryContext : CombinedQueryContext) : Map[String, Column] = {
@@ -355,6 +358,43 @@ object QueryGeneratorHelper {
       s"""${tuple._1}"""
     } else {
       s"""${tuple._1} ${tuple._2}"""
+    }
+  }
+
+  def getAdditionalColData(queryContext: QueryContext): List[Field] = {
+    val request: ReportingRequest = queryContext.requestModel.reportingRequest
+    if (!request.additionalParameters.contains(Parameter.AdditionalColumnInfo)) {
+      List.empty
+    } else {
+      try {
+        request.additionalParameters(Parameter.AdditionalColumnInfo).asInstanceOf[AdditionalColumnInfoValue].value
+      } catch {
+        case ex: Exception => {
+          logger.error("Failed to parse Additional Col Info!", ex.getMessage)
+          List.empty
+        }
+      }
+    }
+  }
+
+  def overrideRenderedCol(insideDerived: Boolean, colCtx: List[Field] = List.empty, column: BaseDerivedDimCol, name: String): String = {
+    val de = column.derivedExpression.asInstanceOf[DerivedExpression[String]]
+    val input = de.render(name, Map.empty)
+    if (colCtx.nonEmpty && useCtxt(de)) {
+      colCtx.foldLeft(input) {
+        case stringAndField: (String, Field) =>
+          stringAndField._1.replaceAll(stringAndField._2.alias.getOrElse(stringAndField._2.field), stringAndField._2.value.getOrElse(""))
+      }
+    } else {
+      input
+    }
+  }
+
+  def useCtxt(expr: DerivedExpression[String]): Boolean = {
+    val innerExpression = expr.expression
+    innerExpression match {
+      case _@(_: PrestoExpression.COL_W_REPLACEMENTS | _: HiveExpression.COL_W_REPLACEMENTS | _: BigqueryExpression.COL_W_REPLACEMENTS) => true
+      case _ => false
     }
   }
 

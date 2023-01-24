@@ -2,9 +2,12 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.presto
 
+import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
+
+import java.nio.charset.StandardCharsets
 
 
 class PrestoQueryGeneratorTest extends BasePrestoQueryGeneratorTest {
@@ -1100,6 +1103,51 @@ af0.campaign_id = c1.c1_id
     assert(requestModel.isFailure, requestModel.errorMessage("Building request model should have failed"))
     requestModel.failed.get.getMessage should startWith ("requirement failed: ERROR_CODE:10008 Incompatible columns found in request, Device Type is not compatible with Set(Device ID)")
 
+  }
+
+  test("generating presto query with COL Function") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats_minute",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Device ID"},
+                              {"field": "Test COL Function"},
+                              {"field": "Test Modifiable COL Function"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" },
+                           { "field": "Advertiser ID", "order": "Asc"}
+                         ],
+                         "additionalParameters": {
+                            "AdditionalColumnInfo":
+                            [
+                              {"field": "keyword_id", "value": "123"},
+                              {"field": "keyword", "value": "potatoes"}
+                            ]
+                         }
+          }"""
+    val request: ReportingRequest = ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+    assert(result.contains("""CASE WHEN (keyword_id) is not null then (keyword) ELSE (search_term) END mang_test_col_function"""))      //DON'T change existing functions
+    assert(result.contains("""CASE WHEN (123) is not null then (potatoes) ELSE (search_term) END mang_test_modifiable_col_function""")) //DO change new function
   }
 
 }
