@@ -3,7 +3,7 @@ package com.yahoo.maha.core.query.presto
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core.query.QueryGeneratorHelper.getAdditionalColData
+import com.yahoo.maha.core.query.QueryGeneratorHelper.{getAdditionalColData, overrideRenderedCol}
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 
@@ -153,7 +153,8 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
               case FactCol(_, dt, cc, rollup, _, annotations, _) =>
                 s"""${renderRollupExpression(x.name, rollup, None)}"""
               case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) => //This never gets used, otherwise errors would be thrown before the Generator.
-                s"""${renderRollupExpression(de.render(x.name, Map.empty), rollup, None)}"""
+                val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext), x.asInstanceOf[PrestoDerFactCol], x.name)
+                s"""${renderRollupExpression(overriddenCol, rollup, None)}"""
               case any =>
                 throw new UnsupportedOperationException(s"Found non fact column : $any")
             }
@@ -422,7 +423,8 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
         case FactCol(_, dt, cc, rollup, _, annotations, _) =>
           s"""${renderRollupExpression(qualifiedColInnerAlias, rollup)} AS $colInnerAlias"""
         case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-          s"""${renderRollupExpression(de.render(qualifiedColInnerAlias, Map.empty), rollup)} AS $colInnerAlias"""
+          val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext), innerSelectCol.asInstanceOf[PrestoDerFactCol], qualifiedColInnerAlias)
+          s"""${renderRollupExpression(overriddenCol, rollup)} AS $colInnerAlias"""
         case _=> throw new IllegalArgumentException(s"Unexpected Col $innerSelectCol found in FactColumnInfo ")
       }
       val colInnerAliasQuoted = if(innerSelectCol.isDerivedColumn) {

@@ -5,6 +5,7 @@ package com.yahoo.maha.core.query.presto
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
+import com.yahoo.maha.core.query.QueryGeneratorHelper.{getAdditionalColData, overrideRenderedCol}
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 
@@ -180,7 +181,8 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
               case FactCol(_, dt, cc, rollup, _, annotations, _) =>
                 s"""${renderRollupExpression(x.name, rollup)}"""
               case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-                s"""${renderRollupExpression(de.render(x.name, Map.empty), rollup)}"""
+                val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext), x.asInstanceOf[PrestoDerFactCol], x.name)
+                s"""${renderRollupExpression(overriddenCol, rollup)}"""
               case any =>
                 throw new UnsupportedOperationException(s"Found non fact column : $any")
             }

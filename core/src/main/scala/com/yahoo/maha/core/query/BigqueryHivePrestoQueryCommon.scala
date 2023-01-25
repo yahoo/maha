@@ -575,8 +575,9 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
         if factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
           || de.isDimensionDriven =>
         val renderedAlias = renderColumnAlias(alias)
+        val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext), column.asInstanceOf[PrestoDerFactCol], name)
         queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-        s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
+        s"""${renderRollupExpression(overriddenCol, rollup)} $renderedAlias"""
       case PrestoDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
         //means no fact operation on this column, push expression outside
         de.sourceColumns.foreach {
@@ -588,7 +589,8 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
           case _ => //do nothing if we reference ourselves
         }
         val renderedAlias = renderColumnAlias(alias)
-        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)})"""))
+        val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext), column.asInstanceOf[PrestoDerFactCol], renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)
+        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${overriddenCol})"""))
         ""
       case ConstFactCol(_, _, v, _, _, _, _, _) =>
         val renderedAlias = renderColumnAlias(alias)
