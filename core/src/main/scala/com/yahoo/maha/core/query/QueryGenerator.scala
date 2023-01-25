@@ -361,9 +361,7 @@ object QueryGeneratorHelper {
     }
   }
 
-  def getAdditionalColData(queryContext: QueryContext = null, requestModel: RequestModel = null): List[Field] = {
-    require(queryContext != null || requestModel != null)
-    val request: ReportingRequest = if(queryContext != null) queryContext.requestModel.reportingRequest else requestModel.reportingRequest
+  def getAdditionalColData(request: ReportingRequest): List[Field] = {
     if (!request.additionalParameters.contains(Parameter.AdditionalColumnInfo)) {
       List.empty
     } else {

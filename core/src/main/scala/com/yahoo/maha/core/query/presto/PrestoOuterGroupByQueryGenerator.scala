@@ -153,7 +153,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
               case FactCol(_, dt, cc, rollup, _, annotations, _) =>
                 s"""${renderRollupExpression(x.name, rollup, None)}"""
               case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) => //This never gets used, otherwise errors would be thrown before the Generator.
-                val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext), x.asInstanceOf[PrestoDerFactCol], x.name)
+                val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), x.asInstanceOf[PrestoDerFactCol], x.name)
                 s"""${renderRollupExpression(overriddenCol, rollup, None)}"""
               case any =>
                 throw new UnsupportedOperationException(s"Found non fact column : $any")
@@ -423,7 +423,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
         case FactCol(_, dt, cc, rollup, _, annotations, _) =>
           s"""${renderRollupExpression(qualifiedColInnerAlias, rollup)} AS $colInnerAlias"""
         case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-          val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext), innerSelectCol.asInstanceOf[PrestoDerFactCol], qualifiedColInnerAlias)
+          val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), innerSelectCol.asInstanceOf[PrestoDerFactCol], qualifiedColInnerAlias)
           s"""${renderRollupExpression(overriddenCol, rollup)} AS $colInnerAlias"""
         case _=> throw new IllegalArgumentException(s"Unexpected Col $innerSelectCol found in FactColumnInfo ")
       }
