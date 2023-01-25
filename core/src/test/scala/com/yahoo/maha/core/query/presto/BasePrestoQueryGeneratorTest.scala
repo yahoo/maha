@@ -588,6 +588,8 @@ trait BasePrestoQueryGeneratorTest
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
           , ConstFactCol("constantFact", IntType(), "0")
           , FactCol("Count", IntType(), rollupExpression = CountRollup)
+          , PrestoDerFactCol("col_test_metric", DecType(), COL("CASE WHEN SUM(spend) > 0 THEN SUM(clicks) / 10 ELSE SUM(impressions) END"))
+          , PrestoDerFactCol("col_modifiable_test_metric", DecType(), COL_W_REPLACEMENTS("CASE WHEN SUM(spend) > 0 THEN SUM(clicks) / 10 ELSE SUM(impressions) END"))
         ),underlyingTableName = Some("s_stats_fact_underlying")
       )
     }
@@ -622,7 +624,9 @@ trait BasePrestoQueryGeneratorTest
           PublicFactCol("max_bid", "Max Bid", FieldEquality),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
-          PublicFactCol("Count", "Count", InBetweenEquality)
+          PublicFactCol("Count", "Count", InBetweenEquality),
+          PublicFactCol("col_test_metric", "Test Metric COL", InEquality),
+          PublicFactCol("col_modifiable_test_metric", "Test Mod Metric COL", InEquality)
         ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack

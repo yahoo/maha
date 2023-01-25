@@ -361,8 +361,7 @@ object QueryGeneratorHelper {
     }
   }
 
-  def getAdditionalColData(queryContext: QueryContext): List[Field] = {
-    val request: ReportingRequest = queryContext.requestModel.reportingRequest
+  def getAdditionalColData(request: ReportingRequest): List[Field] = {
     if (!request.additionalParameters.contains(Parameter.AdditionalColumnInfo)) {
       List.empty
     } else {
@@ -377,9 +376,16 @@ object QueryGeneratorHelper {
     }
   }
 
-  def overrideRenderedCol(insideDerived: Boolean, colCtx: List[Field] = List.empty, column: BaseDerivedDimCol, name: String): String = {
+  def overrideRenderedCol(
+                           insideDerived: Boolean
+                           , colCtx: List[Field] = List.empty
+                           , column: DerivedColumn
+                           , name: String
+                           , renderedColAliasMap: scala.collection.Map[String, String] = Map.empty
+                           , expandDerivedExpression: Boolean = true
+                         ): String = {
     val de = column.derivedExpression.asInstanceOf[DerivedExpression[String]]
-    val input = de.render(name, Map.empty)
+    val input = de.render(name, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
     if (colCtx.nonEmpty && useCtxt(de)) {
       colCtx.foldLeft(input) {
         case stringAndField: (String, Field) =>
