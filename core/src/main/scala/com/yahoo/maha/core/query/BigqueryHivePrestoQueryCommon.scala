@@ -4,6 +4,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query.QueryGeneratorHelper.{getAdditionalColData, overrideRenderedCol}
+import com.yahoo.maha.core.request.ReportingRequest
 
 import scala.collection.mutable
 
@@ -293,7 +294,7 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
   /*
      Commonly used method
    */
-  def renderParentOuterDerivedFactCols(queryBuilderContext:QueryBuilderContext, projectedAlias:String, column:Column): String = {
+  def renderParentOuterDerivedFactCols(queryBuilderContext:QueryBuilderContext, projectedAlias:String, column:Column, request: ReportingRequest): String = {
     val renderedAlias = projectedAlias
 
     column match {
@@ -353,7 +354,8 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
         val name = column.alias.getOrElse(column.name)
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""${de.render(name, Map.empty)} AS $renderedAlias"""
+        val overriddenCol = overrideRenderedCol(false, getAdditionalColData(request), column.asInstanceOf[HiveDerFactCol], name)
+        s"""${overriddenCol} AS $renderedAlias"""
       case BigqueryDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
         val name = column.alias.getOrElse(column.name)
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
@@ -361,7 +363,8 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
         val name = column.alias.getOrElse(column.name)
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""${de.render(name, Map.empty)} AS $renderedAlias"""
+        val overriddenCol = overrideRenderedCol(false, getAdditionalColData(request), column.asInstanceOf[PrestoDerFactCol], name)
+        s"""${overriddenCol} AS $renderedAlias"""
       case _=> throw new IllegalArgumentException(s"Unexpected fact derived column found in outer select $column")
     }
   }
@@ -490,7 +493,7 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       case HiveDerDimCol(_, dt, _, de, _, _, _) =>
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-        val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext), column.asInstanceOf[HiveDerDimCol], name)
+        val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), column.asInstanceOf[HiveDerDimCol], name)
         s"""${overriddenCol} $renderedAlias"""
       case BigqueryDerDimCol(_, dt, _, de, _, _, _) =>
         val renderedAlias = renderColumnAlias(alias)
@@ -539,8 +542,9 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
         if factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
           || de.isDimensionDriven =>
         val renderedAlias = renderColumnAlias(alias)
+        val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), column.asInstanceOf[HiveDerFactCol], name)
         queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-        s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
+        s"""${renderRollupExpression(overriddenCol, rollup)} $renderedAlias"""
       case HiveDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
         //means no fact operation on this column, push expression outside
         de.sourceColumns.foreach {
@@ -553,7 +557,8 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
         }
         //val renderedAlias = renderColumnAlias(alias)
         val renderedAlias = renderColumnAlias(alias)
-        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)})"""))
+        val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), column.asInstanceOf[HiveDerFactCol], renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)
+        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${overriddenCol})"""))
         ""
       case BigqueryDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
         if factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)

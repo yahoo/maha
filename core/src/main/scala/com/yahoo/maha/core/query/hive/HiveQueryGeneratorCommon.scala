@@ -3,6 +3,7 @@ package com.yahoo.maha.core.query.hive
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
+import com.yahoo.maha.core.query.QueryGeneratorHelper.{getAdditionalColData, overrideRenderedCol}
 import com.yahoo.maha.core.query._
 
 import scala.collection.{SortedSet, mutable}
@@ -192,7 +193,8 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
         case DimCol(_, dt, _, _, _, _) =>
           name
         case HiveDerDimCol(_, dt, _, de, _, _, _) =>
-          s"""${de.render(name, Map.empty)}"""
+          val overriddenCol = overrideRenderedCol(false, getAdditionalColData(requestModel.reportingRequest), column.asInstanceOf[HiveDerDimCol], name)
+          s"""${overriddenCol}"""
         case other => throw new IllegalArgumentException(s"Unhandled column type for dimension cols : $other")
       }
     }
