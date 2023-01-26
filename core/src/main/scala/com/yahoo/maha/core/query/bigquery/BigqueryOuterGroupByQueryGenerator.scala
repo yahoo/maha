@@ -459,7 +459,7 @@ abstract case class BigqueryOuterGroupByQueryGenerator(
               val colName = aliasToColNameMap(alias)
               factBest.fact.columnsByNameMap(colName)
             }
-            renderParentOuterDerivedFactCols(queryBuilderContext, renderedAlias, column)
+            renderParentOuterDerivedFactCols(queryBuilderContext, renderedAlias, column, queryContext.requestModel.reportingRequest)
           case DimColumnInfo(alias) => {
             val renderedAlias = renderColumnAlias(alias)
             val colName = queryBuilderContext.getDimensionColNameForAlias(alias)
