@@ -82,7 +82,7 @@ trait BaseHiveQueryGeneratorTest
           , HiveDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}", rollupExpression = NoopRollup)
           , HiveDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
-        )
+        ), underlyingTableName = Some("s_stats_fact_underlying")
       )
     }
       .toPublicFact("s_stats",
@@ -506,6 +506,8 @@ trait BaseHiveQueryGeneratorTest
           , HiveDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}", rollupExpression = NoopRollup)
           , HiveDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
+          , HiveDerFactCol("col_test_metric", DecType(), COL("CASE WHEN SUM(spend) > 0 THEN SUM(clicks) / 10 ELSE SUM(impressions) END"))
+          , HiveDerFactCol("col_modifiable_test_metric", DecType(), COL_W_REPLACEMENTS("CASE WHEN SUM(spend) > 0 THEN SUM(clicks) / 10 ELSE SUM(impressions) END"))
         )
       )
     }
@@ -547,7 +549,9 @@ trait BaseHiveQueryGeneratorTest
           PublicFactCol("max_bid", "Max Bid", FieldEquality),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
-          PublicFactCol("max_price_type", "Max Price Type", Equality)
+          PublicFactCol("max_price_type", "Max Price Type", Equality),
+          PublicFactCol("col_test_metric", "Test Metric COL", InEquality),
+          PublicFactCol("col_modifiable_test_metric", "Test Mod Metric COL", InEquality)
         ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack
