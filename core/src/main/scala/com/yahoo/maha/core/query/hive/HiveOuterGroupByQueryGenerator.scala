@@ -25,7 +25,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
     val factCandidate = queryContext.factBestCandidate
     val publicFact = queryContext.factBestCandidate.publicFact
     val fact = factCandidate.fact
-    val factViewName = fact.name
+    val factViewName = fact.underlyingTableName.getOrElse(fact.name)
     val factViewAlias = queryBuilderContext.getAliasForTable(factViewName)
     val dims = queryContext.dims
 
@@ -113,7 +113,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
 
     val fact = queryContext.factBestCandidate.fact
     val publicFact = queryContext.factBestCandidate.publicFact
-    val factViewName = fact.name
+    val factViewName = fact.underlyingTableName.getOrElse(fact.name)
     val dimCols = queryContext.factBestCandidate.dimColMapping.toList.collect {
       case (dimCol, alias) if queryContext.factBestCandidate.requestCols(dimCol) =>
         val column = fact.columnsByNameMap(dimCol)
@@ -555,7 +555,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
             val factAlias = queryBuilderContext.getFactColNameForAlias(alias)
             (postFilterAlias, factAlias)
           } else {
-            QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name, isOuterGroupBy)
+            QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.underlyingTableName.getOrElse(factCandidate.fact.name), isOuterGroupBy)
           }
         case DimColumnInfo(alias) =>
           renderDimCol(alias)

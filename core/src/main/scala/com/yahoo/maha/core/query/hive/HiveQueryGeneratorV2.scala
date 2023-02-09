@@ -47,7 +47,7 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
     val factCandidate = queryContext.factBestCandidate
     val publicFact = queryContext.factBestCandidate.publicFact
     val fact = factCandidate.fact
-    val factViewName = fact.name
+    val factViewName = fact.underlyingTableName.getOrElse(fact.name)
     val factViewAlias = queryBuilderContext.getAliasForTable(factViewName)
     val dims = queryContext.dims
 

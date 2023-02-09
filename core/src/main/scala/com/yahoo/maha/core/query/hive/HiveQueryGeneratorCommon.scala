@@ -43,7 +43,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
 
     val fact = queryContext.factBestCandidate.fact
     val publicFact = queryContext.factBestCandidate.publicFact
-    val factViewName = fact.name
+    val factViewName = fact.underlyingTableName.getOrElse(fact.name)
     val dimCols = queryContext.factBestCandidate.dimColMapping.toList.collect {
       case (dimCol, alias) if queryContext.factBestCandidate.requestCols(dimCol) =>
         val column = fact.columnsByNameMap(dimCol)
@@ -201,7 +201,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
 
     val requestDimCols = dimBundle.fields
     val publicDimName = dimBundle.publicDim.name
-    val dimTableName = dimBundle.dim.name
+    val dimTableName = dimBundle.dim.underlyingTableName.getOrElse(dimBundle.dim.name)
     val dimFilters = dimBundle.filters
     val fkColName = fact.publicDimToForeignKeyMap(publicDimName)
     val fkCol = fact.columnsByNameMap(fkColName)
