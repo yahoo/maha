@@ -118,4 +118,27 @@ class ParameterTest extends AnyFunSuite with Matchers {
     additionalInfoValue.get.asInstanceOf[AdditionalColumnInfoValue].value shouldBe expectedOutput
   }
 
+  test("Demo fixed AdditionalColumnInfo") {
+    val inputJson =
+      """
+        |{
+        |  "AdditionalColumnInfo":
+        |  [
+        |    {"field": "colA", "value": "123"},
+        |    {"field": "colB", "value": "potatoes"}
+        |    ]
+        |}
+        |""".stripMargin
+
+    val result = Parameter.deserializeParameters(JsonMethods.parse(inputJson))
+    val expectedOutput = List(Field("colA", None, Some("123")), Field("colB", None, Some("potatoes")))
+    val serialized = Parameter.serializeParameter(Parameter.AdditionalColumnInfo, result.toOption.get(Parameter.AdditionalColumnInfo))
+    println(serialized)
+    val deserialized = Parameter.deserializeParameter(serialized._1, serialized._2)
+    println(deserialized)
+    assert(deserialized.get.isSuccess)
+    val addInfo = deserialized.get.toOption.get._2
+    addInfo shouldBe AdditionalColumnInfoValue(expectedOutput)
+  }
+
 }
