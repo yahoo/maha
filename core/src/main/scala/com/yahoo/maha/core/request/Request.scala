@@ -13,6 +13,7 @@ import org.json4s.{JValue, _}
 import org.json4s.scalaz.JsonScalaz._
 import Validation.FlatMap._
 import grizzled.slf4j.Logging
+import org.json4s.JsonAST.JObject
 
 /**
  * Created by jians on 10/5/15.
@@ -74,7 +75,7 @@ object Field {
   implicit def fieldJSONR: JSONR[Field] = new JSONR[Field] {
     override def read(json: JValue): JsonScalaz.Result[Field] = {
       val fieldResult = fieldExtended[String]("field")(json)
-      val aliasOption = fieldExtended[String]("alias")(json).map(_.replaceAll("\"", "'"))
+      val aliasOption = if(fieldExtended[String]("alias")(json).isSuccess) fieldExtended[String]("alias")(json).map(_.replaceAll("\"", "'")) else fieldExtended[String]("alias")(json)
       (fieldResult orElse aliasOption) flatMap { fieldName =>
           val valueOption = fieldExtended[String]("value")(json).toOption
           Success(new Field(fieldName, aliasOption.toOption, valueOption))
@@ -238,7 +239,14 @@ object Parameter extends Enum[Parameter] with Logging {
       case RegistryName => p.entryName -> JString(v.asInstanceOf[RegistryNameValue].value)
       case HostName => p.entryName -> JString(v.asInstanceOf[HostNameValue].value)
       case AllowPushDownName => p.entryName -> JString(v.asInstanceOf[AllowPushDownNameValue].value)
-      case AdditionalColumnInfo => p.entryName -> JArray(v.asInstanceOf[AdditionalColumnInfoValue].value.map(a => JArray(List(JString(a.field), JString(a.alias.getOrElse("")), JString(a.value.getOrElse(""))))))
+      case AdditionalColumnInfo => p.entryName -> {
+        import org.json4s.JsonAST.JObject
+        import org.json4s.JsonDSL._
+
+        val jval = v.asInstanceOf[AdditionalColumnInfoValue].value.map(item => Field.fieldJSONW.write(item))
+        val jResult: JObject = {("AdditionalColumnInfo" -> jval)}
+        jResult
+      }
     }
     
   }
