@@ -75,16 +75,10 @@ object Field {
   implicit def fieldJSONR: JSONR[Field] = new JSONR[Field] {
     override def read(json: JValue): JsonScalaz.Result[Field] = {
       val fieldResult = fieldExtended[String]("field")(json)
-      val aliasOption = {
-        val optionalNullResult = optionalFieldExtended[String]("alias", null)(json)
-        if (optionalNullResult.toOption.flatMap(Option(_)).nonEmpty)
-          optionalNullResult.map(_.replaceAll("\"", "'"))
-        else
-          optionalNullResult
-      }
+      val aliasOption = if(fieldExtended[String]("alias")(json).isSuccess) fieldExtended[String]("alias")(json).map(_.replaceAll("\"", "'")) else fieldExtended[String]("alias")(json)
       (fieldResult orElse aliasOption) flatMap { fieldName =>
           val valueOption = fieldExtended[String]("value")(json).toOption
-          Success(new Field(fieldName, aliasOption.toOption.flatMap(Option(_)), valueOption))
+          Success(new Field(fieldName, aliasOption.toOption, valueOption))
       }
     }
   }
