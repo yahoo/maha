@@ -3307,7 +3307,7 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
       }
 
       assert(count2 == 3)
-      val expected2 = "Row(Map(Day -> 0, Impressions -> 1),ArrayBuffer(2012-01-01, 21))Row(Map(Day -> 0, Impressions -> 1),ArrayBuffer(2012-01-02, 22))"
+      val expected2 = "Row(Map(Day -> 0, Impressions -> 1),ArrayBuffer(2012-01-01, 15))Row(Map(Day -> 0, Impressions -> 1),ArrayBuffer(2012-01-02, 16))Row(Map(Day -> 0, Impressions -> 1),ArrayBuffer(2012-01-02, 17))"
 
       str2 should equal(expected2)(after being whiteSpaceNormalised)
       result2.rowList.foreach { row =>
