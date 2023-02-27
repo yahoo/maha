@@ -1355,6 +1355,22 @@ trait TestWebService {
           |  }
           |  ]""".stripMargin
       Ok(groupby)
+
+
+    case POST -> Root / ("timeseries_override") =>
+
+      val timeSeries =
+        """[
+          |  {
+          |    "timestamp": "2012-01-01T00:00:00.000Z",
+          |    "result": { "Impressions": 21 }
+          |  },
+          |  {
+          |   "timestamp": "2012-01-02T00:00:00.000Z",
+          |   "result": { "Impressions": 22 }
+          |  }
+          |]""".stripMargin
+      Ok(timeSeries)
   }
 
 }
