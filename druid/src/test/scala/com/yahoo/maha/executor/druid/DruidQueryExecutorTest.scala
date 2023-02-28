@@ -3232,4 +3232,92 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
         assert(expectedSet.size == count)
     }
   }
+
+  test("Use executor with alternative URI, show the URI is global.") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "213"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry, uri = "http://localhost:6667/mock/timeseries_override")
+    val requestModel2 = getRequestModel(request, registry, uri = null)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    assert(requestModel2.isSuccess, requestModel2.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    val queryPipelineTry2 = queryPipelineFactoryLocal.from(requestModel2.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    assert(queryPipelineTry2.isSuccess, queryPipelineTry2.errorMessage("Fail to get the query pipeline"))
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+    val query2 = queryPipelineTry2.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+    val executor = new DruidQueryExecutor(new DruidQueryExecutorConfig(50, 500, 5000, 5000, 5000,
+      "config", "http://localhost:6667/mock/timeseries", None, 3000, 3000, 3000, 3000,
+      true, 500, 3, false, allowPartialIfResultExceedsMaxRowLimit = false),
+      new NoopExecutionLifecycleListener, ResultSetTransformer.DEFAULT_TRANSFORMS)
+    try {
+      val rowList = new CompleteRowList(query)
+      val result = executor.execute(query, rowList, QueryAttributes.empty)
+      assert(!result.rowList.isEmpty)
+      var str: String = ""
+      var count: Int = 0
+      result.rowList.foreach {
+        row => {
+          count += 1
+
+          str = str + s"$row"
+        }
+      }
+
+      assert(count == 2)
+      val expected = "Row(Map(Day -> 0, Impressions -> 1),ArrayBuffer(2012-01-01, 21))Row(Map(Day -> 0, Impressions -> 1),ArrayBuffer(2012-01-02, 22))"
+
+      str should equal(expected)(after being whiteSpaceNormalised)
+      result.rowList.foreach { row =>
+        val map = row.aliasMap
+        for ((key, value) <- map) {
+          assert(row.getValue(key) != null)
+        }
+      }
+
+      val rowList2 = new CompleteRowList(query2)
+      val result2 = executor.execute(query2, rowList2, QueryAttributes.empty)
+      assert(!result2.rowList.isEmpty)
+      var str2: String = ""
+      var count2: Int = 0
+      result2.rowList.foreach {
+        row => {
+          count2 += 1
+
+          str2 = str2 + s"$row"
+        }
+      }
+
+      assert(count2 == 3)
+      val expected2 = "Row(Map(Day -> 0, Impressions -> 1),ArrayBuffer(2012-01-01, 15))Row(Map(Day -> 0, Impressions -> 1),ArrayBuffer(2012-01-02, 16))Row(Map(Day -> 0, Impressions -> 1),ArrayBuffer(2012-01-03, 17))"
+
+      str2 should equal(expected2)(after being whiteSpaceNormalised)
+      result2.rowList.foreach { row =>
+        val map = row.aliasMap
+        for ((key, value) <- map) {
+          assert(row.getValue(key) != null)
+        }
+      }
+    } finally {
+      executor.close()
+    }
+  }
 }

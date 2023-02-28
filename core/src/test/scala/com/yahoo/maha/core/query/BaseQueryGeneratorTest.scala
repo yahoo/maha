@@ -62,8 +62,9 @@ trait BaseQueryGeneratorTest {
                       , registry: Registry
                       , userTimeZoneProvider: UserTimeZoneProvider = NoopUserTimeZoneProvider
                       , utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider
-                      , revision: Option[Int] = None): Try[RequestModel] = {
-    RequestModel.from(request, registry, userTimeZoneProvider, utcTimeProvider, revision)
+                      , revision: Option[Int] = None
+                      , uri: String = null): Try[RequestModel] = {
+    RequestModel.from(request, registry, userTimeZoneProvider, utcTimeProvider, revision, uri)
   }
 
   protected[this] def getReportingRequestAsync(jsonString: String, schema: Schema = AdvertiserSchema) = {

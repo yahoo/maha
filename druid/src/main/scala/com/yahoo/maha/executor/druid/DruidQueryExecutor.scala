@@ -432,8 +432,11 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
       throw new UnsupportedOperationException(s"DruidQueryExecutor does not support query with engine=${query.engine}")
     } else {
       val isFactDriven = query.queryContext.requestModel.isFactDriven
-      if (isFactDriven && query.queryContext.requestModel.uri != null)
-        url = query.queryContext.requestModel.uri
+      val local_url: String = if (isFactDriven && query.queryContext.requestModel.uri != null) {
+        query.queryContext.requestModel.uri
+      } else {
+        url
+      }
 
       val headersWithAuthHeader = if (config.headers.isDefined) {
         Some(config.headers.get ++ authHeaderProvider.getAuthHeaders)
@@ -450,7 +453,7 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
           val performJoin = irl.size > 0
           var pagination: Option[JValue] = null
           val result = Try {
-            val response: Response = httpUtils.post(url, httpUtils.POST, headersWithAuthHeader, Some(query.asString))
+            val response: Response = httpUtils.post(local_url, httpUtils.POST, headersWithAuthHeader, Some(query.asString))
 
             checkUncoveredIntervals(query, response, config)
 
@@ -499,7 +502,7 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
           val qrl = rl.asInstanceOf[QueryRowList]
           var pagination: Option[JValue] = None
           val result = Try {
-            val response = httpUtils.post(url, httpUtils.POST, headersWithAuthHeader, Some(query.asString))
+            val response = httpUtils.post(local_url, httpUtils.POST, headersWithAuthHeader, Some(query.asString))
 
             checkUncoveredIntervals(query, response, config)
 
