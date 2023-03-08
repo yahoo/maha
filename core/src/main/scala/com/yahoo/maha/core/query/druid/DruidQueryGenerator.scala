@@ -115,6 +115,8 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
         if (!isSingleThreaded) {
           chunkPeriod(queryContext).foreach(p => context.put(CHUNK_PERIOD, p))
         }
+      case DruidMissingDataLimit(limit) =>
+        context.put(UNCOVERED_INTERVALS_LIMIT, limit.asInstanceOf[AnyRef])
       case _ => //do nothing
     }
 
@@ -127,8 +129,10 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
       }
     }
 
+    if(!context.containsKey(UNCOVERED_INTERVALS_LIMIT)) //if the limit isn't overridden in the fact definition, use the default.
+      context.put(UNCOVERED_INTERVALS_LIMIT, UNCOVERED_INTERVALS_LIMIT_VALUE)
+
     context.put(TIMEOUT, timeout.asInstanceOf[AnyRef])
-    context.put(UNCOVERED_INTERVALS_LIMIT, UNCOVERED_INTERVALS_LIMIT_VALUE)
     context.put(APPLY_LIMIT_PUSH_DOWN, "false")
   }
 }
@@ -1525,12 +1529,23 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
-    // include expensive dateTimeFilter columns also in dimSpecList if not included already as it is required for filters in outer query
+    dimensionSpecTupleList ++= makeDimSpecTuplesForExpensiveFilters(queryContext, fact, renderColumnWithAlias)
+
+    dimensionSpecTupleList
+  }
+
+  private[this] def makeDimSpecTuplesForExpensiveFilters(queryContext: FactQueryContext, fact: Fact, renderColumnWithAlias: (Fact, Column, String) => (DimensionSpec, Option[DimensionSpec])): ArrayBuffer[(DimensionSpec, Option[DimensionSpec])] = {
+    val dimensionSpecTupleList = new ArrayBuffer[(DimensionSpec, Option[DimensionSpec])]
     val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
-    val name: String = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(queryContext.requestModel.localTimeDayFilter.field)
-    if(!queryContext.factBestCandidate.dimColMapping.contains(name) && hasExpensiveDateDimFilter) {
-      val column = queryContext.factBestCandidate.fact.columnsByNameMap(name)
-      dimensionSpecTupleList += renderColumnWithAlias(fact, column, queryContext.requestModel.localTimeDayFilter.field)
+    val dayFilter: Option[Filter] = Some(queryContext.requestModel.localTimeDayFilter)
+    val hourFilter: Option[Filter] = queryContext.requestModel.localTimeHourFilter
+    val fieldsToUse: List[Option[Filter]] = List(dayFilter, hourFilter)
+    for(field <- fieldsToUse.filter(obj => obj.nonEmpty)) {
+      val name: String = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap.getOrElse(field.get.field, null)
+      if (!queryContext.factBestCandidate.dimColMapping.contains(name) && hasExpensiveDateDimFilter) {
+        val column = queryContext.factBestCandidate.fact.columnsByNameMap(name)
+        dimensionSpecTupleList += renderColumnWithAlias(fact, column, field.get.field)
+      }
     }
 
     dimensionSpecTupleList
