@@ -4040,6 +4040,41 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     }
   }
 
+  test("Should generate a Druid query with Hour filtered but not selected.") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats_date_select",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Clicks"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "Between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Hour", "operator": "Between", "from": "01", "to": "01"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
+    val requestModel = getRequestModel(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json1 = """{"type":"extraction","dimension":"__time","outputName":"Hour","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"HH","timeZone":"UTC","granularity":{"type":"none"},"asMillis":false}}"""
+    val json2 = """{"type":"extraction","dimension":"__time","outputName":"Day","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"YYYY-MM-dd","timeZone":"UTC","granularity":{"type":"none"},"asMillis":false}}"""
+    println(result)
+    assert(result.contains(json1), "Missing selector JSON in result: " + result)
+    assert(result.contains(json2), "Missing dimension JSON in result: " + result)
+  }
+
 
 }
 

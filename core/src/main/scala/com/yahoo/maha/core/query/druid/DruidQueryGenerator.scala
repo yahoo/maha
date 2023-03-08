@@ -1525,12 +1525,23 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
-    // include expensive dateTimeFilter columns also in dimSpecList if not included already as it is required for filters in outer query
+    dimensionSpecTupleList ++= makeDimSpecTuplesForExpensiveFilters(queryContext, fact, renderColumnWithAlias)
+
+    dimensionSpecTupleList
+  }
+
+  private[this] def makeDimSpecTuplesForExpensiveFilters(queryContext: FactQueryContext, fact: Fact, renderColumnWithAlias: (Fact, Column, String) => (DimensionSpec, Option[DimensionSpec])): ArrayBuffer[(DimensionSpec, Option[DimensionSpec])] = {
+    val dimensionSpecTupleList = new ArrayBuffer[(DimensionSpec, Option[DimensionSpec])]
     val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
-    val name: String = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(queryContext.requestModel.localTimeDayFilter.field)
-    if(!queryContext.factBestCandidate.dimColMapping.contains(name) && hasExpensiveDateDimFilter) {
-      val column = queryContext.factBestCandidate.fact.columnsByNameMap(name)
-      dimensionSpecTupleList += renderColumnWithAlias(fact, column, queryContext.requestModel.localTimeDayFilter.field)
+    val dayFilter: Option[Filter] = Some(queryContext.requestModel.localTimeDayFilter)
+    val hourFilter: Option[Filter] = queryContext.requestModel.localTimeHourFilter
+    val fieldsToUse: List[Option[Filter]] = List(dayFilter, hourFilter)
+    for(field <- fieldsToUse.filter(obj => obj.nonEmpty)) {
+      val name: String = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(field.get.field)
+      if (!queryContext.factBestCandidate.dimColMapping.contains(name) && hasExpensiveDateDimFilter) {
+        val column = queryContext.factBestCandidate.fact.columnsByNameMap(name)
+        dimensionSpecTupleList += renderColumnWithAlias(fact, column, field.get.field)
+      }
     }
 
     dimensionSpecTupleList
