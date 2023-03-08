@@ -4069,10 +4069,11 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val json1 = """{"type":"extraction","dimension":"__time","outputName":"Hour","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"HH","timeZone":"UTC","granularity":{"type":"none"},"asMillis":false}}"""
-    val json2 = """{"type":"extraction","dimension":"__time","outputName":"Day","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"YYYY-MM-dd","timeZone":"UTC","granularity":{"type":"none"},"asMillis":false}}"""
-    println(result)
-    assert(result.contains(json1), "Missing selector JSON in result: " + result)
-    assert(result.contains(json2), "Missing dimension JSON in result: " + result)
+    val json2 = """{"type":"extraction","dimension":"__time","outputName":"Day","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"YYYY-MM-dd HH","timeZone":"UTC","granularity":{"type":"none"},"asMillis":false}}"""
+    val json3 = """"context":{"groupByStrategy":"v2","applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":100,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"}"""
+    assert(result.contains(json1), "Assume valid Hour extraction: " + result)
+    assert(result.contains(json2), "Assumed valid Day extraction: " + result)
+    assert(result.contains(json3), "Addumed uncoveredIntervals could be overwritten: " + result)
   }
 
 

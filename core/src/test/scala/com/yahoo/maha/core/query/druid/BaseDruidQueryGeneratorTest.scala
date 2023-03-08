@@ -803,7 +803,7 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           FactCol("impressions", IntType(3, 1))
           , FactCol("clicks", IntType(3, 0, 1, 800))
         ),
-        annotations = Set(DruidGroupByStrategyV2),
+        annotations = Set(DruidGroupByStrategyV2, DruidMissingDataLimit(100L)),
         underlyingTableName = Some("fact1")
       )
     }.toPublicFact("k_stats_date_select",
