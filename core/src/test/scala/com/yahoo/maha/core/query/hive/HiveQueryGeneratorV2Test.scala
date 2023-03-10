@@ -1935,7 +1935,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
-                              {"field": "CTR", "operator": ">", "value": "100"}
+                              {"field": "CTR", "operator": ">", "value": "0.1"}
                           ]
                           }"""
 
@@ -1948,8 +1948,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
-
     val expected =
       s"""
          |SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_ctr AS STRING), ''))
@@ -1959,7 +1957,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |FROM s_stats_fact_underlying
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY account_id
-         |HAVING ((CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(clicks) / (SUM(impressions)) END) > 100)
+         |HAVING ((CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(clicks) / (SUM(impressions)) END) > 0.1)
          |       )
          |ssfu0
          |
