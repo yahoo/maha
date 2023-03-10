@@ -81,6 +81,7 @@ trait BaseHiveQueryGeneratorTest
           , HiveDerFactCol("max_price_type", IntType(), "{price_type}", rollupExpression = MaxRollup)
           , HiveDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}", rollupExpression = NoopRollup)
           , HiveDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
+          , HiveDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}", rollupExpression = HiveCustomRollup(SUM("{clicks}") /- SUM("{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
         ), underlyingTableName = Some("s_stats_fact_underlying")
       )
@@ -121,6 +122,7 @@ trait BaseHiveQueryGeneratorTest
           PublicFactCol("max_bid", "Max Bid", FieldEquality),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
+          PublicFactCol("CTR", "CTR", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PublicFactCol("max_price_type", "Max Price Type", Equality)
         ),
         Set(),
