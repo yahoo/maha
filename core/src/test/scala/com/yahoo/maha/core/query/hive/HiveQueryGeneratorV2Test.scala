@@ -1836,7 +1836,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
-  
+
   test("generating Hive query with COL Function") {
     val jsonString =
       s"""{
@@ -1912,13 +1912,13 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
                          }
           }"""
     val request: ReportingRequest = ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
-    
+
     val registry = getDefaultRegistry()
     val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-    
+
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     assert(result.contains("""ROUND(COALESCE((CASE WHEN SUM(spend) > 0 THEN SUM(clicks) / 10 ELSE SUM(impressions) END), 0L), 10) mang_test_metric_col""")) //DON'T change existing functions
     assert(result.contains("""ROUND(COALESCE((CASE WHEN SUM(123) > 0 THEN SUM(clicks) / 10 ELSE SUM(potatoes) END), 0L), 10) mang_test_mod_metric_col""")) //DO change new function
