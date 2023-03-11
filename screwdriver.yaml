@@ -25,8 +25,8 @@ jobs:
       - OSSRH_USER
       - OSSRH_TOKEN
       - PASS_PHRASE
-    requires: [~tag, ~release, ~commit]
+    requires: [~pr]
     steps:
-      - prepare: "screwdriver/release_prepare.sh"
+      - prepare: set
       - build: mvn -B clean install
       - publish: "screwdriver/publish_to_maven.sh"
