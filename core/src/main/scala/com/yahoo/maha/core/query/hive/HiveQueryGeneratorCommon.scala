@@ -119,6 +119,8 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
           x match {
             case FactCol(_, dt, cc, rollup, _, annotations, _) =>
               s"""${renderRollupExpression(x.name, rollup, None)}"""
+            case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
+              s"""${renderRollupExpression(de.render(x.name, Map.empty), rollup, None)}"""
             case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) => //This never gets used, otherwise errors would be thrown before the Generator.
               s"""${renderRollupExpression(de.render(x.name, Map.empty), rollup, None)}"""
             case any =>

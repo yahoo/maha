@@ -1915,15 +1915,57 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
 
     val registry = getDefaultRegistry()
     val requestModel = getRequestModel(request, registry)
-
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
-
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     assert(result.contains("""ROUND(COALESCE((CASE WHEN SUM(spend) > 0 THEN SUM(clicks) / 10 ELSE SUM(impressions) END), 0L), 10) mang_test_metric_col""")) //DON'T change existing functions
     assert(result.contains("""ROUND(COALESCE((CASE WHEN SUM(123) > 0 THEN SUM(clicks) / 10 ELSE SUM(potatoes) END), 0L), 10) mang_test_mod_metric_col""")) //DO change new function
+  }
+  
+  test("generating hive query with filter on derived fact col") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "CTR"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "CTR", "operator": ">", "value": "0.1"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_ctr AS STRING), ''))
+         |FROM(
+         |SELECT COALESCE(account_id, 0L) advertiser_id, ROUND(COALESCE(mang_ctr, 0L), 10) mang_ctr
+         |FROM(SELECT account_id, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(clicks) / (SUM(impressions)) END) mang_ctr
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id
+         |HAVING ((CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(clicks) / (SUM(impressions)) END) > 0.1)
+         |       )
+         |ssfu0
+         |
+         |)
+         |        queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
   }
 
 }
