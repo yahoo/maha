@@ -642,6 +642,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                     case LOOKUP_WITH_DECODE(_, _, _, args@_*) => true
                     case LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(_, _, _, _, _, args@_*) => true
                     case LOOKUP_WITH_DECODE_ON_OTHER_COLUMN(_, _, _, _, _, _) => true
+                    case LOOKUP_WITH_DECODE_ON_OTHER_COLUMN_REPLACE_MISSING(_, _, _, _, _, _, _) => true
                     case LOOKUP_WITH_TIMEFORMATTER(_, _, _, _, _, _) => true
                     case LOOKUP_WITH_TIMESTAMP(_, _, _, _, _, _) => true
                     case _ => false
@@ -1410,6 +1411,16 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               decodeConfig.setColumnIfValueMatched(columnIfValueMatched)
               decodeConfig.setColumnIfValueNotMatched(columnIfValueNotMatched)
               val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, columnToCheck, decodeConfig, dimensionOverrideMap.asJava, null, useQueryLevelCache)
+              val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
+              (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
+
+            case lookupFunc@LOOKUP_WITH_DECODE_ON_OTHER_COLUMN_REPLACE_MISSING(lookupNamespace, columnToCheck, valueToCheck, columnIfValueMatched, columnIfValueNotMatched, dimensionOverrideMap, replaceMissingValueWith) =>
+              val decodeConfig = new DecodeConfig()
+              decodeConfig.setColumnToCheck(columnToCheck)
+              decodeConfig.setValueToCheck(valueToCheck)
+              decodeConfig.setColumnIfValueMatched(columnIfValueMatched)
+              decodeConfig.setColumnIfValueNotMatched(columnIfValueNotMatched)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, replaceMissingValueWith, false, true, columnToCheck, decodeConfig, dimensionOverrideMap.asJava, null, useQueryLevelCache)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
 

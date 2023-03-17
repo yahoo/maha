@@ -722,6 +722,7 @@ trait SharedDimSchema {
             , DimCol("currency", StrType())
             , DimCol("managed_by", IntType())
             , DimCol("timezone", StrType())
+            , DimCol("timezone2", StrType())
             , OracleDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
@@ -742,6 +743,7 @@ trait SharedDimSchema {
             , DimCol("currency", StrType())
             , DimCol("managed_by", IntType())
             , DimCol("timezone", StrType())
+            , DimCol("timezone2", StrType())
             , PostgresDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
@@ -760,6 +762,7 @@ trait SharedDimSchema {
             , DimCol("status", StrType())
             , DimCol("managed_by", IntType())
             , DimCol("timezone", StrType())
+            , DimCol("timezone2", StrType())
             , BigqueryDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
             , BigqueryPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
             , BigqueryPartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
@@ -779,6 +782,7 @@ trait SharedDimSchema {
             , DimCol("status", StrType())
             , DimCol("managed_by", IntType())
             , DimCol("timezone", StrType())
+            , DimCol("timezone2", StrType())
             , HiveDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
             , HivePartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
             , HivePartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
@@ -798,7 +802,8 @@ trait SharedDimSchema {
             DruidFuncDimCol("Advertiser Status", StrType(), LOOKUP("advertiser_lookup", "status")),
             DruidFuncDimCol("currency", StrType(), LOOKUP("advertiser_lookup", "currency", dimensionOverrideMap = Map("-3" -> "Unknown", "" -> "Unknown"))),
             DruidFuncDimCol("managed_by", StrType(), LOOKUP("advertiser_lookup", "managed_by")),
-            DruidFuncDimCol("timezone", StrType(), LOOKUP_WITH_DECODE_ON_OTHER_COLUMN("advertiser_lookup", "timezone", "US", "timezone", "currency"))
+            DruidFuncDimCol("timezone", StrType(), LOOKUP_WITH_DECODE_ON_OTHER_COLUMN("advertiser_lookup", "timezone", "US", "timezone", "currency")),
+            DruidFuncDimCol("timezone2", StrType(), LOOKUP_WITH_DECODE_ON_OTHER_COLUMN_REPLACE_MISSING("advertiser_lookup", "timezone", "US", "timezone", "currency", replaceMissingValueWith = "COL_IS_MISSING!!"))
           )
           , Option(Map(AsyncRequest -> 14, SyncRequest -> 14)), schemas = Set(AdvertiserSchema, ResellerSchema, InternalSchema)
         )
@@ -812,6 +817,7 @@ trait SharedDimSchema {
           , PubCol("managed_by", "Reseller ID", InEquality)
           , PubCol("currency", "Currency", Equality)
           , PubCol("timezone", "Timezone", Equality)
+          , PubCol("timezone2", "Timezone2", Equality)
           , PubCol("Advertiser Status", "Advertiser Status", InEquality)
         ), revision = 2, highCardinalityFilters = Set(NotInFilter("Advertiser Status", List("DELETED")))
       )
