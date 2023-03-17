@@ -51,6 +51,7 @@ class DerivedFunctionTest extends AnyFunSuite with Matchers {
     val lwd = LOOKUP_WITH_DECODE("namespace", "valCol", Map("b" -> "a"), "arg1", "decodeVal1", "arg2", "decodeVal2", "default")
     val lwe = LOOKUP_WITH_EMPTY_VALUE_OVERRIDE("namespace", "valCol", "ovr", Map("c" -> "d"))
     val lwo = LOOKUP_WITH_DECODE_ON_OTHER_COLUMN("namespace", "valCol", "valToCheck", "valIfMatched", "valIfNot", Map("2" -> "4", "b" -> "a"))
+    val lwr = LOOKUP_WITH_DECODE_ON_OTHER_COLUMN_REPLACE_MISSING("namespace", "valCol", "valToCheck", "valIfMatched", "valIfNot", Map("2" -> "4", "b" -> "a"), "")
     val ltf = LOOKUP_WITH_TIMEFORMATTER("namespace", "valCol", "yyyyMMdd", "yyyy", Map("do" -> "dont"), Some("override"))
     val ldr = LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE("namespace", "valCol", true, true, Map("rtn" -> "not"), "arg1", "decodeVal1", "arg2", "decodeVal2", "default")
     val dtz = DRUID_TIME_FORMAT("format", DateTimeZone.forID("Asia/Jakarta"))
@@ -58,7 +59,7 @@ class DerivedFunctionTest extends AnyFunSuite with Matchers {
     val rc = TIME_FORMAT_WITH_REQUEST_CONTEXT("yyyy")
     val lwt = LOOKUP_WITH_TIMESTAMP("namespace", "val", "fmt", Map.empty, Some("ovrVal"), asMillis = false)
 
-    val resultArray = List(gid, dow, dtf, dd, js, rgx, lu, lur, lwd, lwe, lwo, ltf, ldr, dtz, dpg, rc, lwt)
+    val resultArray = List(gid, dow, dtf, dd, js, rgx, lu, lur, lwd, lwe, lwo, ltf, ldr, dtz, dpg, rc, lwt, lwr)
 
     val expectedJSONs = List(
       """{"function_type":"GET_INTERVAL_DATE","fieldName":"fieldName","format":"yyyyMMdd"}""",
@@ -72,6 +73,7 @@ class DerivedFunctionTest extends AnyFunSuite with Matchers {
       """{"function_type":"LOOKUP_WITH_DECODE","lookupNamespace":"namespace","valueColumn":"valCol","dimensionOverrideMap":{"b":"a"},"args":"arg1,decodeVal1,arg2,decodeVal2,default"}""",
       """{"function_type":"LOOKUP_WITH_EMPTY_VALUE_OVERRIDE","lookupNamespace":"namespace","valueColumn":"valCol","overrideValue":"ovr","dimensionOverrideMap":{"c":"d"}}""",
       """{"function_type":"LOOKUP_WITH_DECODE_ON_OTHER_COLUMN","lookupNamespace":"namespace","columnToCheck":"valCol","valueToCheck":"valToCheck","columnIfValueMatched":"valIfMatched","columnIfValueNotMatched":"valIfNot","dimensionOverrideMap":{"2":"4","b":"a"}}""",
+      """{"function_type":"LOOKUP_WITH_DECODE_ON_OTHER_COLUMN_REPLACE_MISSING","lookupNamespace":"namespace","columnToCheck":"valCol","valueToCheck":"valToCheck","columnIfValueMatched":"valIfMatched","columnIfValueNotMatched":"valIfNot","dimensionOverrideMap":{"2":"4","b":"a"},"replaceMissingValueWith":""}""",
       """{"function_type":"LOOKUP_WITH_TIMEFORMATTER","lookupNamespace":"namespace","valueColumn":"valCol","inputFormat":"yyyyMMdd","resultFormat":"yyyy","dimensionOverrideMap":{"do":"dont"}}""",
       """{"function_type":"LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE","lookupNamespace":"namespace","valueColumn":"valCol","retainMissingValue":true,"injective":true,"dimensionOverrideMap":{"rtn":"not"},"args":"arg1,decodeVal1,arg2,decodeVal2,default"}""",
       """{"function_type":"DRUID_TIME_FORMAT","format":"format","zone":"Asia/Jakarta"}""",

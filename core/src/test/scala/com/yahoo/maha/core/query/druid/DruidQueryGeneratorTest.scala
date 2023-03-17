@@ -4076,6 +4076,46 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(json3), "Addumed uncoveredIntervals could be overwritten: " + result)
   }
 
+  test("Validate lookup override works") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Average Bid"},
+                            {"field": "Impressions"},
+                            {"field": "External Site Name"},
+                            {"field": "Advertiser Status"},
+                            {"field": "Currency"},
+                            {"field": "Timezone"},
+                            {"field": "Timezone2"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Advertiser Status", "operator": "=", "value": "ON"},
+                            {"field": "Currency", "operator": "=", "value": "USD"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry, revision = Option.apply(1))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val expected = """{"type":"extraction","dimension":"advertiser_id","outputName":"Timezone2","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"advertiser_lookup","retainMissingValue":false,"replaceMissingValueWith":"COL_IS_MISSING!!","injective":false,"optimize":true,"valueColumn":"timezone","decode":{"columnToCheck":"timezone","valueToCheck":"US","columnIfValueMatched":"timezone","columnIfValueNotMatched":"currency"},"dimensionOverrideMap":{},"useQueryLevelCache":true}}"""
+    assert(result.contains(expected))
+  }
+
 
 }
 

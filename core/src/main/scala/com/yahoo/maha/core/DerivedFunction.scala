@@ -196,6 +196,28 @@ object DruidDerivedFunction {
       )
   }
 
+  case class LOOKUP_WITH_DECODE_ON_OTHER_COLUMN_REPLACE_MISSING(lookupNamespace: String,
+                                                columnToCheck: String,
+                                                valueToCheck: String,
+                                                columnIfValueMatched: String,
+                                                columnIfValueNotMatched: String,
+                                                dimensionOverrideMap: Map[String, String] = Map.empty,
+                                                replaceMissingValueWith: String) extends DruidDerivedFunction {
+    override def asJSON(): JObject =
+      makeObj(
+        List(
+          ("function_type" -> toJSON(this.getClass.getSimpleName))
+          , ("lookupNamespace" -> toJSON(lookupNamespace))
+          , ("columnToCheck" -> toJSON(columnToCheck))
+          , ("valueToCheck" -> toJSON(valueToCheck))
+          , ("columnIfValueMatched" -> toJSON(columnIfValueMatched))
+          , ("columnIfValueNotMatched" -> toJSON(columnIfValueNotMatched))
+          , ("dimensionOverrideMap" -> toJSON(dimensionOverrideMap))
+          , ("replaceMissingValueWith" -> toJSON(replaceMissingValueWith))
+        )
+      )
+  }
+
   case class LOOKUP_WITH_TIMEFORMATTER(lookupNameSpace: String, valueColumn: String, inputFormat: String, resultFormat: String, dimensionOverrideMap: Map[String, String] = Map.empty, overrideValue: Option[String] = None) extends DruidDerivedFunction {
     override def asJSON(): JObject =
       makeObj(
