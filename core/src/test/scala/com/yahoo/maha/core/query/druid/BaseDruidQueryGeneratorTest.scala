@@ -122,6 +122,7 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           , FactCol("blarghUserCount1", DecType(0, "0.0", "2", "10"))
           , FactCol("ageBucket_unique_users", DecType(), DruidFilteredRollup(InFilter("ageBucket", List("18-20")), "uniqueUserCount", DruidThetaSketchRollup))
           , FactCol("woeids_unique_users", DecType(), DruidFilteredRollup(InFilter("woeids", List("4563")), "uniqueUserCount", DruidThetaSketchRollup))
+          , FactCol("woeids_unique_users_cantoverride", DecType(), DruidFilteredRollup(InFilter("woeids", List("4563")), "uniqueUserCount", DruidThetaSketchRollup(2048), false))
           , FactCol("segments_unique_users", DecType(), DruidFilteredRollup(InFilter("segments", List("1234")), "uniqueUserCount", DruidThetaSketchRollup))
           , FactCol("conv_unique_users", DecType(), DruidFilteredRollup(JavaScriptFilter("segments", "function(x) { return x > 0; }"), "uniqueUserCount", DruidThetaSketchRollup))
           , DruidDerFactCol("Total Unique User Count", DecType(), ThetaSketchEstimator(INTERSECT, List("{ageBucket_unique_users}", "{woeids_unique_users}", "{segments_unique_users}")))
@@ -370,6 +371,7 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           PublicFactCol("uniqueUserCount", "Unique User Count", InBetweenEquality),
           PublicFactCol("ageBucket_unique_users", "ageBucket_unique_users", InBetweenEquality),
           PublicFactCol("woeids_unique_users", "woeids_unique_users", InBetweenEquality),
+          PublicFactCol("woeids_unique_users_cantoverride", "woeids_unique_users_cantoverride", InBetweenEquality),
           PublicFactCol("segments_unique_users", "segments_unique_users", InBetweenEquality),
           PublicFactCol("conv_unique_users", "Conversion User Count", InBetweenEquality),
           PublicFactCol("Total Unique User Count", "Total Unique User Count", InBetweenEquality),

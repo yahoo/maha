@@ -93,7 +93,7 @@ case class FactCol(name: String,
         de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case DruidCustomRollup(de) =>
         de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
-      case DruidFilteredRollup(filter, de, delegateAggregatorRollupExpression) =>
+      case DruidFilteredRollup(filter, de, delegateAggregatorRollupExpression, _) =>
         columnContext.render(de.fieldNamePlaceHolder, Map.empty)
         columnContext.render(filter.field, Map.empty)
       case PrestoCustomRollup(de) =>
@@ -103,6 +103,7 @@ case class FactCol(name: String,
         for( filter <- filters) {
           columnContext.render(filter.field, Map.empty)
         }
+      case DruidThetaSketchRollup(_) =>
       case DruidThetaSketchRollup =>
       case DruidCardinalityRollup(cols, _, _) =>
         cols.foreach((col: String) => columnContext.render(col, Map.empty))

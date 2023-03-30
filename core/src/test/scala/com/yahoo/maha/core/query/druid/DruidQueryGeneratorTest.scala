@@ -323,7 +323,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                             {"field": "Average Position"},
                             {"field": "Impressions"},
                             {"field": "Click Rate Success Case"},
-                            {"field": "woeids_unique_users"}
+                            {"field": "woeids_unique_users_cantoverride"}
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
@@ -351,8 +351,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     //we want this
     //based on the definition in BaseDruidQueryGeneratorTest line 124
     //The issue is the definition on DruidQueryGenerator line 1020-1024, which overrides the filterExpr with the queried one.
-    val desired = """{"type":"filtered","aggregator":{"type":"thetaSketch","name":"woeids_unique_users","fieldName":"uniqueUserCount","size":16384,"shouldFinalize":true,"isInputThetaSketch":false},"filter":{"type":"or","fields":[{"type":"selector","dimension":"woeids","value":"4563"}]},"name":"woeids_unique_users"}"""
-    assert(result.contains(json), result)
+    val desired = """{"type":"filtered","aggregator":{"type":"thetaSketch","name":"woeids_unique_users_cantoverride","fieldName":"uniqueUserCount","size":2048,"shouldFinalize":true,"isInputThetaSketch":false},"filter":{"type":"or","fields":[{"type":"selector","dimension":"woeids","value":"4563"}]},"name":"woeids_unique_users_cantoverride"}"""
+    assert(result.contains(desired), result)
   }
 
   test("DruidQueryGenerator: getAggregatorFactory should fail on DruidFilteredListRollup with only 1 list element") {
@@ -2597,6 +2597,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    println(result)
     val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\},\{"type":"or","fields":\[\{"type":"selector","dimension":"ageBucket","value":"18-24"\},\{"type":"selector","dimension":"ageBucket","value":"25-35"\}\]\},\{"type":"or","fields":\[\{"type":"selector","dimension":"woeids","value":"12345"\},\{"type":"selector","dimension":"woeids","value":"6789"\}\]\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\},\{"type":"default","dimension":"ad_id","outputName":"Ad ID","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"clicks"\},\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"filtered","aggregator":\{"type":"thetaSketch","name":"ageBucket_unique_users","fieldName":"uniqueUserCount","size":16384,"shouldFinalize":true,"isInputThetaSketch":false\},"filter":\{"type":"or","fields":\[\{"type":"selector","dimension":"ageBucket","value":"18-24"\},\{"type":"selector","dimension":"ageBucket","value":"25-35"\}\]\},"name":"ageBucket_unique_users"\},\{"type":"filtered","aggregator":\{"type":"thetaSketch","name":"woeids_unique_users","fieldName":"uniqueUserCount","size":16384,"shouldFinalize":true,"isInputThetaSketch":false\},"filter":\{"type":"or","fields":\[\{"type":"selector","dimension":"woeids","value":"12345"\},\{"type":"selector","dimension":"woeids","value":"6789"\}\]\},"name":"woeids_unique_users"\}\],"postAggregations":\[\{"type":"thetaSketchEstimate","name":"Total Unique User Count","field":\{"type":"thetaSketchSetOp","name":"Total Unique User Count","func":"INTERSECT","size":16384,"fields":\[\{"type":"fieldAccess","name":"ageBucket_unique_users","fieldName":"ageBucket_unique_users"\},\{"type":"fieldAccess","name":"woeids_unique_users","fieldName":"woeids_unique_users"\}\]\}\}\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Keyword ID","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Ad ID","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":101\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
 
     result should fullyMatch regex json

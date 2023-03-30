@@ -1002,8 +1002,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
-    def getThetaSketchAggregatorFactory(outputFieldName: String, inputFieldName: String): AggregatorFactory = {
-      new SketchMergeAggregatorFactory(outputFieldName, inputFieldName, null, null, false, null)
+    def getThetaSketchAggregatorFactory(outputFieldName: String, inputFieldName: String, size: Int = 16384): AggregatorFactory = {
+      new SketchMergeAggregatorFactory(outputFieldName, inputFieldName, size, null, false, null)
     }
 
     def getCountAggregatorFactory(dataType: DataType, outputFieldName: String): AggregatorFactory = {
@@ -1018,7 +1018,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       val druidFilteredRollup: DruidFilteredRollup = rollup.asInstanceOf[DruidFilteredRollup]
 
       val filter: Filter = druidFilteredRollup.delegateAggregatorRollupExpression match {
-        case DruidThetaSketchRollup if queryContext.factBestCandidate.dimColMapping.contains(druidFilteredRollup.filter.field) => {
+        case DruidThetaSketchRollup(_) | DruidThetaSketchRollup
+          if queryContext.factBestCandidate.dimColMapping.contains(druidFilteredRollup.filter.field) && druidFilteredRollup.isOverrideable => {
           val publicFactFilterName: String = queryContext.factBestCandidate.dimColMapping(druidFilteredRollup.filter.field)
           val publicFactFilter: Filter = queryContext.factBestCandidate.filters.filter(f => f.field.equals(publicFactFilterName)).head
           publicFactFilter
@@ -1065,13 +1066,13 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           getMaxAggregatorFactory(dataType, alias, columnAlias)
         case CountRollup =>
           getCountAggregatorFactory(dataType, columnAlias)
-        case DruidFilteredRollup(_, _, _) if (forOuterQuery) =>
+        case DruidFilteredRollup(_, _, _, _) if (forOuterQuery) =>
           getAggregatorFactory(
             dataType,
             rollup.asInstanceOf[DruidFilteredRollup].delegateAggregatorRollupExpression,
             alias,
             columnAlias)
-        case DruidFilteredRollup(_, _, _) =>
+        case DruidFilteredRollup(_, _, _, _) =>
           getFilteredAggregatorFactory(dataType, rollup, alias)
         case DruidFilteredListRollup(_, _, _) if (forOuterQuery) =>
           getAggregatorFactory(
@@ -1085,6 +1086,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           getCardinalityAggregatorFactory(dataType, alias, fieldNames, byRow, round)
         case DruidHyperUniqueRollup(fieldName) =>
           getHyperUniqueAggregatorFactory(dataType, alias, fieldName)
+        case DruidThetaSketchRollup(size) =>
+          getThetaSketchAggregatorFactory(alias, columnAlias, size)
         case DruidThetaSketchRollup =>
           getThetaSketchAggregatorFactory(alias, columnAlias)
         case NoopRollup =>
@@ -1132,9 +1135,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                 sourceCol match {
                   case FactCol(_, _, _, rollup, _, _, _) =>
                     rollup match {
-                      case DruidFilteredRollup(filter, _, re) =>
+                      case DruidFilteredRollup(filter, _, re, _) =>
                         re match {
-                          case DruidThetaSketchRollup =>
+                          case DruidThetaSketchRollup(_) | DruidThetaSketchRollup =>
                             if (queryContext.factBestCandidate.dimColMapping.contains(filter.field)) {
                               //check if we already added this column
                               if (!aggregatorAliasSet(name)) {
