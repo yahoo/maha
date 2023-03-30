@@ -7,5 +7,5 @@ target
 *.log
 *.swp
 *.versionsBackup
-core/src/test/resources/pg-dim-ddl.sql
-core/src/test/resources/pg-fact-ddl.sql
+*pg-dim-ddl.sql
+*pg-fact-ddl.sql
