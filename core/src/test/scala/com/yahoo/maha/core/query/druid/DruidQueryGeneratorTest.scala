@@ -308,6 +308,46 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(json), result)
   }
 
+  test("DruidQueryGenerator: getAggregatorFactory should succeed on DruidFilteredRollup with requested duplicate of my filter") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Pricing Type"},
+                            {"field": "Derived Pricing Type"},
+                            {"field": "Max Bid"},
+                            {"field": "Min Bid"},
+                            {"field": "Average Bid"},
+                            {"field": "Average Position"},
+                            {"field": "Impressions"},
+                            {"field": "Click Rate Success Case"},
+                            {"field": "woeids_unique_users_cantoverride"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Woe ID", "operator": "=", "value": "20"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":0
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = getRequestModel(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+
+    val desired = """{"type":"filtered","aggregator":{"type":"thetaSketch","name":"woeids_unique_users_cantoverride","fieldName":"uniqueUserCount","size":2048,"shouldFinalize":true,"isInputThetaSketch":false},"filter":{"type":"or","fields":[{"type":"selector","dimension":"woeids","value":"4563"}]},"name":"woeids_unique_users_cantoverride"}"""
+    assert(result.contains(desired), result)
+  }
+
   test("DruidQueryGenerator: getAggregatorFactory should fail on DruidFilteredListRollup with only 1 list element") {
     val jsonString =
       s"""{

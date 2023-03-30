@@ -7,3 +7,5 @@ target
 *.log
 *.swp
 *.versionsBackup
+*pg-dim-ddl.sql
+*pg-fact-ddl.sql

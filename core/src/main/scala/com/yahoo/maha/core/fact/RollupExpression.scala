@@ -69,7 +69,8 @@ case class DruidCustomRollup(expression: DruidDerivedExpression) extends CustomR
   override lazy val sourcePrimitiveColumns: Set[String] = expression.sourcePrimitiveColumns
 }
 case class DruidFilteredRollup(filter: Filter, factCol: DruidExpression.FieldAccess,
-                               delegateAggregatorRollupExpression: RollupExpression) extends CustomRollup with WithDruidEngine {
+                               delegateAggregatorRollupExpression: RollupExpression,
+                               isOverrideable: Boolean = true) extends CustomRollup with WithDruidEngine {
   override val hasDerivedExpression: Boolean = true
   override lazy val sourceColumns: Set[String] = Set(filter.field, factCol.name) ++ delegateAggregatorRollupExpression.sourceColumns
 }
@@ -88,5 +89,6 @@ case class DruidHyperUniqueRollup(column: String) extends CustomRollup with With
   override val hasDerivedExpression: Boolean = true
   override lazy val sourceColumns: Set[String] = Set(column)
 }
+case class DruidThetaSketchRollup(size: Int = 16384) extends CustomRollup with WithDruidEngine
 case object DruidThetaSketchRollup extends CustomRollup with WithDruidEngine
 
