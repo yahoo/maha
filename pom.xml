@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>6.134-SNAPSHOT</version>
+    <version>6.135-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -806,7 +806,7 @@
                     <extensions>true</extensions>
                     <configuration>
                         <serverId>ossrh</serverId>
-                        <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                        <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                         <autoReleaseAfterClose>${nexus.release.autoclose}</autoReleaseAfterClose>
                     </configuration>
                 </plugin>
