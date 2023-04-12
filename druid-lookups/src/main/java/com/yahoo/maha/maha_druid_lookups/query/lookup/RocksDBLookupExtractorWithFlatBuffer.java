@@ -14,6 +14,7 @@ import org.rocksdb.RocksDB;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class RocksDBLookupExtractorWithFlatBuffer<U> extends BaseRocksDBLookupExtractor<U> {
     private static final Logger LOG = new Logger(RocksDBLookupExtractorWithFlatBuffer.class);
@@ -37,11 +38,21 @@ public class RocksDBLookupExtractorWithFlatBuffer<U> extends BaseRocksDBLookupEx
 
     @Override
     public boolean canIterate() {
-        return true;
+        return false;
+    }
+
+    @Override
+    public boolean canGetKeySet() {
+        return false;
     }
 
     @Override
     public Iterable<Map.Entry<String, String>> iterable() {
         return staticMap.entrySet();
+    }
+
+    @Override
+    public Set<String> keySet() {
+        return null;
     }
 }
