@@ -10,7 +10,11 @@ import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.{ReportingRequest, RequestContext, RowCountQuery}
 import org.apache.commons.lang.StringUtils
 import org.apache.druid.common.config.NullHandling
+import org.apache.druid.jackson.DefaultObjectMapper
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
+import org.json4s._
+import org.json4s.jackson.JsonMethods._
+import org.junit.Assert._
 
 /**
  * Created by hiral on 1/14/16.
@@ -18,6 +22,8 @@ import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
   lazy val defaultRegistry = getDefaultRegistry()
+
+  val ContextString = "context"
 
   test("registering Druid query generation multiple times should fail") {
     intercept[IllegalArgumentException] {
@@ -3925,9 +3931,9 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val expectedContents = s""""applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000"""
-    assert(result.contains(expectedContents))
-
+    val expectedContents = s"""{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000}"""
+//    assert(result.contains(expectedContents))
+    assertTrue(containsJson(parse(expectedContents), parse(result) \ ContextString))
   }
 
   test("Query on one hour of two days") {
@@ -3958,8 +3964,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val expectedContents = s""""applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000"""
-    assert(result.contains(expectedContents))
+    val expectedContents = s"""{"applyLimitPushDown":"false","groupByIsSingleThreaded":true,"timeout":5000,"uncoveredIntervalsLimit":1}"""
+    assertTrue(containsJson(parse(expectedContents), parse(result) \ ContextString))
 
   }
 
@@ -4110,10 +4116,17 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val json1 = """{"type":"extraction","dimension":"__time","outputName":"Hour","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"HH","timeZone":"UTC","granularity":{"type":"none"},"asMillis":false}}"""
     val json2 = """{"type":"extraction","dimension":"__time","outputName":"Day","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"YYYY-MM-dd HH","timeZone":"UTC","granularity":{"type":"none"},"asMillis":false}}"""
-    val json3 = """"context":{"groupByStrategy":"v2","applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":100,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"}"""
+    val json3 = """{"groupByStrategy":"v2","applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":100,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"}"""
+
     assert(result.contains(json1), "Assume valid Hour extraction: " + result)
     assert(result.contains(json2), "Assumed valid Day extraction: " + result)
-    assert(result.contains(json3), "Addumed uncoveredIntervals could be overwritten: " + result)
+    assertTrue(containsJson(parse(json3), parse(result) \ ContextString))
+  }
+
+  def containsJson(expectedJson: JValue, actualJson: JValue): Boolean = {
+    val expectedMap = expectedJson.values.asInstanceOf[Map[String, Any]]
+    val actualMap = actualJson.values.asInstanceOf[Map[String, Any]]
+    expectedMap.forall {case (key, value) => actualMap.contains(key) && actualMap.get(key).contains(value)}
   }
 
   test("Validate lookup override works") {
