@@ -169,19 +169,19 @@
         <dependency>
             <groupId>org.apache.druid</groupId>
             <artifactId>druid-processing</artifactId>
-            <version>${druid.version}</version>
+            <version>0.23.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.druid</groupId>
             <artifactId>druid-server</artifactId>
-            <version>${druid.version}</version>
+            <version>0.23.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.druid</groupId>
             <artifactId>druid-sql</artifactId>
-            <version>${druid.version}</version>
+            <version>0.23.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -302,14 +302,14 @@
         <dependency>
             <groupId>org.apache.druid</groupId>
             <artifactId>druid-server</artifactId>
-            <version>${druid.version}</version>
+            <version>0.23.0</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.druid.extensions</groupId>
             <artifactId>druid-hdfs-storage</artifactId>
-            <version>${druid.version}</version>
+            <version>0.23.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

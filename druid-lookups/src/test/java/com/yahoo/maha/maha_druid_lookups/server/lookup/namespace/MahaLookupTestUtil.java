@@ -12,6 +12,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.druid.jackson.DefaultObjectMapper;
 import org.apache.druid.java.util.common.granularity.Granularities;
 import org.apache.druid.query.groupby.GroupByQuery;
+import org.apache.druid.segment.column.ColumnType;
 import org.apache.druid.segment.column.RowSignature;
 import org.apache.druid.segment.column.ValueType;
 import org.apache.druid.sql.calcite.aggregation.DimensionExpression;
@@ -45,7 +46,7 @@ public class MahaLookupTestUtil {
                 .setInterval(lastWeek + "T00:00:00.000Z/" + today + "T00:00:00.000Z")
                 .setGranularity(Granularities.ALL)
                 .setDimensions(
-                        DimensionExpression.ofSimpleColumn(outputName, druidExpression, ValueType.STRING).toDimensionSpec()
+                        DimensionExpression.ofSimpleColumn(outputName, druidExpression, ColumnType.STRING).toDimensionSpec()
                 )
                 .build();
 

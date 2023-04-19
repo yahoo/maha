@@ -9,6 +9,7 @@ import org.apache.druid.query.lookup.LookupExtractor;
 import org.apache.druid.java.util.common.logger.Logger;
 
 import java.util.Map;
+import java.util.Set;
 
 abstract public class MahaLookupExtractor extends LookupExtractor {
     private static final Logger LOG = new Logger(MahaLookupExtractor.class);
@@ -42,6 +43,21 @@ abstract public class MahaLookupExtractor extends LookupExtractor {
         } catch (Exception e) {
             LOG.error(e, "Exception in MahaLookupExtractor apply");
         }
+        return null;
+    }
+
+    @Override
+    public Set<String> keySet() {
+        return null;
+    }
+
+    @Override
+    public boolean canGetKeySet() {
+        return false;
+    }
+
+    @Override
+    public byte[] getCacheKey() {
         return null;
     }
 }
