@@ -348,7 +348,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
 
-    val desired = """{"type":"filtered","aggregator":{"type":"thetaSketch","name":"woeids_unique_users_cantoverride","fieldName":"uniqueUserCount","size":2048,"shouldFinalize":true,"isInputThetaSketch":false},"filter":{"type":"or","fields":[{"type":"selector","dimension":"woeids","value":"4563"}]},"name":"woeids_unique_users_cantoverride"}"""
+    val desired = """{"type":"filtered","aggregator":{"type":"thetaSketch","name":"woeids_unique_users_cantoverride","fieldName":"uniqueUserCount","size":2048},"filter":{"type":"or","fields":[{"type":"selector","dimension":"woeids","value":"4563"}]},"name":"woeids_unique_users_cantoverride"}"""
     assert(result.contains(desired), result)
   }
 
@@ -3895,7 +3895,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val expectedContents = s""""{applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000}"""
+    val expectedContents = s"""{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000}"""
     assertTrue(containsJson(parse(expectedContents), parse(result) \ ContextString))
   }
 
