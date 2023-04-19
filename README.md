@@ -628,3 +628,4 @@ SELECT 'Student ID', 'Total Marks', 'Student Name', 'Student Status' ,'Admitted 
   - Hive Query Optimizations
     - Seshasai Kuchimanchi
 
+
