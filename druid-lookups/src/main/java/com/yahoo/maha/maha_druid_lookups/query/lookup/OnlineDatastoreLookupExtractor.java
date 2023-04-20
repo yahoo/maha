@@ -35,6 +35,8 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
 
     private static final Logger log = new Logger(URIExtractionNamespaceCacheFactory.class);
 
+    private static final Map<String, String> tempMap = new HashMap<>();
+
     protected abstract Logger LOGGER();
 
     OnlineDatastoreLookupExtractor(OnlineDatastoreExtractionNamespace extractionNamespace, Map<String, U> map, LookupService lookupService) {
@@ -170,35 +172,11 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
 
     @Override
     public boolean canIterate() {
-        return extractionNamespace.isCacheEnabled();
+        return false;
     }
 
     @Override
     public Iterable<Map.Entry<String, String>> iterable() {
-        Map<String, String> tempMap = new HashMap<>();
-        int numEntriesIterated = 0;
-        try {
-            for (Map.Entry<String, U> entry : getMap().entrySet()) {
-                StringBuilder sb = new StringBuilder();
-                for (Map.Entry<String, Integer> colToIndex : columnIndexMap.entrySet()) {
-                    sb.append(colToIndex.getKey())
-                            .append(ITER_KEY_VAL_SEPARATOR)
-                            .append(entry.getValue().get(colToIndex.getValue()))
-                            .append(ITER_VALUE_COL_SEPARATOR);
-                }
-                if (sb.length() > 0) {
-                    sb.setLength(sb.length() - 1);
-                }
-                tempMap.put(entry.getKey(), sb.toString());
-                numEntriesIterated++;
-                if (numEntriesIterated == extractionNamespace.getNumEntriesIterator()) {
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            log.error(e, "Caught exception. Returning iterable to empty map.");
-        }
-
         return tempMap.entrySet();
     }
 }
