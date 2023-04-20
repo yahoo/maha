@@ -3090,7 +3090,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val expect_empty_limitspec_inner_query = """"limitSpec":{"type":"NoopLimitSpec"},"context":{"applyLimitPushDown":"false""""
     val expect_nonempty_limitspec_outer_query = """"limitSpec":{"type":"default","columns":[],"limit":220}"""
-    val expect_bound_filter = """{"type":"bound","dimension":"Derived Pricing Type","lower":"1","upper":"20","lowerStrict":false,"upperStrict":false,"ordering":{"type":"numeric"}}"""
+    val expect_bound_filter = """{"type":"bound","dimension":"Derived Pricing Type","lower":"1","upper":"20","ordering":{"type":"numeric"}}"""
     assert(result.contains(expect_empty_limitspec_inner_query))
     assert(result.contains(expect_nonempty_limitspec_outer_query))
     assert(result.contains(expect_bound_filter))
