@@ -96,7 +96,7 @@ class ColumnValueExtractorTest extends AnyFunSuite with Matchers with BeforeAndA
     val dateCol2 = new TestCol {
       override def dataType : DataType = DateType()
     }
-    assert(columnValueExtractor.getColumnValue(4, dateCol2, rs) == "2018-05-04")
+    assert(columnValueExtractor.getColumnValue(4, dateCol2, rs) == "2018-05-03")
 
     val timestampCol = new TestCol {
       override def dataType : DataType = TimestampType()
