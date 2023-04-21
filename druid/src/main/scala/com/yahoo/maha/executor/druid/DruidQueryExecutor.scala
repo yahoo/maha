@@ -432,9 +432,13 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
       throw new UnsupportedOperationException(s"DruidQueryExecutor does not support query with engine=${query.engine}")
     } else {
       val isFactDriven = query.queryContext.requestModel.isFactDriven
+      query.queryContext.requestModel.debugString
+      logger.info("DruidQueryExecutor: here")
       val local_url: String = if (isFactDriven && query.queryContext.requestModel.uri != null) {
+        logger.info(s"DruidQueryExecutor - query.queryContext.requestModel.uri: ${query.queryContext.requestModel.uri}")
         query.queryContext.requestModel.uri
       } else {
+        logger.info(s"DruidQueryExecutor - url: ${url}")
         url
       }
 
