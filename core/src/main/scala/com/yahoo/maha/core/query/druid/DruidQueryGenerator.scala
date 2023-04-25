@@ -1462,43 +1462,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case any =>
               throw new UnsupportedOperationException(s"Found unhandled DruidDerivedFunction : $any")
           }
-
-        /**
-         * de.sourceColumns.foreach {
-         *  src =>
-         *  val sourceCol = fact.columnsByNameMap(src)
-         *  if (!sourceCol.isDerivedColumn) {
-         *  val name = sourceCol.alias.getOrElse(sourceCol.name)
-         *  sourceCol match {
-         *  case FactCol(_, _, _, rollup, _, _, _) =>
-         *  rollup match {
-         *  case DruidFilteredRollup(filter, _, re, _) =>
-         *  re match {
-         *  case DruidThetaSketchRollup(_) | DruidThetaSketchRollup =>
-         *  if (queryContext.factBestCandidate.dimColMapping.contains(filter.field)) {
-         *  //check if we already added this column
-         *  if (!aggregatorAliasSet(name)) {
-         *  renderColumnWithAlias(fact, sourceCol, name, forPostAggregator = true)
-         *  }
-         *  }
-         *  case _ =>
-         *  if (!aggregatorAliasSet(name)) {
-         *  renderColumnWithAlias(fact, sourceCol, name, forPostAggregator = true)
-         *  }
-         *  }
-         *  case _ =>
-         *  if (!aggregatorAliasSet(name)) {
-         *  renderColumnWithAlias(fact, sourceCol, name, forPostAggregator = true)
-         *  }
-         *  }
-         *  case _ =>
-         *  if (!aggregatorAliasSet(name)) {
-         *  renderColumnWithAlias(fact, sourceCol, name, forPostAggregator = true)
-         *  }
-         *  }
-         *  }
-         *  }
-         */
+          
         case DruidPostResultFuncDimCol(name, dataType, _, postResultFunction, _, annotations, filterOperationOverrides) =>
           postResultFunction match {
             case javascript@JavaScript(expression, fn) =>
