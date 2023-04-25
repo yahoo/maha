@@ -1462,7 +1462,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case any =>
               throw new UnsupportedOperationException(s"Found unhandled DruidDerivedFunction : $any")
           }
-          
+
         case DruidPostResultFuncDimCol(name, dataType, _, postResultFunction, _, annotations, filterOperationOverrides) =>
           postResultFunction match {
             case javascript@JavaScript(expression, fn) =>
@@ -1488,7 +1488,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               }
 
               val exFn = new JavaScriptExtractionFn(fn, false, JavaScriptConfig.getEnabledInstance)
-              val dim = db.publicDim.columnsByAliasMap.map(col => col._2).filter(col => col.name.equals(javascript.dimColName)).head.name
+              val sourceCol = db.dim.columnsByNameMap(javascript.dimColName)
+              val dim = sourceCol.alias.getOrElse(sourceCol.name)
               //val dimCol = fact.columnsByNameMap(javascript.dimColName)
               (new ExtractionDimensionSpec(dim, alias, getDimValueType(column), exFn,
                 null),
