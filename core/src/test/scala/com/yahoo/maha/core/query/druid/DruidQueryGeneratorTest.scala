@@ -808,7 +808,12 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+<<<<<<< Updated upstream
     val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"stats_source","outputName":"Source"\,\"outputType\":\"STRING\"},\{"type":"default","dimension":"id","outputName":"Keyword ID"\,\"outputType\":\"STRING\"}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"filtered","aggregator":\{"type":"longSum","name":"Reblogs","fieldName":"engagement_count"\},"filter":\{"type":"selector","dimension":"engagement_type","value":"1"\},"name":"Reblogs"\},\{"type":"longSum","name":"Clicks","fieldName":"clicks"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Reblog Rate","fn":"\*","fields":\[\{"type":"arithmetic","name":"_placeHolder_2","fn":"/","fields":\[\{"type":"fieldAccess","name":"Reblogs","fieldName":"Reblogs"\},\{"type":"fieldAccess","name":"impressions","fieldName":"Impressions"\}\]\},\{"type":"constant","name":"_constant_.*","value":100\}\]\},\{"type":"arithmetic","name":"CTR","fn":"/","fields":\[\{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"\},\{"type":"fieldAccess","name":"impressions","fieldName":"Impressions"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":120\},"context":\{"applyLimitPushDown":"false","groupByIsSingleThreaded":true,"queryId":".*","timeout":5000,"uncoveredIntervalsLimit":1\}\}"""
+=======
+    println(result)
+    val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"stats_source","outputName":"Source"\,\"outputType\":\"STRING\"},\{"type":"default","dimension":"id","outputName":"Keyword ID"\,\"outputType\":\"STRING\"}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"filtered","aggregator":\{"type":"longSum","name":"Reblogs","fieldName":"engagement_count"\},"filter":\{"type":"selector","dimension":"engagement_type","value":"1"\},"name":"Reblogs"\},\{"type":"longSum","name":"Clicks","fieldName":"clicks"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Reblog Rate","fn":"\*","fields":\[\{"type":"arithmetic","name":"_placeHolder_2","fn":"/","fields":\[\{"type":"fieldAccess","name":"Reblogs","fieldName":"Reblogs"\},\{"type":"fieldAccess","name":"impressions","fieldName":"Impressions"\}\]\},\{"type":"constant","name":"_constant_.*","value":100\}\]\},\{"type":"arithmetic","name":"CTR","fn":"/","fields":\[\{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"\},\{"type":"fieldAccess","name":"impressions","fieldName":"Impressions"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":120\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
+>>>>>>> Stashed changes
 
 
     result should fullyMatch regex json
@@ -847,6 +852,38 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json = """"dimension":"statsDate","outputName":"Week","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w","joda":false}}"""
+    val filterjson = """{"type":"selector","dimension":"statsDate","value":"2017-24","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w","joda":false}},{"type":"selector","dimension":"statsDate","value":"2017-26","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w","joda":false}}"""
+
+    assert(result.contains(json), result)
+    assert(result.contains(filterjson), result)
+  }
+
+  test("attempt to run post result javaScript") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats_derived_decode_dim",
+                          "selectFields": [
+                            {"field": "Advertiser ID"},
+                            {"field": "Derived Ad ID"},
+                            {"field": "Relative Date"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Week", "operator": "in", "values": ["2017-06-12", "2017-06-26"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = getRequestModel(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    println(result)
     val json = """"dimension":"statsDate","outputName":"Week","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w","joda":false}}"""
     val filterjson = """{"type":"selector","dimension":"statsDate","value":"2017-24","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w","joda":false}},{"type":"selector","dimension":"statsDate","value":"2017-26","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w","joda":false}}"""
 
