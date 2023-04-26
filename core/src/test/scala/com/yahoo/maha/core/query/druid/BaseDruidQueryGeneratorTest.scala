@@ -115,7 +115,7 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
             EqualityFilter("engagement_type", "1"),
             EqualityFilter("campaign_id", "1")), "clicks", SumRollup))
           , DruidDerFactCol("Reblog Rate", DecType(), "{Reblogs}" /- "{impressions}" * "100")
-          , DruidDerFactCol("variance", DecType(), JavaScript("function(clicks,impressions){return clicks * Math.sqrt(impressions);}", List("{clicks}", "{impressions}")))
+          , DruidDerFactCol("variance", DecType(), JavaScript("function(clicks,impressions){return clicks * Math.sqrt(impressions);}", List("{Click Rate Success Case}", "{impressions}")))
           , DruidPostResultDerivedFactCol("impression_share", StrType(), "{impressions}" /- "{sov_impressions}", postResultFunction = POST_RESULT_DECODE("{show_sov_flag}", "0", "N/A"))
           , FactCol("uniqueUserCount", DecType(0, "0.0"))
           , FactCol("blarghUserCount", DecType(0, "0.0"))
@@ -283,7 +283,6 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
 
   private[this] def factBuilder5(annotations: Set[FactAnnotation]): FactBuilder = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-      import com.yahoo.maha.core.DruidPostResultFunction.JavaScript
       Fact.newFact(
         "fact5", HourlyGrain, DruidEngine, Set(AdvertiserSchema, InternalSchema),
         Set(
@@ -301,7 +300,6 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           , DimCol("stats_date", DateType("yyyyMMdd"), Some("statsDate"))
           , DruidPostResultFuncDimCol("Month", DateType(), postResultFunction = START_OF_THE_MONTH("{stats_date}"))
           , DruidPostResultFuncDimCol("Week", DateType(), postResultFunction = START_OF_THE_WEEK("{stats_date}"))
-          //, DruidPostResultFuncDimCol("relative_date", DateType(), postResultFunction = JavaScript("{timezone2}", "function(date){var result = (new Date(-1*15)); result.setDate(result.getDate() + date); return result.toLocaleDateString(\"en-US\");}"))
           , DruidFuncDimCol("Day of Week", DateType(), DAY_OF_WEEK("{stats_date}"))
           , DruidFuncDimCol("My Date", DateType(), DRUID_TIME_FORMAT("YYYY-MM-dd"))
           , DruidFuncDimCol("Start Date", DateType("YYYYMMdd"), DATETIME_FORMATTER("{start_time}", 0, 8))

@@ -1138,7 +1138,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                       case DruidFilteredRollup(filter, _, re, _) =>
                         re match {
                           case DruidThetaSketchRollup(_) | DruidThetaSketchRollup =>
-                            if (queryContext.factBestCandidate.dimColMapping.contains(filter.field)) {
+                            if (queryContext.factBestCandidate.fact.dimColMap.contains(filter.field)) {
                               //check if we already added this column
                               if (!aggregatorAliasSet(name)) {
                                 renderColumnWithAlias(fact, sourceCol, name, forPostAggregator = true)
