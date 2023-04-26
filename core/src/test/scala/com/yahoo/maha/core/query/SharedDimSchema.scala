@@ -809,7 +809,7 @@ trait SharedDimSchema {
             DruidFuncDimCol("managed_by", StrType(), LOOKUP("advertiser_lookup", "managed_by")),
             DruidFuncDimCol("timezone", StrType(), LOOKUP_WITH_DECODE_ON_OTHER_COLUMN("advertiser_lookup", "timezone", "US", "timezone", "currency")),
             DruidFuncDimCol("timezone2", StrType(), LOOKUP_WITH_DECODE_ON_OTHER_COLUMN_REPLACE_MISSING("advertiser_lookup", "timezone", "US", "timezone", "currency", replaceMissingValueWith = "COL_IS_MISSING!!"))
-            , DruidPostResultFuncDimCol("relative_date", StrType(), postResultFunction = JavaScript("{timezone2}", "function(date){var result = (new Date(-1*15)); result.setDate(result.getDate() + date); return result.toLocaleDateString(\"en-US\");}"))
+            , DruidPostResultFuncDimCol("relative_date", StrType(), postResultFunction = JavaScript("{timezone2}", "function(date){var result = (new Date(0)); result.setDate(result.getDate() + date); return result.toLocaleDateString(\"en-US\");}"))
 
           )
           , Option(Map(AsyncRequest -> 14, SyncRequest -> 14)), schemas = Set(AdvertiserSchema, ResellerSchema, InternalSchema)
