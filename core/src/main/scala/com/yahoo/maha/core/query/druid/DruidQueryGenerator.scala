@@ -12,7 +12,6 @@ import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
-import org.apache.druid.segment.column.ColumnType
 import com.yahoo.maha.maha_druid_lookups.query.lookup.{DecodeConfig, MahaRegisteredLookupExtractionFn}
 import com.yahoo.maha.query.aggregation.{RoundingDoubleSumAggregatorFactory, RoundingDoubleSumDruidModule}
 import grizzled.slf4j.Logging
@@ -904,8 +903,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
   }
 
-  private[this] def getDimValueType(column: Column): ColumnType = {
-    ColumnType.STRING
+  private[this] def getDimValueType(column: Column): ValueType = {
+    ValueType.STRING
   }
 
   private[this] def getAggregatorsForOuterQuery(queryContext: FactQueryContext): (mutable.Buffer[AggregatorFactory], mutable.Buffer[PostAggregator]) = {
