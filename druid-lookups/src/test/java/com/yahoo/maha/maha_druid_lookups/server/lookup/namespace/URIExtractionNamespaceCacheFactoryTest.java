@@ -13,14 +13,12 @@ import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.data.SearchableVersionedDataFinder;
 import org.apache.druid.java.util.common.lifecycle.Lifecycle;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
-import org.apache.druid.math.expr.ExpressionProcessing;
 import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.druid.segment.loading.LocalFileTimestampVersionFinder;
 import org.apache.druid.storage.hdfs.HdfsFileTimestampVersionFinder;
 import org.apache.hadoop.conf.Configuration;
 import org.joda.time.Period;
 import org.mockito.*;
-import org.testng.Assert;
 import org.testng.annotations.*;
 
 import java.util.Optional;
@@ -103,15 +101,11 @@ public class URIExtractionNamespaceCacheFactoryTest {
         obj.emitter = serviceEmitter;
         obj.lookupService = lookupService;
         NullHandling.initializeForTests();
-        ExpressionProcessing.initializeForTests(false);
-        ExpressionProcessing.initializeForStrictBooleansTests(false);
-
         File newFolder = path.toFile();
         tmpFileParent = new File(newFolder, "tmp.txt");
         tmpFileParent.createNewFile();
         tmpFileParent2 = new File(newFolder, "tmp2.txt");
         tmpFileParent2.createNewFile();
-
     }
 
     @AfterMethod
@@ -136,11 +130,11 @@ public class URIExtractionNamespaceCacheFactoryTest {
         Callable<String> versionedCache = obj.getCachePopulator("blah",
                 namespace, "500", cache);
 
-        Assert.assertEquals(versionedCache.call(), "8675309000", versionedCache.call());
-        Assert.assertEquals(cache.size() , 3);
-        Assert.assertTrue(cache.containsKey("222"));
-        Assert.assertTrue(cache.containsValue(Arrays.asList("111", "0.3", "22220103")));
-        Assert.assertTrue(!cache.containsKey("123"));
+        assert(versionedCache.call().equals("8675309000"));
+        assert (cache.size() == 3);
+        assert(cache.containsKey("222"));
+        assert(cache.containsValue(Arrays.asList("111", "0.3", "22220103")));
+        assert(!cache.containsKey("123"));
     }
 
     @Test
