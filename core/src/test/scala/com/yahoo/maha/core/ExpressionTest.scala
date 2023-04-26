@@ -258,37 +258,37 @@ class ExpressionTest extends AnyFunSuite with Matchers {
   test("generate druid expression with ++") {
     import DruidExpression._
     val exp : DruidExp = "{clicks}" ++ "{impressions}"
-    objectMapper.writeValueAsString(exp.render(false)("sum",Map("clicks"->"Clicks"))) shouldBe """{"type":"arithmetic","name":"sum","fn":"+","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}]}"""
+    objectMapper.writeValueAsString(exp.render(false)("sum",Map("clicks"->"Clicks"))) shouldBe """{"type":"arithmetic","name":"sum","fn":"+","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}"""
   }
 
   test("generate druid expression with -") {
     import DruidExpression._
     val exp : DruidExp = "{clicks}" - "{impressions}"
-    objectMapper.writeValueAsString(exp.render(false)("subtract",Map("clicks"->"Clicks"))) shouldBe """{"type":"arithmetic","name":"subtract","fn":"-","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}]}"""
+    objectMapper.writeValueAsString(exp.render(false)("subtract",Map("clicks"->"Clicks"))) shouldBe """{"type":"arithmetic","name":"subtract","fn":"-","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}"""
   }
 
   test("generate druid expression with *") {
     import DruidExpression._
     val exp : DruidExp = "{clicks}" * "{impressions}"
-    objectMapper.writeValueAsString(exp.render(false)("multiply",Map("clicks"->"Clicks"))) shouldBe """{"type":"arithmetic","name":"multiply","fn":"*","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}]}"""
+    objectMapper.writeValueAsString(exp.render(false)("multiply",Map("clicks"->"Clicks"))) shouldBe """{"type":"arithmetic","name":"multiply","fn":"*","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}"""
   }
 
   test("generate druid expression with /") {
     import DruidExpression._
     val exp : DruidExp = "{clicks}" / "{impressions}"
-    objectMapper.writeValueAsString(exp.render(false)("divide",Map("clicks"->"Clicks"))) shouldBe """{"type":"arithmetic","name":"divide","fn":"/","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}]}"""
+    objectMapper.writeValueAsString(exp.render(false)("divide",Map("clicks"->"Clicks"))) shouldBe """{"type":"arithmetic","name":"divide","fn":"/","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}"""
   }
 
   test("generate druid expression with /-") {
     import DruidExpression._
     val exp : DruidExp = "{clicks}" /- "{impressions}"
-    objectMapper.writeValueAsString(exp.render(false)("safe_divide",Map.empty)) shouldBe """{"type":"arithmetic","name":"safe_divide","fn":"/","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}]}"""
+    objectMapper.writeValueAsString(exp.render(false)("safe_divide",Map.empty)) shouldBe """{"type":"arithmetic","name":"safe_divide","fn":"/","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}"""
   }
 
   test("generate druid expression with * ++ - /-") {
     import DruidExpression._
     val exp : DruidExp = (("{one}" * "{two}") ++ "{three}") /- "{four}"
-    objectMapper.writeValueAsString(exp.render(false)("complex_math",Map.empty)) shouldBe """{"type":"arithmetic","name":"complex_math","fn":"/","fields":[{"type":"arithmetic","name":"_placeHolder_3","fn":"+","fields":[{"type":"arithmetic","name":"_placeHolder_2","fn":"*","fields":[{"type":"fieldAccess","name":"one","fieldName":"one"},{"type":"fieldAccess","name":"two","fieldName":"two"}]},{"type":"fieldAccess","name":"three","fieldName":"three"}]},{"type":"fieldAccess","name":"four","fieldName":"four"}]}"""
+    objectMapper.writeValueAsString(exp.render(false)("complex_math",Map.empty)) shouldBe """{"type":"arithmetic","name":"complex_math","fn":"/","fields":[{"type":"arithmetic","name":"_placeHolder_3","fn":"+","fields":[{"type":"arithmetic","name":"_placeHolder_2","fn":"*","fields":[{"type":"fieldAccess","name":"one","fieldName":"one"},{"type":"fieldAccess","name":"two","fieldName":"two"}],"ordering":null},{"type":"fieldAccess","name":"three","fieldName":"three"}],"ordering":null},{"type":"fieldAccess","name":"four","fieldName":"four"}],"ordering":null}"""
   }
 
   test("generate Bigquery expression with +") {

@@ -243,7 +243,7 @@ class DerivedExpressionTest extends AnyFunSuite with Matchers {
       col.derivedExpression.sourceColumns.contains("impressions") should equal(true)
       val json = om.writeValueAsString(col.derivedExpression.render(col.name)("BLAH", Map("clicks"->"Clicks")))
 
-      json should equal("""{"type":"arithmetic","name":"BLAH","fn":"+","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}]}""")
+      json should equal("""{"type":"arithmetic","name":"BLAH","fn":"+","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}""")
 
       val cc = new ColumnContext
       val cc2 = new ColumnContext
