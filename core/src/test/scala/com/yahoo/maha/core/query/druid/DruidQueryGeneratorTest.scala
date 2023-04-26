@@ -873,7 +873,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val json = """{"type":"extraction","dimension":"timezone2","outputName":"Relative Date","outputType":"STRING","extractionFn":{"type":"javascript","function":"function(date){var result = (new Date(-1*15)); result.setDate(result.getDate() + date); return result.toLocaleDateString(\"en-US\");}","injective":false}}"""
+    val json = """{"type":"extraction","dimension":"timezone2","outputName":"Relative Date","outputType":"STRING","extractionFn":{"type":"javascript","function":"function(date){var result = (new Date(0)); result.setDate(result.getDate() + date); return result.toLocaleDateString(\"en-US\");}","injective":false}}"""
     val dependentTimezoneCol = """{"type":"extraction","dimension":"advertiser_id","outputName":"timezone2","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"advertiser_lookup","retainMissingValue":false,"replaceMissingValueWith":"COL_IS_MISSING!!","injective":false,"optimize":true,"valueColumn":"timezone","decode":{"columnToCheck":"timezone","valueToCheck":"US","columnIfValueMatched":"timezone","columnIfValueNotMatched":"currency"},"dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
 
 
