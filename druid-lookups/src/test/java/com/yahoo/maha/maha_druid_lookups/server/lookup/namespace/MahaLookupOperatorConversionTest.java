@@ -46,7 +46,7 @@ public class MahaLookupOperatorConversionTest {
     @BeforeTest
     public void setUp() {
         NullHandling.initializeForTests();
-        ExpressionProcessing.initializeForTests(false);
+        ExpressionProcessing.initializeForTests();
         ExpressionProcessing.initializeForStrictBooleansTests(false);
     }
 

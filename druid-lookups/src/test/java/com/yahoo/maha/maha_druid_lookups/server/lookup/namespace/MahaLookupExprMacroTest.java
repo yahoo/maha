@@ -44,7 +44,7 @@ import java.util.*;
 public class MahaLookupExprMacroTest {
 
 
-    private static final Expr.ObjectBinding BINDINGS = InputBindings.withMap(
+    private static final Expr.ObjectBinding BINDINGS = InputBindings.forMap(
             ImmutableMap.<String, Object>builder()
                     .put("id1", "dim_key1")
                     .build()
@@ -62,7 +62,7 @@ public class MahaLookupExprMacroTest {
     @BeforeClass
     public static void setUpClass()
     {
-        ExpressionProcessing.initializeForTests(false);
+        ExpressionProcessing.initializeForTests();
         NullHandling.initializeForTests();
         ExpressionProcessing.initializeForStrictBooleansTests(false);
 

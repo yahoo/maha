@@ -103,7 +103,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
         obj.emitter = serviceEmitter;
         obj.lookupService = lookupService;
         NullHandling.initializeForTests();
-        ExpressionProcessing.initializeForTests(false);
+        ExpressionProcessing.initializeForTests();
         ExpressionProcessing.initializeForStrictBooleansTests(false);
 
         File newFolder = path.toFile();
