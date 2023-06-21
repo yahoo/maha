@@ -195,7 +195,8 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
           case (from, to) => s"WHEN (${nameOrAlias} IN ($from)) THEN '$to'"
         }
         s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
-      case StrType(_, sm, _) if sm.isDefined =>
+      case StrType(_, sm, _, isBinary) if sm.isDefined =>
+        require(!isBinary, "Oracle does not currently support BINARY/RAW dataType")
         val defaultValue = sm.get.default
         val decodeValues = sm.get.tToStringMap.map {
           case (from, to) => s"'$from', '$to'"

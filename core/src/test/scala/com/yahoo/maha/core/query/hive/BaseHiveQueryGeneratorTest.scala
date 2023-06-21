@@ -71,6 +71,7 @@ trait BaseHiveQueryGeneratorTest
           , HiveDerDimAggregateCol("Keyword Count Scaled", IntType(), COUNT("{keyword_id} * {stats_source} * 10"))
           , DimCol("internal_bucket_id", StrType())
           , HiveDerDimCol("click_exp_id", StrType(), REGEX_EXTRACT("internal_bucket_id", "(cl-)(.*?)(,|$)", 2, replaceMissingValue = true, "-3"))
+          , DimCol("binarycol", StrType(isBinary = true))
         ),
         Set(
           FactCol("impressions", IntType(3, 1))
@@ -83,6 +84,7 @@ trait BaseHiveQueryGeneratorTest
           , HiveDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
           , HiveDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}", rollupExpression = HiveCustomRollup(SUM("{clicks}") /- SUM("{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
+          , HiveDerFactCol("binaryColDecode", IntType(), DECODE("{ad_group_id}", "1", "{binarycol}", "null"))
         ), underlyingTableName = Some("s_stats_fact_underlying")
       )
     }
@@ -112,7 +114,8 @@ trait BaseHiveQueryGeneratorTest
           PubCol("network_type", "Network ID", InEquality),
           PubCol("device_id", "Device ID", InEquality),
           PubCol("internal_bucket_id", "Internal Bucket ID", InEquality),
-          PubCol("click_exp_id", "Click Exp ID", InEquality)
+          PubCol("click_exp_id", "Click Exp ID", InEquality),
+          PubCol("binarycol", "Binary Col", Set.empty)
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
@@ -123,7 +126,8 @@ trait BaseHiveQueryGeneratorTest
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InNotInBetweenEqualityNotEqualsGreaterLesser),
-          PublicFactCol("max_price_type", "Max Price Type", Equality)
+          PublicFactCol("max_price_type", "Max Price Type", Equality),
+          PublicFactCol("binaryColDecode", "Decoded Binary Col", InBetweenEquality)
         ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack

@@ -49,7 +49,7 @@ class DefaultAvaticaRowListTransformer extends AvaticaRowListTransformer {
               columnOption.get.dataType match {
                 case i@IntType(_, _, _, _, _) if !i.hasStaticMapping => arrayList.add(value)
                 case DecType(_, _, _, _, _, _) => arrayList.add(value)
-                case StrType(_, _, _) => arrayList.add(value)
+                case StrType(_, _, _, _) => arrayList.add(value)
                 case DateType(format) => arrayList.add(value.toString)
                 case TimestampType(format) => arrayList.add(value.toString)
                 case _ => arrayList.add(value.toString)

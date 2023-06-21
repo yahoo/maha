@@ -1234,7 +1234,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       val targetTimeFormat: String = dimCol.dataType match {
         case DateType(sourceFormat) =>
           sourceFormat.getOrElse(fact.grain.formatString)
-        case StrType(_, _, _) =>
+        case StrType(_, _, _, _) =>
           fact.grain.formatString
         case any =>
           throw new UnsupportedOperationException(s"Found unhandled dataType : $any")
@@ -1260,7 +1260,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               val lookup = new MapLookupExtractor(map.asJava, false)
               val exFn = new LookupExtractionFn(lookup, false, defaultValue, false, true)
               (new ExtractionDimensionSpec(name, alias, getDimValueType(column), exFn, null), Option.empty)
-            case StrType(_, sm, _) if sm.isDefined =>
+            case StrType(_, sm, _, _) if sm.isDefined =>
               val defaultValue = sm.get.default
               val lookup = new MapLookupExtractor(sm.get.tToStringMap.asJava, false)
               val exFn = new LookupExtractionFn(lookup, false, defaultValue, false, true)
@@ -1275,7 +1275,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               val targetTimeFormat: String = dimCol.dataType match {
                 case DateType(sourceFormat) =>
                   sourceFormat.getOrElse(fact.grain.formatString)
-                case StrType(_, _, _) =>
+                case StrType(_, _, _, _) =>
                   fact.grain.formatString
                 case any =>
                   throw new UnsupportedOperationException(s"Found unhandled dataType : $any")
@@ -1288,7 +1288,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               val targetTimeFormat: String = dimCol.dataType match {
                 case DateType(sourceFormat) =>
                   sourceFormat.getOrElse(fact.grain.formatString)
-                case StrType(_, _, _) =>
+                case StrType(_, _, _, _) =>
                   fact.grain.formatString
                 case any =>
                   throw new UnsupportedOperationException(s"Found unhandled dataType : $any")
@@ -1299,7 +1299,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
             case decodeDimFunction@DECODE_DIM(fieldName, args@_*) =>
               dt match {
-                case IntType(_, _, _, _, _) | StrType(_, _, _) if args.length > 1 =>
+                case IntType(_, _, _, _, _) | StrType(_, _, _, _) if args.length > 1 =>
                   val map = args.grouped(2).filter(_.size == 2).map(seq => (seq.head, seq(1))).toMap
                   val lookup = new MapLookupExtractor(map.asJava, false)
                   val exFn = {

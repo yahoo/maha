@@ -2115,6 +2115,11 @@ case class PublicFactTable private[fact](name: String
         s"fact column ${col.name} in public fact $name does not exist in any underlying facts")
     }
     validateForcedFilters()
+    dimCols.filter(col => col.filters.nonEmpty).foreach { col =>
+      require(!facts.values.exists(_.dimCols.exists(dc => ((dc.name == col.name) || dc.alias.contains(col.name)) && (dc.dataType.isInstanceOf[StrType] && dc.dataType.asInstanceOf[StrType].isBinary))),
+        s"dim column ${col.name} in public fact $name is a Binary type and should not be filterable (binary data must be cast via UDF or otherwise first)")
+
+    }
   }
 
   def dataTypeForAlias(alias: String): DataType = {

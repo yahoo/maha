@@ -397,19 +397,19 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
           case (from, to) => s"WHEN ($nameOrAlias IN ($from)) THEN '$to'"
         }
         s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
-      case StrType(_, sm, _) if sm.isDefined && engine == HiveEngine =>
+      case StrType(_, sm, _, _) if sm.isDefined && engine == HiveEngine =>
         val defaultValue = sm.get.default
         val decodeValues = sm.get.tToStringMap.map {
           case (from, to) => s"'$from', '$to'"
         }
         s"""decodeUDF($nameOrAlias, ${decodeValues.mkString(", ")}, '$defaultValue')"""
-      case StrType(_, sm, _) if sm.isDefined && engine == BigqueryEngine =>
+      case StrType(_, sm, _, _) if sm.isDefined && engine == BigqueryEngine =>
         val defaultValue = sm.get.default
         val whenClauses = sm.get.tToStringMap.map {
           case (from, to) => s"WHEN ($nameOrAlias IN ('$from')) THEN '$to'"
         }
         s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
-      case StrType(_, sm, _) if sm.isDefined && engine == PrestoEngine =>
+      case StrType(_, sm, _, _) if sm.isDefined && engine == PrestoEngine =>
         val defaultValue = sm.get.default
         val whenClauses = sm.get.tToStringMap.map {
           case (from, to) => s"WHEN ($nameOrAlias IN ('$from')) THEN '$to'"

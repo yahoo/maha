@@ -46,7 +46,7 @@ class OracleLiteralMapper extends SqlLiteralMapper {
       case _ if column.annotations.contains(DayColumn.instance) =>
         //it's a date column, treat same as date type
         renderDate(value, None, grainOption)
-      case StrType(_, _, _) =>
+      case StrType(_, _, _, _) =>
         s"'${getEscapedSqlString(value)}'"
       case IntType(_, _, _, _, _) => BigInt(value).toString
       case DecType(_, _, _, _, _, _) => BigDecimal(value).toString
@@ -79,7 +79,7 @@ class PostgresLiteralMapper extends SqlLiteralMapper {
       case _ if column.annotations.contains(DayColumn.instance) =>
         //it's a date column, treat same as date type
         renderDate(value, None, grainOption)
-      case StrType(_, _, _) =>
+      case StrType(_, _, _, _) =>
         s"'${getEscapedSqlString(value)}'"
       case IntType(_, _, _, _, _) => BigInt(value).toString
       case DecType(_, _, _, _, _, _) => BigDecimal(value).toString
@@ -98,7 +98,7 @@ class HiveLiteralMapper extends SqlLiteralMapper {
   def toLiteral(column: Column, value: String, grainOption: Option[Grain] = None) : String = {
     val grain = grainOption.getOrElse(DailyGrain)
     column.dataType match {
-      case StrType(_, _, _) =>
+      case StrType(_, _, _, _) =>
         s"'${getEscapedSqlString(value)}'"
       case DateType(fmt) =>
         //TODO: validate format
@@ -195,7 +195,7 @@ class BigqueryLiteralMapper extends SqlLiteralMapper {
     val grain = grainOption.getOrElse(DailyGrain)
     val escapedValue = getEscapedSqlString(value)
     column.dataType match {
-      case StrType(_, _, _) =>
+      case StrType(_, _, _, _) =>
         s"'$escapedValue'"
       case DateType(fmt) =>
         s"DATE('$escapedValue')"

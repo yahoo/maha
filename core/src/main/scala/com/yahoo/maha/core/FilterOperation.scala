@@ -692,21 +692,21 @@ object SqlInFilterRenderer extends InFilterRenderer[SqlResult] {
     engine match {
       case OracleEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) IN (${renderedValues.map(l => s"lower($l)").mkString(",")})""")
           case _ =>
             DefaultResult(s"""$name IN (${renderedValues.mkString(",")})""")
         }
       case PostgresEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) IN (${renderedValues.map(l => s"lower($l)").mkString(",")})""")
           case _ =>
             DefaultResult(s"""$name IN (${renderedValues.mkString(",")})""")
         }
       case HiveEngine | PrestoEngine | BigqueryEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) IN (${renderedValues.map(l => s"lower($l)").mkString(",")})""")
           case _ =>
             DefaultResult(s"""$name IN (${renderedValues.mkString(",")})""")
@@ -729,14 +729,14 @@ object SqlNotInFilterRenderer extends NotInFilterRenderer[SqlResult] {
     engine match {
       case OracleEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) NOT IN (${renderedValues.map(l => s"lower($l)").mkString(",")})""")
           case _ =>
             DefaultResult(s"""$name NOT IN (${renderedValues.mkString(",")})""")
         }
       case PostgresEngine | BigqueryEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) NOT IN (${renderedValues.map(l => s"lower($l)").mkString(",")})""")
           case _ =>
             DefaultResult(s"""$name NOT IN (${renderedValues.mkString(",")})""")
@@ -761,28 +761,28 @@ object SqlEqualityFilterRenderer extends EqualityFilterRenderer[SqlResult] {
     engine match {
       case OracleEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) = lower($renderedValue)""")
           case _ =>
             DefaultResult(s"""$name = $renderedValue""")
         }
       case PostgresEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) = lower($renderedValue)""")
           case _ =>
             DefaultResult(s"""$name = $renderedValue""")
         }
       case HiveEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) = lower($renderedValue)""")
           case _ =>
             DefaultResult(s"""$name = $renderedValue""")
         }
       case PrestoEngine | BigqueryEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) = lower($renderedValue)""")
           case _ =>
             DefaultResult(s"""$name = $renderedValue""")
@@ -804,11 +804,11 @@ object SqlFieldEqualityFilterRenderer extends FieldEqualityFilterRenderer[SqlRes
     }
 
     (column.dataType, otherColumn.dataType) match {
-      case (StrType(_,_,_), StrType(_,_,_)) if column.caseInSensitive && otherColumn.caseInSensitive =>
+      case (StrType(_, _, _, _), StrType(_, _, _, _)) if column.caseInSensitive && otherColumn.caseInSensitive =>
         DefaultResult(s"""lower($name) = lower($compareTo)""")
-      case (StrType(_,_,_), StrType(_,_,_)) if column.caseInSensitive =>
+      case (StrType(_, _, _, _), StrType(_, _, _, _)) if column.caseInSensitive =>
         DefaultResult(s"""lower($name) = $compareTo""")
-      case (StrType(_,_,_), StrType(_,_,_)) if otherColumn.caseInSensitive =>
+      case (StrType(_, _, _, _), StrType(_, _, _, _)) if otherColumn.caseInSensitive =>
         DefaultResult(s"""$name = lower($compareTo)""")
       case _ =>
         DefaultResult(s"""$name = $compareTo""")
@@ -847,7 +847,7 @@ object SqlFilterRenderFactory {
     val renderedValue = literalMapper.toLiteral(column, filter.asInstanceOf[ForcedFilter].asValues, grainOption)
     if (validEngineSet.contains(engine)) {
       column.dataType match {
-        case StrType(_, _, _) if column.caseInSensitive =>
+        case StrType(_, _, _, _) if column.caseInSensitive =>
           DefaultResult(s"""lower($name) $operator lower($renderedValue)""")
         case _ =>
           DefaultResult(s"""$name $operator $renderedValue""")
@@ -912,7 +912,7 @@ object SqlLikeFilterRenderer extends LikeFilterRenderer[SqlResult] {
     engine match {
       case OracleEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             if(escaped) {
               DefaultResult( s"""lower($name) LIKE lower($renderedValue) ESCAPE '\\'""", escaped = escaped)
             } else {
@@ -927,7 +927,7 @@ object SqlLikeFilterRenderer extends LikeFilterRenderer[SqlResult] {
         }
       case PostgresEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             if(escaped) {
               DefaultResult( s"""lower($name) LIKE lower($renderedValue) ESCAPE '\\'""", escaped = escaped)
             } else {
@@ -942,7 +942,7 @@ object SqlLikeFilterRenderer extends LikeFilterRenderer[SqlResult] {
         }
       case HiveEngine | PrestoEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
               DefaultResult( s"""lower($name) LIKE lower($renderedValue)""", escaped = escaped)
           case _ =>
             DefaultResult(s"""$name LIKE $renderedValue""")
@@ -951,7 +951,7 @@ object SqlLikeFilterRenderer extends LikeFilterRenderer[SqlResult] {
         val escapedEscapeValue = escapeEscapeChars(escapeValue)
         val bqRenderedValue = literalMapper.toLiteral(column, s"%$escapedEscapeValue%", grainOption)
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult( s"""lower($name) LIKE lower($bqRenderedValue)""", escaped = escaped)
           case _ =>
             DefaultResult(s"""$name LIKE $bqRenderedValue""")
@@ -993,7 +993,7 @@ object SqlNotLikeFilterRenderer extends NotLikeFilterRenderer[SqlResult] {
     engine match {
       case OracleEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             if(escaped) {
               DefaultResult( s"""lower($name) NOT LIKE lower($renderedValue) ESCAPE '\\'""", escaped = escaped)
             } else {
@@ -1008,7 +1008,7 @@ object SqlNotLikeFilterRenderer extends NotLikeFilterRenderer[SqlResult] {
         }
       case PostgresEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             if(escaped) {
               DefaultResult( s"""lower($name) NOT LIKE lower($renderedValue) ESCAPE '\\'""", escaped = escaped)
             } else {
@@ -1023,7 +1023,7 @@ object SqlNotLikeFilterRenderer extends NotLikeFilterRenderer[SqlResult] {
         }
       case HiveEngine | PrestoEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult( s"""lower($name) NOT LIKE lower($renderedValue)""", escaped = escaped)
           case _ =>
             DefaultResult(s"""$name NOT LIKE $renderedValue""")
@@ -1032,7 +1032,7 @@ object SqlNotLikeFilterRenderer extends NotLikeFilterRenderer[SqlResult] {
         val escapedEscapeValue = escapeEscapeChars(escapeValue)
         val bqRenderedValue = literalMapper.toLiteral(column, s"%$escapedEscapeValue%", grainOption)
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult( s"""lower($name) NOT LIKE lower($bqRenderedValue)""", escaped = escaped)
           case _ =>
             DefaultResult(s"""$name NOT LIKE $bqRenderedValue""")
@@ -1055,14 +1055,14 @@ object SqlNotEqualToFilterRenderer extends NotEqualToFilterRenderer[SqlResult] {
     engine match {
       case OracleEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) <> lower($renderedValue)""")
           case _ =>
             DefaultResult(s"""$name <> $renderedValue""")
         }
       case PostgresEngine | BigqueryEngine =>
         column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
+          case StrType(_, _, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) <> lower($renderedValue)""")
           case _ =>
             DefaultResult(s"""$name <> $renderedValue""")
@@ -1433,7 +1433,7 @@ object FilterDruid {
       val sourceDimColFormat = sourceDimCol.dataType match {
         case DateType(sourceFormat) =>
           sourceFormat.getOrElse(grainOption.get.formatString)
-        case StrType(_, _, _) =>
+        case StrType(_, _, _, _) =>
           grainOption.get.formatString
         case any =>
           throw new UnsupportedOperationException(s"Found unhandled dataType : $any")

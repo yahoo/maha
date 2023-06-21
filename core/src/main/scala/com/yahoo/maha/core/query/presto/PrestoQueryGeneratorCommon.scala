@@ -98,9 +98,13 @@ abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColum
           s"""COALESCE(CAST($finalAlias as bigint), ${df.getOrElse(0)})"""
         }
       case DateType(_) => s"""getFormattedDate($finalAlias)"""
-      case StrType(_, sm, df) =>
+      case StrType(_, sm, df, isBinary) =>
         val defaultValue = df.getOrElse("NA")
-        s"""COALESCE(CAST($finalAlias as VARCHAR), '$defaultValue')"""
+        if(!isBinary) {
+          s"""COALESCE(CAST($finalAlias as VARCHAR), '$defaultValue')"""
+        } else {
+          s"""CAST($finalAlias as BINARY)"""
+        }
       case _ => s"""COALESCE(cast($finalAlias as VARCHAR), 'NA')"""
     }
     if (column.annotations.contains(EscapingRequired)) {

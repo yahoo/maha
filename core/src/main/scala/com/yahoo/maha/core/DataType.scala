@@ -85,7 +85,7 @@ case class IntType private(length: Int, staticMapping: Option[StaticMapping[Int]
     )
 }
 
-case class StrType private(length: Int, staticMapping: Option[StaticMapping[String]], default: Option[String]) extends DataType {
+case class StrType private(length: Int, staticMapping: Option[StaticMapping[String]], default: Option[String], isBinary: Boolean = false) extends DataType {
   val hasStaticMapping = staticMapping.isDefined
   val hasUniqueStaticMapping = staticMapping.exists(_.hasUniqueMapping)
   val reverseStaticMapping = staticMapping.map(_.stringToTMap).getOrElse(Map.empty)
@@ -220,6 +220,10 @@ case object StrType {
 
   def apply() : StrType = {
     noLength
+  }
+
+  def apply(isBinary: Boolean) : StrType = {
+    new StrType(0, None, None, isBinary)
   }
 
   def apply(length: Int) : StrType = {

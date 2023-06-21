@@ -96,7 +96,7 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
               case (from, to) => s"WHEN ($nameOrAlias IN ($from)) THEN '$to'"
             }
             s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
-          case StrType(_, sm, _) if sm.isDefined =>
+          case StrType(_, sm, _,  _) if sm.isDefined =>
             val defaultValue = sm.get.default
             val whenClauses = sm.get.tToStringMap.map {
               case (from, to) => s"WHEN ($nameOrAlias IN ('$from')) THEN '$to'"

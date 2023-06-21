@@ -47,7 +47,7 @@ case class Row(aliasMap: Map[String, Int], cols: collection.mutable.ArrayBuffer[
         cols.update(index, oldValue.toString.toInt + value.toString.toInt)
       case DecType(_,_,_,_,_,_) =>
         cols.update(index, oldValue.toString.toDouble + value.toString.toDouble)
-      case StrType(_,_,_) =>
+      case StrType(_, _, _, _) =>
         cols.update(index, value)
       case _ =>
         cols.update(index, value)

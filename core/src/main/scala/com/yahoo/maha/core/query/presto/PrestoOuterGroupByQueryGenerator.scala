@@ -560,12 +560,14 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
               s"""COALESCE(CAST($finalAlias as BIGINT), ${df.getOrElse(0)})"""
             }
           case DateType(_) => s"""getFormattedDate($finalAlias)"""
-          case StrType(_, sm, df) =>
+          case StrType(_, sm, df, isBinary) =>
             val defaultValue = df.getOrElse("NA")
             if (sm.isDefined) {
               handleStaticMappingString(sm, finalAlias, defaultValue)
-            } else {
+            } else if(!isBinary) {
               s"""COALESCE(CAST($finalAlias as VARCHAR), '$defaultValue')"""
+            } else {
+              s"""CAST($finalAlias as BINARY)"""
             }
           case _ => s"""COALESCE(cast($finalAlias as VARCHAR), 'NA')"""
         }

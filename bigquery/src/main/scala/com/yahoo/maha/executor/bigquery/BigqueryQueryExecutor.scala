@@ -215,7 +215,7 @@ class BigqueryQueryExecutor(
                   columnValue.getNumericValue
                 case DecType(_, _, _, _, _, _) =>
                   columnValue.getDoubleValue
-                case StrType(_, _, _) =>
+                case StrType(_, _, _, _) =>
                   columnValue.getStringValue
                 case any => throw new UnsupportedOperationException(s"Unhandled data type for column value extraction : $any")
               }

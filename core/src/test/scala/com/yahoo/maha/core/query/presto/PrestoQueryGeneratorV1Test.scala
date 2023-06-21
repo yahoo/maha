@@ -2925,4 +2925,73 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(result.contains("""ROUND(COALESCE((CASE WHEN SUM(spend) > 0 THEN SUM(clicks) / 10 ELSE SUM(impressions) END), 0), 10) mang_test_metric_col""")) //DON'T change existing functions
     assert(result.contains("""ROUND(COALESCE((CASE WHEN SUM(123) > 0 THEN SUM(clicks) / 10 ELSE SUM(potatoes) END), 0), 10) mang_test_mod_metric_col""")) //DO change new function
   }
+
+  test("Should generate correct query on Binary data types") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Decoded Binary Col"},
+                              {"field": "Ad Format Name"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" }
+                         ],
+                         "additionalParameters": {
+                         }
+          }"""
+    val request: ReportingRequest = ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    assert(result.contains("""SUM(decodeUDF(ad_group_id, 1, binarycol, null)) mang_decoded_binary_col"""))
+  }
+
+  test("Binary data type decoded result should be filterable") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Decoded Binary Col"},
+                              {"field": "Ad Format Name"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Decoded Binary Col", "operator": "=", "value": "1608"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" }
+                         ],
+                         "additionalParameters": {
+                         }
+          }"""
+    val request: ReportingRequest = ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    assert(result.contains("HAVING (SUM(decodeUDF(ad_group_id, 1, binarycol, null)) = 1608)"))
+  }
 }

@@ -45,6 +45,7 @@ class PublicFactTest extends AnyFunSuite with Matchers {
           , DimCol("price_type", IntType(3))
           , DimCol("prod", IntType(3), alias = Option("price_type"))
           , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
+          , DimCol("binarycol", StrType(isBinary = true))
         ),
         Set(
           FactCol("impressions", IntType())
@@ -421,5 +422,28 @@ class PublicFactTest extends AnyFunSuite with Matchers {
     )
 
     assert(pf.factList.head.forceFilters.exists(_.filter.field == "Pricing Type"))
+  }
+
+  test("Binary columns should not be directly filterable") {
+
+    val caught = intercept[IllegalArgumentException] {
+      val fact = fact1(Set(ForceFilter(InFilter("Pricing Type", List("1"), isForceFilter = true))))
+
+      val pf = fact.toPublicFact("publicfact",
+        Set(
+          PubCol("account_id", "Account Id", InEquality),
+          PubCol("stats_source", "Source", Equality),
+          PubCol("price_type", "Pricing Type", In),
+          PubCol("landing_page_url", "Destination URL", Set.empty),
+          PubCol("binarycol", "Binary Col", Equality)
+        ),
+        Set(
+          PublicFactCol("clicks", "Clicks", In)
+        ),
+        Set(InFilter("Pricing Type", List("2"), isForceFilter = true)),
+        getMaxDaysWindow, getMaxDaysLookBack
+      )
+    }
+    assert(caught.getMessage.contains("requirement failed: dim column binarycol in public fact publicfact is a Binary type and should not be filterable (binary data must be cast via UDF or otherwise first)"))
   }
 }

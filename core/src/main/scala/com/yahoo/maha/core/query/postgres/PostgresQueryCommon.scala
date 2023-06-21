@@ -204,7 +204,8 @@ trait PostgresQueryCommon extends  BaseQueryGenerator[WithPostgresEngine] {
           case (from, to) => s"WHEN (${nameOrAlias} IN ($from)) THEN '$to'"
         }
         s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
-      case StrType(_, sm, _) if sm.isDefined =>
+      case StrType(_, sm, _, isBinary) if sm.isDefined =>
+        require(!isBinary, "POSTGRES generator does not currently support BINARY/BYTEA data type!")
         val exp = nameOrAlias
         val default = s"ELSE '${sm.get.default}' "
 

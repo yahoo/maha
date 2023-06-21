@@ -1375,7 +1375,7 @@ object RequestModel extends Logging {
 
     dataType match {
       case None => throw new IllegalArgumentException(s"Unable to find expected PublicTable as PublicFact or PublicDimension.")
-      case StrType(length, _, _) => filter match {
+      case StrType(length, _, _, _) => filter match {
         case InFilter(_, values, _, _) => validateLength(values, length)
         case NotInFilter(_, values, _, _) => validateLength(values, length)
         case EqualityFilter(_, value, _, _) => validateLength(List(value), length)
