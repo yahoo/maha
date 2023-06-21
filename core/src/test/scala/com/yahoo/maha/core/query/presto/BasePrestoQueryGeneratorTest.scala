@@ -89,6 +89,7 @@ trait BasePrestoQueryGeneratorTest
           , ConstFactCol("constantFact", IntType(), "0")
           , FactCol("Count", IntType(), rollupExpression = CountRollup)
           , PrestoDerFactCol("binaryColDecode", IntType(), DECODE("ad_group_id", "1", "{binarycol}", "null"))
+          , PrestoDerFactCol("binaryColDecode2", IntType(), DECODE("ad_group_id", "1", "{start_time}", "null"))
         ),underlyingTableName = Some("s_stats_fact_underlying")
       )
     }
@@ -128,7 +129,8 @@ trait BasePrestoQueryGeneratorTest
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
           PublicFactCol("Count", "Count", InBetweenEquality),
-          PublicFactCol("binaryColDecode", "Decoded Binary Col", InBetweenEquality)
+          PublicFactCol("binaryColDecode", "Decoded Binary Col", InBetweenEquality),
+          PublicFactCol("binaryColDecode2", "Decoded Binary Col2", InBetweenEquality)
         ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack

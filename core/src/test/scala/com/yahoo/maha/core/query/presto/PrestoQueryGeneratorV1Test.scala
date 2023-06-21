@@ -174,7 +174,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    print(result)
+
     val expected = s"""SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(network_id as VARCHAR) AS network_id
                       |FROM(
                       |SELECT COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(impressions as bigint), 1) mang_impressions, COALESCE(CAST(network_type as VARCHAR), 'NA') network_id
@@ -2959,6 +2959,44 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     assert(result.contains("""SUM(decodeUDF(ad_group_id, 1, binarycol, null)) mang_decoded_binary_col"""))
+  }
+
+  test("Should generate correct query on Binary data types with OGB") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Decoded Binary Col"},
+                              {"field": "Campaign Name"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" }
+                         ],
+                         "additionalParameters": {
+                         }
+          }"""
+    val request: ReportingRequest = ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    assert(result.contains("""decodeUDF(ad_group_id, 1, binarycol, null) AS mang_decoded_binary_col"""))
+    assert(result.contains("""CAST(binarycol as BINARY) binarycol"""))
+    assert(result.contains("""FROM(SELECT account_id, campaign_id, SUM(impressions) impressions, binarycol"""))
+    assert(result.contains("""GROUP BY COALESCE(CAST(account_id as BIGINT), 0), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), CAST(binarycol as BINARY)"""))
   }
 
   test("Binary data type decoded result should be filterable") {
