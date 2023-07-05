@@ -6,7 +6,7 @@ import java.util.UUID
 import com.fasterxml.jackson.annotation.JsonInclude.Include
 import com.google.common.collect.{Lists, Maps}
 import com.yahoo.maha.core.DruidDerivedFunction._
-import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
+import com.yahoo.maha.core.DruidPostResultFunction.{JavaScript, START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
@@ -1138,7 +1138,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                       case DruidFilteredRollup(filter, _, re, _) =>
                         re match {
                           case DruidThetaSketchRollup(_) | DruidThetaSketchRollup =>
-                            if (queryContext.factBestCandidate.dimColMapping.contains(filter.field)) {
+                            if (queryContext.factBestCandidate.fact.dimColMap.contains(filter.field)) {
                               //check if we already added this column
                               if (!aggregatorAliasSet(name)) {
                                 renderColumnWithAlias(fact, sourceCol, name, forPostAggregator = true)
@@ -1347,6 +1347,11 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case startOfTheMonth@START_OF_THE_MONTH(_) =>
               getTimeDimExtractionSpec(fact, outputName, startOfTheMonth.colName, startOfTheMonth.startOfTheMonthFormat)
 
+            case javascript@JavaScript(_, function) =>
+              val exFn = new JavaScriptExtractionFn(function, false, JavaScriptConfig.getEnabledInstance)
+              val dimCol = fact.columnsByNameMap(javascript.dimColName)
+              (new ExtractionDimensionSpec(dimCol.alias.getOrElse(dimCol.name), alias, getDimValueType(column), exFn, null), Option.empty)
+
             case any =>
               throw new UnsupportedOperationException(s"Found unhandled DruidPostResultFuncDimCol : $any")
           }
@@ -1456,6 +1461,44 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case any =>
               throw new UnsupportedOperationException(s"Found unhandled DruidDerivedFunction : $any")
           }
+
+        case DruidPostResultFuncDimCol(name, dataType, _, postResultFunction, _, annotations, filterOperationOverrides) =>
+          postResultFunction match {
+            case javascript@JavaScript(expression, fn) =>
+              javascript.sourceColumns.foreach{
+                src =>
+                  val sourceCol = db.dim.columnsByNameMap(src)
+                  if(!sourceCol.isDerivedColumn) {
+                    val name = sourceCol.alias.getOrElse(sourceCol.name)
+                    sourceCol match {
+                      case DimCol(_, dt, cc, al2, annotations, _) =>
+                        if (!dimensionSpecTupleList.map(_._1.getDimension).contains(name)) {
+                          dimensionSpecTupleList += renderColumnWithAliasUsingDimensionBundle(fact, sourceCol, al2.getOrElse(name), db, false)
+                        }
+
+                      case DruidFuncDimCol(name, dt, cc, df, al2, _, _) =>
+                        if (!dimensionSpecTupleList.map(_._1.getDimension).contains(name)) {
+                          dimensionSpecTupleList += renderColumnWithAliasUsingDimensionBundle(fact, sourceCol, al2.getOrElse(name), db, false)
+                        }
+
+                      case _ =>
+                    }
+                  }
+              }
+
+              val exFn = new JavaScriptExtractionFn(fn, false, JavaScriptConfig.getEnabledInstance)
+              val sourceCol = db.dim.columnsByNameMap(javascript.dimColName)
+              val dim = sourceCol.alias.getOrElse(sourceCol.name)
+              (new ExtractionDimensionSpec(dim, alias, getDimValueType(column), exFn,
+                null),
+              Option.apply(new ExtractionDimensionSpec(dim, alias, getDimValueType(column), exFn, null)))
+      }
+
+        case any =>
+          throw new UnsupportedOperationException(s"Found unhandled PostResult derived function : $any")
+
+
+
         case any =>
           throw new UnsupportedOperationException(s"Found unhandled column : $any")
       }
@@ -1542,6 +1585,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         }
       }
     }
+
+    //Add any post result dependent columns
 
     dimensionSpecTupleList ++= makeDimSpecTuplesForExpensiveFilters(queryContext, fact, renderColumnWithAlias)
 

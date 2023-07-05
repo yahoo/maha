@@ -723,6 +723,7 @@ trait SharedDimSchema {
             , DimCol("managed_by", IntType())
             , DimCol("timezone", StrType())
             , DimCol("timezone2", StrType())
+            , DimCol("relative_date", StrType())
             , OracleDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
@@ -744,6 +745,7 @@ trait SharedDimSchema {
             , DimCol("managed_by", IntType())
             , DimCol("timezone", StrType())
             , DimCol("timezone2", StrType())
+            , DimCol("relative_date", StrType())
             , PostgresDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
@@ -763,6 +765,7 @@ trait SharedDimSchema {
             , DimCol("managed_by", IntType())
             , DimCol("timezone", StrType())
             , DimCol("timezone2", StrType())
+            , DimCol("relative_date", StrType())
             , BigqueryDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
             , BigqueryPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
             , BigqueryPartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
@@ -783,6 +786,7 @@ trait SharedDimSchema {
             , DimCol("managed_by", IntType())
             , DimCol("timezone", StrType())
             , DimCol("timezone2", StrType())
+            , DimCol("relative_date", StrType())
             , HiveDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
             , HivePartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
             , HivePartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
@@ -793,6 +797,7 @@ trait SharedDimSchema {
 
     {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        import com.yahoo.maha.core.DruidPostResultFunction.JavaScript
         builder.withAlternateEngine (
           "advertiser_druid",
           "advertiser_oracle",
@@ -804,6 +809,8 @@ trait SharedDimSchema {
             DruidFuncDimCol("managed_by", StrType(), LOOKUP("advertiser_lookup", "managed_by")),
             DruidFuncDimCol("timezone", StrType(), LOOKUP_WITH_DECODE_ON_OTHER_COLUMN("advertiser_lookup", "timezone", "US", "timezone", "currency")),
             DruidFuncDimCol("timezone2", StrType(), LOOKUP_WITH_DECODE_ON_OTHER_COLUMN_REPLACE_MISSING("advertiser_lookup", "timezone", "US", "timezone", "currency", replaceMissingValueWith = "COL_IS_MISSING!!"))
+            , DruidPostResultFuncDimCol("relative_date", StrType(), postResultFunction = JavaScript("{timezone2}", "function(date){var result = (new Date(0)); result.setDate(result.getDate() + date); return result.toLocaleDateString(\"en-US\");}"))
+
           )
           , Option(Map(AsyncRequest -> 14, SyncRequest -> 14)), schemas = Set(AdvertiserSchema, ResellerSchema, InternalSchema)
         )
@@ -818,6 +825,7 @@ trait SharedDimSchema {
           , PubCol("currency", "Currency", Equality)
           , PubCol("timezone", "Timezone", Equality)
           , PubCol("timezone2", "Timezone2", Equality)
+          , PubCol("relative_date", "Relative Date", Equality)
           , PubCol("Advertiser Status", "Advertiser Status", InEquality)
         ), revision = 2, highCardinalityFilters = Set(NotInFilter("Advertiser Status", List("DELETED")))
       )

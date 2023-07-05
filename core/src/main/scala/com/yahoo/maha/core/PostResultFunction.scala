@@ -2,13 +2,13 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
+import com.yahoo.maha.core.DruidExpression.{Constant, DruidExp, FieldAccess, regex}
 import com.yahoo.maha.core.fact.DruidDerFactCol
 import com.yahoo.maha.core.query.RowData
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 
 import scala.util.Try
-
 import org.json4s.JsonAST.{JNull, JObject, JValue}
 import org.json4s.scalaz.JsonScalaz._
 
@@ -166,6 +166,37 @@ object DruidPostResultFunction {
         )
       )
 
+  }
+
+  implicit def fromString(s: String): DruidExpression = {
+    regex.findFirstIn(s) match {
+      case Some(p) => FieldAccess(s)
+      case None => Constant(BigDecimal(s))
+    }
+  }
+
+  implicit def fromExpression(e: DruidExp): DruidExpression = {
+    e.asInstanceOf[DruidExpression]
+  }
+
+  case class JavaScript(expression: String, fn: String)
+                       (implicit cc: ColumnContext) extends DruidPostResultFunction {
+
+    val dimColName = expression.replaceAll("[}{]","")
+
+    val sourceColumns = Set(dimColName)
+
+    override def resultApply(rowData: RowData): Unit = {
+    }
+
+    override def asJSON: JObject =
+      makeObj(
+        List(
+          ("postResultFunction" -> toJSON(this.getClass.getSimpleName))
+          , ("fn" -> toJSON(fn))
+          , ("expression" -> toJSON(expression))
+        )
+      )
   }
 
 }
