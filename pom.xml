@@ -48,7 +48,7 @@
         <enforcer.skip>true</enforcer.skip>
         <log4j2.version>2.3</log4j2.version>
         <leveldb.version>1.8</leveldb.version>
-        <rocksdb.version>6.13.3</rocksdb.version>
+        <rocksdb.version>8.3.2</rocksdb.version>
         <protobuf.version>3.15.8</protobuf.version>
         <http4s.version>0.18.16</http4s.version>
         <maven-site-plugin.skip>true</maven-site-plugin.skip>
