@@ -115,7 +115,7 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
             EqualityFilter("engagement_type", "1"),
             EqualityFilter("campaign_id", "1")), "clicks", SumRollup))
           , DruidDerFactCol("Reblog Rate", DecType(), "{Reblogs}" /- "{impressions}" * "100")
-          , DruidDerFactCol("variance", DecType(), JavaScript("function(clicks,impressions){return clicks * Math.sqrt(impressions);}", List("{clicks}", "{impressions}")))
+          , DruidDerFactCol("variance", DecType(), JavaScript("function(clicks,impressions){return clicks * Math.sqrt(impressions);}", List("{Click Rate Success Case}", "{impressions}")))
           , DruidPostResultDerivedFactCol("impression_share", StrType(), "{impressions}" /- "{sov_impressions}", postResultFunction = POST_RESULT_DECODE("{show_sov_flag}", "0", "N/A"))
           , FactCol("uniqueUserCount", DecType(0, "0.0"))
           , FactCol("blarghUserCount", DecType(0, "0.0"))
@@ -742,6 +742,7 @@ class BaseDruidQueryGeneratorTest extends AnyFunSuite with Matchers with BeforeA
           PubCol("price_type", "Pricing Type", In),
           PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
           PubCol("Week", "Week", InBetweenEquality),
+          //PubCol("relative_date", "Relative Date", InBetweenEquality),
           PubCol("Valid Conversion", "Valid Conversion", InEquality)
         ),
         Set(),
