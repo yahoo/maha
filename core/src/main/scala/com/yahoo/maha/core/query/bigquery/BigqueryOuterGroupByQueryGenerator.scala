@@ -528,13 +528,15 @@ abstract case class BigqueryOuterGroupByQueryGenerator(
           }
         case TimestampType(_) =>
           s"""$finalAlias"""
-        case StrType(_, sm, df) =>
+        case StrType(_, sm, df, isBinary) =>
           val defaultValue = df.getOrElse("")
           if (sm.isDefined && isOuterGroupBy) {
             handleStaticMappingString(sm, finalAlias, defaultValue)
           }
-          else {
+          else if(!isBinary){
             s"""COALESCE($finalAlias, '$defaultValue')"""
+          } else {
+            s"""$finalAlias"""
           }
         case _ => s"""COALESCE($finalAlias, '')"""
       }

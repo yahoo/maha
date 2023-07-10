@@ -512,13 +512,15 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
               s"""COALESCE($finalAlias, ${df.getOrElse(0)}L)"""
             }
           case DateType(_) => s"""getFormattedDate($finalAlias)"""
-          case StrType(_, sm, df) =>
+          case StrType(_, sm, df, isBinary) =>
             val defaultValue = df.getOrElse("NA")
             if (sm.isDefined && isOuterGroupBy) {
               handleStaticMappingString(sm, finalAlias, defaultValue)
             }
-            else {
+            else if(!isBinary) {
               s"""COALESCE($finalAlias, '$defaultValue')"""
+            } else {
+              s"""$finalAlias"""
             }
           case _ => s"""COALESCE($finalAlias, 'NA')"""
         }

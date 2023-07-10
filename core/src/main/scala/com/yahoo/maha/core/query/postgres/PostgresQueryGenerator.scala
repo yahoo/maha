@@ -877,7 +877,8 @@ b. Dim Driven
           case IntType(_, sm, _, _, _) if sm.isDefined && queryContext.requestModel.isDimDriven =>
             val defaultValue = sm.get.default
             s"""COALESCE(${alias}, '$defaultValue')"""
-          case StrType(_, sm, _) if sm.isDefined && queryContext.requestModel.isDimDriven =>
+          case StrType(_, sm, _, isBinary) if sm.isDefined && queryContext.requestModel.isDimDriven =>
+            require(!isBinary, "POSTGRES does not currently support BINARY/RAW data types!")
             val defaultValue = sm.get.default
             s"""COALESCE(${alias}, '$defaultValue')"""
           case DateType(fmt) if fmt.isDefined => s"to_char($alias, '${fmt.get}')"

@@ -38,7 +38,8 @@ class PostgresDDLGenerator {
             s"""NUMERIC($length, $scale)"""
           else
             "NUMERIC"
-        case StrType(length, _, _) =>
+        case StrType(length, _, _, isBinary) =>
+          require(!isBinary, "POSTGRESQL Generator is not yet compatible with Binary/Bytea data types yet!")
           if(length > 0)
             s"""VARCHAR($length)"""
           else

@@ -72,7 +72,7 @@ class HiveDDLGenerator {
     val dataType = col.dataType match {
       case IntType(length, _, _, _, _) if length <= 3 => "tinyint"
       case DateType(_) => "string"
-      case StrType(_, _, _) => "string"
+      case StrType(_, _, _, isBoolean) => if(!isBoolean) "string" else "binary"
       case DecType(_, _, _, _, _, _) => "double"
       case _ => "bigint"
     }

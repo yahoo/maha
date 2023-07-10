@@ -30,7 +30,8 @@ class OracleDDLGenerator {
           s"""NUMBER($length)"""
         case DecType(length, scale, _, _, _, _) =>
           s"""NUMBER($length, $scale)"""
-        case StrType(length, _, _) =>
+        case StrType(length, _, _, isBinary) =>
+          require(!isBinary, "Oracle Generator is not yet compatible with Binary/RAW data types yet!")
           s"""VARCHAR2($length CHAR)"""
         case _ =>
           s"""${dataType.jsonDataType.toUpperCase}"""

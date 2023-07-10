@@ -73,6 +73,7 @@ trait BasePrestoQueryGeneratorTest
           , DimCol("device_type", IntType(8, (Map(5199520 -> "SmartPhone", 5199503 -> "Tablet", 5199421 -> "Desktop", -1 -> "UNKNOWN"), "UNKNOWN")), alias = Option("device_id"))
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
+          , DimCol("binarycol", StrType(isBinary = true))
           , PrestoDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
 
         ),
@@ -87,6 +88,8 @@ trait BasePrestoQueryGeneratorTest
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
           , ConstFactCol("constantFact", IntType(), "0")
           , FactCol("Count", IntType(), rollupExpression = CountRollup)
+          , PrestoDerFactCol("binaryColDecode", IntType(), DECODE("ad_group_id", "1", "{binarycol}", "null"))
+          , PrestoDerFactCol("binaryColDecode2", IntType(), DECODE("ad_group_id", "1", "{start_time}", "null"))
         ),underlyingTableName = Some("s_stats_fact_underlying")
       )
     }
@@ -112,7 +115,8 @@ trait BasePrestoQueryGeneratorTest
           PubCol("ad_format_type", "Ad Format Type", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("ad_format_sub_type", "Ad Format Sub Type", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("device_id", "Device ID", InNotInEqualityNotEqualsLikeNullNotNull, incompatibleColumns = Set("Device Type")),
-          PubCol("device_type", "Device Type", InNotInEqualityNotEqualsLikeNullNotNull, incompatibleColumns = Set("Device ID"))
+          PubCol("device_type", "Device Type", InNotInEqualityNotEqualsLikeNullNotNull, incompatibleColumns = Set("Device ID")),
+          PubCol("binarycol", "Binary Col", Set.empty)
 
         ),
         Set(
@@ -124,7 +128,9 @@ trait BasePrestoQueryGeneratorTest
           PublicFactCol("max_bid", "Max Bid", FieldEquality),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
-          PublicFactCol("Count", "Count", InBetweenEquality)
+          PublicFactCol("Count", "Count", InBetweenEquality),
+          PublicFactCol("binaryColDecode", "Decoded Binary Col", InBetweenEquality),
+          PublicFactCol("binaryColDecode2", "Decoded Binary Col2", InBetweenEquality)
         ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack
