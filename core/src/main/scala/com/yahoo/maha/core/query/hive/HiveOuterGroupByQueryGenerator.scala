@@ -392,6 +392,39 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
       queryBuilderContext.setPreOuterAliasToColumnMap(colInnerAliasQuoted, finalAlias, innerSelectCol)
       queryBuilder.addPreOuterColumn(preOuterFactColRendered)
     }
+    
+    def requiredPrimitiveColAtPreOuterLayer(): Map[String, Column] = {
+      println("noopRollup: \n"+ noopRollupColsMap)
+
+      val srcColToDerCol = factBest.factColMapping.keySet
+        .filter(colName => factBest.fact.columnsByNameMap(colName).isDerivedColumn)
+        .flatMap(colName => factBest.fact.columnsByNameMap(colName).asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.map(_ -> colName))
+        .groupBy(_._1)
+        .mapValues(_.map(_._2))
+      println(srcColToDerCol)
+
+      val srcColToNoopRollupCol = noopRollupColsMap.values
+        .flatMap(col => col.asInstanceOf[DerivedFactColumn].derivedExpression.sourceColumns.map(_ -> col.name))
+        .groupBy(_._1)
+        .mapValues(_.map(_._2).toSet)
+      println(srcColToNoopRollupCol)
+
+      val srcColToNoneNoopRollupCol = srcColToDerCol.map {
+        case (depColName, derColNames) =>
+          depColName -> (derColNames -- srcColToNoopRollupCol.getOrElse(depColName, Set()))
+      }
+      println(srcColToNoneNoopRollupCol)
+      println()
+
+      println("before filter: \n" + primitiveInnerAliasColMap)
+      val updatedPrimitiveInnerAliasColMap = primitiveInnerAliasColMap.filter {
+        case (alias, col) =>
+          !srcColToNoneNoopRollupCol.contains(alias) || srcColToNoneNoopRollupCol.getOrElse(alias, Set()).nonEmpty
+      }
+      println("\nafter filter: \n" + updatedPrimitiveInnerAliasColMap)
+
+      updatedPrimitiveInnerAliasColMap
+    }
 
   } //end ogbGeneratePreOuterColumns
 
