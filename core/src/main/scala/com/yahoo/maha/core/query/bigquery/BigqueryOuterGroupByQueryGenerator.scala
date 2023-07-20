@@ -190,7 +190,7 @@ abstract case class BigqueryOuterGroupByQueryGenerator(
       dfsGetPrimitiveCols(fact, customRollupSet.map(_._1).toIndexedSeq, primitiveColsSet, BigqueryEngine)
     }
 
-    dfsNoopRollupCols(fact, factCols.toSet, List.empty, noopRollupColSet)
+    dfsNoopRollupCols(fact, factCols.distinct, List.empty, noopRollupColSet)
     noopRollupColSet.foreach(derCol => aliasColumnMapOfRequestCols += (renderColumnAlias(derCol._1) -> derCol._2))
 
     primitiveColsSet.foreach {

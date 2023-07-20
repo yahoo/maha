@@ -2097,8 +2097,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |) OgbQueryAlias
          |) queryAlias LIMIT 200
          |""".stripMargin
-         
-    println(result)
     
     result should equal(expected)(after being whiteSpaceNormalised)
   }
@@ -2133,44 +2131,16 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_advertiser_name,'') AS STRING),CAST(NVL(mang_device_name,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_ctr,'') AS STRING),CAST(NVL(mang_derived_impressions,'') AS STRING),CAST(NVL(mang_derived_clicks,'') AS STRING),CAST(NVL(mang_derived_ctr,'') AS STRING),CAST(NVL(mang_decoded_nooprollup_binary_col,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_advertiser_name AS mang_advertiser_name, mang_device_name, impressions AS mang_impressions, CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END AS mang_ctr, derived_impressions AS mang_derived_impressions, derived_clicks AS mang_derived_clicks, derived_ctr AS mang_derived_ctr, binarycoldecodenooprollup AS mang_decoded_nooprollup_binary_col
-//         |FROM(
-//         |SELECT COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, COALESCE(mang_device_name, 'NA') mang_device_name, SUM(impressions) AS impressions, SUM(clicks) AS clicks, (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) AS derived_clicks, (SUM(decodeUDF(device_id, 1, impressions, 0))) AS derived_impressions, (CASE WHEN (SUM(decodeUDF(device_id, 1, impressions, 0))) = 0 THEN 0.0 ELSE (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) / (SUM(decodeUDF(device_id, 1, impressions, 0))) END) AS derived_ctr, (decodeUDF(ad_group_id, 1, getAbyB(binarycol), null)) AS binarycoldecodenooprollup
-//         |FROM(SELECT account_id, decodeUDF(device_id, 1, 'DeviceA', 2, 'DeviceB', 'UNKNOWN') mang_device_name, SUM(impressions) impressions, SUM(clicks) clicks, delivered_match_type, device_id, ad_group_id, binarycol
-//         |FROM s_stats_fact_underlying
-//         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY account_id, decodeUDF(device_id, 1, 'DeviceA', 2, 'DeviceB', 'UNKNOWN'), delivered_match_type, device_id, ad_group_id, binarycol
-//         |
-//         |       )
-//         |ssfu0
-//         |LEFT OUTER JOIN (
-//         |SELECT name AS mang_advertiser_name, id a1_id
-//         |FROM advertiser_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
-//         |)
-//         |a1
-//         |ON
-//         |ssfu0.account_id = a1.a1_id
-//         |       
-//         |GROUP BY COALESCE(a1.mang_advertiser_name, 'NA'), COALESCE(mang_device_name, 'NA')
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//         |""".stripMargin
-    
     val expected =
       s"""
          |SELECT CONCAT_WS(',', CAST(NVL(mang_advertiser_name,'') AS STRING),CAST(NVL(mang_device_name,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_ctr,'') AS STRING),CAST(NVL(mang_derived_impressions,'') AS STRING),CAST(NVL(mang_derived_clicks,'') AS STRING),CAST(NVL(mang_derived_ctr,'') AS STRING),CAST(NVL(mang_decoded_nooprollup_binary_col,'') AS STRING))
          |FROM(
          |SELECT mang_advertiser_name AS mang_advertiser_name, mang_device_name, impressions AS mang_impressions, CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END AS mang_ctr, derived_impressions AS mang_derived_impressions, derived_clicks AS mang_derived_clicks, derived_ctr AS mang_derived_ctr, binarycoldecodenooprollup AS mang_decoded_nooprollup_binary_col
          |FROM(
-         |SELECT COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, COALESCE(mang_device_name, 'NA') mang_device_name, SUM(impressions) AS impressions, CASE WHEN (device_id IN (11)) THEN 'Desktop' WHEN (device_id IN (22)) THEN 'Tablet' WHEN (device_id IN (33)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, CASE WHEN (delivered_match_type IN (1)) THEN 'Exact' WHEN (delivered_match_type IN (2)) THEN 'Broad' WHEN (delivered_match_type IN (3)) THEN 'Phrase' ELSE 'UNKNOWN' END delivered_match_type, COALESCE(ad_group_id, 0L) ad_group_id, binarycol binarycol, SUM(clicks) AS clicks, (CASE WHEN (SUM(decodeUDF(device_id, 1, impressions, 0))) = 0 THEN 0.0 ELSE (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) / (SUM(decodeUDF(device_id, 1, impressions, 0))) END) AS derived_ctr, (decodeUDF(ad_group_id, 1, getAbyB(binarycol), null)) AS binarycoldecodenooprollup, (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) AS derived_clicks, (SUM(decodeUDF(device_id, 1, impressions, 0))) AS derived_impressions
+         |SELECT COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, COALESCE(mang_device_name, 'NA') mang_device_name, SUM(impressions) AS impressions, SUM(clicks) AS clicks, (CASE WHEN (SUM(decodeUDF(device_id, 1, impressions, 0))) = 0 THEN 0.0 ELSE (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) / (SUM(decodeUDF(device_id, 1, impressions, 0))) END) AS derived_ctr, (decodeUDF(ad_group_id, 1, getAbyB(binarycol), null)) AS binarycoldecodenooprollup, (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) AS derived_clicks, (SUM(decodeUDF(device_id, 1, impressions, 0))) AS derived_impressions
          |FROM(SELECT account_id, decodeUDF(device_id, 1, 'DeviceA', 2, 'DeviceB', 'UNKNOWN') mang_device_name, SUM(impressions) impressions, SUM(clicks) clicks, delivered_match_type, device_id, ad_group_id, binarycol
          |FROM s_stats_fact_underlying
-         |WHERE (account_id = 12345) AND (stats_date >= '2023-07-13' AND stats_date <= '2023-07-20')
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY account_id, decodeUDF(device_id, 1, 'DeviceA', 2, 'DeviceB', 'UNKNOWN'), delivered_match_type, device_id, ad_group_id, binarycol
          |
          |       )
@@ -2184,12 +2154,11 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |ON
          |ssfu0.account_id = a1.a1_id
          |       
-         |GROUP BY COALESCE(a1.mang_advertiser_name, 'NA'), COALESCE(mang_device_name, 'NA'), CASE WHEN (device_id IN (11)) THEN 'Desktop' WHEN (device_id IN (22)) THEN 'Tablet' WHEN (device_id IN (33)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END, CASE WHEN (delivered_match_type IN (1)) THEN 'Exact' WHEN (delivered_match_type IN (2)) THEN 'Broad' WHEN (delivered_match_type IN (3)) THEN 'Phrase' ELSE 'UNKNOWN' END, COALESCE(ad_group_id, 0L), binarycol
+         |GROUP BY COALESCE(a1.mang_advertiser_name, 'NA'), COALESCE(mang_device_name, 'NA')
          |) OgbQueryAlias
          |) queryAlias LIMIT 200
          |""".stripMargin
 
-    println(result)
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -2246,7 +2215,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |) queryAlias LIMIT 200
          |""".stripMargin
 
-    println(result)
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 

@@ -118,7 +118,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
       }
 
       // Find out all the NoopRollup cols recursively
-      dfsNoopRollupCols(fact, factCols.toSet, List.empty, noopRollupColSet)
+      dfsNoopRollupCols(fact, factCols.distinct, List.empty, noopRollupColSet)
       noopRollupColSet.foreach(derCol => aliasColumnMapOfRequestCols += (renderColumnAlias(derCol._1) -> derCol._2))
 
       // Render Primitive columns

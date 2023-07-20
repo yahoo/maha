@@ -174,7 +174,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
     }
 
     // Find out all the NoopRollup cols recursively
-    dfsNoopRollupCols(fact, factCols.toSet, List.empty, noopRollupColSet)
+    dfsNoopRollupCols(fact, factCols.distinct, List.empty, noopRollupColSet)
 
     // Render Primitive columns
     primitiveColsSet.foreach {
@@ -331,7 +331,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
       case _ => throw new UnsupportedOperationException("Unsupported Column Type")
     }
     // Render primitive cols
-    primitiveInnerAliasColMap.foreach {
+    requiredPrimitiveColAtPreOuterLayer().foreach {
       // if primitive col is not already rendered
       case (alias, col) if !preOuterRenderedColAliasMap.contains(col) =>
         col match {
