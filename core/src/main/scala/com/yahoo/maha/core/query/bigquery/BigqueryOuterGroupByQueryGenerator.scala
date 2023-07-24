@@ -347,7 +347,7 @@ abstract case class BigqueryOuterGroupByQueryGenerator(
     }
 
     // Render primitive cols
-    primitiveInnerAliasColMap.foreach {
+    requiredPrimitiveColAtPreOuterLayer().foreach {
       // Primitive col is not already rendered
       case (alias, col) if !preOuterRenderedColAliasMap.contains(col) =>
         col match {
@@ -405,6 +405,30 @@ abstract case class BigqueryOuterGroupByQueryGenerator(
       preOuterRenderedColAliasMap.put(innerSelectCol, colInnerAlias)
       queryBuilderContext.setPreOuterAliasToColumnMap(colInnerAliasQuoted, finalAlias, innerSelectCol)
       queryBuilder.addPreOuterColumn(preOuterFactColRendered)
+    }
+
+    def requiredPrimitiveColAtPreOuterLayer(): Map[String, Column] = {
+      val srcColToDerCol = factBest.factColMapping.keySet
+        .filter(colName => factBest.fact.columnsByNameMap(colName).isDerivedColumn)
+        .flatMap(colName => factBest.fact.columnsByNameMap(colName).asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.map(_ -> colName))
+        .groupBy(_._1)
+        .mapValues(_.map(_._2))
+
+      val srcColToNoopRollupCol = noopRollupColsMap.values
+        .flatMap(col => col.asInstanceOf[DerivedFactColumn].derivedExpression.sourceColumns.map(_ -> col.name))
+        .groupBy(_._1)
+        .mapValues(_.map(_._2).toSet)
+
+      val srcColToNoneNoopRollupCol = srcColToDerCol.map {
+        case (depColName, derColNames) =>
+          depColName -> (derColNames -- srcColToNoopRollupCol.getOrElse(depColName, Set()))
+      }
+
+      val updatedPrimitiveInnerAliasColMap = primitiveInnerAliasColMap.filter {
+        case (alias, col) =>
+          !srcColToNoneNoopRollupCol.contains(alias) || srcColToNoneNoopRollupCol.getOrElse(alias, Set()).nonEmpty
+      }
+      updatedPrimitiveInnerAliasColMap
     }
   }
 

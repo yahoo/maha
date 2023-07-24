@@ -77,6 +77,7 @@ trait BaseBigqueryQueryGeneratorTest
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
           , BigqueryDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "%Y-%m-%d %H:%M:%S"))
+          , BigqueryDerDimCol("device_name", StrType(), DECODE_DIM("device_id", "1", "'DeviceA'", "2", "'DeviceB'", "'UNKNOWN'"))
 
         ),
         Set(
@@ -90,6 +91,9 @@ trait BaseBigqueryQueryGeneratorTest
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), BigqueryCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
           , ConstFactCol("constantFact", IntType(), "0")
           , FactCol("Count", IntType(), rollupExpression = CountRollup)
+          , BigqueryDerFactCol("derived_impressions", IntType(), SUM(DECODE("{device_id}", "1", "{impressions}", "0")), rollupExpression = NoopRollup)
+          , BigqueryDerFactCol("derived_clicks", IntType(), SUM(DECODE("{delivered_match_type}", "1", "{clicks}", "0")), rollupExpression = NoopRollup)
+          , BigqueryDerFactCol("derived_CTR", DecType(), "{derived_clicks}" /- "{derived_impressions}", rollupExpression = NoopRollup)
         ),underlyingTableName = Some("s_stats_fact_underlying")
       )
     }
@@ -115,7 +119,8 @@ trait BaseBigqueryQueryGeneratorTest
           PubCol("ad_format_type", "Ad Format Type", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("ad_format_sub_type", "Ad Format Sub Type", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("device_id", "Device ID", InNotInEqualityNotEqualsLikeNullNotNull, incompatibleColumns = Set("Device Type")),
-          PubCol("device_type", "Device Type", InNotInEqualityNotEqualsLikeNullNotNull, incompatibleColumns = Set("Device ID"))
+          PubCol("device_type", "Device Type", InNotInEqualityNotEqualsLikeNullNotNull, incompatibleColumns = Set("Device ID")),
+          PubCol("device_name", "Device Name", InEquality)
 
         ),
         Set(
@@ -127,7 +132,10 @@ trait BaseBigqueryQueryGeneratorTest
           PublicFactCol("max_bid", "Max Bid", FieldEquality),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
-          PublicFactCol("Count", "Count", InBetweenEquality)
+          PublicFactCol("Count", "Count", InBetweenEquality),
+          PublicFactCol("derived_impressions", "Derived Impressions", Equality),
+          PublicFactCol("derived_clicks", "Derived Clicks", Equality),
+          PublicFactCol("derived_CTR", "Derived CTR", InNotInBetweenEqualityNotEqualsGreaterLesser)
         ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack
