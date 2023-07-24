@@ -1948,7 +1948,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -2061,7 +2061,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
            }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-
     val registry = getDefaultRegistry()
     val requestModel = getRequestModel(request, registry)
 
@@ -2122,7 +2121,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
            }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-
     val registry = getDefaultRegistry()
     val requestModel = getRequestModel(request, registry)
 
@@ -2182,7 +2180,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
                               ]
                }"""
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-
     val registry = getDefaultRegistry()
     val requestModel = getRequestModel(request, registry)
 

@@ -75,6 +75,7 @@ trait BasePrestoQueryGeneratorTest
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
           , DimCol("binarycol", StrType(isBinary = true))
           , PrestoDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
+          , PrestoDerDimCol("device_name", StrType(), DECODE_DIM("device_id", "1", "'DeviceA'", "2", "'DeviceB'", "'UNKNOWN'"))
 
         ),
         Set(
@@ -90,6 +91,10 @@ trait BasePrestoQueryGeneratorTest
           , FactCol("Count", IntType(), rollupExpression = CountRollup)
           , PrestoDerFactCol("binaryColDecode", IntType(), DECODE("ad_group_id", "1", "{binarycol}", "null"))
           , PrestoDerFactCol("binaryColDecode2", IntType(), DECODE("ad_group_id", "1", "{start_time}", "null"))
+          , PrestoDerFactCol("derived_impressions", IntType(), SUM(DECODE("{device_id}", "1", "{impressions}", "0")), rollupExpression = NoopRollup)
+          , PrestoDerFactCol("derived_clicks", IntType(), SUM(DECODE("{delivered_match_type}", "1", "{clicks}", "0")), rollupExpression = NoopRollup)
+          , PrestoDerFactCol("derived_CTR", DecType(), "{derived_clicks}" /- "{derived_impressions}", rollupExpression = NoopRollup)
+          , PrestoDerFactCol("binaryColDecodeNoopRollup", IntType(), DECODE("{ad_group_id}", "1", GET_A_BY_B("{binarycol}"), "null"), rollupExpression = NoopRollup)
         ),underlyingTableName = Some("s_stats_fact_underlying")
       )
     }
@@ -116,6 +121,7 @@ trait BasePrestoQueryGeneratorTest
           PubCol("ad_format_sub_type", "Ad Format Sub Type", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("device_id", "Device ID", InNotInEqualityNotEqualsLikeNullNotNull, incompatibleColumns = Set("Device Type")),
           PubCol("device_type", "Device Type", InNotInEqualityNotEqualsLikeNullNotNull, incompatibleColumns = Set("Device ID")),
+          PubCol("device_name", "Device Name", InEquality),
           PubCol("binarycol", "Binary Col", Set.empty)
 
         ),
@@ -130,7 +136,11 @@ trait BasePrestoQueryGeneratorTest
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
           PublicFactCol("Count", "Count", InBetweenEquality),
           PublicFactCol("binaryColDecode", "Decoded Binary Col", InBetweenEquality),
-          PublicFactCol("binaryColDecode2", "Decoded Binary Col2", InBetweenEquality)
+          PublicFactCol("binaryColDecode2", "Decoded Binary Col2", InBetweenEquality),
+          PublicFactCol("derived_impressions", "Derived Impressions", Equality),
+          PublicFactCol("derived_clicks", "Derived Clicks", Equality),
+          PublicFactCol("derived_CTR", "Derived CTR", InNotInBetweenEqualityNotEqualsGreaterLesser),
+          PublicFactCol("binaryColDecodeNoopRollup", "Decoded NoopRollup Binary Col", InBetweenEquality)
         ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack
