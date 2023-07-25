@@ -1932,14 +1932,12 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
                           "cube": "s_stats",
                           "selectFields": [
                               {"field": "Advertiser ID"},
-                              {"field": "CTR"},
-                              {"field": "Derived CTR"}
+                              {"field": "CTR"}
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
-                              {"field": "CTR", "operator": ">", "value": "0.1"},
-                              {"field": "Derived CTR", "operator": ">", "value": "0.1"}
+                              {"field": "CTR", "operator": ">", "value": "0.1"}
                           ]
                           }"""
 
@@ -1948,20 +1946,20 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v2)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     val expected =
       s"""
-         |SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_ctr AS STRING), ''), NVL(CAST(mang_derived_ctr AS STRING), ''))
+         |SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_ctr AS STRING), ''))
          |FROM(
-         |SELECT COALESCE(account_id, 0L) advertiser_id, ROUND(COALESCE(mang_ctr, 0L), 10) mang_ctr, ROUND(COALESCE(mang_derived_ctr, 0L), 10) mang_derived_ctr
-         |FROM(SELECT account_id, (CASE WHEN (SUM(decodeUDF(device_id, 1, impressions, 0))) = 0 THEN 0.0 ELSE (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) / (SUM(decodeUDF(device_id, 1, impressions, 0))) END) mang_derived_ctr, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(clicks) / (SUM(impressions)) END) mang_ctr
+         |SELECT COALESCE(account_id, 0L) advertiser_id, ROUND(COALESCE(mang_ctr, 0L), 10) mang_ctr
+         |FROM(SELECT account_id, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(clicks) / (SUM(impressions)) END) mang_ctr
          |FROM s_stats_fact_underlying
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY account_id
-         |HAVING ((CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(clicks) / (SUM(impressions)) END) > 0.1) AND ((CASE WHEN (SUM(decodeUDF(device_id, 1, impressions, 0))) = 0 THEN 0.0 ELSE (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) / (SUM(decodeUDF(device_id, 1, impressions, 0))) END) > 0.1)
+         |HAVING ((CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(clicks) / (SUM(impressions)) END) > 0.1)
          |       )
          |ssfu0
          |
@@ -2215,4 +2213,46 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
+  test("generating hive query with filter on derived NoopRollup fact col") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Derived CTR"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Derived CTR", "operator": ">", "value": "0.1"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_derived_ctr AS STRING), ''))
+         |FROM(
+         |SELECT COALESCE(account_id, 0L) advertiser_id, ROUND(COALESCE(mang_derived_ctr, 0L), 10) mang_derived_ctr
+         |FROM(SELECT account_id, (CASE WHEN (SUM(decodeUDF(device_id, 1, impressions, 0))) = 0 THEN 0.0 ELSE (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) / (SUM(decodeUDF(device_id, 1, impressions, 0))) END) mang_derived_ctr
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id
+         |HAVING ((CASE WHEN (SUM(decodeUDF(device_id, 1, impressions, 0))) = 0 THEN 0.0 ELSE (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) / (SUM(decodeUDF(device_id, 1, impressions, 0))) END) > 0.1)
+         |       )
+         |ssfu0
+         |
+         |) queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
 }
