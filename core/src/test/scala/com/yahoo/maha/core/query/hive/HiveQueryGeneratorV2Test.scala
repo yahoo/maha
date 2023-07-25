@@ -1391,8 +1391,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     assert(queryChain.drivingQuery.queryGenVersion.isDefined)
     assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
-    
-    println(result)
 
     assert(result.contains(s"""(COUNT(distinct keyword_id)) mang_keyword_count"""))
   }
