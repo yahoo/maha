@@ -1762,5 +1762,218 @@ class BigqueryQueryGeneratorTest extends BaseBigqueryQueryGeneratorTest {
        """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
+
+  test("generating presto query with filter on derived fact col") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Derived CTR"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Derived CTR", "operator": ">", "value": "0.1"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[BigqueryQuery].asString
+    val expected =
+      s"""
+         |SELECT IFNULL(CAST(advertiser_id AS STRING), '') AS advertiser_id, IFNULL(CAST(mang_derived_ctr AS STRING), '') AS mang_derived_ctr
+         |FROM (
+         |SELECT COALESCE(account_id, 0) advertiser_id, ROUND(COALESCE(mang_derived_ctr, 0.0), 10) mang_derived_ctr
+         |FROM ( SELECT account_id, (CASE WHEN (SUM(CASE WHEN device_id = 1 THEN impressions ELSE 0 END)) = 0 THEN 0.0 ELSE (SUM(CASE WHEN delivered_match_type = 1 THEN clicks ELSE 0 END)) / (SUM(CASE WHEN device_id = 1 THEN impressions ELSE 0 END)) END) mang_derived_ctr
+         |FROM `s_stats_fact`
+         |WHERE (account_id = 12345) AND (stats_date >= DATE('$fromDate') AND stats_date <= DATE('$toDate'))
+         |GROUP BY account_id
+         |HAVING (mang_derived_ctr > 0.1)
+         |        )
+         |ssf0
+         |
+         |
+         |) queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("OGB query should not render source cols in pre-outer select if the only derived cols who use it rendered at pre-outer select") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Impressions"},
+                              {"field": "Derived Impressions"},
+                              {"field": "Derived Clicks"},
+                              {"field": "Derived CTR"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+           }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[BigqueryQuery].asString
+
+    val expected =
+      s"""
+         |SELECT IFNULL(CAST(mang_advertiser_name AS STRING), '') AS mang_advertiser_name, IFNULL(CAST(mang_impressions AS STRING), '') AS mang_impressions, IFNULL(CAST(mang_derived_impressions AS STRING), '') AS mang_derived_impressions, IFNULL(CAST(mang_derived_clicks AS STRING), '') AS mang_derived_clicks, IFNULL(CAST(mang_derived_ctr AS STRING), '') AS mang_derived_ctr
+         |FROM (
+         |SELECT mang_advertiser_name AS mang_advertiser_name, impressions AS mang_impressions, derived_impressions AS mang_derived_impressions, derived_clicks AS mang_derived_clicks, derived_ctr AS mang_derived_ctr
+         |FROM (
+         |SELECT COALESCE(a1.mang_advertiser_name, '') mang_advertiser_name, SUM(impressions) AS impressions, (SUM(CASE WHEN device_id = 1 THEN impressions ELSE 0 END)) AS derived_impressions, (SUM(CASE WHEN delivered_match_type = 1 THEN clicks ELSE 0 END)) AS derived_clicks, (CASE WHEN (SUM(CASE WHEN device_id = 1 THEN impressions ELSE 0 END)) = 0 THEN 0.0 ELSE (SUM(CASE WHEN delivered_match_type = 1 THEN clicks ELSE 0 END)) / (SUM(CASE WHEN device_id = 1 THEN impressions ELSE 0 END)) END) AS derived_ctr
+         |FROM ( SELECT account_id, SUM(impressions) impressions, device_id, SUM(clicks) clicks, delivered_match_type
+         |FROM `s_stats_fact`
+         |WHERE (account_id = 12345) AND (stats_date >= DATE('$fromDate') AND stats_date <= DATE('$toDate'))
+         |GROUP BY account_id, device_id, delivered_match_type
+         |
+         |        )
+         |ssf0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM `advertiser_bigquery`
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssf0.account_id = a1.a1_id
+         |       
+         |GROUP BY mang_advertiser_name
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("OGB query should not render source cols in pre-outer select if the only derived cols who use it rendered at pre-outer select with derived dim") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Device Name"},
+                              {"field": "Impressions"},
+                              {"field": "Derived Impressions"},
+                              {"field": "Derived Clicks"},
+                              {"field": "Derived CTR"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+           }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[BigqueryQuery].asString
+
+    val expected =
+      s"""
+         |SELECT IFNULL(CAST(mang_advertiser_name AS STRING), '') AS mang_advertiser_name, IFNULL(CAST(mang_device_name AS STRING), '') AS mang_device_name, IFNULL(CAST(mang_impressions AS STRING), '') AS mang_impressions, IFNULL(CAST(mang_derived_impressions AS STRING), '') AS mang_derived_impressions, IFNULL(CAST(mang_derived_clicks AS STRING), '') AS mang_derived_clicks, IFNULL(CAST(mang_derived_ctr AS STRING), '') AS mang_derived_ctr
+         |FROM (
+         |SELECT mang_advertiser_name AS mang_advertiser_name, mang_device_name, impressions AS mang_impressions, derived_impressions AS mang_derived_impressions, derived_clicks AS mang_derived_clicks, derived_ctr AS mang_derived_ctr
+         |FROM (
+         |SELECT COALESCE(a1.mang_advertiser_name, '') mang_advertiser_name, COALESCE(mang_device_name, '') mang_device_name, SUM(impressions) AS impressions, (SUM(CASE WHEN device_id = 1 THEN impressions ELSE 0 END)) AS derived_impressions, (SUM(CASE WHEN delivered_match_type = 1 THEN clicks ELSE 0 END)) AS derived_clicks, (CASE WHEN (SUM(CASE WHEN device_id = 1 THEN impressions ELSE 0 END)) = 0 THEN 0.0 ELSE (SUM(CASE WHEN delivered_match_type = 1 THEN clicks ELSE 0 END)) / (SUM(CASE WHEN device_id = 1 THEN impressions ELSE 0 END)) END) AS derived_ctr
+         |FROM ( SELECT account_id, CASE WHEN device_id = 1 THEN 'DeviceA' WHEN device_id = 2 THEN 'DeviceB' ELSE 'UNKNOWN' END mang_device_name, SUM(impressions) impressions, device_id, SUM(clicks) clicks, delivered_match_type
+         |FROM `s_stats_fact`
+         |WHERE (account_id = 12345) AND (stats_date >= DATE('$fromDate') AND stats_date <= DATE('$toDate'))
+         |GROUP BY account_id, CASE WHEN device_id = 1 THEN 'DeviceA' WHEN device_id = 2 THEN 'DeviceB' ELSE 'UNKNOWN' END, device_id, delivered_match_type
+         |
+         |        )
+         |ssf0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM `advertiser_bigquery`
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssf0.account_id = a1.a1_id
+         |       
+         |GROUP BY mang_advertiser_name, mang_device_name
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Non OGB query should render aggregation metrics in the inner most select, which keeps the same behavior as before") {
+    val jsonString =
+      s"""{
+                              "cube": "s_stats",
+                              "selectFields": [
+                                  {"field": "Advertiser ID"},
+                                  {"field": "Advertiser Name"},
+                                  {"field": "Impressions"},
+                                  {"field": "Derived Impressions"},
+                                  {"field": "Derived Clicks"},
+                                  {"field": "Derived CTR"}
+                              ],
+                              "filterExpressions": [
+                                  {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                                  {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                              ]
+               }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v0)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[BigqueryQuery].asString
+
+    val expected =
+      s"""
+         |SELECT IFNULL(CAST(advertiser_id AS STRING), '') AS advertiser_id, IFNULL(CAST(mang_advertiser_name AS STRING), '') AS mang_advertiser_name, IFNULL(CAST(mang_impressions AS STRING), '') AS mang_impressions, IFNULL(CAST(mang_derived_impressions AS STRING), '') AS mang_derived_impressions, IFNULL(CAST(mang_derived_clicks AS STRING), '') AS mang_derived_clicks, IFNULL(CAST(mang_derived_ctr AS STRING), '') AS mang_derived_ctr
+         |FROM (
+         |SELECT COALESCE(ssf0.account_id, 0) advertiser_id, COALESCE(a1.mang_advertiser_name, '') mang_advertiser_name, COALESCE(impressions, 1) mang_impressions, COALESCE(mang_derived_impressions, 0) mang_derived_impressions, COALESCE(mang_derived_clicks, 0) mang_derived_clicks, ROUND(COALESCE(mang_derived_ctr, 0.0), 10) mang_derived_ctr
+         |FROM ( SELECT account_id, SUM(impressions) impressions, (SUM(CASE WHEN device_id = 1 THEN impressions ELSE 0 END)) mang_derived_impressions, (SUM(CASE WHEN delivered_match_type = 1 THEN clicks ELSE 0 END)) mang_derived_clicks, (CASE WHEN (SUM(CASE WHEN device_id = 1 THEN impressions ELSE 0 END)) = 0 THEN 0.0 ELSE (SUM(CASE WHEN delivered_match_type = 1 THEN clicks ELSE 0 END)) / (SUM(CASE WHEN device_id = 1 THEN impressions ELSE 0 END)) END) mang_derived_ctr
+         |FROM `s_stats_fact`
+         |WHERE (account_id = 12345) AND (stats_date >= DATE('$fromDate') AND stats_date <= DATE('$toDate'))
+         |GROUP BY account_id
+         |
+         |        )
+         |ssf0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM `advertiser_bigquery`
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssf0.account_id = a1.a1_id
+         |       
+         |
+         |) queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
 }
 

@@ -71,6 +71,7 @@ trait BaseHiveQueryGeneratorTest
           , HiveDerDimAggregateCol("Keyword Count Scaled", IntType(), COUNT("{keyword_id} * {stats_source} * 10"))
           , DimCol("internal_bucket_id", StrType())
           , HiveDerDimCol("click_exp_id", StrType(), REGEX_EXTRACT("internal_bucket_id", "(cl-)(.*?)(,|$)", 2, replaceMissingValue = true, "-3"))
+          , HiveDerDimCol("device_name", StrType(), DECODE_DIM("device_id", "1", "'DeviceA'", "2", "'DeviceB'", "'UNKNOWN'"))
           , DimCol("binarycol", StrType(isBinary = true))
         ),
         Set(
@@ -84,7 +85,11 @@ trait BaseHiveQueryGeneratorTest
           , HiveDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
           , HiveDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}", rollupExpression = HiveCustomRollup(SUM("{clicks}") /- SUM("{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
+          , HiveDerFactCol("derived_impressions", IntType(), SUM(DECODE("{device_id}", "1", "{impressions}", "0")), rollupExpression = NoopRollup)
+          , HiveDerFactCol("derived_clicks", IntType(), SUM(DECODE("{delivered_match_type}", "1", "{clicks}", "0")), rollupExpression = NoopRollup)
+          , HiveDerFactCol("derived_CTR", DecType(), "{derived_clicks}" /- "{derived_impressions}", rollupExpression = NoopRollup)
           , HiveDerFactCol("binaryColDecode", IntType(), DECODE("{ad_group_id}", "1", "{binarycol}", "null"))
+          , HiveDerFactCol("binaryColDecodeNoopRollup", IntType(), DECODE("{ad_group_id}", "1", GET_A_BY_B("{binarycol}"), "null"), rollupExpression = NoopRollup)
         ), underlyingTableName = Some("s_stats_fact_underlying")
       )
     }
@@ -115,6 +120,7 @@ trait BaseHiveQueryGeneratorTest
           PubCol("device_id", "Device ID", InEquality),
           PubCol("internal_bucket_id", "Internal Bucket ID", InEquality),
           PubCol("click_exp_id", "Click Exp ID", InEquality),
+          PubCol("device_name", "Device Name", InEquality),
           PubCol("binarycol", "Binary Col", Set.empty)
         ),
         Set(
@@ -127,7 +133,11 @@ trait BaseHiveQueryGeneratorTest
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PublicFactCol("max_price_type", "Max Price Type", Equality),
-          PublicFactCol("binaryColDecode", "Decoded Binary Col", InBetweenEquality)
+          PublicFactCol("derived_impressions", "Derived Impressions", Equality),
+          PublicFactCol("derived_clicks", "Derived Clicks", Equality),
+          PublicFactCol("derived_CTR", "Derived CTR", InNotInBetweenEqualityNotEqualsGreaterLesser),
+          PublicFactCol("binaryColDecode", "Decoded Binary Col", InBetweenEquality),
+          PublicFactCol("binaryColDecodeNoopRollup", "Decoded NoopRollup Binary Col", InBetweenEquality)
         ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack

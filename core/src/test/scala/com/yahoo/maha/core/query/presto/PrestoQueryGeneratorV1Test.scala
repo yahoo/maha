@@ -3032,4 +3032,224 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     assert(result.contains("HAVING (SUM(decodeUDF(ad_group_id, 1, binarycol, null)) = 1608)"))
   }
+
+  test("generating presto query with filter on derived fact col") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Derived CTR"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Derived CTR", "operator": ">", "value": "0.1"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    val expected =
+      s"""
+         |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_derived_ctr as VARCHAR) AS mang_derived_ctr
+         |FROM(
+         |SELECT COALESCE(CAST(account_id as bigint), 0) advertiser_id, ROUND(COALESCE(mang_derived_ctr, 0), 10) mang_derived_ctr
+         |FROM(SELECT account_id, (CASE WHEN (SUM(decodeUDF(device_id, 1, impressions, 0))) = 0 THEN 0.0 ELSE CAST((SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) AS DOUBLE) / (SUM(decodeUDF(device_id, 1, impressions, 0))) END) mang_derived_ctr
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id
+         |HAVING ((CASE WHEN (SUM(decodeUDF(device_id, 1, impressions, 0))) = 0 THEN 0.0 ELSE CAST((SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) AS DOUBLE) / (SUM(decodeUDF(device_id, 1, impressions, 0))) END) > 0.1)
+         |       )
+         |ssfu0
+         |
+         |
+         |          )
+         |        queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("OGB query should not render source cols in pre-outer select if the only derived cols who use it rendered at pre-outer select") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Impressions"},
+                              {"field": "Derived Impressions"},
+                              {"field": "Derived Clicks"},
+                              {"field": "Derived CTR"},
+                              {"field": "Decoded NoopRollup Binary Col"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+           }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val expected =
+      s"""
+         |SELECT CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(mang_derived_impressions as VARCHAR) AS mang_derived_impressions, CAST(mang_derived_clicks as VARCHAR) AS mang_derived_clicks, CAST(mang_derived_ctr as VARCHAR) AS mang_derived_ctr, CAST(mang_decoded_nooprollup_binary_col as VARCHAR) AS mang_decoded_nooprollup_binary_col
+         |FROM(
+         |SELECT mang_advertiser_name AS mang_advertiser_name, impressions AS mang_impressions, derived_impressions AS mang_derived_impressions, derived_clicks AS mang_derived_clicks, derived_ctr AS mang_derived_ctr, binarycoldecodenooprollup AS mang_decoded_nooprollup_binary_col
+         |FROM(
+         |SELECT COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, SUM(impressions) AS impressions, (CASE WHEN (SUM(decodeUDF(device_id, 1, impressions, 0))) = 0 THEN 0.0 ELSE CAST((SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) AS DOUBLE) / (SUM(decodeUDF(device_id, 1, impressions, 0))) END) AS derived_ctr, (decodeUDF(ad_group_id, 1, getAbyB(binarycol), null)) AS binarycoldecodenooprollup, (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) AS derived_clicks, (SUM(decodeUDF(device_id, 1, impressions, 0))) AS derived_impressions
+         |FROM(SELECT account_id, SUM(impressions) impressions, SUM(clicks) clicks, delivered_match_type, device_id, ad_group_id, binarycol
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, delivered_match_type, device_id, ad_group_id, binarycol
+         |
+         |       )
+         |ssfu0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssfu0.account_id = a1.a1_id
+         |       
+         |GROUP BY COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA')
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("OGB query should not render source cols in pre-outer select if the only derived cols who use it rendered at pre-outer select with derived dim") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Device Name"},
+                              {"field": "Impressions"},
+                              {"field": "Derived Impressions"},
+                              {"field": "Derived Clicks"},
+                              {"field": "Derived CTR"},
+                              {"field": "Decoded NoopRollup Binary Col"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+           }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val expected =
+      s"""
+         |SELECT CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(mang_device_name as VARCHAR) AS mang_device_name, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(mang_derived_impressions as VARCHAR) AS mang_derived_impressions, CAST(mang_derived_clicks as VARCHAR) AS mang_derived_clicks, CAST(mang_derived_ctr as VARCHAR) AS mang_derived_ctr, CAST(mang_decoded_nooprollup_binary_col as VARCHAR) AS mang_decoded_nooprollup_binary_col
+         |FROM(
+         |SELECT mang_advertiser_name AS mang_advertiser_name, mang_device_name, impressions AS mang_impressions, derived_impressions AS mang_derived_impressions, derived_clicks AS mang_derived_clicks, derived_ctr AS mang_derived_ctr, binarycoldecodenooprollup AS mang_decoded_nooprollup_binary_col
+         |FROM(
+         |SELECT COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, COALESCE(CAST(mang_device_name as VARCHAR), 'NA') mang_device_name, SUM(impressions) AS impressions, (CASE WHEN (SUM(decodeUDF(device_id, 1, impressions, 0))) = 0 THEN 0.0 ELSE CAST((SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) AS DOUBLE) / (SUM(decodeUDF(device_id, 1, impressions, 0))) END) AS derived_ctr, (decodeUDF(ad_group_id, 1, getAbyB(binarycol), null)) AS binarycoldecodenooprollup, (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) AS derived_clicks, (SUM(decodeUDF(device_id, 1, impressions, 0))) AS derived_impressions
+         |FROM(SELECT account_id, decodeUDF(device_id, 1, 'DeviceA', 2, 'DeviceB', 'UNKNOWN') mang_device_name, SUM(impressions) impressions, SUM(clicks) clicks, delivered_match_type, device_id, ad_group_id, binarycol
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, decodeUDF(device_id, 1, 'DeviceA', 2, 'DeviceB', 'UNKNOWN'), delivered_match_type, device_id, ad_group_id, binarycol
+         |
+         |       )
+         |ssfu0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssfu0.account_id = a1.a1_id
+         |       
+         |GROUP BY COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA'), COALESCE(CAST(mang_device_name as VARCHAR), 'NA')
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Non OGB query should render aggregation metrics in the inner most select, which keeps the same behavior as before") {
+    val jsonString =
+      s"""{
+                              "cube": "s_stats",
+                              "selectFields": [
+                                  {"field": "Advertiser ID"},
+                                  {"field": "Advertiser Name"},
+                                  {"field": "Impressions"},
+                                  {"field": "Derived Impressions"},
+                                  {"field": "Derived Clicks"},
+                                  {"field": "Derived CTR"},
+                                  {"field": "Decoded NoopRollup Binary Col"}
+                              ],
+                              "filterExpressions": [
+                                  {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                                  {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                              ]
+               }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val expected =
+      s"""
+         |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(mang_derived_impressions as VARCHAR) AS mang_derived_impressions, CAST(mang_derived_clicks as VARCHAR) AS mang_derived_clicks, CAST(mang_derived_ctr as VARCHAR) AS mang_derived_ctr, CAST(mang_decoded_nooprollup_binary_col as VARCHAR) AS mang_decoded_nooprollup_binary_col
+         |FROM(
+         |SELECT COALESCE(CAST(ssfu0.account_id as bigint), 0) advertiser_id, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, COALESCE(CAST(impressions as bigint), 1) mang_impressions, COALESCE(CAST(mang_derived_impressions as bigint), 0) mang_derived_impressions, COALESCE(CAST(mang_derived_clicks as bigint), 0) mang_derived_clicks, ROUND(COALESCE(mang_derived_ctr, 0), 10) mang_derived_ctr, COALESCE(CAST(mang_decoded_nooprollup_binary_col as bigint), 0) mang_decoded_nooprollup_binary_col
+         |FROM(SELECT account_id, SUM(impressions) impressions, (CASE WHEN (SUM(decodeUDF(device_id, 1, impressions, 0))) = 0 THEN 0.0 ELSE CAST((SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) AS DOUBLE) / (SUM(decodeUDF(device_id, 1, impressions, 0))) END) mang_derived_ctr, (decodeUDF(ad_group_id, 1, getAbyB(binarycol), null)) mang_decoded_nooprollup_binary_col, (SUM(decodeUDF(delivered_match_type, 1, clicks, 0))) mang_derived_clicks, (SUM(decodeUDF(device_id, 1, impressions, 0))) mang_derived_impressions
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id
+         |
+         |       )
+         |ssfu0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssfu0.account_id = a1.a1_id
+         |       
+         |
+         |          )
+         |        queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
 }

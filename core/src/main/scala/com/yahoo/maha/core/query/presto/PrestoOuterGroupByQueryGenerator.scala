@@ -118,7 +118,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
       }
 
       // Find out all the NoopRollup cols recursively
-      dfsNoopRollupCols(fact, factCols.toSet, List.empty, noopRollupColSet)
+      dfsNoopRollupCols(fact, factCols.distinct, List.empty, noopRollupColSet)
       noopRollupColSet.foreach(derCol => aliasColumnMapOfRequestCols += (renderColumnAlias(derCol._1) -> derCol._2))
 
       // Render Primitive columns
@@ -374,7 +374,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
       case _ => throw new UnsupportedOperationException("Unsupported Column Type")
     }
     // Render primitive cols
-    primitiveInnerAliasColMap.foreach {
+    requiredPrimitiveColAtPreOuterLayer().foreach {
       // if primitive col is not already rendered
       case (alias, col) if !preOuterRenderedColAliasMap.contains(col) =>
         col match {
@@ -434,6 +434,30 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
       preOuterRenderedColAliasMap.put(innerSelectCol, colInnerAlias)
       queryBuilderContext.setPreOuterAliasToColumnMap(colInnerAliasQuoted, finalAlias, innerSelectCol)
       queryBuilder.addPreOuterColumn(preOuterFactColRendered)
+    }
+
+    def requiredPrimitiveColAtPreOuterLayer(): Map[String, Column] = {
+      val srcColToDerCol = factBest.factColMapping.keySet
+        .filter(colName => factBest.fact.columnsByNameMap(colName).isDerivedColumn)
+        .flatMap(colName => factBest.fact.columnsByNameMap(colName).asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.map(_ -> colName))
+        .groupBy(_._1)
+        .mapValues(_.map(_._2))
+
+      val srcColToNoopRollupCol = noopRollupColsMap.values
+        .flatMap(col => col.asInstanceOf[DerivedFactColumn].derivedExpression.sourceColumns.map(_ -> col.name))
+        .groupBy(_._1)
+        .mapValues(_.map(_._2).toSet)
+
+      val srcColToNoneNoopRollupCol = srcColToDerCol.map {
+        case (depColName, derColNames) =>
+          depColName -> (derColNames -- srcColToNoopRollupCol.getOrElse(depColName, Set()))
+      }
+      
+      val updatedPrimitiveInnerAliasColMap = primitiveInnerAliasColMap.filter {
+        case (alias, col) =>
+          !srcColToNoneNoopRollupCol.contains(alias) || srcColToNoneNoopRollupCol.getOrElse(alias, Set()).nonEmpty
+      }
+      updatedPrimitiveInnerAliasColMap
     }
 
   } //end ogbGeneratePreOuterColumns

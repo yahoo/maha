@@ -132,7 +132,7 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
  whose dependent source columns is/are NoopRollup column.
  All such parent noop rollup columns has to be rendered at OuterGroupBy layer
  */
-  def dfsNoopRollupCols(fact:Fact, cols: Set[(Column, String)], parentList: List[(Column, String)], noopRollupColSet: mutable.LinkedHashSet[(String, Column)]): Unit = {
+  def dfsNoopRollupCols(fact:Fact, cols: List[(Column, String)], parentList: List[(Column, String)], noopRollupColSet: mutable.LinkedHashSet[(String, Column)]): Unit = {
     cols.foreach {
       case (col, alias)=>
         col match {
@@ -166,7 +166,7 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
                   val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
                   if (col.alias.getOrElse(col.name) != sourceColAlias) {
                     // avoid adding self dependent columns
-                    dfsNoopRollupCols(fact, Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
+                    dfsNoopRollupCols(fact, List((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
                   }
               }
             }
@@ -188,7 +188,7 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
                   val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
                   if (col.alias.getOrElse(col.name) != sourceColAlias) {
                     // avoid adding self dependent columns
-                    dfsNoopRollupCols(fact, Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
+                    dfsNoopRollupCols(fact, List((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
                   }
               }
             }
@@ -210,7 +210,7 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
                   val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
                   if (col.alias.getOrElse(col.name) != sourceColAlias) {
                     // avoid adding self dependent columns
-                    dfsNoopRollupCols(fact, Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
+                    dfsNoopRollupCols(fact, List((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
                   }
               }
             }
@@ -228,7 +228,7 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
           val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
           if (col.alias.getOrElse(col.name) != sourceColAlias) {
             // avoid adding self dependent columns
-            dfsNoopRollupCols(fact, Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
+            dfsNoopRollupCols(fact, List((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
           }
       }
     }
