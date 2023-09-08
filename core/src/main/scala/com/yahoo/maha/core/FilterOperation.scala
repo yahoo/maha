@@ -12,7 +12,8 @@ import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
-import com.yahoo.maha.core.request.{Parameter, TimeZoneValue, fieldExtended}
+import com.yahoo.maha.core.query.QueryGeneratorHelper.overrideRenderedCol
+import com.yahoo.maha.core.request.{Parameter, ReportingRequest, TimeZoneValue, fieldExtended}
 import grizzled.slf4j.Logging
 import org.apache.druid.java.util.common.granularity.PeriodGranularity
 import org.apache.druid.js.JavaScriptConfig
@@ -1578,7 +1579,8 @@ object FilterSql {
                    columnsByNameMap: Map[String, Column],
                    engine: Engine,
                    literalMapper: SqlLiteralMapper,
-                   grainOption: Option[Grain] = None): SqlResult = {
+                   grainOption: Option[Grain] = None,
+                   request: Option[ReportingRequest] = None): SqlResult = {
 
     val aliasToRenderedSqlMap: mutable.HashMap[String, (String, String)] = new mutable.HashMap[String, (String, String)]()
     val name = aliasToNameMapFull(filter.field)
@@ -1590,7 +1592,42 @@ object FilterSql {
         column match {
           case column if column.isInstanceOf[DerivedColumn] =>
             val derCol = column.asInstanceOf[DerivedColumn]
-            derCol.derivedExpression.render(name).toString
+//            derCol.derivedExpression.render(name).toString
+            
+            if (request.isDefined) {
+              overrideRenderedCol(false, request.get, derCol, name)
+            } else {
+              derCol.derivedExpression.render(name).toString
+            }
+            
+
+//            derCol match {
+//              case HiveDerDimCol(_, dt, _, de, _, _, _) =>
+//                de.expression match {
+//                  case timeFmtTz@TIME_FORMAT_WITH_TIMEZONE(_, fmt, tz) =>
+//                    
+//////                    if (queryContext.requestModel.reportingRequest.getTimezone.isDefined) {
+//////                      val newTz = queryContext.requestModel.reportingRequest.getTimezone.get
+//////                      if (tz != newTz) {
+//////                        derCol.derivedExpression.render(name).toString.replaceAll(tz, newTz)
+//////                      } else {
+//////                        derCol.derivedExpression.render(name).toString
+//////                      }
+//////                    } else {
+//////                      derCol.derivedExpression.render(name).toString
+//////                    }
+////
+////                    if (tz != timeFmtTz.updatedTimezone) {
+////                      derCol.derivedExpression.render(name).toString.replaceAll(tz, timeFmtTz.updatedTimezone)
+////                    } else {
+////                      derCol.derivedExpression.render(name).toString
+////                    }
+//                  case _ =>
+//                    derCol.derivedExpression.render(name).toString
+//                }
+//              case _ =>
+//                derCol.derivedExpression.render(name).toString
+//            }
           case _ => nameOrAlias
         }
       case Some(e) => e

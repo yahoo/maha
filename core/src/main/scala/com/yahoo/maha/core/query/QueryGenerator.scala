@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
+import com.yahoo.maha.core.HiveExpression.TIME_FORMAT_WITH_TIMEZONE
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.{Fact, FactBestCandidate, FactCol, PublicFact}
@@ -378,7 +379,7 @@ object QueryGeneratorHelper {
 
   def overrideRenderedCol(
                            insideDerived: Boolean
-                           , colCtx: List[Field] = List.empty
+                           , request: ReportingRequest
                            , column: DerivedColumn
                            , name: String
                            , renderedColAliasMap: scala.collection.Map[String, String] = Map.empty
@@ -386,6 +387,15 @@ object QueryGeneratorHelper {
                          ): String = {
     val de = column.derivedExpression.asInstanceOf[DerivedExpression[String]]
     val input = de.render(name, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
+    var query = overrideRenderedColWithCtx(de, getAdditionalColData(request), input)
+    query = overrideRenderedColWithTimezone(request.getTimezone, column, query)
+    query
+  }
+  
+  def overrideRenderedColWithCtx(
+                                  de: DerivedExpression[String], 
+                                  colCtx: List[Field] = List.empty, 
+                                  input: String): String = {
     if (colCtx.nonEmpty && useCtxt(de)) {
       colCtx.foldLeft(input) {
         case stringAndField: (String, Field) =>
@@ -401,6 +411,26 @@ object QueryGeneratorHelper {
     innerExpression match {
       case _@(_: PrestoExpression.COL_W_REPLACEMENTS | _: HiveExpression.COL_W_REPLACEMENTS | _: BigqueryExpression.COL_W_REPLACEMENTS) => true
       case _ => false
+    }
+  }
+
+  def overrideRenderedColWithTimezone(
+                           newTimeZone: Option[String]
+                           , column: DerivedColumn
+                           , query: String
+                         ): String = {
+    column match {
+      case HiveDerDimCol(_, dt, _, de, _, _, _) =>
+        de.expression match {
+          case timeFmtTz@TIME_FORMAT_WITH_TIMEZONE(_, fmt, tz) =>
+            if (newTimeZone.isDefined && tz != newTimeZone.get) {
+              query.replaceAll(tz, newTimeZone.get)
+            } else {
+              query
+            }
+          case _ => query
+        }
+      case _ => query
     }
   }
 

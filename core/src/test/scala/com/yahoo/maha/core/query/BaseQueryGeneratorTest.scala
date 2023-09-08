@@ -73,6 +73,12 @@ trait BaseQueryGeneratorTest {
     reportingRequestOption.toOption.get
   }
 
+  protected[this] def getReportingRequestAsyncWithAdditionalParameters(jsonString: String, schema: Schema = AdvertiserSchema) = {
+    val reportingRequestOption = ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), schema)
+    require(reportingRequestOption.isSuccess)
+    reportingRequestOption.toOption.get
+  }
+
   protected[this] def getReportingRequestSync(jsonString: String, schema: Schema = AdvertiserSchema) = {
     val result = ReportingRequest.deserializeSync(jsonString.getBytes(StandardCharsets.UTF_8), schema)
     require(result.isSuccess, result)

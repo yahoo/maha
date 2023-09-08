@@ -181,7 +181,7 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
               case FactCol(_, dt, cc, rollup, _, annotations, _) =>
                 s"""${renderRollupExpression(x.name, rollup)}"""
               case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-                val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), x.asInstanceOf[PrestoDerFactCol], x.name)
+                val overriddenCol = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, x.asInstanceOf[PrestoDerFactCol], x.name)
                 s"""${renderRollupExpression(overriddenCol, rollup)}"""
               case any =>
                 throw new UnsupportedOperationException(s"Found non fact column : $any")

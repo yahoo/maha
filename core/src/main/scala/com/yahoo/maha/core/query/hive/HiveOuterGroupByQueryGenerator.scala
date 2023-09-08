@@ -208,7 +208,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
             case FactCol(_, dt, cc, rollup, _, annotations, _) =>
               s"""${renderRollupExpression(x.name, rollup, None)}"""
             case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) => //This never gets used, otherwise errors would be thrown before the Generator.
-              val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), x.asInstanceOf[HiveDerFactCol], x.name)
+              val overriddenCol = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, x.asInstanceOf[HiveDerFactCol], x.name)
               s"""${renderRollupExpression(overriddenCol, rollup, None)}"""
             case any =>
               throw new UnsupportedOperationException(s"Found non fact column : $any")
@@ -380,7 +380,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
         case FactCol(_, dt, cc, rollup, _, annotations, _) =>
           s"""${renderRollupExpression(qualifiedColInnerAlias, rollup)} AS $colInnerAlias"""
         case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-          val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), innerSelectCol.asInstanceOf[HiveDerFactCol], qualifiedColInnerAlias)
+          val overriddenCol = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, innerSelectCol.asInstanceOf[HiveDerFactCol], qualifiedColInnerAlias)
           s"""${renderRollupExpression(de.render(overriddenCol, Map.empty), rollup)} AS $colInnerAlias"""
         case _=> throw new IllegalArgumentException(s"Unexpected Col $innerSelectCol found in FactColumnInfo ")
       }

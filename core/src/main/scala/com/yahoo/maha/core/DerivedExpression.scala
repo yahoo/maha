@@ -562,6 +562,19 @@ object HiveExpression {
     def asString : String = s"from_unixtime(unix_timestamp(${s.asString}, '$fmt'), 'EEEE')"
   }
 
+  case class TIME_FORMAT_WITH_TIMEZONE(s: HiveExp, fmt: String, timezone: String = "UTC") extends BaseHiveExpression {
+    val hasRollupExpression = s.hasRollupExpression
+    val hasNumericOperation = s.hasNumericOperation
+    def asString : String = s"from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(${s.asString}, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), '$timezone')), '$fmt')"
+
+//    def updateTimezone(tz: String) : Unit = {
+//      updatedTimezone = tz
+//    }
+
+    def getTimezone : String = timezone
+//    def getHiveExp : String = s.asString
+  }
+
   case class COALESCE(s: HiveExp, default: HiveExp) extends BaseHiveExpression {
     def hasRollupExpression = s.hasRollupExpression || default.hasRollupExpression
     def hasNumericOperation = s.hasNumericOperation || default.hasNumericOperation
@@ -961,6 +974,17 @@ trait DerivedExpression[T] {
       }
     }
   }
+
+//  def reRender(columnName: String
+//             , renderedColumnAliasMap: scala.collection.Map[String, String] = Map.empty
+//             , renderedColExp: Option[String] = None
+//             , columnPrefix: Option[String] = None
+//             , expandDerivedExpression: Boolean = true
+//             , insideDerived: Boolean = false): T = {
+//    rendered = None
+//    renderedInsideDerived = None
+//    render(columnName, renderedColumnAliasMap, renderedColExp, columnPrefix, expandDerivedExpression, insideDerived)
+//  }
 
   def copyWith(columnContext: ColumnContext) : ConcreteType
 

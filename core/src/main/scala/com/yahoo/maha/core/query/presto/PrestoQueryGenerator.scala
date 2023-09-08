@@ -242,7 +242,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
             name
           case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
             val renderedAlias = renderColumnAlias(alias)
-            val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), column.asInstanceOf[PrestoDerDimCol], name)
+            val overriddenCol = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, column.asInstanceOf[PrestoDerDimCol], name)
             queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
             s"""${overriddenCol} $renderedAlias"""
           case FactCol(_, dt, _, rollup, _, _, _) =>
@@ -266,7 +266,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
             if queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
               || de.isDimensionDriven =>
             val renderedAlias = renderColumnAlias(alias)
-            val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), column.asInstanceOf[PrestoDerFactCol], name)
+            val overriddenCol = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, column.asInstanceOf[PrestoDerFactCol], name)
             queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
             s"""${renderRollupExpression(overriddenCol, rollup)} $renderedAlias"""
 
@@ -282,7 +282,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
               case _ => //do nothing if we reference ourselves
             }
             val renderedAlias = renderColumnAlias(alias)
-            val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), column.asInstanceOf[PrestoDerFactCol], renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)
+            val overriddenCol = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, column.asInstanceOf[PrestoDerFactCol], renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)
             queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${overriddenCol})"""))
             ""
           case ConstFactCol(_, _, v, _, _, _, _, _) =>
@@ -367,7 +367,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
               case FactCol(_, dt, cc, rollup, _, annotations, _) =>
                 s"""${renderRollupExpression(x.name, rollup)}"""
               case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-                val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), x.asInstanceOf[PrestoDerFactCol], name)
+                val overriddenCol = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, x.asInstanceOf[PrestoDerFactCol], name)
                 s"""${renderRollupExpression(overriddenCol, rollup)}"""
               case any =>
                 throw new UnsupportedOperationException(s"Found non fact column : $any")
@@ -447,7 +447,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           case DimCol(_, dt, _, _, _, _) =>
             name
           case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
-            val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), column.asInstanceOf[PrestoDerDimCol], name)
+            val overriddenCol = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, column.asInstanceOf[PrestoDerDimCol], name)
             s"""${overriddenCol}"""
           case other => throw new IllegalArgumentException(s"Unhandled column type for dimension cols : $other")
         }

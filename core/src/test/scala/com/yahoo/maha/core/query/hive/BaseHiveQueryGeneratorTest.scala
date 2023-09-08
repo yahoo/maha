@@ -508,6 +508,8 @@ trait BaseHiveQueryGeneratorTest
           , HiveDerDimCol("click_exp_id", StrType(), REGEX_EXTRACT("internal_bucket_id", "(cl-)(.*?)(,|$)", 2, replaceMissingValue = true, "-3"))
           , HiveDerDimCol("col_test", StrType(), COL("CASE WHEN ({keyword_id}) is not null then ({keyword}) ELSE ({search_term}) END"))
           , HiveDerDimCol("col_modifiable_test", StrType(), COL_W_REPLACEMENTS("CASE WHEN ({keyword_id}) is not null then ({keyword}) ELSE ({search_term}) END"))
+          , HiveDerDimCol("Day", DateType(), TIME_FORMAT_WITH_TIMEZONE("{utc_date}", "yyyyMMdd"))
+          , HiveDerDimCol("Hour", DateType(), TIME_FORMAT_WITH_TIMEZONE("{utc_hour}", "yyyyMMddHH"))
           , HivePartDimCol("frequency", StrType(), partitionLevel = FirstPartitionLevel)
           , HivePartDimCol("utc_date", StrType(), partitionLevel = SecondPartitionLevel)
           , HivePartDimCol("utc_hour", StrType(), partitionLevel = ThirdPartitionLevel)
@@ -529,7 +531,8 @@ trait BaseHiveQueryGeneratorTest
     }
       .toPublicFact("s_stats_minute",
         Set(
-          PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("Day", "Day", InBetweenEquality),
+          PubCol("Hour", "Hour", InBetweenEquality),
           PubCol("ad_id", "Ad ID", EqualityFieldEquality),
           PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
