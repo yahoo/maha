@@ -1592,42 +1592,11 @@ object FilterSql {
         column match {
           case column if column.isInstanceOf[DerivedColumn] =>
             val derCol = column.asInstanceOf[DerivedColumn]
-//            derCol.derivedExpression.render(name).toString
-            
             if (request.isDefined) {
               overrideRenderedCol(false, request.get, derCol, name)
             } else {
               derCol.derivedExpression.render(name).toString
             }
-            
-
-//            derCol match {
-//              case HiveDerDimCol(_, dt, _, de, _, _, _) =>
-//                de.expression match {
-//                  case timeFmtTz@TIME_FORMAT_WITH_TIMEZONE(_, fmt, tz) =>
-//                    
-//////                    if (queryContext.requestModel.reportingRequest.getTimezone.isDefined) {
-//////                      val newTz = queryContext.requestModel.reportingRequest.getTimezone.get
-//////                      if (tz != newTz) {
-//////                        derCol.derivedExpression.render(name).toString.replaceAll(tz, newTz)
-//////                      } else {
-//////                        derCol.derivedExpression.render(name).toString
-//////                      }
-//////                    } else {
-//////                      derCol.derivedExpression.render(name).toString
-//////                    }
-////
-////                    if (tz != timeFmtTz.updatedTimezone) {
-////                      derCol.derivedExpression.render(name).toString.replaceAll(tz, timeFmtTz.updatedTimezone)
-////                    } else {
-////                      derCol.derivedExpression.render(name).toString
-////                    }
-//                  case _ =>
-//                    derCol.derivedExpression.render(name).toString
-//                }
-//              case _ =>
-//                derCol.derivedExpression.render(name).toString
-//            }
           case _ => nameOrAlias
         }
       case Some(e) => e

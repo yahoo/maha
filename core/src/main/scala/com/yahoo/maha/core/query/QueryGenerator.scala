@@ -422,12 +422,8 @@ object QueryGeneratorHelper {
     column match {
       case HiveDerDimCol(_, dt, _, de, _, _, _) =>
         de.expression match {
-          case timeFmtTz@TIME_FORMAT_WITH_TIMEZONE(_, fmt, tz) =>
-            if (newTimeZone.isDefined && tz != newTimeZone.get) {
-              query.replaceAll(tz, newTimeZone.get)
-            } else {
-              query
-            }
+          case TIME_FORMAT_WITH_TIMEZONE(_, fmt, tz) if newTimeZone.isDefined && tz != newTimeZone.get =>
+            query.replaceAll(tz, newTimeZone.get)
           case _ => query
         }
       case _ => query
