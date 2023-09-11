@@ -36,6 +36,7 @@ trait BaseHiveQueryGeneratorTest
     registryBuilder.register(bidReco())
     registryBuilder.register(pubfact2(forcedFilters))
     registryBuilder.register(pubfact3(forcedFilters))
+    registryBuilder.register(pubfact4(forcedFilters))
   }
 
   protected[this] def s_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
@@ -508,8 +509,6 @@ trait BaseHiveQueryGeneratorTest
           , HiveDerDimCol("click_exp_id", StrType(), REGEX_EXTRACT("internal_bucket_id", "(cl-)(.*?)(,|$)", 2, replaceMissingValue = true, "-3"))
           , HiveDerDimCol("col_test", StrType(), COL("CASE WHEN ({keyword_id}) is not null then ({keyword}) ELSE ({search_term}) END"))
           , HiveDerDimCol("col_modifiable_test", StrType(), COL_W_REPLACEMENTS("CASE WHEN ({keyword_id}) is not null then ({keyword}) ELSE ({search_term}) END"))
-          , HiveDerDimCol("Day", DateType(), TIME_FORMAT_WITH_TIMEZONE("{utc_date}", "yyyyMMdd"))
-          , HiveDerDimCol("Hour", DateType(), TIME_FORMAT_WITH_TIMEZONE("{utc_hour}", "yyyyMMddHH"))
           , HivePartDimCol("frequency", StrType(), partitionLevel = FirstPartitionLevel)
           , HivePartDimCol("utc_date", StrType(), partitionLevel = SecondPartitionLevel)
           , HivePartDimCol("utc_hour", StrType(), partitionLevel = ThirdPartitionLevel)
@@ -531,8 +530,7 @@ trait BaseHiveQueryGeneratorTest
     }
       .toPublicFact("s_stats_minute",
         Set(
-          PubCol("Day", "Day", InBetweenEquality),
-          PubCol("Hour", "Hour", InBetweenEquality),
+          PubCol("stats_date", "Day", InBetweenEquality),
           PubCol("ad_id", "Ad ID", EqualityFieldEquality),
           PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
@@ -571,6 +569,39 @@ trait BaseHiveQueryGeneratorTest
           PublicFactCol("max_price_type", "Max Price Type", Equality),
           PublicFactCol("col_test_metric", "Test Metric COL", InEquality),
           PublicFactCol("col_modifiable_test_metric", "Test Mod Metric COL", InEquality)
+        ),
+        Set(),
+        getMaxDaysWindow, getMaxDaysLookBack
+      )
+  }
+
+  def pubfact4(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    import HiveExpression._
+    import com.yahoo.maha.core.BaseExpressionTest._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "s_stats_timezone_fact", MinuteGrain, HiveEngine, Set(AdvertiserSchema),
+        Set(
+          DimCol("account_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , HiveDerDimCol("Day", DateType(), TIME_FORMAT_WITH_TIMEZONE("{utc_date}", "yyyyMMdd"))
+          , HiveDerDimCol("Hour", DateType(), TIME_FORMAT_WITH_TIMEZONE("{utc_hour}", "yyyyMMddHH"))
+          , HivePartDimCol("frequency", StrType(), partitionLevel = FirstPartitionLevel)
+          , HivePartDimCol("utc_date", StrType(), partitionLevel = SecondPartitionLevel)
+          , HivePartDimCol("utc_hour", StrType(), partitionLevel = ThirdPartitionLevel)
+        ),
+        Set(
+          FactCol("impressions", IntType(3, 1))
+        )
+      )
+    }
+      .toPublicFact("s_stats_timezone",
+        Set(
+          PubCol("Day", "Day", InBetweenEquality),
+          PubCol("Hour", "Hour", InBetweenEquality),
+          PubCol("account_id", "Advertiser ID", InEquality)
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser)
         ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack

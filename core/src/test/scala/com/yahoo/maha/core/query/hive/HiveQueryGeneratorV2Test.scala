@@ -3,11 +3,11 @@
 package com.yahoo.maha.core.query.hive
 
 import java.nio.charset.StandardCharsets
+
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.{QueryGeneratorRegistry, _}
 import com.yahoo.maha.core.request.ReportingRequest
-import org.joda.time.LocalDateTime
 
 /**
  * Created by pranavbhole on 10/16/18.
@@ -2254,10 +2254,10 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
-  test("test timezone") {
+  test("Test specified timezone in additionalParameter should be applied in hive v2 query") {
     val jsonString =
       s"""{
-                          "cube": "s_stats_minute",
+                          "cube": "s_stats_timezone",
                           "selectFields": [
                               {"field": "Day"},
                               {"field": "Hour"},
@@ -2266,7 +2266,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                              {"field": "Day", "operator": "between", "from": "2023-09-03", "to": "2023-09-04"}
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                           ],
                           "additionalParameters": {"TimeZone": "America/New_York"}
                           }"""
@@ -2274,53 +2274,72 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsyncWithAdditionalParameters(jsonString)
     val registry = getDefaultRegistry()
     val requestModel = getRequestModel(request, registry)
-    println("------------- 1: " + LocalDateTime.now())
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    println("------------- 1: " + LocalDateTime.now())
     val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v2)
-    println("------------- 1: " + LocalDateTime.now())
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println("------------- 1: " + LocalDateTime.now())
     val expected =
       s"""
+         |SELECT CONCAT_WS(",",NVL(CAST(mang_day AS STRING), ''), NVL(CAST(mang_hour AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''))
+         |FROM(
+         |SELECT getFormattedDate(mang_day) mang_day, getFormattedDate(mang_hour) mang_hour, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 1L) mang_impressions
+         |FROM(SELECT account_id, from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_hour, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMddHH') mang_hour, from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd') mang_day, SUM(impressions) impressions
+         |FROM s_stats_timezone_fact
+         |WHERE (account_id = 12345) AND (from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd') >= '$fromDateHive' AND from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd') <= '$toDateHive')
+         |GROUP BY account_id, from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_hour, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMddHH'), from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd')
          |
+         |       )
+         |sstf0
+         |
+         |) queryAlias LIMIT 200
          |""".stripMargin
-         
-    println(result)
 
-//    result should equal (expected) (after being whiteSpaceNormalised)
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
 
-//    val jsonString2 =
-//      s"""{
-//                          "cube": "s_stats_minute",
-//                          "selectFields": [
-//                              {"field": "Day"},
-//                              {"field": "Hour"},
-//                              {"field": "Advertiser ID"},
-//                              {"field": "Impressions"}
-//                          ],
-//                          "filterExpressions": [
-//                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-//                              {"field": "Day", "operator": "between", "from": "2023-09-03", "to": "2023-09-04"}
-//                          ],
-//                          "additionalParameters": {"TimeZone": "UTC"}
-//                          }"""
-//
-//    val request2: ReportingRequest = getReportingRequestAsyncWithAdditionalParameters(jsonString2)
-//    println("------------- 2: " + LocalDateTime.now())
-//    val requestModel2 = getRequestModel(request2, registry)
-//    assert(requestModel2.isSuccess, requestModel2.errorMessage("Building request model failed"))
-//
-//    println("------------- 2: " + LocalDateTime.now())
-//    val queryPipelineTry2 = generatePipeline(requestModel2.toOption.get, Version.v2)
-//    println("------------- 2: " + LocalDateTime.now())
-//    assert(queryPipelineTry2.isSuccess, queryPipelineTry2.errorMessage("Fail to get the query pipeline"))
-//
-//    val result2 =  queryPipelineTry2.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-//    println("------------- 2: " + LocalDateTime.now())
-//    println(result2)
+  test("Test should apply UTC as default timezone in hive v2 query") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats_timezone",
+                          "selectFields": [
+                              {"field": "Day"},
+                              {"field": "Hour"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsyncWithAdditionalParameters(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(",",NVL(CAST(mang_day AS STRING), ''), NVL(CAST(mang_hour AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''))
+         |FROM(
+         |SELECT getFormattedDate(mang_day) mang_day, getFormattedDate(mang_hour) mang_hour, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 1L) mang_impressions
+         |FROM(SELECT account_id, from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_hour, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'UTC')), 'yyyyMMddHH') mang_hour, from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'UTC')), 'yyyyMMdd') mang_day, SUM(impressions) impressions
+         |FROM s_stats_timezone_fact
+         |WHERE (account_id = 12345) AND (from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'UTC')), 'yyyyMMdd') >= '$fromDateHive' AND from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'UTC')), 'yyyyMMdd') <= '$toDateHive')
+         |GROUP BY account_id, from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_hour, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'UTC')), 'yyyyMMddHH'), from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'UTC')), 'yyyyMMdd')
+         |
+         |       )
+         |sstf0
+         |
+         |) queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
   }
 }
