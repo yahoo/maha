@@ -386,10 +386,13 @@ object QueryGeneratorHelper {
                            , expandDerivedExpression: Boolean = true
                          ): String = {
     val de = column.derivedExpression.asInstanceOf[DerivedExpression[String]]
-    val input = de.render(name, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
-    var query = overrideRenderedColWithCtx(de, getAdditionalColData(request), input)
-    query = overrideRenderedColWithTimezone(request.getTimezone, column, query)
-    query
+    de.expression match {
+      case TIME_FORMAT_WITH_TIMEZONE(_, fmt, tz) =>
+        overrideRenderedColWithTimezone(request.getTimezone, column, name, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
+      case _ =>
+        val input = de.render(name, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
+        overrideRenderedColWithCtx(de, getAdditionalColData(request), input)
+    }
   }
   
   def overrideRenderedColWithCtx(
@@ -414,20 +417,15 @@ object QueryGeneratorHelper {
     }
   }
 
-  def overrideRenderedColWithTimezone(
-                           newTimeZone: Option[String]
-                           , column: DerivedColumn
-                           , query: String
-                         ): String = {
-    column match {
-      case HiveDerDimCol(_, dt, _, de, _, _, _) =>
-        de.expression match {
-          case TIME_FORMAT_WITH_TIMEZONE(_, fmt, tz) if newTimeZone.isDefined && tz != newTimeZone.get =>
-            query.replaceAll(tz, newTimeZone.get)
-          case _ => query
-        }
-      case _ => query
-    }
+  def overrideRenderedColWithTimezone(newTimeZone: Option[String]
+                                       , column: DerivedColumn
+                                       , name: String
+                                       , renderedColAliasMap: scala.collection.Map[String, String] = Map.empty
+                                       , expandDerivedExpression: Boolean = true
+                                     ): String = {
+    val de = column.derivedExpression.asInstanceOf[DerivedExpression[String]]
+    val renderedExpression = de.expression.asInstanceOf[TIME_FORMAT_WITH_TIMEZONE].renderWithTimezone(newTimeZone)
+    de.renderSourceCols(name, renderedExpression, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
   }
 
 }

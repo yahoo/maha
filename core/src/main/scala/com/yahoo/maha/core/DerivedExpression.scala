@@ -565,7 +565,14 @@ object HiveExpression {
   case class TIME_FORMAT_WITH_TIMEZONE(s: HiveExp, fmt: String, timezone: String = "UTC") extends BaseHiveExpression {
     val hasRollupExpression = s.hasRollupExpression
     val hasNumericOperation = s.hasNumericOperation
-    def asString : String = s"from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(${s.asString}, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), '$timezone')), '$fmt')"
+    def asString : String = renderWithTimezone()
+    def renderWithTimezone(newTimezone: Option[String] = None) : String = {
+      if (newTimezone.isDefined){
+        s"from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(${s.asString}, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), '${newTimezone.get}')), '$fmt')"
+      } else {
+        s"from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(${s.asString}, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), '$timezone')), '$fmt')"
+      }
+    }
   }
 
   case class COALESCE(s: HiveExp, default: HiveExp) extends BaseHiveExpression {
@@ -935,19 +942,7 @@ trait DerivedExpression[T] {
              , insideDerived: Boolean = false): T = {
     def renderNow(insideDerived: Boolean) : T = {
       var de: T = expression.render(insideDerived)
-      for (c <- sourceColumns) {
-        val renderC = {
-          if (c == columnName && renderedColExp.isDefined) {
-            renderedColExp.get
-          } else {
-            columnContext.render(c, renderedColumnAliasMap, columnPrefix = columnPrefix, parentColumn = Option(columnName), expandDerivedExpression)
-          }
-        }
-        de = de match {
-          case s if s.isInstanceOf[String] => s.asInstanceOf[String].replaceAllLiterally (s"{$c}", renderC).asInstanceOf[T]
-          case _ => de
-        }
-      }
+      de = renderSourceCols(columnName, de, renderedColumnAliasMap, renderedColExp, columnPrefix, expandDerivedExpression)
       postRenderHook(columnName, de)
     }
 
@@ -966,6 +961,29 @@ trait DerivedExpression[T] {
         rendered.get
       }
     }
+  }
+  
+  def renderSourceCols(columnName: String
+                                , de: T
+                                , renderedColumnAliasMap: scala.collection.Map[String, String] = Map.empty
+                                , renderedColExp: Option[String] = None
+                                , columnPrefix: Option[String] = None
+                                , expandDerivedExpression: Boolean = true) : T = {
+    var mutableDe = de
+    for (c <- sourceColumns) {
+      val renderC = {
+        if (c == columnName && renderedColExp.isDefined) {
+          renderedColExp.get
+        } else {
+          columnContext.render(c, renderedColumnAliasMap, columnPrefix = columnPrefix, parentColumn = Option(columnName), expandDerivedExpression)
+        }
+      }
+      mutableDe = mutableDe match {
+        case s if s.isInstanceOf[String] => s.asInstanceOf[String].replaceAllLiterally (s"{$c}", renderC).asInstanceOf[T]
+        case _ => mutableDe
+      }
+    }
+    mutableDe
   }
 
   def copyWith(columnContext: ColumnContext) : ConcreteType
