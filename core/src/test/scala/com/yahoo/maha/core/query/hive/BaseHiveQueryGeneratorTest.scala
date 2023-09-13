@@ -583,8 +583,11 @@ trait BaseHiveQueryGeneratorTest
         "s_stats_timezone_fact", MinuteGrain, HiveEngine, Set(AdvertiserSchema),
         Set(
           DimCol("account_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
           , HiveDerDimCol("Day", DateType(), TIME_FORMAT_WITH_TIMEZONE("{utc_date}", "yyyyMMdd"))
           , HiveDerDimCol("Hour", DateType(), TIME_FORMAT_WITH_TIMEZONE("{utc_hour}", "yyyyMMddHH"))
+          , HiveDerDimCol("derived_day", DateType(), COALESCE("{utc_date}", "'2023-01-01'"))
+          , HiveDerDimCol("Derived Day", DateType(), TIME_FORMAT_WITH_TIMEZONE("{derived_day}", "yyyyMMdd"))
           , HivePartDimCol("frequency", StrType(), partitionLevel = FirstPartitionLevel)
           , HivePartDimCol("utc_date", StrType(), partitionLevel = SecondPartitionLevel)
           , HivePartDimCol("utc_hour", StrType(), partitionLevel = ThirdPartitionLevel)
@@ -598,7 +601,9 @@ trait BaseHiveQueryGeneratorTest
         Set(
           PubCol("Day", "Day", InBetweenEquality),
           PubCol("Hour", "Hour", InBetweenEquality),
-          PubCol("account_id", "Advertiser ID", InEquality)
+          PubCol("Derived Day", "Derived Day", InBetweenEquality),
+          PubCol("account_id", "Advertiser ID", InEquality),
+          PubCol("campaign_id", "Campaign ID", InEquality),
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser)

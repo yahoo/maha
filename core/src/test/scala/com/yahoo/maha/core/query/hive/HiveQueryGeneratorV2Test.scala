@@ -2400,4 +2400,102 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     println(result)
     result should equal (expected) (after being whiteSpaceNormalised)
   }
+
+  test("Test should apply specified timezone for dim column in dim table") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats_timezone",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Derived Campaign Start Date"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Derived Campaign Start Date", "operator": "=", "value": "$fromDateHive"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "additionalParameters": {"TimeZone": "America/New_York"}
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsyncWithAdditionalParameters(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(",",NVL(CAST(campaign_id AS STRING), ''), NVL(CAST(mang_derived_campaign_start_date AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''))
+         |FROM(
+         |SELECT COALESCE(sstf0.campaign_id, 0L) campaign_id, COALESCE(c1.mang_derived_campaign_start_date, 'NA') mang_derived_campaign_start_date, COALESCE(impressions, 1L) mang_impressions
+         |FROM(SELECT campaign_id, SUM(impressions) impressions
+         |FROM s_stats_timezone_fact
+         |WHERE (account_id = 12345) AND (from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd') >= '$fromDateHive' AND from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd') <= '$toDateHive')
+         |GROUP BY campaign_id
+         |
+         |       )
+         |sstf0
+         |JOIN (
+         |SELECT from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(campaign_start_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd') AS mang_derived_campaign_start_date, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(campaign_start_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd') = '$fromDateHive')
+         |)
+         |c1
+         |ON
+         |sstf0.campaign_id = c1.c1_id
+         |       
+         |) queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("Test should apply specified timezone for derived column whose source col is derived") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats_timezone",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Derived Day"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Derived Day", "operator": "=", "value": "$fromDate"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "additionalParameters": {"TimeZone": "America/New_York"}
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsyncWithAdditionalParameters(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_derived_day AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''))
+         |FROM(
+         |SELECT COALESCE(account_id, 0L) advertiser_id, getFormattedDate(mang_derived_day) mang_derived_day, COALESCE(impressions, 1L) mang_impressions
+         |FROM(SELECT account_id, from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(coalesce(utc_date, '2023-01-01'), 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd') mang_derived_day, SUM(impressions) impressions
+         |FROM s_stats_timezone_fact
+         |WHERE (account_id = 12345) AND (from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(coalesce(utc_date, '2023-01-01'), 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd') = '$fromDateHive') AND (from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd') >= '$fromDateHive' AND from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(utc_date, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd') <= '$toDateHive')
+         |GROUP BY account_id, from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(coalesce(utc_date, '2023-01-01'), 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), 'America/New_York')), 'yyyyMMdd')
+         |
+         |       )
+         |sstf0
+         |
+         |) queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
 }
