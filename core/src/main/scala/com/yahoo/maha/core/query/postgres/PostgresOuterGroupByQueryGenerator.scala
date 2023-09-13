@@ -106,7 +106,8 @@ abstract class PostgresOuterGroupByQueryGenerator(partitionColumnRenderer:Partit
                 Map.empty,
                 fact.columnsByNameMap,
                 PostgresEngine,
-                literalMapper)
+                literalMapper,
+                queryContext.requestModel.reportingRequest)
               whereFilters += f.filter
             } else if (fact.factColMap.contains(name1)) {
               val column = fact.columnsByNameMap(name1)
@@ -127,7 +128,8 @@ abstract class PostgresOuterGroupByQueryGenerator(partitionColumnRenderer:Partit
                   Map(alias -> (name1, exp)),
                   fact.columnsByNameMap,
                   PostgresEngine,
-                  literalMapper
+                  literalMapper,
+                  queryContext.requestModel.reportingRequest
                 )
                 havingFilters += f.filter
               } else {
@@ -150,7 +152,8 @@ abstract class PostgresOuterGroupByQueryGenerator(partitionColumnRenderer:Partit
                   Map(alias -> (name2, exp), alias2 -> (name2, exp2)),
                   fact.columnsByNameMap,
                   PostgresEngine,
-                  literalMapper
+                  literalMapper,
+                  queryContext.requestModel.reportingRequest
                 )
                 havingFilters += f.filter
               }
@@ -166,7 +169,8 @@ abstract class PostgresOuterGroupByQueryGenerator(partitionColumnRenderer:Partit
         Map.empty,
         fact.columnsByNameMap,
         PostgresEngine,
-        literalMapper).filter
+        literalMapper,
+        queryContext.requestModel.reportingRequest).filter
 
       val combinedQueriedFilters = {
         if (hasPartitioningScheme) {

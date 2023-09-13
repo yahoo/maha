@@ -7,6 +7,7 @@ import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.helper.SqlHelper
 import com.yahoo.maha.core.query._
+import com.yahoo.maha.core.request.ReportingRequest
 import grizzled.slf4j.Logging
 import org.apache.commons.lang3.StringUtils
 
@@ -46,7 +47,7 @@ class PostgresQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, li
   }
 
   def generateSubqueryFilter(primaryTableFkCol: String, primaryTableFilters: SortedSet[Filter]
-                             , subqueryBundle: DimensionBundle, queryBuilderContext: QueryBuilderContext) : String = {
+                             , subqueryBundle: DimensionBundle, queryBuilderContext: QueryBuilderContext, reportingRequest: ReportingRequest) : String = {
 
     val aliasToNameMapFull = subqueryBundle.publicDim.aliasToNameMapFull
     val columnsByNameMap = subqueryBundle.dim.columnsByNameMap
@@ -58,11 +59,11 @@ class PostgresQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, li
         subqueryBundle.publicDim.columnsByAlias(alias)
     }.map {
       filter =>
-        val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, PostgresEngine, literalMapper)
+        val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, PostgresEngine, literalMapper, reportingRequest)
         f.filter
     }
 
-    val subqueryFilters = generateInSubqueryFilters(subqueryBundle)
+    val subqueryFilters = generateInSubqueryFilters(subqueryBundle, reportingRequest)
     val dimWhere = WhereClause(RenderedAndFilter(subqueryFilters ++ primaryBundleFiltersToInclude))
     s"""$primaryTableFkCol IN (SELECT $dimSelect FROM ${subqueryBundle.dim.name} $dimWhere)"""
   }
@@ -104,7 +105,7 @@ b. Dim Driven
           require(dimBundle.publicDim.columnsByAlias(subqueryBundle.publicDim.primaryKeyByAlias),
             s"subquery dim primary key not found in primary dimension, dim=${dimBundle.publicDim.name}, subquery dim=${subqueryBundle.publicDim.name}")
 
-          val sql = generateSubqueryFilter(dimBundle.dim.publicDimToForeignKeyMap(subqueryBundle.publicDim.name), dimBundle.filters, subqueryBundle, queryBuilderContext)
+          val sql = generateSubqueryFilter(dimBundle.dim.publicDimToForeignKeyMap(subqueryBundle.publicDim.name), dimBundle.filters, subqueryBundle, queryBuilderContext, requestModel.reportingRequest)
           dimBundleFilters += sql
       }
       val aliasToNameMapFull = dimBundle.publicDim.aliasToNameMapFull
@@ -117,7 +118,7 @@ b. Dim Driven
           || dimBundle.isDrivingDimension
           //TODO: add check that not include filter predicate if it is push down only if that field is partition key
           || requestModel.hasNonDrivingDimSortOrFilter && !dimBundle.isDrivingDimension) {
-            val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, PostgresEngine, literalMapper)
+            val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, PostgresEngine, literalMapper, requestModel.reportingRequest)
             dimBundleFilters += f.filter
           }
       }
@@ -1001,7 +1002,7 @@ b. Dim Driven
     }
   }
 
-  private[this] def generateInSubqueryFilters(bundle: DimensionBundle): Set[String] = {
+  private[this] def generateInSubqueryFilters(bundle: DimensionBundle, reportingRequest: ReportingRequest): Set[String] = {
     val filters = new collection.mutable.TreeSet[String]
     val aliasToNameMapFull = bundle.publicDim.aliasToNameMapFull
     val columnsByNameMap = bundle.dim.columnsByNameMap
@@ -1013,7 +1014,8 @@ b. Dim Driven
           Map.empty,
           columnsByNameMap,
           PostgresEngine,
-          literalMapper).filter
+          literalMapper,
+          reportingRequest).filter
     }
     filters.toSet
   }
@@ -1114,7 +1116,8 @@ b. Dim Driven
         Map.empty,
         fact.columnsByNameMap,
         PostgresEngine,
-        literalMapper).filter
+        literalMapper,
+        queryContext.requestModel.reportingRequest).filter
 
       val combinedQueriedFilters = {
         if (hasPartitioningScheme) {

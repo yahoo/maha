@@ -158,7 +158,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
               case any =>
                 throw new UnsupportedOperationException(s"Found non fact column : $any")
             }
-          val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, aliasToNameMapFull, null, PrestoEngine, prestoLiteralMapper, colRenderFn)
+          val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, aliasToNameMapFull, queryContext, PrestoEngine, prestoLiteralMapper, colRenderFn)
 
           if (fact.dimColMap.contains(name)) {
             whereFilters += result.filter
@@ -176,7 +176,8 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
         Map.empty,
         fact.columnsByNameMap,
         PrestoEngine,
-        prestoLiteralMapper).filter
+        prestoLiteralMapper,
+        queryContext.requestModel.reportingRequest).filter
 
       val combinedQueriedFilters = {
         if (hasPartitioningScheme) {

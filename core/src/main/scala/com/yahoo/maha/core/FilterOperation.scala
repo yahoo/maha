@@ -1579,8 +1579,8 @@ object FilterSql {
                    columnsByNameMap: Map[String, Column],
                    engine: Engine,
                    literalMapper: SqlLiteralMapper,
-                   grainOption: Option[Grain] = None,
-                   request: Option[ReportingRequest] = None): SqlResult = {
+                   request: ReportingRequest,
+                   grainOption: Option[Grain] = None): SqlResult = {
 
     val aliasToRenderedSqlMap: mutable.HashMap[String, (String, String)] = new mutable.HashMap[String, (String, String)]()
     val name = aliasToNameMapFull(filter.field)
@@ -1592,11 +1592,7 @@ object FilterSql {
         column match {
           case column if column.isInstanceOf[DerivedColumn] =>
             val derCol = column.asInstanceOf[DerivedColumn]
-            if (request.isDefined) {
-              overrideRenderedCol(false, request.get, derCol, name)
-            } else {
-              derCol.derivedExpression.render(name).toString
-            }
+            overrideRenderedCol(false, request, derCol, name)
           case _ => nameOrAlias
         }
       case Some(e) => e
@@ -1605,7 +1601,7 @@ object FilterSql {
     aliasToRenderedSqlMap(filter.field) = (name, exp)
     filter match {
       case PushDownFilter(f) =>
-        renderFilter(f, aliasToNameMapFull, nameToAliasAndRenderedSqlMap, columnsByNameMap, engine, literalMapper, None)
+        renderFilter(f, aliasToNameMapFull, nameToAliasAndRenderedSqlMap, columnsByNameMap, engine, literalMapper, request, None)
       case FieldEqualityFilter(f,g, _, _) =>
         val otherColumnName = aliasToNameMapFull(g)
         val otherColumn = columnsByNameMap(otherColumnName)

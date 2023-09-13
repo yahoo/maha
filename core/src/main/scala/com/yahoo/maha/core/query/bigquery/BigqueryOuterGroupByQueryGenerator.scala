@@ -233,7 +233,7 @@ abstract case class BigqueryOuterGroupByQueryGenerator(
           publicFact,
           fact,
           aliasToNameMapFull,
-          null,
+          queryContext,
           BigqueryEngine,
           bigqueryLiteralMapper,
           colRenderFn
@@ -254,7 +254,8 @@ abstract case class BigqueryOuterGroupByQueryGenerator(
       Map.empty,
       fact.columnsByNameMap,
       BigqueryEngine,
-      bigqueryLiteralMapper
+      bigqueryLiteralMapper,
+      queryContext.requestModel.reportingRequest
     ).filter
 
     val combinedQueriedFilters = {

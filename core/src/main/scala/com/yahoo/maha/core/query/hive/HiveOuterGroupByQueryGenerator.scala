@@ -131,7 +131,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
           val isAggregatedDimCol = isAggregateDimCol(column)
           if (!isAggregatedDimCol) {
             if (column.isDerivedColumn) {
-              val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
+              val derivedExpressionExpanded: String = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, column.asInstanceOf[DerivedColumn], name)
               queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
             } else {
                 queryBuilder.addGroupBy(nameOrAlias)
@@ -213,7 +213,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
             case any =>
               throw new UnsupportedOperationException(s"Found non fact column : $any")
           }
-        val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, aliasToNameMapFull, null, HiveEngine, hiveLiteralMapper, colRenderFn)
+        val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, aliasToNameMapFull, queryContext, HiveEngine, hiveLiteralMapper, colRenderFn)
 
         if (fact.dimColMap.contains(name)) {
           whereFilters += result.filter
@@ -231,7 +231,8 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
       Map.empty,
       fact.columnsByNameMap,
       HiveEngine,
-      hiveLiteralMapper).filter
+      hiveLiteralMapper,
+      queryContext.requestModel.reportingRequest).filter
 
     val combinedQueriedFilters = {
       if (hasPartitioningScheme) {

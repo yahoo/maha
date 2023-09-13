@@ -390,7 +390,8 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
         Map.empty,
         fact.columnsByNameMap,
         PrestoEngine,
-        prestoLiteralMapper).filter
+        prestoLiteralMapper,
+        queryContext.requestModel.reportingRequest).filter
 
       val combinedQueriedFilters = {
         if (hasPartitioningScheme) {
@@ -485,7 +486,8 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
             Map.empty,
             columnsByNameMap,
             PrestoEngine,
-            prestoLiteralMapper
+            prestoLiteralMapper,
+            queryContext.requestModel.reportingRequest
           ).filter
       }
 

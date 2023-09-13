@@ -145,7 +145,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
       fact.columnsByNameMap,
       HiveEngine,
       hiveLiteralMapper,
-      request = Some(queryContext.requestModel.reportingRequest)).filter
+      queryContext.requestModel.reportingRequest).filter
 
     val combinedQueriedFilters = {
       if (hasPartitioningScheme) {
@@ -234,7 +234,8 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
           Map.empty,
           columnsByNameMap,
           HiveEngine,
-          hiveLiteralMapper
+          hiveLiteralMapper,
+          requestModel.reportingRequest
         ).filter
     }
 

@@ -324,7 +324,7 @@ object QueryGeneratorHelper {
                             publicFact: PublicFact,
                             fact: Fact,
                             aliasToNameMapFull: Map[String, String],
-                            queryContext: CombinedQueryContext,
+                            queryContext: QueryContext,
                             engine: Engine,
                             literalMapper: SqlLiteralMapper,
                             colFn: Column => String): SqlResult = {
@@ -347,7 +347,8 @@ object QueryGeneratorHelper {
       fMap.toMap,
       fact.columnsByNameMap,
       engine,
-      literalMapper
+      literalMapper,
+      queryContext.requestModel.reportingRequest
     )
   }
 

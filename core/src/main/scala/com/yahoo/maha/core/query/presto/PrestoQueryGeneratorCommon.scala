@@ -163,7 +163,8 @@ abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColum
           Map.empty,
           columnsByNameMap,
           PrestoEngine,
-          prestoLiteralMapper
+          prestoLiteralMapper,
+          requestModel.reportingRequest
         ).filter
     }
 
