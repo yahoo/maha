@@ -159,7 +159,8 @@ abstract class BigqueryQueryGeneratorCommon(
       Map.empty,
       fact.columnsByNameMap,
       BigqueryEngine,
-      bigqueryLiteralMapper
+      bigqueryLiteralMapper,
+      queryContext.requestModel.reportingRequest
     ).filter
 
     val combinedQueriedFilters = {
@@ -242,7 +243,8 @@ abstract class BigqueryQueryGeneratorCommon(
           Map.empty,
           columnsByNameMap,
           BigqueryEngine,
-          bigqueryLiteralMapper
+          bigqueryLiteralMapper,
+          requestModel.reportingRequest
         ).filter
     }
 

@@ -12,7 +12,8 @@ import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
-import com.yahoo.maha.core.request.{Parameter, TimeZoneValue, fieldExtended}
+import com.yahoo.maha.core.query.QueryGeneratorHelper.overrideRenderedCol
+import com.yahoo.maha.core.request.{Parameter, ReportingRequest, TimeZoneValue, fieldExtended}
 import grizzled.slf4j.Logging
 import org.apache.druid.java.util.common.granularity.PeriodGranularity
 import org.apache.druid.js.JavaScriptConfig
@@ -1578,6 +1579,7 @@ object FilterSql {
                    columnsByNameMap: Map[String, Column],
                    engine: Engine,
                    literalMapper: SqlLiteralMapper,
+                   request: ReportingRequest,
                    grainOption: Option[Grain] = None): SqlResult = {
 
     val aliasToRenderedSqlMap: mutable.HashMap[String, (String, String)] = new mutable.HashMap[String, (String, String)]()
@@ -1590,7 +1592,7 @@ object FilterSql {
         column match {
           case column if column.isInstanceOf[DerivedColumn] =>
             val derCol = column.asInstanceOf[DerivedColumn]
-            derCol.derivedExpression.render(name).toString
+            overrideRenderedCol(false, request, derCol, name)
           case _ => nameOrAlias
         }
       case Some(e) => e
@@ -1599,7 +1601,7 @@ object FilterSql {
     aliasToRenderedSqlMap(filter.field) = (name, exp)
     filter match {
       case PushDownFilter(f) =>
-        renderFilter(f, aliasToNameMapFull, nameToAliasAndRenderedSqlMap, columnsByNameMap, engine, literalMapper, None)
+        renderFilter(f, aliasToNameMapFull, nameToAliasAndRenderedSqlMap, columnsByNameMap, engine, literalMapper, request, None)
       case FieldEqualityFilter(f,g, _, _) =>
         val otherColumnName = aliasToNameMapFull(g)
         val otherColumn = columnsByNameMap(otherColumnName)

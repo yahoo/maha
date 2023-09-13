@@ -3,7 +3,7 @@ package com.yahoo.maha.core.query.hive
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core.query.QueryGeneratorHelper.{getAdditionalColData, overrideRenderedCol}
+import com.yahoo.maha.core.query.QueryGeneratorHelper.overrideRenderedCol
 import com.yahoo.maha.core.query._
 
 import scala.collection.{SortedSet, mutable}
@@ -61,7 +61,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
           val isAggregatedDimCol = isAggregateDimCol(column)
           if (!isAggregatedDimCol) {
             if (column.isDerivedColumn) {
-              val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
+              val derivedExpressionExpanded: String = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, column.asInstanceOf[DerivedColumn], name)
               queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
             } else {
               if(column.dataType.hasStaticMapping) {
@@ -144,7 +144,8 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
       Map.empty,
       fact.columnsByNameMap,
       HiveEngine,
-      hiveLiteralMapper).filter
+      hiveLiteralMapper,
+      queryContext.requestModel.reportingRequest).filter
 
     val combinedQueriedFilters = {
       if (hasPartitioningScheme) {
@@ -195,7 +196,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
         case DimCol(_, dt, _, _, _, _) =>
           name
         case HiveDerDimCol(_, dt, _, de, _, _, _) =>
-          val overriddenCol = overrideRenderedCol(false, getAdditionalColData(requestModel.reportingRequest), column.asInstanceOf[HiveDerDimCol], name)
+          val overriddenCol = overrideRenderedCol(false, requestModel.reportingRequest, column.asInstanceOf[HiveDerDimCol], name)
           s"""${overriddenCol}"""
         case other => throw new IllegalArgumentException(s"Unhandled column type for dimension cols : $other")
       }
@@ -233,7 +234,8 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
           Map.empty,
           columnsByNameMap,
           HiveEngine,
-          hiveLiteralMapper
+          hiveLiteralMapper,
+          requestModel.reportingRequest
         ).filter
     }
 

@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
+import com.yahoo.maha.core.HiveExpression.TIME_FORMAT_WITH_TIMEZONE
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.{Fact, FactBestCandidate, FactCol, PublicFact}
@@ -323,7 +324,7 @@ object QueryGeneratorHelper {
                             publicFact: PublicFact,
                             fact: Fact,
                             aliasToNameMapFull: Map[String, String],
-                            queryContext: CombinedQueryContext,
+                            queryContext: QueryContext,
                             engine: Engine,
                             literalMapper: SqlLiteralMapper,
                             colFn: Column => String): SqlResult = {
@@ -346,7 +347,8 @@ object QueryGeneratorHelper {
       fMap.toMap,
       fact.columnsByNameMap,
       engine,
-      literalMapper
+      literalMapper,
+      queryContext.requestModel.reportingRequest
     )
   }
 
@@ -378,14 +380,26 @@ object QueryGeneratorHelper {
 
   def overrideRenderedCol(
                            insideDerived: Boolean
-                           , colCtx: List[Field] = List.empty
+                           , request: ReportingRequest
                            , column: DerivedColumn
                            , name: String
                            , renderedColAliasMap: scala.collection.Map[String, String] = Map.empty
                            , expandDerivedExpression: Boolean = true
                          ): String = {
     val de = column.derivedExpression.asInstanceOf[DerivedExpression[String]]
-    val input = de.render(name, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
+    de.expression match {
+      case TIME_FORMAT_WITH_TIMEZONE(_, fmt, tz) =>
+        overrideRenderedColWithTimezone(request.getTimezone, column, name, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
+      case _ =>
+        val input = de.render(name, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
+        overrideRenderedColWithCtx(de, getAdditionalColData(request), input)
+    }
+  }
+  
+  def overrideRenderedColWithCtx(
+                                  de: DerivedExpression[String], 
+                                  colCtx: List[Field] = List.empty, 
+                                  input: String): String = {
     if (colCtx.nonEmpty && useCtxt(de)) {
       colCtx.foldLeft(input) {
         case stringAndField: (String, Field) =>
@@ -402,6 +416,17 @@ object QueryGeneratorHelper {
       case _@(_: PrestoExpression.COL_W_REPLACEMENTS | _: HiveExpression.COL_W_REPLACEMENTS | _: BigqueryExpression.COL_W_REPLACEMENTS) => true
       case _ => false
     }
+  }
+
+  def overrideRenderedColWithTimezone(newTimeZone: Option[String]
+                                       , column: DerivedColumn
+                                       , name: String
+                                       , renderedColAliasMap: scala.collection.Map[String, String] = Map.empty
+                                       , expandDerivedExpression: Boolean = true
+                                     ): String = {
+    val de = column.derivedExpression.asInstanceOf[DerivedExpression[String]]
+    val renderedExpression = de.expression.asInstanceOf[TIME_FORMAT_WITH_TIMEZONE].renderWithTimezone(newTimeZone)
+    de.renderSourceCols(name, renderedExpression, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
   }
 
 }

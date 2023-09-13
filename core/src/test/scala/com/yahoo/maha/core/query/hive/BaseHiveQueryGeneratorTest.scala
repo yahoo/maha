@@ -36,6 +36,7 @@ trait BaseHiveQueryGeneratorTest
     registryBuilder.register(bidReco())
     registryBuilder.register(pubfact2(forcedFilters))
     registryBuilder.register(pubfact3(forcedFilters))
+    registryBuilder.register(pubfact4(forcedFilters))
   }
 
   protected[this] def s_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
@@ -568,6 +569,44 @@ trait BaseHiveQueryGeneratorTest
           PublicFactCol("max_price_type", "Max Price Type", Equality),
           PublicFactCol("col_test_metric", "Test Metric COL", InEquality),
           PublicFactCol("col_modifiable_test_metric", "Test Mod Metric COL", InEquality)
+        ),
+        Set(),
+        getMaxDaysWindow, getMaxDaysLookBack
+      )
+  }
+
+  def pubfact4(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    import HiveExpression._
+    import com.yahoo.maha.core.BaseExpressionTest._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "s_stats_timezone_fact", MinuteGrain, HiveEngine, Set(AdvertiserSchema),
+        Set(
+          DimCol("account_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          , HiveDerDimCol("Day", DateType(), TIME_FORMAT_WITH_TIMEZONE("{utc_date}", "yyyyMMdd"))
+          , HiveDerDimCol("Hour", DateType(), TIME_FORMAT_WITH_TIMEZONE("{utc_hour}", "yyyyMMddHH"))
+          , HiveDerDimCol("derived_day", DateType(), COALESCE("{utc_date}", "'2023-01-01'"))
+          , HiveDerDimCol("Derived Day", DateType(), TIME_FORMAT_WITH_TIMEZONE("{derived_day}", "yyyyMMdd"))
+          , HivePartDimCol("frequency", StrType(), partitionLevel = FirstPartitionLevel)
+          , HivePartDimCol("utc_date", StrType(), partitionLevel = SecondPartitionLevel)
+          , HivePartDimCol("utc_hour", StrType(), partitionLevel = ThirdPartitionLevel)
+        ),
+        Set(
+          FactCol("impressions", IntType(3, 1))
+        )
+      )
+    }
+      .toPublicFact("s_stats_timezone",
+        Set(
+          PubCol("Day", "Day", InBetweenEquality),
+          PubCol("Hour", "Hour", InBetweenEquality),
+          PubCol("Derived Day", "Derived Day", InBetweenEquality),
+          PubCol("account_id", "Advertiser ID", InEquality),
+          PubCol("campaign_id", "Campaign ID", InEquality),
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser)
         ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack

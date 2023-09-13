@@ -131,7 +131,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
           val isAggregatedDimCol = isAggregateDimCol(column)
           if (!isAggregatedDimCol) {
             if (column.isDerivedColumn) {
-              val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
+              val derivedExpressionExpanded: String = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, column.asInstanceOf[DerivedColumn], name)
               queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
             } else {
                 queryBuilder.addGroupBy(nameOrAlias)
@@ -208,12 +208,12 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
             case FactCol(_, dt, cc, rollup, _, annotations, _) =>
               s"""${renderRollupExpression(x.name, rollup, None)}"""
             case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) => //This never gets used, otherwise errors would be thrown before the Generator.
-              val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), x.asInstanceOf[HiveDerFactCol], x.name)
+              val overriddenCol = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, x.asInstanceOf[HiveDerFactCol], x.name)
               s"""${renderRollupExpression(overriddenCol, rollup, None)}"""
             case any =>
               throw new UnsupportedOperationException(s"Found non fact column : $any")
           }
-        val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, aliasToNameMapFull, null, HiveEngine, hiveLiteralMapper, colRenderFn)
+        val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, aliasToNameMapFull, queryContext, HiveEngine, hiveLiteralMapper, colRenderFn)
 
         if (fact.dimColMap.contains(name)) {
           whereFilters += result.filter
@@ -231,7 +231,8 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
       Map.empty,
       fact.columnsByNameMap,
       HiveEngine,
-      hiveLiteralMapper).filter
+      hiveLiteralMapper,
+      queryContext.requestModel.reportingRequest).filter
 
     val combinedQueriedFilters = {
       if (hasPartitioningScheme) {
@@ -380,7 +381,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
         case FactCol(_, dt, cc, rollup, _, annotations, _) =>
           s"""${renderRollupExpression(qualifiedColInnerAlias, rollup)} AS $colInnerAlias"""
         case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-          val overriddenCol = overrideRenderedCol(false, getAdditionalColData(queryContext.requestModel.reportingRequest), innerSelectCol.asInstanceOf[HiveDerFactCol], qualifiedColInnerAlias)
+          val overriddenCol = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, innerSelectCol.asInstanceOf[HiveDerFactCol], qualifiedColInnerAlias)
           s"""${renderRollupExpression(de.render(overriddenCol, Map.empty), rollup)} AS $colInnerAlias"""
         case _=> throw new IllegalArgumentException(s"Unexpected Col $innerSelectCol found in FactColumnInfo ")
       }

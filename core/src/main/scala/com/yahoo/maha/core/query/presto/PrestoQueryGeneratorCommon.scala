@@ -125,7 +125,7 @@ abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColum
         case DimCol(_, dt, _, _, _, _) =>
           name
         case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
-          val overriddenCol = overrideRenderedCol(false, getAdditionalColData(requestModel.reportingRequest), column.asInstanceOf[PrestoDerDimCol], name)
+          val overriddenCol = overrideRenderedCol(false, requestModel.reportingRequest, column.asInstanceOf[PrestoDerDimCol], name)
           s"""${overriddenCol}"""
         case other => throw new IllegalArgumentException(s"Unhandled column type for dimension cols : $other")
       }
@@ -163,7 +163,8 @@ abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColum
           Map.empty,
           columnsByNameMap,
           PrestoEngine,
-          prestoLiteralMapper
+          prestoLiteralMapper,
+          requestModel.reportingRequest
         ).filter
     }
 

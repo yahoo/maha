@@ -46,7 +46,7 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
     }
   }
 
-  def generateSubqueryFilter(primaryTableFkCol: String, primaryTableFilters: SortedSet[Filter], subqueryBundle: DimensionBundle) : String = {
+  def generateSubqueryFilter(primaryTableFkCol: String, primaryTableFilters: SortedSet[Filter], subqueryBundle: DimensionBundle, reportingRequest: ReportingRequest) : String = {
 
     val aliasToNameMapFull = subqueryBundle.publicDim.aliasToNameMapFull
     val columnsByNameMap = subqueryBundle.dim.columnsByNameMap
@@ -58,11 +58,11 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
         subqueryBundle.publicDim.columnsByAlias(alias)
     }.map {
       filter =>
-        val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, OracleEngine, literalMapper)
+        val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, OracleEngine, literalMapper, reportingRequest)
         f.filter
     }
 
-    val subqueryFilters = generateInSubqueryFilters(subqueryBundle)
+    val subqueryFilters = generateInSubqueryFilters(subqueryBundle, reportingRequest)
     val dimWhere = WhereClause(RenderedAndFilter(subqueryFilters ++ primaryBundleFiltersToInclude))
     s"""$primaryTableFkCol IN (SELECT $dimSelect FROM ${subqueryBundle.dim.name} $dimWhere)"""
   }
@@ -111,7 +111,7 @@ b. Dim Driven
           require(dimBundle.publicDim.columnsByAlias(subqueryBundle.publicDim.primaryKeyByAlias),
             s"subquery dim primary key not found in primary dimension, dim=${dimBundle.publicDim.name}, subquery dim=${subqueryBundle.publicDim.name}")
 
-          val sql = generateSubqueryFilter(dimBundle.dim.publicDimToForeignKeyMap(subqueryBundle.publicDim.name), dimBundle.filters, subqueryBundle)
+          val sql = generateSubqueryFilter(dimBundle.dim.publicDimToForeignKeyMap(subqueryBundle.publicDim.name), dimBundle.filters, subqueryBundle, requestModel.reportingRequest)
           dimBundleFilters += sql
       }
       val aliasToNameMapFull = dimBundle.publicDim.aliasToNameMapFull
@@ -124,7 +124,7 @@ b. Dim Driven
           || dimBundle.isDrivingDimension
           //TODO: add check that not include filter predicate if it is push down only if that field is partition key
           || requestModel.hasNonDrivingDimSortOrFilter && !dimBundle.isDrivingDimension || (requestModel.additionalParameters.contains(Parameter.AllowPushDownName) && requestModel.additionalParameters.get(Parameter.AllowPushDownName).get == AllowPushDownNameValue("true")  && requestModel.forceDimDriven)) {
-            val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, OracleEngine, literalMapper)
+            val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, OracleEngine, literalMapper, requestModel.reportingRequest)
             dimBundleFilters += f.filter
           }
       }
@@ -1004,7 +1004,7 @@ b. Dim Driven
     }
   }
 
-  private[this] def generateInSubqueryFilters(bundle: DimensionBundle): Set[String] = {
+  private[this] def generateInSubqueryFilters(bundle: DimensionBundle, reportingRequest: ReportingRequest): Set[String] = {
     val filters = new collection.mutable.TreeSet[String]
     val aliasToNameMapFull = bundle.publicDim.aliasToNameMapFull
     val columnsByNameMap = bundle.dim.columnsByNameMap
@@ -1016,7 +1016,8 @@ b. Dim Driven
           Map.empty,
           columnsByNameMap,
           OracleEngine,
-          literalMapper).filter
+          literalMapper,
+          reportingRequest).filter
     }
     filters.toSet
   }
@@ -1121,7 +1122,8 @@ b. Dim Driven
         Map.empty,
         fact.columnsByNameMap,
         OracleEngine,
-        literalMapper).filter
+        literalMapper,
+        queryContext.requestModel.reportingRequest).filter
 
       val combinedQueriedFilters = {
         if (hasPartitioningScheme) {
