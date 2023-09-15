@@ -388,7 +388,7 @@ object QueryGeneratorHelper {
                          ): String = {
     val de = column.derivedExpression.asInstanceOf[DerivedExpression[String]]
     de.expression match {
-      case TIME_FORMAT_WITH_TIMEZONE(_, fmt, tz) =>
+      case TIME_FORMAT_WITH_TIMEZONE(_, _, _, tz) =>
         overrideRenderedColWithTimezone(request.getTimezone, column, name, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
       case _ =>
         val input = de.render(name, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
@@ -428,7 +428,6 @@ object QueryGeneratorHelper {
     val renderedExpression = de.expression.asInstanceOf[TIME_FORMAT_WITH_TIMEZONE].renderWithTimezone(newTimeZone)
     de.renderSourceCols(name, renderedExpression, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
   }
-
 }
 
 sealed trait VersionNumber {

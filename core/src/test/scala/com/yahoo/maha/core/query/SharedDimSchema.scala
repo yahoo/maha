@@ -517,7 +517,7 @@ trait SharedDimSchema {
             , DimCol("campaign_start_date", StrType())
             , DimCol("campaign_end_date", StrType())
             , HiveDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
-            , HiveDerDimCol("Derived Campaign Start Date", StrType(), TIME_FORMAT_WITH_TIMEZONE("{campaign_start_date}", "yyyyMMdd"))
+            , HiveDerDimCol("Derived Campaign Start Date", StrType(), TIME_FORMAT_WITH_TIMEZONE("{campaign_start_date}", "yyyyMMdd", "yyyyMMdd"))
             , HivePartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
             , HivePartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
           )

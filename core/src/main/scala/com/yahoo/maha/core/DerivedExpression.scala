@@ -562,15 +562,15 @@ object HiveExpression {
     def asString : String = s"from_unixtime(unix_timestamp(${s.asString}, '$fmt'), 'EEEE')"
   }
 
-  case class TIME_FORMAT_WITH_TIMEZONE(s: HiveExp, fmt: String, timezone: String = "UTC") extends BaseHiveExpression {
+  case class TIME_FORMAT_WITH_TIMEZONE(s: HiveExp, inputFmt: String, outputFmt: String, timezone: String = "UTC") extends BaseHiveExpression {
     val hasRollupExpression = s.hasRollupExpression
     val hasNumericOperation = s.hasNumericOperation
     def asString : String = renderWithTimezone()
     def renderWithTimezone(newTimezone: Option[String] = None) : String = {
       if (newTimezone.isDefined){
-        s"from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(${s.asString}, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), '${newTimezone.get}')), '$fmt')"
+        s"from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(${s.asString}, '$inputFmt'), 'yyyy-MM-dd HH:mm:ss'), '${newTimezone.get}')), '$outputFmt')"
       } else {
-        s"from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(${s.asString}, 'yyyyMMddHH'), 'yyyy-MM-dd HH:mm:ss'), '$timezone')), '$fmt')"
+        s"from_unixtime(unix_timestamp(from_utc_timestamp(from_unixtime(unix_timestamp(${s.asString}, '$inputFmt'), 'yyyy-MM-dd HH:mm:ss'), '$timezone')), '$outputFmt')"
       }
     }
   }
