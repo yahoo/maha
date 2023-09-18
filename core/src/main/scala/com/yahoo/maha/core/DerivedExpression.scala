@@ -400,6 +400,19 @@ object PrestoExpression {
     val hasNumericOperation = s.hasNumericOperation
     def asString : String = s"date_format(date_parse(${s.asString}, '$fmt'), '%W')"
   }
+  
+  case class TIME_FORMAT_WITH_TIMEZONE(s: PrestoExp, inputFmt: String, outputFmt: String, timezone: String = "UTC") extends BasePrestoExpression {
+    val hasRollupExpression = s.hasRollupExpression
+    val hasNumericOperation = s.hasNumericOperation
+    def asString : String = renderWithTimezone()
+    def renderWithTimezone(newTimezone: Option[String] = None) : String = {
+      if (newTimezone.isDefined){
+        s"format_datetime(parse_datetime(${s.asString}, '$inputFmt') at TIME ZONE '${newTimezone.get}', '$outputFmt')"
+      } else {
+        s"format_datetime(parse_datetime(${s.asString}, '$inputFmt') at TIME ZONE '$timezone', '$outputFmt')"
+      }
+    }
+  }
 
   case class COALESCE(s: PrestoExp, default: PrestoExp) extends BasePrestoExpression {
     def hasRollupExpression = s.hasRollupExpression || default.hasRollupExpression

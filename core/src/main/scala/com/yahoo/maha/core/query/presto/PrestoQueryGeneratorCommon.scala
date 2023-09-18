@@ -3,7 +3,7 @@ package com.yahoo.maha.core.query.presto
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core.query.QueryGeneratorHelper.{getAdditionalColData, overrideRenderedCol}
+import com.yahoo.maha.core.query.QueryGeneratorHelper.overrideRenderedCol
 import com.yahoo.maha.core.query._
 
 abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithPrestoEngine] with BigqueryHivePrestoQueryCommon {

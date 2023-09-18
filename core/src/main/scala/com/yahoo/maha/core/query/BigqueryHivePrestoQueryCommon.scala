@@ -3,7 +3,7 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core.query.QueryGeneratorHelper.{getAdditionalColData, overrideRenderedCol}
+import com.yahoo.maha.core.query.QueryGeneratorHelper.overrideRenderedCol
 import com.yahoo.maha.core.request.ReportingRequest
 
 import scala.collection.mutable

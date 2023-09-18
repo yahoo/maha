@@ -3,7 +3,7 @@ package com.yahoo.maha.core.query.presto
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core.query.QueryGeneratorHelper.{getAdditionalColData, overrideRenderedCol}
+import com.yahoo.maha.core.query.QueryGeneratorHelper.overrideRenderedCol
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 
@@ -73,7 +73,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
             val isAggregatedDimCol = isAggregateDimCol(column)
             if (!isAggregatedDimCol) {
               if (column.isDerivedColumn) {
-                val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
+                val derivedExpressionExpanded: String = overrideRenderedCol(false, queryContext.requestModel.reportingRequest, column.asInstanceOf[DerivedColumn], name)
                 queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
               } else {
                   queryBuilder.addGroupBy(nameOrAlias)
