@@ -388,7 +388,7 @@ object QueryGeneratorHelper {
                          ): String = {
     val de = column.derivedExpression.asInstanceOf[DerivedExpression[String]]
     de.expression match {
-      case TIME_FORMAT_WITH_TIMEZONE(_, fmt, tz) =>
+      case HiveExpression.TIME_FORMAT_WITH_TIMEZONE(_, _, _, _) | PrestoExpression.TIME_FORMAT_WITH_TIMEZONE(_, _, _, _) =>
         overrideRenderedColWithTimezone(request.getTimezone, column, name, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
       case _ =>
         val input = de.render(name, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
@@ -424,11 +424,17 @@ object QueryGeneratorHelper {
                                        , renderedColAliasMap: scala.collection.Map[String, String] = Map.empty
                                        , expandDerivedExpression: Boolean = true
                                      ): String = {
-    val de = column.derivedExpression.asInstanceOf[DerivedExpression[String]]
-    val renderedExpression = de.expression.asInstanceOf[TIME_FORMAT_WITH_TIMEZONE].renderWithTimezone(newTimeZone)
-    de.renderSourceCols(name, renderedExpression, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
+    column match {
+      case HiveDerDimCol(_, dt, _, de, _, _, _) =>
+        val renderedExpression = de.expression.asInstanceOf[HiveExpression.TIME_FORMAT_WITH_TIMEZONE].renderWithTimezone(newTimeZone)
+        de.renderSourceCols(name, renderedExpression, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
+      case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
+        val renderedExpression = de.expression.asInstanceOf[PrestoExpression.TIME_FORMAT_WITH_TIMEZONE].renderWithTimezone(newTimeZone)
+        de.renderSourceCols(name, renderedExpression, renderedColAliasMap, expandDerivedExpression = expandDerivedExpression)
+      case  _ =>
+        ""
+    }
   }
-
 }
 
 sealed trait VersionNumber {

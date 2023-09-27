@@ -3252,4 +3252,257 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
 
     result should equal(expected)(after being whiteSpaceNormalised)
   }
+
+  test("Test specified timezone in additionalParameter should be applied in presto v1 query") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats_timezone",
+                          "selectFields": [
+                              {"field": "Day"},
+                              {"field": "Hour"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "additionalParameters": {"TimeZone": "America/New_York"}
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsyncWithAdditionalParameters(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    val expected =
+      s"""
+         |SELECT CAST(mang_day as VARCHAR) AS mang_day, CAST(mang_hour as VARCHAR) AS mang_hour, CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT getFormattedDate(mang_day) mang_day, getFormattedDate(mang_hour) mang_hour, COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(impressions as bigint), 1) mang_impressions
+         |FROM(SELECT account_id, format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMddHH') mang_hour, format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMdd') mang_day, SUM(impressions) impressions
+         |FROM s_stats_timezone_fact
+         |WHERE (account_id = 12345) AND (format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMdd') >= '$fromDateHive' AND format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMdd') <= '$toDateHive')
+         |GROUP BY account_id, format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMddHH'), format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMdd')
+         |
+         |       )
+         |sstf0
+         |
+         |
+         |          )
+         |        queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("Test should apply UTC as default timezone in presto v1 query") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats_timezone",
+                          "selectFields": [
+                              {"field": "Day"},
+                              {"field": "Hour"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsyncWithAdditionalParameters(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    val expected =
+      s"""
+         |SELECT CAST(mang_day as VARCHAR) AS mang_day, CAST(mang_hour as VARCHAR) AS mang_hour, CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT getFormattedDate(mang_day) mang_day, getFormattedDate(mang_hour) mang_hour, COALESCE(CAST(account_id as bigint), 0) advertiser_id, COALESCE(CAST(impressions as bigint), 1) mang_impressions
+         |FROM(SELECT account_id, format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'UTC', 'yyyyMMddHH') mang_hour, format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'UTC', 'yyyyMMdd') mang_day, SUM(impressions) impressions
+         |FROM s_stats_timezone_fact
+         |WHERE (account_id = 12345) AND (format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'UTC', 'yyyyMMdd') >= '$fromDateHive' AND format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'UTC', 'yyyyMMdd') <= '$toDateHive')
+         |GROUP BY account_id, format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'UTC', 'yyyyMMddHH'), format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'UTC', 'yyyyMMdd')
+         |
+         |       )
+         |sstf0
+         |
+         |
+         |          )
+         |        queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("Test specified timezone in additionalParameter should be applied in presto v1 OGB query") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats_timezone",
+                          "selectFields": [
+                              {"field": "Day"},
+                              {"field": "Hour"},
+                              {"field": "Advertiser Name"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "additionalParameters": {"TimeZone": "America/New_York"}
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsyncWithAdditionalParameters(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    val expected =
+      s"""
+         |SELECT CAST(mang_day as VARCHAR) AS mang_day, CAST(mang_hour as VARCHAR) AS mang_hour, CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT mang_day, mang_hour, mang_advertiser_name AS mang_advertiser_name, impressions AS mang_impressions
+         |FROM(
+         |SELECT getFormattedDate(mang_day) mang_day, getFormattedDate(mang_hour) mang_hour, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, SUM(impressions) AS impressions
+         |FROM(SELECT account_id, format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMddHH') mang_hour, format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMdd') mang_day, SUM(impressions) impressions
+         |FROM s_stats_timezone_fact
+         |WHERE (account_id = 12345) AND (format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMdd') >= '$fromDateHive' AND format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMdd') <= '$toDateHive')
+         |GROUP BY account_id, format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMddHH'), format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMdd')
+         |
+         |       )
+         |sstf0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |sstf0.account_id = a1.a1_id
+         |       
+         |GROUP BY getFormattedDate(mang_day), getFormattedDate(mang_hour), COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA')
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("Test should apply specified timezone for dim column in dim table") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats_timezone",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Derived Campaign Start Date"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Derived Campaign Start Date", "operator": "=", "value": "$fromDateHive"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "additionalParameters": {"TimeZone": "America/New_York"}
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsyncWithAdditionalParameters(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    val expected =
+      s"""
+         |SELECT CAST(campaign_id as VARCHAR) AS campaign_id, CAST(mang_derived_campaign_start_date as VARCHAR) AS mang_derived_campaign_start_date, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(CAST(sstf0.campaign_id as bigint), 0) campaign_id, COALESCE(CAST(c1.mang_derived_campaign_start_date as VARCHAR), 'NA') mang_derived_campaign_start_date, COALESCE(CAST(impressions as bigint), 1) mang_impressions
+         |FROM(SELECT campaign_id, SUM(impressions) impressions
+         |FROM s_stats_timezone_fact
+         |WHERE (account_id = 12345) AND (format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMdd') >= '$fromDateHive' AND format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMdd') <= '$toDateHive')
+         |GROUP BY campaign_id
+         |
+         |       )
+         |sstf0
+         |JOIN (
+         |SELECT format_datetime(parse_datetime(campaign_start_date, 'yyyyMMdd') at TIME ZONE 'America/New_York', 'yyyyMMdd') AS mang_derived_campaign_start_date, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (format_datetime(parse_datetime(campaign_start_date, 'yyyyMMdd') at TIME ZONE 'America/New_York', 'yyyyMMdd') = '$fromDateHive')
+         |)
+         |c1
+         |ON
+         |sstf0.campaign_id = c1.c1_id
+         |       
+         |
+         |          )
+         |        queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("Test should apply specified timezone for derived column whose source col is derived") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats_timezone",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Derived Day"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Derived Day", "operator": "=", "value": "$fromDate"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "additionalParameters": {"TimeZone": "America/New_York"}
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsyncWithAdditionalParameters(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    val expected =
+      s"""
+         |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_derived_day as VARCHAR) AS mang_derived_day, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(CAST(account_id as bigint), 0) advertiser_id, getFormattedDate(mang_derived_day) mang_derived_day, COALESCE(CAST(impressions as bigint), 1) mang_impressions
+         |FROM(SELECT account_id, format_datetime(parse_datetime(coalesce(utc_date, '20230101'), 'yyyyMMdd') at TIME ZONE 'America/New_York', 'yyyyMMdd') mang_derived_day, SUM(impressions) impressions
+         |FROM s_stats_timezone_fact
+         |WHERE (account_id = 12345) AND (format_datetime(parse_datetime(coalesce(utc_date, '20230101'), 'yyyyMMdd') at TIME ZONE 'America/New_York', 'yyyyMMdd') = '$fromDateHive') AND (format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMdd') >= '$fromDateHive' AND format_datetime(parse_datetime(utc_hour, 'yyyyMMddHH') at TIME ZONE 'America/New_York', 'yyyyMMdd') <= '$toDateHive')
+         |GROUP BY account_id, format_datetime(parse_datetime(coalesce(utc_date, '20230101'), 'yyyyMMdd') at TIME ZONE 'America/New_York', 'yyyyMMdd')
+         |
+         |       )
+         |sstf0
+         |
+         |
+         |          )
+         |        queryAlias LIMIT 200
+         |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
 }
