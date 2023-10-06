@@ -19,7 +19,6 @@ error_exit()
 	exit 0
 }
 
-export MAVEN_OPTS="--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.desktop/java.awt.font=ALL-UNNAMED"
 
 mvn deploy -Dgpg.passphrase=${PASS_PHRASE} -Dgpg.skip=false -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Darguments="-DskipTests -Dscoverage.skip=true" --projects com.yahoo.maha:maha-parent --settings screwdriver/maven-settings.xml || error_exit "maha-parent"
 mvn deploy -Dgpg.passphrase=${PASS_PHRASE} -Dgpg.skip=false -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Darguments="-DskipTests -Dscoverage.skip=true" --projects com.yahoo.maha:maha-db --settings screwdriver/maven-settings.xml || error_exit "maha-db"
