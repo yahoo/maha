@@ -16,8 +16,10 @@ import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksIterator;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
@@ -42,6 +44,12 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
     @Override
     public boolean canIterate() {
         return true;
+    }
+
+    @Override
+    public boolean canGetKeySet()
+    {
+        return false;
     }
 
     @Override
@@ -79,5 +87,11 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
         }
 
         return tempMap.entrySet();
+    }
+
+    @Override
+    public Set<String> keySet()
+    {
+        return new HashSet<>();
     }
 }

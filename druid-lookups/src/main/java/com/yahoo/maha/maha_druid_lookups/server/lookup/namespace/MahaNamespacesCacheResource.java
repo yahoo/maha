@@ -106,12 +106,12 @@ public class MahaNamespacesCacheResource
                             .getCacheSize(extractionNamespace.get(),
                                     mahaNamespaceExtractionCacheManager.getCacheMap(namespace)).getBytes();
                 }
-                serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_SUCCESS, 1));
+                serviceEmitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_SUCCESS, Integer.valueOf(1)));
                 return Response.ok().entity(response).build();
             }
         } catch (Exception ex) {
             log.error(ex, "Can not get cache value for namespace and key");
-            serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
+            serviceEmitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, Integer.valueOf(1)));
             return Response.serverError().entity(Strings.nullToEmpty(ex.getMessage())).build();
         }
     }

@@ -7,8 +7,10 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNa
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 
 import java.lang.invoke.MethodHandles;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class JDBCLookupExtractorWithLeaderAndFollower<U extends List<String>> extends OnlineDatastoreLookupExtractor<U> {
     private static final Logger LOG = new Logger(MethodHandles.lookup().lookupClass());
@@ -28,7 +30,19 @@ public class JDBCLookupExtractorWithLeaderAndFollower<U extends List<String>> ex
     }
 
     @Override
+    public boolean canGetKeySet()
+    {
+        return false;
+    }
+
+    @Override
     public Iterable<Map.Entry<String, String>> iterable() {
         return super.iterable();
+    }
+
+    @Override
+    public Set<String> keySet()
+    {
+        return new HashSet<>();
     }
 }
