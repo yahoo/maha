@@ -67,9 +67,9 @@ case class IntType private(length: Int, staticMapping: Option[StaticMapping[Int]
                            default: Option[Int], min: Option[Int], max: Option[Int]) extends DataType {
   val hasStaticMapping = staticMapping.isDefined
   val hasUniqueStaticMapping = staticMapping.exists(_.hasUniqueMapping)
-  val reverseStaticMapping = staticMapping.map(_.stringToTMap).getOrElse(Map.empty)
+  val reverseStaticMapping: Map[String, Set[String]] = staticMapping.map(_.stringToTMap).getOrElse(Map.empty)
   val jsonDataType = if (hasStaticMapping) "Enum" else "Number"
-  val constraint: Option[String] = if (hasStaticMapping) Option.apply(reverseStaticMapping.keys.mkString("|")) else if (length > 0) Option.apply(length.toString) else None
+  val constraint: Option[String] = if (hasStaticMapping) Option.apply(reverseStaticMapping.keys.toIndexedSeq.sorted.mkString("|")) else if (length > 0) Option.apply(length.toString) else None
   override val sqlDataType = java.sql.Types.INTEGER
 
   override def asJSON: JObject =
@@ -91,7 +91,7 @@ case class StrType private(length: Int, staticMapping: Option[StaticMapping[Stri
   val reverseStaticMapping = staticMapping.map(_.stringToTMap).getOrElse(Map.empty)
   val jsonDataType = if (hasStaticMapping) "Enum" else "String"
   val constraint: Option[String] = if (hasStaticMapping) {
-    Option.apply(reverseStaticMapping.keys.mkString("|"))
+    Option.apply(reverseStaticMapping.keys.toIndexedSeq.sorted.mkString("|"))
   } else {
     if (length > 0) Option.apply(length.toString) else None
   }

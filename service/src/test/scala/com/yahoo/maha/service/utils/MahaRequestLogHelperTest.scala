@@ -144,7 +144,6 @@ class MahaRequestLogHelperTest extends AnyFunSuite with Matchers {
       jsonString.getBytes,
       Map.empty, "123", "abc")
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConf.mahaRequestLogWriter)
-    val failedLog = mahaRequestLogHelper.logFailed("new error message")
     mahaRequestLogHelper.logSuccess()
     mahaRequestLogHelper.logSuccess()
     mahaRequestLogHelper.setJobId(12345)

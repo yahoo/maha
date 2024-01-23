@@ -2,8 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
@@ -139,7 +139,7 @@ public class JDBCExtractionNamespaceCacheFactoryTest {
                 metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
                 "id", "", new Period(), true, "advertiser_lookup");
         extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(123L));
-        doThrow(NullPointerException.class).when(obj).getMaxValFromColumn(anyString(), anyObject(), anyObject(), anyString(), anyString());
+        doThrow(NullPointerException.class).when(obj).getMaxValFromColumn(anyString(), any(), any(), anyString(), anyString());
         Assert.assertEquals(obj.lastUpdates("id", extractionNamespace, false).getTime(), 123L);
     }
 }

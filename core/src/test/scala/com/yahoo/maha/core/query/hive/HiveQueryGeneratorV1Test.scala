@@ -9,7 +9,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.{QueryGeneratorRegistry, _}
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.ReportingRequest
-import org.mockito.Matchers._
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 
 import scala.util.Try
@@ -691,7 +691,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
   }
 */
   test("fact only query context should be switched to CombinedQueryContext") {
-    val hiveQueryGeneratorV2  = spy(new HiveQueryGeneratorV2(DefaultPartitionColumnRenderer, TestUDFRegistrationFactory()))
+    val hiveQueryGeneratorV2  = spy[HiveQueryGeneratorV2](new HiveQueryGeneratorV2(DefaultPartitionColumnRenderer, TestUDFRegistrationFactory()))
     val queryContext = mock(classOf[FactQueryContext])
     try {
       hiveQueryGeneratorV2.generate(queryContext)
@@ -699,7 +699,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
       case e: Exception => // Ignore
     }
 
-    verify(hiveQueryGeneratorV2).generate(any(classOf[CombinedQueryContext]))
+    verify(hiveQueryGeneratorV2).generateQuery(any(classOf[CombinedQueryContext]))
   }
 
   test("Duplicate registration of the generator") {

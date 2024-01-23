@@ -1,9 +1,7 @@
 package com.yahoo.maha.service.calcite.avatica
 
-import com.google.common.collect.Lists
 import com.yahoo.maha.core._
 import com.yahoo.maha.service.BaseMahaServiceTest
-import com.yahoo.maha.service.calcite.avatica.HandlerHelper.getError
 import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaServiceExecutionException}
 import org.apache.calcite.avatica.{AvaticaSeverity, SqlState}
 import org.apache.calcite.avatica.metrics.noop.NoopMetricsSystem

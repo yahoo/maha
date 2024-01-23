@@ -10,7 +10,7 @@ import com.yahoo.maha.core.query.{InMemRowList, QueryAttribute, QueryAttributes,
 import com.yahoo.maha.core.request.{ReportingRequest, RowCountQuery}
 import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo, RequestModelResult}
 import com.yahoo.maha.service.{MahaRequestContext, RequestCoordinatorResult}
-import com.yahoo.maha.service.curators.{Curator, CuratorError, CuratorResult, DefaultCurator, RowCountCurator}
+import com.yahoo.maha.service.curators.{Curator, CuratorError, DefaultCurator, RowCountCurator}
 import com.yahoo.maha.service.datasource.{IngestionTimeUpdater, NoopIngestionTimeUpdater}
 import org.json4s.JValue
 import org.slf4j.{Logger, LoggerFactory}

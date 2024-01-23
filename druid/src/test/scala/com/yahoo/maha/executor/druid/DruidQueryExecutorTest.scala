@@ -28,7 +28,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.BeforeAndAfterAll
 import org.mockito.Mockito._
-import org.mockito.Matchers._
+import org.mockito.ArgumentMatchers._
 
 /**
   * Created by hiral on 2/2/16.
@@ -2935,8 +2935,8 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
 
     withDruidQueryExecutor("http://localhost:6667/mock/select") {
       executor =>
-        val rowList = spy(new CompleteRowList(query))
-        when(rowList.addRow(anyObject(), anyObject())).thenThrow(new UnsupportedOperationException("fail"))
+        val rowList = spy[CompleteRowList](new CompleteRowList(query))
+        when(rowList.addRow(any(), any())).thenThrow(new UnsupportedOperationException("fail"))
         val result = executor.execute(query, rowList, QueryAttributes.empty)
         assert(result.isFailure, result.toString)
         val thrown = result.exception.get

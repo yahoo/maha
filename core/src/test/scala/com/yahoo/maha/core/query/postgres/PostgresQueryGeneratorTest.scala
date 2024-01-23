@@ -48,7 +48,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     super.beforeAll()
     try {
       val config = new HikariConfig()
-      val jdbcUrl = pg.get.getJdbcUrl("postgres", "postgres")
+      val jdbcUrl = pg.get.getJdbcUrl("postgres")
       config.setJdbcUrl(jdbcUrl)
       config.setUsername("postgres")
       config.setPassword("")

@@ -57,7 +57,9 @@ object JsonUtils {
   }*/
 
   implicit def mapJSONW: JSONW[Map[String, Set[String]]] = new JSONW[Map[String, Set[String]]] {
-    def write(values: Map[String, Set[String]]) = makeObj(values.map(kv => kv._1 -> toJSON(kv._2.toList)).toList)
+    def write(values: Map[String, Set[String]]) = makeObj(values.toIndexedSeq.sortBy(_._1)
+      .map(kv => kv._1 -> toJSON(kv._2.toList.sorted)).toList
+    )
   }
 
   implicit def bdJSONW: JSONW[BigDecimal] = new JSONW[BigDecimal] {
@@ -75,8 +77,11 @@ object JsonUtils {
     }
   }
 
-  implicit def setJSONW[A]: JSONW[Set[A]] = new JSONW[Set[A]] {
-    def write(values: Set[A]) = JArray(values.map(x => toJSON(x)).toList)
+//  implicit def setJSONW[A]: JSONW[Set[A]] = new JSONW[Set[A]] {
+//    def write(values: Set[A]) = JArray(values.toIndexedSeq.map(x => toJSON(x)).toList)
+//  }
+  implicit def setJSONW: JSONW[Set[String]] = new JSONW[Set[String]] {
+    def write(values: Set[String]) = JArray(values.toIndexedSeq.sorted.map(x => toJSON(x)).toList)
   }
 
   implicit def listJSONW[A: JSONW]: JSONW[List[A]] = new JSONW[List[A]] {

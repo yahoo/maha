@@ -30,10 +30,10 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
   }
   override def beforeAll(): Unit = {
     createTables()
-    val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, obtained_marks, date, comment, month, top_student_id, batch_id, group_id, hour)
+    val insertSql = """INSERT INTO student_grade_sheet (myyear, section_id, student_id, class_id, total_marks, obtained_marks, mydate, mycomment, mymonth, top_student_id, batch_id, group_id, myhour)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
-    val insertSqlAgain = """INSERT INTO student_grade_sheet_again (year, section_id, student_id, class_id, total_marks, obtained_marks, date, comment, month, top_student_id, batch_id, group_id)
+    val insertSqlAgain = """INSERT INTO student_grade_sheet_again (myyear, section_id, student_id, class_id, total_marks, obtained_marks, mydate, mycomment, mymonth, top_student_id, batch_id, group_id)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
     val studentInsertSql =
@@ -1619,7 +1619,10 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
-    val requestCoordinatorResult: RequestCoordinatorResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper).right.get.get().right.get
+    val requestCoordinatorResult: RequestCoordinatorResult = {
+      val result = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+      result.right.get.get().right.get
+    }
     val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name).head.requestResult
     val rowcountCuratorRequestResult: CuratorError = requestCoordinatorResult.failureResults(RowCountCurator.name).head
 

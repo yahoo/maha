@@ -4,7 +4,6 @@ package com.yahoo.maha.executor.presto
 
 import java.sql.{Date, ResultSet, Timestamp}
 import java.util.UUID
-
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
@@ -16,10 +15,11 @@ import com.yahoo.maha.core.query.presto.{PrestoQueryGenerator, PrestoQueryGenera
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc._
+import com.yahoo.maha.utils.MockitoHelper
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.json4s.JObject
 import org.json4s.JsonAST.JObject
-import org.mockito.Matchers._
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito
 import org.mockito.Mockito._
 import org.scalatest.funsuite.AnyFunSuite
@@ -28,7 +28,7 @@ import org.scalatest.BeforeAndAfterAll
 
 import scala.util.Try
 
-class PrestoQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
+class PrestoQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with MockitoHelper {
   
   private var dataSource: Option[HikariDataSource] = None
   private var jdbcConnection: Option[JdbcConnection] = None
@@ -735,16 +735,15 @@ class PrestoQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAf
 
   test("test null result") {
     var resultSet: ResultSet = null
-    //val executor : PrestoQueryExecutor = Mockito.spy(prestoQueryExecutor.get)
     val today = new Date(1515794890000L)
     jdbcConnection.get.queryForList("select * from ad_stats_presto where ad_id=1000 limit 1") {
       rs => {
-        resultSet = Mockito.spy(rs)
+        resultSet = Mockito.spy[ResultSet](rs)
         Mockito.doNothing().when(resultSet).close()
-        Mockito.doReturn(null).when(resultSet).getBigDecimal(anyInt())
-        Mockito.doReturn(null).when(resultSet).getDate(1)
-        Mockito.doReturn(today).when(resultSet).getDate(2)
-        Mockito.doReturn(null).when(resultSet).getTimestamp(anyInt())
+        doReturn(null).when(resultSet).getBigDecimal(anyInt())
+        doReturn(null).when(resultSet).getDate(1)
+        doReturn(today).when(resultSet).getDate(2)
+        doReturn(null).when(resultSet).getTimestamp(anyInt())
       }
     }
 

@@ -47,8 +47,11 @@ class RocksDBAccessor[K, V](builder: RocksDBAccessorBuilder[K, V]) extends Loggi
   val db: RocksDB = {
     val options: Options = new Options()
     val blockCacheOptions: BlockBasedTableConfig = new BlockBasedTableConfig
+    if(builder.cacheSize > 0) {
+      val blockCache: Cache = new LRUCache(builder.cacheSize)
+      blockCacheOptions.setBlockCache(blockCache)
+    }
     blockCacheOptions.setBlockSize(builder.blockSize)
-    blockCacheOptions.setBlockCacheSize(builder.cacheSize)
     options.setTableFormatConfig(blockCacheOptions)
     options.setMaxOpenFiles(builder.maxOpenFiles)
     options.setWriteBufferSize(builder.writeBufferSize)

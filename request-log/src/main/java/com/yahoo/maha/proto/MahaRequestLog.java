@@ -6,311 +6,388 @@ package com.yahoo.maha.proto;
 public final class MahaRequestLog {
   private MahaRequestLog() {}
   public static void registerAllExtensions(
+      com.google.protobuf.ExtensionRegistryLite registry) {
+  }
+
+  public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistry registry) {
+    registerAllExtensions(
+        (com.google.protobuf.ExtensionRegistryLite) registry);
   }
   public interface MahaRequestProtoOrBuilder extends
       // @@protoc_insertion_point(interface_extends:com.yahoo.maha.proto.MahaRequestProto)
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>required string requestId = 1;</code>
+     * <code>optional string requestId = 1;</code>
+     * @return Whether the requestId field is set.
      */
     boolean hasRequestId();
     /**
-     * <code>required string requestId = 1;</code>
+     * <code>optional string requestId = 1;</code>
+     * @return The requestId.
      */
     java.lang.String getRequestId();
     /**
-     * <code>required string requestId = 1;</code>
+     * <code>optional string requestId = 1;</code>
+     * @return The bytes for requestId.
      */
     com.google.protobuf.ByteString
         getRequestIdBytes();
 
     /**
-     * <code>required bytes json = 2;</code>
+     * <code>optional bytes json = 2;</code>
+     * @return Whether the json field is set.
      */
     boolean hasJson();
     /**
-     * <code>required bytes json = 2;</code>
+     * <code>optional bytes json = 2;</code>
+     * @return The json.
      */
     com.google.protobuf.ByteString getJson();
 
     /**
      * <code>optional string userId = 3;</code>
+     * @return Whether the userId field is set.
      */
     boolean hasUserId();
     /**
      * <code>optional string userId = 3;</code>
+     * @return The userId.
      */
     java.lang.String getUserId();
     /**
      * <code>optional string userId = 3;</code>
+     * @return The bytes for userId.
      */
     com.google.protobuf.ByteString
         getUserIdBytes();
 
     /**
      * <code>optional string cube = 4;</code>
+     * @return Whether the cube field is set.
      */
     boolean hasCube();
     /**
      * <code>optional string cube = 4;</code>
+     * @return The cube.
      */
     java.lang.String getCube();
     /**
      * <code>optional string cube = 4;</code>
+     * @return The bytes for cube.
      */
     com.google.protobuf.ByteString
         getCubeBytes();
 
     /**
      * <code>optional string schema = 5;</code>
+     * @return Whether the schema field is set.
      */
     boolean hasSchema();
     /**
      * <code>optional string schema = 5;</code>
+     * @return The schema.
      */
     java.lang.String getSchema();
     /**
      * <code>optional string schema = 5;</code>
+     * @return The bytes for schema.
      */
     com.google.protobuf.ByteString
         getSchemaBytes();
 
     /**
      * <code>optional bool isInternal = 6;</code>
+     * @return Whether the isInternal field is set.
      */
     boolean hasIsInternal();
     /**
      * <code>optional bool isInternal = 6;</code>
+     * @return The isInternal.
      */
     boolean getIsInternal();
 
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.RequestType requestType = 7;</code>
+     * @return Whether the requestType field is set.
      */
     boolean hasRequestType();
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.RequestType requestType = 7;</code>
+     * @return The enum numeric value on the wire for requestType.
+     */
+    int getRequestTypeValue();
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.RequestType requestType = 7;</code>
+     * @return The requestType.
      */
     com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType getRequestType();
 
     /**
      * <code>optional string drivingQueryEngine = 8;</code>
+     * @return Whether the drivingQueryEngine field is set.
      */
     boolean hasDrivingQueryEngine();
     /**
      * <code>optional string drivingQueryEngine = 8;</code>
+     * @return The drivingQueryEngine.
      */
     java.lang.String getDrivingQueryEngine();
     /**
      * <code>optional string drivingQueryEngine = 8;</code>
+     * @return The bytes for drivingQueryEngine.
      */
     com.google.protobuf.ByteString
         getDrivingQueryEngineBytes();
 
     /**
      * <code>optional string drivingTable = 9;</code>
+     * @return Whether the drivingTable field is set.
      */
     boolean hasDrivingTable();
     /**
      * <code>optional string drivingTable = 9;</code>
+     * @return The drivingTable.
      */
     java.lang.String getDrivingTable();
     /**
      * <code>optional string drivingTable = 9;</code>
+     * @return The bytes for drivingTable.
      */
     com.google.protobuf.ByteString
         getDrivingTableBytes();
 
     /**
      * <code>optional string queryChainType = 10;</code>
+     * @return Whether the queryChainType field is set.
      */
     boolean hasQueryChainType();
     /**
      * <code>optional string queryChainType = 10;</code>
+     * @return The queryChainType.
      */
     java.lang.String getQueryChainType();
     /**
      * <code>optional string queryChainType = 10;</code>
+     * @return The bytes for queryChainType.
      */
     com.google.protobuf.ByteString
         getQueryChainTypeBytes();
 
     /**
      * <code>optional string firstSubsequentQueryEngine = 11;</code>
+     * @return Whether the firstSubsequentQueryEngine field is set.
      */
     boolean hasFirstSubsequentQueryEngine();
     /**
      * <code>optional string firstSubsequentQueryEngine = 11;</code>
+     * @return The firstSubsequentQueryEngine.
      */
     java.lang.String getFirstSubsequentQueryEngine();
     /**
      * <code>optional string firstSubsequentQueryEngine = 11;</code>
+     * @return The bytes for firstSubsequentQueryEngine.
      */
     com.google.protobuf.ByteString
         getFirstSubsequentQueryEngineBytes();
 
     /**
      * <code>optional string firstSubsequentQueryTable = 12;</code>
+     * @return Whether the firstSubsequentQueryTable field is set.
      */
     boolean hasFirstSubsequentQueryTable();
     /**
      * <code>optional string firstSubsequentQueryTable = 12;</code>
+     * @return The firstSubsequentQueryTable.
      */
     java.lang.String getFirstSubsequentQueryTable();
     /**
      * <code>optional string firstSubsequentQueryTable = 12;</code>
+     * @return The bytes for firstSubsequentQueryTable.
      */
     com.google.protobuf.ByteString
         getFirstSubsequentQueryTableBytes();
 
     /**
      * <code>optional int64 requestStartTime = 13;</code>
+     * @return Whether the requestStartTime field is set.
      */
     boolean hasRequestStartTime();
     /**
      * <code>optional int64 requestStartTime = 13;</code>
+     * @return The requestStartTime.
      */
     long getRequestStartTime();
 
     /**
      * <code>optional int64 requestEndTime = 14;</code>
+     * @return Whether the requestEndTime field is set.
      */
     boolean hasRequestEndTime();
     /**
      * <code>optional int64 requestEndTime = 14;</code>
+     * @return The requestEndTime.
      */
     long getRequestEndTime();
 
     /**
      * <code>optional int32 status = 15;</code>
+     * @return Whether the status field is set.
      */
     boolean hasStatus();
     /**
      * <code>optional int32 status = 15;</code>
+     * @return The status.
      */
     int getStatus();
 
     /**
      * <code>optional string errorMessage = 16;</code>
+     * @return Whether the errorMessage field is set.
      */
     boolean hasErrorMessage();
     /**
      * <code>optional string errorMessage = 16;</code>
+     * @return The errorMessage.
      */
     java.lang.String getErrorMessage();
     /**
      * <code>optional string errorMessage = 16;</code>
+     * @return The bytes for errorMessage.
      */
     com.google.protobuf.ByteString
         getErrorMessageBytes();
 
     /**
      * <code>optional bool hasFactFilters = 17;</code>
+     * @return Whether the hasFactFilters field is set.
      */
     boolean hasHasFactFilters();
     /**
      * <code>optional bool hasFactFilters = 17;</code>
+     * @return The hasFactFilters.
      */
     boolean getHasFactFilters();
 
     /**
      * <code>optional bool hasNonFKFactFilters = 18;</code>
+     * @return Whether the hasNonFKFactFilters field is set.
      */
     boolean hasHasNonFKFactFilters();
     /**
      * <code>optional bool hasNonFKFactFilters = 18;</code>
+     * @return The hasNonFKFactFilters.
      */
     boolean getHasNonFKFactFilters();
 
     /**
      * <code>optional bool hasDimFilters = 19;</code>
+     * @return Whether the hasDimFilters field is set.
      */
     boolean hasHasDimFilters();
     /**
      * <code>optional bool hasDimFilters = 19;</code>
+     * @return The hasDimFilters.
      */
     boolean getHasDimFilters();
 
     /**
      * <code>optional bool hasNonFKDimFilters = 20;</code>
+     * @return Whether the hasNonFKDimFilters field is set.
      */
     boolean hasHasNonFKDimFilters();
     /**
      * <code>optional bool hasNonFKDimFilters = 20;</code>
+     * @return The hasNonFKDimFilters.
      */
     boolean getHasNonFKDimFilters();
 
     /**
      * <code>optional bool hasFactSortBy = 21;</code>
+     * @return Whether the hasFactSortBy field is set.
      */
     boolean hasHasFactSortBy();
     /**
      * <code>optional bool hasFactSortBy = 21;</code>
+     * @return The hasFactSortBy.
      */
     boolean getHasFactSortBy();
 
     /**
      * <code>optional bool hasDimSortBy = 22;</code>
+     * @return Whether the hasDimSortBy field is set.
      */
     boolean hasHasDimSortBy();
     /**
      * <code>optional bool hasDimSortBy = 22;</code>
+     * @return The hasDimSortBy.
      */
     boolean getHasDimSortBy();
 
     /**
      * <code>optional bool isFactDriven = 23;</code>
+     * @return Whether the isFactDriven field is set.
      */
     boolean hasIsFactDriven();
     /**
      * <code>optional bool isFactDriven = 23;</code>
+     * @return The isFactDriven.
      */
     boolean getIsFactDriven();
 
     /**
      * <code>optional bool forceDimDriven = 24;</code>
+     * @return Whether the forceDimDriven field is set.
      */
     boolean hasForceDimDriven();
     /**
      * <code>optional bool forceDimDriven = 24;</code>
+     * @return The forceDimDriven.
      */
     boolean getForceDimDriven();
 
     /**
      * <code>optional bool forceFactDriven = 25;</code>
+     * @return Whether the forceFactDriven field is set.
      */
     boolean hasForceFactDriven();
     /**
      * <code>optional bool forceFactDriven = 25;</code>
+     * @return The forceFactDriven.
      */
     boolean getForceFactDriven();
 
     /**
      * <code>optional bool hasNonDrivingDimSortOrFilter = 26;</code>
+     * @return Whether the hasNonDrivingDimSortOrFilter field is set.
      */
     boolean hasHasNonDrivingDimSortOrFilter();
     /**
      * <code>optional bool hasNonDrivingDimSortOrFilter = 26;</code>
+     * @return The hasNonDrivingDimSortOrFilter.
      */
     boolean getHasNonDrivingDimSortOrFilter();
 
     /**
      * <code>optional bool hasDimAndFactOperations = 27;</code>
+     * @return Whether the hasDimAndFactOperations field is set.
      */
     boolean hasHasDimAndFactOperations();
     /**
      * <code>optional bool hasDimAndFactOperations = 27;</code>
+     * @return The hasDimAndFactOperations.
      */
     boolean getHasDimAndFactOperations();
 
     /**
      * <code>optional int64 dimCardinalityEstimate = 28;</code>
+     * @return Whether the dimCardinalityEstimate field is set.
      */
     boolean hasDimCardinalityEstimate();
     /**
      * <code>optional int64 dimCardinalityEstimate = 28;</code>
+     * @return The dimCardinalityEstimate.
      */
     long getDimCardinalityEstimate();
 
@@ -340,19 +417,25 @@ public final class MahaRequestLog {
 
     /**
      * <code>repeated string dimensionsCandidates = 30;</code>
+     * @return A list containing the dimensionsCandidates.
      */
-    com.google.protobuf.ProtocolStringList
+    java.util.List<java.lang.String>
         getDimensionsCandidatesList();
     /**
      * <code>repeated string dimensionsCandidates = 30;</code>
+     * @return The count of dimensionsCandidates.
      */
     int getDimensionsCandidatesCount();
     /**
      * <code>repeated string dimensionsCandidates = 30;</code>
+     * @param index The index of the element to return.
+     * @return The dimensionsCandidates at the given index.
      */
     java.lang.String getDimensionsCandidates(int index);
     /**
      * <code>repeated string dimensionsCandidates = 30;</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the dimensionsCandidates at the given index.
      */
     com.google.protobuf.ByteString
         getDimensionsCandidatesBytes(int index);
@@ -383,331 +466,425 @@ public final class MahaRequestLog {
 
     /**
      * <code>optional int64 drivingQueryEngineLatency = 32;</code>
+     * @return Whether the drivingQueryEngineLatency field is set.
      */
     boolean hasDrivingQueryEngineLatency();
     /**
      * <code>optional int64 drivingQueryEngineLatency = 32;</code>
+     * @return The drivingQueryEngineLatency.
      */
     long getDrivingQueryEngineLatency();
 
     /**
      * <code>optional int64 firstSubsequentQueryEngineLatency = 33;</code>
+     * @return Whether the firstSubsequentQueryEngineLatency field is set.
      */
     boolean hasFirstSubsequentQueryEngineLatency();
     /**
      * <code>optional int64 firstSubsequentQueryEngineLatency = 33;</code>
+     * @return The firstSubsequentQueryEngineLatency.
      */
     long getFirstSubsequentQueryEngineLatency();
 
     /**
      * <code>optional int64 reRunEngineQueryLatency = 34;</code>
+     * @return Whether the reRunEngineQueryLatency field is set.
      */
     boolean hasReRunEngineQueryLatency();
     /**
      * <code>optional int64 reRunEngineQueryLatency = 34;</code>
+     * @return The reRunEngineQueryLatency.
      */
     long getReRunEngineQueryLatency();
 
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine reRunEngine = 35;</code>
+     * @return Whether the reRunEngine field is set.
      */
     boolean hasReRunEngine();
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine reRunEngine = 35;</code>
+     * @return The enum numeric value on the wire for reRunEngine.
+     */
+    int getReRunEngineValue();
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine reRunEngine = 35;</code>
+     * @return The reRunEngine.
      */
     com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine getReRunEngine();
 
     /**
      * <code>optional int64 jobId = 36;</code>
+     * @return Whether the jobId field is set.
      */
     boolean hasJobId();
     /**
      * <code>optional int64 jobId = 36;</code>
+     * @return The jobId.
      */
     long getJobId();
 
     /**
      * <code>optional string timeGrain = 37;</code>
+     * @return Whether the timeGrain field is set.
      */
     boolean hasTimeGrain();
     /**
      * <code>optional string timeGrain = 37;</code>
+     * @return The timeGrain.
      */
     java.lang.String getTimeGrain();
     /**
      * <code>optional string timeGrain = 37;</code>
+     * @return The bytes for timeGrain.
      */
     com.google.protobuf.ByteString
         getTimeGrainBytes();
 
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.AsyncJobStatus asyncJobStatus = 38;</code>
+     * @return Whether the asyncJobStatus field is set.
      */
     boolean hasAsyncJobStatus();
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.AsyncJobStatus asyncJobStatus = 38;</code>
+     * @return The enum numeric value on the wire for asyncJobStatus.
+     */
+    int getAsyncJobStatusValue();
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.AsyncJobStatus asyncJobStatus = 38;</code>
+     * @return The asyncJobStatus.
      */
     com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus getAsyncJobStatus();
 
     /**
      * <code>optional bool isDryRun = 39;</code>
+     * @return Whether the isDryRun field is set.
      */
     boolean hasIsDryRun();
     /**
      * <code>optional bool isDryRun = 39;</code>
+     * @return The isDryRun.
      */
     boolean getIsDryRun();
 
     /**
      * <code>optional string jobResultURL = 40;</code>
+     * @return Whether the jobResultURL field is set.
      */
     boolean hasJobResultURL();
     /**
      * <code>optional string jobResultURL = 40;</code>
+     * @return The jobResultURL.
      */
     java.lang.String getJobResultURL();
     /**
      * <code>optional string jobResultURL = 40;</code>
+     * @return The bytes for jobResultURL.
      */
     com.google.protobuf.ByteString
         getJobResultURLBytes();
 
     /**
      * <code>optional string jobName = 41;</code>
+     * @return Whether the jobName field is set.
      */
     boolean hasJobName();
     /**
      * <code>optional string jobName = 41;</code>
+     * @return The jobName.
      */
     java.lang.String getJobName();
     /**
      * <code>optional string jobName = 41;</code>
+     * @return The bytes for jobName.
      */
     com.google.protobuf.ByteString
         getJobNameBytes();
 
     /**
      * <code>optional int64 queueWaitingTime = 42;</code>
+     * @return Whether the queueWaitingTime field is set.
      */
     boolean hasQueueWaitingTime();
     /**
      * <code>optional int64 queueWaitingTime = 42;</code>
+     * @return The queueWaitingTime.
      */
     long getQueueWaitingTime();
 
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.QueueType queueType = 43;</code>
+     * @return Whether the queueType field is set.
      */
     boolean hasQueueType();
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.QueueType queueType = 43;</code>
+     * @return The enum numeric value on the wire for queueType.
+     */
+    int getQueueTypeValue();
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.QueueType queueType = 43;</code>
+     * @return The queueType.
      */
     com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType getQueueType();
 
     /**
      * <code>optional int64 cubeRevision = 44;</code>
+     * @return Whether the cubeRevision field is set.
      */
     boolean hasCubeRevision();
     /**
      * <code>optional int64 cubeRevision = 44;</code>
+     * @return The cubeRevision.
      */
     long getCubeRevision();
 
     /**
      * <code>optional string mahaServiceRegistryName = 45;</code>
+     * @return Whether the mahaServiceRegistryName field is set.
      */
     boolean hasMahaServiceRegistryName();
     /**
      * <code>optional string mahaServiceRegistryName = 45;</code>
+     * @return The mahaServiceRegistryName.
      */
     java.lang.String getMahaServiceRegistryName();
     /**
      * <code>optional string mahaServiceRegistryName = 45;</code>
+     * @return The bytes for mahaServiceRegistryName.
      */
     com.google.protobuf.ByteString
         getMahaServiceRegistryNameBytes();
 
     /**
      * <code>optional string mahaServiceHostname = 46;</code>
+     * @return Whether the mahaServiceHostname field is set.
      */
     boolean hasMahaServiceHostname();
     /**
      * <code>optional string mahaServiceHostname = 46;</code>
+     * @return The mahaServiceHostname.
      */
     java.lang.String getMahaServiceHostname();
     /**
      * <code>optional string mahaServiceHostname = 46;</code>
+     * @return The bytes for mahaServiceHostname.
      */
     com.google.protobuf.ByteString
         getMahaServiceHostnameBytes();
 
     /**
      * <code>optional bool isGrainOptimized = 47;</code>
+     * @return Whether the isGrainOptimized field is set.
      */
     boolean hasIsGrainOptimized();
     /**
      * <code>optional bool isGrainOptimized = 47;</code>
+     * @return The isGrainOptimized.
      */
     boolean getIsGrainOptimized();
 
     /**
      * <code>optional bool isIndexOptimized = 48;</code>
+     * @return Whether the isIndexOptimized field is set.
      */
     boolean hasIsIndexOptimized();
     /**
      * <code>optional bool isIndexOptimized = 48;</code>
+     * @return The isIndexOptimized.
      */
     boolean getIsIndexOptimized();
 
     /**
      * <code>optional string curator = 49;</code>
+     * @return Whether the curator field is set.
      */
     boolean hasCurator();
     /**
      * <code>optional string curator = 49;</code>
+     * @return The curator.
      */
     java.lang.String getCurator();
     /**
      * <code>optional string curator = 49;</code>
+     * @return The bytes for curator.
      */
     com.google.protobuf.ByteString
         getCuratorBytes();
 
     /**
      * <code>optional string reRunEngineQueryTable = 50;</code>
+     * @return Whether the reRunEngineQueryTable field is set.
      */
     boolean hasReRunEngineQueryTable();
     /**
      * <code>optional string reRunEngineQueryTable = 50;</code>
+     * @return The reRunEngineQueryTable.
      */
     java.lang.String getReRunEngineQueryTable();
     /**
      * <code>optional string reRunEngineQueryTable = 50;</code>
+     * @return The bytes for reRunEngineQueryTable.
      */
     com.google.protobuf.ByteString
         getReRunEngineQueryTableBytes();
 
     /**
      * <code>optional bool isScanOptimized = 51;</code>
+     * @return Whether the isScanOptimized field is set.
      */
     boolean hasIsScanOptimized();
     /**
      * <code>optional bool isScanOptimized = 51;</code>
+     * @return The isScanOptimized.
      */
     boolean getIsScanOptimized();
 
     /**
      * <code>optional int64 scanRows = 52;</code>
+     * @return Whether the scanRows field is set.
      */
     boolean hasScanRows();
     /**
      * <code>optional int64 scanRows = 52;</code>
+     * @return The scanRows.
      */
     long getScanRows();
 
     /**
      * <code>optional int64 grainRows = 53;</code>
+     * @return Whether the grainRows field is set.
      */
     boolean hasGrainRows();
     /**
      * <code>optional int64 grainRows = 53;</code>
+     * @return The grainRows.
      */
     long getGrainRows();
 
     /**
      * <code>optional bool isDebug = 54;</code>
+     * @return Whether the isDebug field is set.
      */
     boolean hasIsDebug();
     /**
      * <code>optional bool isDebug = 54;</code>
+     * @return The isDebug.
      */
     boolean getIsDebug();
 
     /**
      * <code>optional bool isTest = 55;</code>
+     * @return Whether the isTest field is set.
      */
     boolean hasIsTest();
     /**
      * <code>optional bool isTest = 55;</code>
+     * @return The isTest.
      */
     boolean getIsTest();
 
     /**
      * <code>optional string testName = 56;</code>
+     * @return Whether the testName field is set.
      */
     boolean hasTestName();
     /**
      * <code>optional string testName = 56;</code>
+     * @return The testName.
      */
     java.lang.String getTestName();
     /**
      * <code>optional string testName = 56;</code>
+     * @return The bytes for testName.
      */
     com.google.protobuf.ByteString
         getTestNameBytes();
 
     /**
      * <code>repeated string labels = 57;</code>
+     * @return A list containing the labels.
      */
-    com.google.protobuf.ProtocolStringList
+    java.util.List<java.lang.String>
         getLabelsList();
     /**
      * <code>repeated string labels = 57;</code>
+     * @return The count of labels.
      */
     int getLabelsCount();
     /**
      * <code>repeated string labels = 57;</code>
+     * @param index The index of the element to return.
+     * @return The labels at the given index.
      */
     java.lang.String getLabels(int index);
     /**
      * <code>repeated string labels = 57;</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the labels at the given index.
      */
     com.google.protobuf.ByteString
         getLabelsBytes(int index);
 
     /**
      * <code>optional string requestHash = 58;</code>
+     * @return Whether the requestHash field is set.
      */
     boolean hasRequestHash();
     /**
      * <code>optional string requestHash = 58;</code>
+     * @return The requestHash.
      */
     java.lang.String getRequestHash();
     /**
      * <code>optional string requestHash = 58;</code>
+     * @return The bytes for requestHash.
      */
     com.google.protobuf.ByteString
         getRequestHashBytes();
 
     /**
      * <code>optional string jobIdString = 59;</code>
+     * @return Whether the jobIdString field is set.
      */
     boolean hasJobIdString();
     /**
      * <code>optional string jobIdString = 59;</code>
+     * @return The jobIdString.
      */
     java.lang.String getJobIdString();
     /**
      * <code>optional string jobIdString = 59;</code>
+     * @return The bytes for jobIdString.
      */
     com.google.protobuf.ByteString
         getJobIdStringBytes();
 
     /**
      * <code>optional int64 numDays = 60;</code>
+     * @return Whether the numDays field is set.
      */
     boolean hasNumDays();
     /**
      * <code>optional int64 numDays = 60;</code>
+     * @return The numDays.
      */
     long getNumDays();
 
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+     * @return Whether the workerStatus field is set.
      */
     boolean hasWorkerStatus();
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+     * @return The enum numeric value on the wire for workerStatus.
+     */
+    int getWorkerStatusValue();
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+     * @return The workerStatus.
      */
     com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus getWorkerStatus();
   }
@@ -715,473 +892,70 @@ public final class MahaRequestLog {
    * Protobuf type {@code com.yahoo.maha.proto.MahaRequestProto}
    */
   public static final class MahaRequestProto extends
-      com.google.protobuf.GeneratedMessage implements
+      com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:com.yahoo.maha.proto.MahaRequestProto)
       MahaRequestProtoOrBuilder {
+  private static final long serialVersionUID = 0L;
     // Use MahaRequestProto.newBuilder() to construct.
-    private MahaRequestProto(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+    private MahaRequestProto(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
       super(builder);
-      this.unknownFields = builder.getUnknownFields();
     }
-    private MahaRequestProto(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
-
-    private static final MahaRequestProto defaultInstance;
-    public static MahaRequestProto getDefaultInstance() {
-      return defaultInstance;
+    private MahaRequestProto() {
+      requestId_ = "";
+      json_ = com.google.protobuf.ByteString.EMPTY;
+      userId_ = "";
+      cube_ = "";
+      schema_ = "";
+      requestType_ = 0;
+      drivingQueryEngine_ = "";
+      drivingTable_ = "";
+      queryChainType_ = "";
+      firstSubsequentQueryEngine_ = "";
+      firstSubsequentQueryTable_ = "";
+      errorMessage_ = "";
+      requestSortByCols_ = java.util.Collections.emptyList();
+      dimensionsCandidates_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      factCost_ = java.util.Collections.emptyList();
+      reRunEngine_ = 0;
+      timeGrain_ = "";
+      asyncJobStatus_ = 0;
+      jobResultURL_ = "";
+      jobName_ = "";
+      queueType_ = 0;
+      mahaServiceRegistryName_ = "";
+      mahaServiceHostname_ = "";
+      curator_ = "";
+      reRunEngineQueryTable_ = "";
+      testName_ = "";
+      labels_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      requestHash_ = "";
+      jobIdString_ = "";
+      workerStatus_ = 0;
     }
 
-    public MahaRequestProto getDefaultInstanceForType() {
-      return defaultInstance;
+    @java.lang.Override
+    @SuppressWarnings({"unused"})
+    protected java.lang.Object newInstance(
+        UnusedPrivateParameter unused) {
+      return new MahaRequestProto();
     }
 
-    private final com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
-        getUnknownFields() {
+    getUnknownFields() {
       return this.unknownFields;
-    }
-    private MahaRequestProto(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      initFields();
-      int mutable_bitField0_ = 0;
-      int mutable_bitField1_ = 0;
-      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-          com.google.protobuf.UnknownFieldSet.newBuilder();
-      try {
-        boolean done = false;
-        while (!done) {
-          int tag = input.readTag();
-          switch (tag) {
-            case 0:
-              done = true;
-              break;
-            default: {
-              if (!parseUnknownField(input, unknownFields,
-                                     extensionRegistry, tag)) {
-                done = true;
-              }
-              break;
-            }
-            case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000001;
-              requestId_ = bs;
-              break;
-            }
-            case 18: {
-              bitField0_ |= 0x00000002;
-              json_ = input.readBytes();
-              break;
-            }
-            case 26: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000004;
-              userId_ = bs;
-              break;
-            }
-            case 34: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000008;
-              cube_ = bs;
-              break;
-            }
-            case 42: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000010;
-              schema_ = bs;
-              break;
-            }
-            case 48: {
-              bitField0_ |= 0x00000020;
-              isInternal_ = input.readBool();
-              break;
-            }
-            case 56: {
-              int rawValue = input.readEnum();
-              com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType value = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType.valueOf(rawValue);
-              if (value == null) {
-                unknownFields.mergeVarintField(7, rawValue);
-              } else {
-                bitField0_ |= 0x00000040;
-                requestType_ = value;
-              }
-              break;
-            }
-            case 66: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000080;
-              drivingQueryEngine_ = bs;
-              break;
-            }
-            case 74: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000100;
-              drivingTable_ = bs;
-              break;
-            }
-            case 82: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000200;
-              queryChainType_ = bs;
-              break;
-            }
-            case 90: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000400;
-              firstSubsequentQueryEngine_ = bs;
-              break;
-            }
-            case 98: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00000800;
-              firstSubsequentQueryTable_ = bs;
-              break;
-            }
-            case 104: {
-              bitField0_ |= 0x00001000;
-              requestStartTime_ = input.readInt64();
-              break;
-            }
-            case 112: {
-              bitField0_ |= 0x00002000;
-              requestEndTime_ = input.readInt64();
-              break;
-            }
-            case 120: {
-              bitField0_ |= 0x00004000;
-              status_ = input.readInt32();
-              break;
-            }
-            case 130: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField0_ |= 0x00008000;
-              errorMessage_ = bs;
-              break;
-            }
-            case 136: {
-              bitField0_ |= 0x00010000;
-              hasFactFilters_ = input.readBool();
-              break;
-            }
-            case 144: {
-              bitField0_ |= 0x00020000;
-              hasNonFKFactFilters_ = input.readBool();
-              break;
-            }
-            case 152: {
-              bitField0_ |= 0x00040000;
-              hasDimFilters_ = input.readBool();
-              break;
-            }
-            case 160: {
-              bitField0_ |= 0x00080000;
-              hasNonFKDimFilters_ = input.readBool();
-              break;
-            }
-            case 168: {
-              bitField0_ |= 0x00100000;
-              hasFactSortBy_ = input.readBool();
-              break;
-            }
-            case 176: {
-              bitField0_ |= 0x00200000;
-              hasDimSortBy_ = input.readBool();
-              break;
-            }
-            case 184: {
-              bitField0_ |= 0x00400000;
-              isFactDriven_ = input.readBool();
-              break;
-            }
-            case 192: {
-              bitField0_ |= 0x00800000;
-              forceDimDriven_ = input.readBool();
-              break;
-            }
-            case 200: {
-              bitField0_ |= 0x01000000;
-              forceFactDriven_ = input.readBool();
-              break;
-            }
-            case 208: {
-              bitField0_ |= 0x02000000;
-              hasNonDrivingDimSortOrFilter_ = input.readBool();
-              break;
-            }
-            case 216: {
-              bitField0_ |= 0x04000000;
-              hasDimAndFactOperations_ = input.readBool();
-              break;
-            }
-            case 224: {
-              bitField0_ |= 0x08000000;
-              dimCardinalityEstimate_ = input.readInt64();
-              break;
-            }
-            case 234: {
-              if (!((mutable_bitField0_ & 0x10000000) == 0x10000000)) {
-                requestSortByCols_ = new java.util.ArrayList<com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo>();
-                mutable_bitField0_ |= 0x10000000;
-              }
-              requestSortByCols_.add(input.readMessage(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo.PARSER, extensionRegistry));
-              break;
-            }
-            case 242: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              if (!((mutable_bitField0_ & 0x20000000) == 0x20000000)) {
-                dimensionsCandidates_ = new com.google.protobuf.LazyStringArrayList();
-                mutable_bitField0_ |= 0x20000000;
-              }
-              dimensionsCandidates_.add(bs);
-              break;
-            }
-            case 250: {
-              if (!((mutable_bitField0_ & 0x40000000) == 0x40000000)) {
-                factCost_ = new java.util.ArrayList<com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost>();
-                mutable_bitField0_ |= 0x40000000;
-              }
-              factCost_.add(input.readMessage(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost.PARSER, extensionRegistry));
-              break;
-            }
-            case 256: {
-              bitField0_ |= 0x10000000;
-              drivingQueryEngineLatency_ = input.readInt64();
-              break;
-            }
-            case 264: {
-              bitField0_ |= 0x20000000;
-              firstSubsequentQueryEngineLatency_ = input.readInt64();
-              break;
-            }
-            case 272: {
-              bitField0_ |= 0x40000000;
-              reRunEngineQueryLatency_ = input.readInt64();
-              break;
-            }
-            case 280: {
-              int rawValue = input.readEnum();
-              com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine value = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.valueOf(rawValue);
-              if (value == null) {
-                unknownFields.mergeVarintField(35, rawValue);
-              } else {
-                bitField0_ |= 0x80000000;
-                reRunEngine_ = value;
-              }
-              break;
-            }
-            case 288: {
-              bitField1_ |= 0x00000001;
-              jobId_ = input.readInt64();
-              break;
-            }
-            case 298: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField1_ |= 0x00000002;
-              timeGrain_ = bs;
-              break;
-            }
-            case 304: {
-              int rawValue = input.readEnum();
-              com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus value = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus.valueOf(rawValue);
-              if (value == null) {
-                unknownFields.mergeVarintField(38, rawValue);
-              } else {
-                bitField1_ |= 0x00000004;
-                asyncJobStatus_ = value;
-              }
-              break;
-            }
-            case 312: {
-              bitField1_ |= 0x00000008;
-              isDryRun_ = input.readBool();
-              break;
-            }
-            case 322: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField1_ |= 0x00000010;
-              jobResultURL_ = bs;
-              break;
-            }
-            case 330: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField1_ |= 0x00000020;
-              jobName_ = bs;
-              break;
-            }
-            case 336: {
-              bitField1_ |= 0x00000040;
-              queueWaitingTime_ = input.readInt64();
-              break;
-            }
-            case 344: {
-              int rawValue = input.readEnum();
-              com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType value = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType.valueOf(rawValue);
-              if (value == null) {
-                unknownFields.mergeVarintField(43, rawValue);
-              } else {
-                bitField1_ |= 0x00000080;
-                queueType_ = value;
-              }
-              break;
-            }
-            case 352: {
-              bitField1_ |= 0x00000100;
-              cubeRevision_ = input.readInt64();
-              break;
-            }
-            case 362: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField1_ |= 0x00000200;
-              mahaServiceRegistryName_ = bs;
-              break;
-            }
-            case 370: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField1_ |= 0x00000400;
-              mahaServiceHostname_ = bs;
-              break;
-            }
-            case 376: {
-              bitField1_ |= 0x00000800;
-              isGrainOptimized_ = input.readBool();
-              break;
-            }
-            case 384: {
-              bitField1_ |= 0x00001000;
-              isIndexOptimized_ = input.readBool();
-              break;
-            }
-            case 394: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField1_ |= 0x00002000;
-              curator_ = bs;
-              break;
-            }
-            case 402: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField1_ |= 0x00004000;
-              reRunEngineQueryTable_ = bs;
-              break;
-            }
-            case 408: {
-              bitField1_ |= 0x00008000;
-              isScanOptimized_ = input.readBool();
-              break;
-            }
-            case 416: {
-              bitField1_ |= 0x00010000;
-              scanRows_ = input.readInt64();
-              break;
-            }
-            case 424: {
-              bitField1_ |= 0x00020000;
-              grainRows_ = input.readInt64();
-              break;
-            }
-            case 432: {
-              bitField1_ |= 0x00040000;
-              isDebug_ = input.readBool();
-              break;
-            }
-            case 440: {
-              bitField1_ |= 0x00080000;
-              isTest_ = input.readBool();
-              break;
-            }
-            case 450: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField1_ |= 0x00100000;
-              testName_ = bs;
-              break;
-            }
-            case 458: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              if (!((mutable_bitField1_ & 0x01000000) == 0x01000000)) {
-                labels_ = new com.google.protobuf.LazyStringArrayList();
-                mutable_bitField1_ |= 0x01000000;
-              }
-              labels_.add(bs);
-              break;
-            }
-            case 466: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField1_ |= 0x00200000;
-              requestHash_ = bs;
-              break;
-            }
-            case 474: {
-              com.google.protobuf.ByteString bs = input.readBytes();
-              bitField1_ |= 0x00400000;
-              jobIdString_ = bs;
-              break;
-            }
-            case 480: {
-              bitField1_ |= 0x00800000;
-              numDays_ = input.readInt64();
-              break;
-            }
-            case 488: {
-              int rawValue = input.readEnum();
-              com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus value = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.valueOf(rawValue);
-              if (value == null) {
-                unknownFields.mergeVarintField(61, rawValue);
-              } else {
-                bitField1_ |= 0x01000000;
-                workerStatus_ = value;
-              }
-              break;
-            }
-          }
-        }
-      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-        throw e.setUnfinishedMessage(this);
-      } catch (java.io.IOException e) {
-        throw new com.google.protobuf.InvalidProtocolBufferException(
-            e.getMessage()).setUnfinishedMessage(this);
-      } finally {
-        if (((mutable_bitField0_ & 0x10000000) == 0x10000000)) {
-          requestSortByCols_ = java.util.Collections.unmodifiableList(requestSortByCols_);
-        }
-        if (((mutable_bitField0_ & 0x20000000) == 0x20000000)) {
-          dimensionsCandidates_ = dimensionsCandidates_.getUnmodifiableView();
-        }
-        if (((mutable_bitField0_ & 0x40000000) == 0x40000000)) {
-          factCost_ = java.util.Collections.unmodifiableList(factCost_);
-        }
-        if (((mutable_bitField1_ & 0x01000000) == 0x01000000)) {
-          labels_ = labels_.getUnmodifiableView();
-        }
-        this.unknownFields = unknownFields.build();
-        makeExtensionsImmutable();
-      }
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
       return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor;
     }
 
-    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+    @java.lang.Override
+    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
               com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.class, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Builder.class);
-    }
-
-    public static com.google.protobuf.Parser<MahaRequestProto> PARSER =
-        new com.google.protobuf.AbstractParser<MahaRequestProto>() {
-      public MahaRequestProto parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new MahaRequestProto(input, extensionRegistry);
-      }
-    };
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<MahaRequestProto> getParserForType() {
-      return PARSER;
     }
 
     /**
@@ -1192,11 +966,12 @@ public final class MahaRequestLog {
       /**
        * <code>SYNC = 0;</code>
        */
-      SYNC(0, 0),
+      SYNC(0),
       /**
        * <code>ASYNC = 1;</code>
        */
-      ASYNC(1, 1),
+      ASYNC(1),
+      UNRECOGNIZED(-1),
       ;
 
       /**
@@ -1209,9 +984,29 @@ public final class MahaRequestLog {
       public static final int ASYNC_VALUE = 1;
 
 
-      public final int getNumber() { return value; }
+      public final int getNumber() {
+        if (this == UNRECOGNIZED) {
+          throw new java.lang.IllegalArgumentException(
+              "Can't get the number of an unknown enum value.");
+        }
+        return value;
+      }
 
+      /**
+       * @param value The numeric wire value of the corresponding enum entry.
+       * @return The enum associated with the given numeric wire value.
+       * @deprecated Use {@link #forNumber(int)} instead.
+       */
+      @java.lang.Deprecated
       public static RequestType valueOf(int value) {
+        return forNumber(value);
+      }
+
+      /**
+       * @param value The numeric wire value of the corresponding enum entry.
+       * @return The enum associated with the given numeric wire value.
+       */
+      public static RequestType forNumber(int value) {
         switch (value) {
           case 0: return SYNC;
           case 1: return ASYNC;
@@ -1223,17 +1018,21 @@ public final class MahaRequestLog {
           internalGetValueMap() {
         return internalValueMap;
       }
-      private static com.google.protobuf.Internal.EnumLiteMap<RequestType>
-          internalValueMap =
+      private static final com.google.protobuf.Internal.EnumLiteMap<
+          RequestType> internalValueMap =
             new com.google.protobuf.Internal.EnumLiteMap<RequestType>() {
               public RequestType findValueByNumber(int number) {
-                return RequestType.valueOf(number);
+                return RequestType.forNumber(number);
               }
             };
 
       public final com.google.protobuf.Descriptors.EnumValueDescriptor
           getValueDescriptor() {
-        return getDescriptor().getValues().get(index);
+        if (this == UNRECOGNIZED) {
+          throw new java.lang.IllegalStateException(
+              "Can't get the descriptor of an unrecognized enum value.");
+        }
+        return getDescriptor().getValues().get(ordinal());
       }
       public final com.google.protobuf.Descriptors.EnumDescriptor
           getDescriptorForType() {
@@ -1252,14 +1051,15 @@ public final class MahaRequestLog {
           throw new java.lang.IllegalArgumentException(
             "EnumValueDescriptor is not for this type.");
         }
+        if (desc.getIndex() == -1) {
+          return UNRECOGNIZED;
+        }
         return VALUES[desc.getIndex()];
       }
 
-      private final int index;
       private final int value;
 
-      private RequestType(int index, int value) {
-        this.index = index;
+      private RequestType(int value) {
         this.value = value;
       }
 
@@ -1274,11 +1074,12 @@ public final class MahaRequestLog {
       /**
        * <code>ASC = 0;</code>
        */
-      ASC(0, 0),
+      ASC(0),
       /**
        * <code>DESC = 1;</code>
        */
-      DESC(1, 1),
+      DESC(1),
+      UNRECOGNIZED(-1),
       ;
 
       /**
@@ -1291,9 +1092,29 @@ public final class MahaRequestLog {
       public static final int DESC_VALUE = 1;
 
 
-      public final int getNumber() { return value; }
+      public final int getNumber() {
+        if (this == UNRECOGNIZED) {
+          throw new java.lang.IllegalArgumentException(
+              "Can't get the number of an unknown enum value.");
+        }
+        return value;
+      }
 
+      /**
+       * @param value The numeric wire value of the corresponding enum entry.
+       * @return The enum associated with the given numeric wire value.
+       * @deprecated Use {@link #forNumber(int)} instead.
+       */
+      @java.lang.Deprecated
       public static Order valueOf(int value) {
+        return forNumber(value);
+      }
+
+      /**
+       * @param value The numeric wire value of the corresponding enum entry.
+       * @return The enum associated with the given numeric wire value.
+       */
+      public static Order forNumber(int value) {
         switch (value) {
           case 0: return ASC;
           case 1: return DESC;
@@ -1305,17 +1126,21 @@ public final class MahaRequestLog {
           internalGetValueMap() {
         return internalValueMap;
       }
-      private static com.google.protobuf.Internal.EnumLiteMap<Order>
-          internalValueMap =
+      private static final com.google.protobuf.Internal.EnumLiteMap<
+          Order> internalValueMap =
             new com.google.protobuf.Internal.EnumLiteMap<Order>() {
               public Order findValueByNumber(int number) {
-                return Order.valueOf(number);
+                return Order.forNumber(number);
               }
             };
 
       public final com.google.protobuf.Descriptors.EnumValueDescriptor
           getValueDescriptor() {
-        return getDescriptor().getValues().get(index);
+        if (this == UNRECOGNIZED) {
+          throw new java.lang.IllegalStateException(
+              "Can't get the descriptor of an unrecognized enum value.");
+        }
+        return getDescriptor().getValues().get(ordinal());
       }
       public final com.google.protobuf.Descriptors.EnumDescriptor
           getDescriptorForType() {
@@ -1334,14 +1159,15 @@ public final class MahaRequestLog {
           throw new java.lang.IllegalArgumentException(
             "EnumValueDescriptor is not for this type.");
         }
+        if (desc.getIndex() == -1) {
+          return UNRECOGNIZED;
+        }
         return VALUES[desc.getIndex()];
       }
 
-      private final int index;
       private final int value;
 
-      private Order(int index, int value) {
-        this.index = index;
+      private Order(int value) {
         this.value = value;
       }
 
@@ -1356,19 +1182,20 @@ public final class MahaRequestLog {
       /**
        * <code>Oracle = 0;</code>
        */
-      Oracle(0, 0),
+      Oracle(0),
       /**
        * <code>Druid = 1;</code>
        */
-      Druid(1, 1),
+      Druid(1),
       /**
        * <code>Hive = 2;</code>
        */
-      Hive(2, 2),
+      Hive(2),
       /**
        * <code>Presto = 3;</code>
        */
-      Presto(3, 3),
+      Presto(3),
+      UNRECOGNIZED(-1),
       ;
 
       /**
@@ -1389,9 +1216,29 @@ public final class MahaRequestLog {
       public static final int Presto_VALUE = 3;
 
 
-      public final int getNumber() { return value; }
+      public final int getNumber() {
+        if (this == UNRECOGNIZED) {
+          throw new java.lang.IllegalArgumentException(
+              "Can't get the number of an unknown enum value.");
+        }
+        return value;
+      }
 
+      /**
+       * @param value The numeric wire value of the corresponding enum entry.
+       * @return The enum associated with the given numeric wire value.
+       * @deprecated Use {@link #forNumber(int)} instead.
+       */
+      @java.lang.Deprecated
       public static Engine valueOf(int value) {
+        return forNumber(value);
+      }
+
+      /**
+       * @param value The numeric wire value of the corresponding enum entry.
+       * @return The enum associated with the given numeric wire value.
+       */
+      public static Engine forNumber(int value) {
         switch (value) {
           case 0: return Oracle;
           case 1: return Druid;
@@ -1405,17 +1252,21 @@ public final class MahaRequestLog {
           internalGetValueMap() {
         return internalValueMap;
       }
-      private static com.google.protobuf.Internal.EnumLiteMap<Engine>
-          internalValueMap =
+      private static final com.google.protobuf.Internal.EnumLiteMap<
+          Engine> internalValueMap =
             new com.google.protobuf.Internal.EnumLiteMap<Engine>() {
               public Engine findValueByNumber(int number) {
-                return Engine.valueOf(number);
+                return Engine.forNumber(number);
               }
             };
 
       public final com.google.protobuf.Descriptors.EnumValueDescriptor
           getValueDescriptor() {
-        return getDescriptor().getValues().get(index);
+        if (this == UNRECOGNIZED) {
+          throw new java.lang.IllegalStateException(
+              "Can't get the descriptor of an unrecognized enum value.");
+        }
+        return getDescriptor().getValues().get(ordinal());
       }
       public final com.google.protobuf.Descriptors.EnumDescriptor
           getDescriptorForType() {
@@ -1434,14 +1285,15 @@ public final class MahaRequestLog {
           throw new java.lang.IllegalArgumentException(
             "EnumValueDescriptor is not for this type.");
         }
+        if (desc.getIndex() == -1) {
+          return UNRECOGNIZED;
+        }
         return VALUES[desc.getIndex()];
       }
 
-      private final int index;
       private final int value;
 
-      private Engine(int index, int value) {
-        this.index = index;
+      private Engine(int value) {
         this.value = value;
       }
 
@@ -1456,19 +1308,20 @@ public final class MahaRequestLog {
       /**
        * <code>SUBMITTED = 0;</code>
        */
-      SUBMITTED(0, 0),
+      SUBMITTED(0),
       /**
        * <code>RUNNING = 1;</code>
        */
-      RUNNING(1, 1),
+      RUNNING(1),
       /**
        * <code>FAILED = 2;</code>
        */
-      FAILED(2, 2),
+      FAILED(2),
       /**
        * <code>COMPLETED = 3;</code>
        */
-      COMPLETED(3, 3),
+      COMPLETED(3),
+      UNRECOGNIZED(-1),
       ;
 
       /**
@@ -1489,9 +1342,29 @@ public final class MahaRequestLog {
       public static final int COMPLETED_VALUE = 3;
 
 
-      public final int getNumber() { return value; }
+      public final int getNumber() {
+        if (this == UNRECOGNIZED) {
+          throw new java.lang.IllegalArgumentException(
+              "Can't get the number of an unknown enum value.");
+        }
+        return value;
+      }
 
+      /**
+       * @param value The numeric wire value of the corresponding enum entry.
+       * @return The enum associated with the given numeric wire value.
+       * @deprecated Use {@link #forNumber(int)} instead.
+       */
+      @java.lang.Deprecated
       public static AsyncJobStatus valueOf(int value) {
+        return forNumber(value);
+      }
+
+      /**
+       * @param value The numeric wire value of the corresponding enum entry.
+       * @return The enum associated with the given numeric wire value.
+       */
+      public static AsyncJobStatus forNumber(int value) {
         switch (value) {
           case 0: return SUBMITTED;
           case 1: return RUNNING;
@@ -1505,17 +1378,21 @@ public final class MahaRequestLog {
           internalGetValueMap() {
         return internalValueMap;
       }
-      private static com.google.protobuf.Internal.EnumLiteMap<AsyncJobStatus>
-          internalValueMap =
+      private static final com.google.protobuf.Internal.EnumLiteMap<
+          AsyncJobStatus> internalValueMap =
             new com.google.protobuf.Internal.EnumLiteMap<AsyncJobStatus>() {
               public AsyncJobStatus findValueByNumber(int number) {
-                return AsyncJobStatus.valueOf(number);
+                return AsyncJobStatus.forNumber(number);
               }
             };
 
       public final com.google.protobuf.Descriptors.EnumValueDescriptor
           getValueDescriptor() {
-        return getDescriptor().getValues().get(index);
+        if (this == UNRECOGNIZED) {
+          throw new java.lang.IllegalStateException(
+              "Can't get the descriptor of an unrecognized enum value.");
+        }
+        return getDescriptor().getValues().get(ordinal());
       }
       public final com.google.protobuf.Descriptors.EnumDescriptor
           getDescriptorForType() {
@@ -1534,14 +1411,15 @@ public final class MahaRequestLog {
           throw new java.lang.IllegalArgumentException(
             "EnumValueDescriptor is not for this type.");
         }
+        if (desc.getIndex() == -1) {
+          return UNRECOGNIZED;
+        }
         return VALUES[desc.getIndex()];
       }
 
-      private final int index;
       private final int value;
 
-      private AsyncJobStatus(int index, int value) {
-        this.index = index;
+      private AsyncJobStatus(int value) {
         this.value = value;
       }
 
@@ -1556,11 +1434,12 @@ public final class MahaRequestLog {
       /**
        * <code>PULSAR = 0;</code>
        */
-      PULSAR(0, 0),
+      PULSAR(0),
       /**
        * <code>KAFKA = 1;</code>
        */
-      KAFKA(1, 1),
+      KAFKA(1),
+      UNRECOGNIZED(-1),
       ;
 
       /**
@@ -1573,9 +1452,29 @@ public final class MahaRequestLog {
       public static final int KAFKA_VALUE = 1;
 
 
-      public final int getNumber() { return value; }
+      public final int getNumber() {
+        if (this == UNRECOGNIZED) {
+          throw new java.lang.IllegalArgumentException(
+              "Can't get the number of an unknown enum value.");
+        }
+        return value;
+      }
 
+      /**
+       * @param value The numeric wire value of the corresponding enum entry.
+       * @return The enum associated with the given numeric wire value.
+       * @deprecated Use {@link #forNumber(int)} instead.
+       */
+      @java.lang.Deprecated
       public static QueueType valueOf(int value) {
+        return forNumber(value);
+      }
+
+      /**
+       * @param value The numeric wire value of the corresponding enum entry.
+       * @return The enum associated with the given numeric wire value.
+       */
+      public static QueueType forNumber(int value) {
         switch (value) {
           case 0: return PULSAR;
           case 1: return KAFKA;
@@ -1587,17 +1486,21 @@ public final class MahaRequestLog {
           internalGetValueMap() {
         return internalValueMap;
       }
-      private static com.google.protobuf.Internal.EnumLiteMap<QueueType>
-          internalValueMap =
+      private static final com.google.protobuf.Internal.EnumLiteMap<
+          QueueType> internalValueMap =
             new com.google.protobuf.Internal.EnumLiteMap<QueueType>() {
               public QueueType findValueByNumber(int number) {
-                return QueueType.valueOf(number);
+                return QueueType.forNumber(number);
               }
             };
 
       public final com.google.protobuf.Descriptors.EnumValueDescriptor
           getValueDescriptor() {
-        return getDescriptor().getValues().get(index);
+        if (this == UNRECOGNIZED) {
+          throw new java.lang.IllegalStateException(
+              "Can't get the descriptor of an unrecognized enum value.");
+        }
+        return getDescriptor().getValues().get(ordinal());
       }
       public final com.google.protobuf.Descriptors.EnumDescriptor
           getDescriptorForType() {
@@ -1616,14 +1519,15 @@ public final class MahaRequestLog {
           throw new java.lang.IllegalArgumentException(
             "EnumValueDescriptor is not for this type.");
         }
+        if (desc.getIndex() == -1) {
+          return UNRECOGNIZED;
+        }
         return VALUES[desc.getIndex()];
       }
 
-      private final int index;
       private final int value;
 
-      private QueueType(int index, int value) {
-        this.index = index;
+      private QueueType(int value) {
         this.value = value;
       }
 
@@ -1638,35 +1542,36 @@ public final class MahaRequestLog {
       /**
        * <code>WORKER_RUNNING = 0;</code>
        */
-      WORKER_RUNNING(0, 0),
+      WORKER_RUNNING(0),
       /**
        * <code>WORKER_FAILED = 1;</code>
        */
-      WORKER_FAILED(1, 1),
+      WORKER_FAILED(1),
       /**
        * <code>WORKER_RETRIED = 2;</code>
        */
-      WORKER_RETRIED(2, 2),
+      WORKER_RETRIED(2),
       /**
        * <code>WORKER_GRID_TIMEOUT = 3;</code>
        */
-      WORKER_GRID_TIMEOUT(3, 3),
+      WORKER_GRID_TIMEOUT(3),
       /**
        * <code>WORKER_TRANSFORMATION_FAILED = 4;</code>
        */
-      WORKER_TRANSFORMATION_FAILED(4, 4),
+      WORKER_TRANSFORMATION_FAILED(4),
       /**
        * <code>WORKER_RESULT_STORE_FAILED = 5;</code>
        */
-      WORKER_RESULT_STORE_FAILED(5, 5),
+      WORKER_RESULT_STORE_FAILED(5),
       /**
        * <code>WORKER_COMPLETED = 6;</code>
        */
-      WORKER_COMPLETED(6, 6),
+      WORKER_COMPLETED(6),
       /**
        * <code>WORKER_SUBMITTED = 7;</code>
        */
-      WORKER_SUBMITTED(7, 7),
+      WORKER_SUBMITTED(7),
+      UNRECOGNIZED(-1),
       ;
 
       /**
@@ -1703,9 +1608,29 @@ public final class MahaRequestLog {
       public static final int WORKER_SUBMITTED_VALUE = 7;
 
 
-      public final int getNumber() { return value; }
+      public final int getNumber() {
+        if (this == UNRECOGNIZED) {
+          throw new java.lang.IllegalArgumentException(
+              "Can't get the number of an unknown enum value.");
+        }
+        return value;
+      }
 
+      /**
+       * @param value The numeric wire value of the corresponding enum entry.
+       * @return The enum associated with the given numeric wire value.
+       * @deprecated Use {@link #forNumber(int)} instead.
+       */
+      @java.lang.Deprecated
       public static WorkerStatus valueOf(int value) {
+        return forNumber(value);
+      }
+
+      /**
+       * @param value The numeric wire value of the corresponding enum entry.
+       * @return The enum associated with the given numeric wire value.
+       */
+      public static WorkerStatus forNumber(int value) {
         switch (value) {
           case 0: return WORKER_RUNNING;
           case 1: return WORKER_FAILED;
@@ -1723,17 +1648,21 @@ public final class MahaRequestLog {
           internalGetValueMap() {
         return internalValueMap;
       }
-      private static com.google.protobuf.Internal.EnumLiteMap<WorkerStatus>
-          internalValueMap =
+      private static final com.google.protobuf.Internal.EnumLiteMap<
+          WorkerStatus> internalValueMap =
             new com.google.protobuf.Internal.EnumLiteMap<WorkerStatus>() {
               public WorkerStatus findValueByNumber(int number) {
-                return WorkerStatus.valueOf(number);
+                return WorkerStatus.forNumber(number);
               }
             };
 
       public final com.google.protobuf.Descriptors.EnumValueDescriptor
           getValueDescriptor() {
-        return getDescriptor().getValues().get(index);
+        if (this == UNRECOGNIZED) {
+          throw new java.lang.IllegalStateException(
+              "Can't get the descriptor of an unrecognized enum value.");
+        }
+        return getDescriptor().getValues().get(ordinal());
       }
       public final com.google.protobuf.Descriptors.EnumDescriptor
           getDescriptorForType() {
@@ -1752,14 +1681,15 @@ public final class MahaRequestLog {
           throw new java.lang.IllegalArgumentException(
             "EnumValueDescriptor is not for this type.");
         }
+        if (desc.getIndex() == -1) {
+          return UNRECOGNIZED;
+        }
         return VALUES[desc.getIndex()];
       }
 
-      private final int index;
       private final int value;
 
-      private WorkerStatus(int index, int value) {
-        this.index = index;
+      private WorkerStatus(int value) {
         this.value = value;
       }
 
@@ -1772,24 +1702,34 @@ public final class MahaRequestLog {
 
       /**
        * <code>optional string alias = 1;</code>
+       * @return Whether the alias field is set.
        */
       boolean hasAlias();
       /**
        * <code>optional string alias = 1;</code>
+       * @return The alias.
        */
       java.lang.String getAlias();
       /**
        * <code>optional string alias = 1;</code>
+       * @return The bytes for alias.
        */
       com.google.protobuf.ByteString
           getAliasBytes();
 
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Order order = 2;</code>
+       * @return Whether the order field is set.
        */
       boolean hasOrder();
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Order order = 2;</code>
+       * @return The enum numeric value on the wire for order.
+       */
+      int getOrderValue();
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Order order = 2;</code>
+       * @return The order.
        */
       com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order getOrder();
     }
@@ -1797,122 +1737,60 @@ public final class MahaRequestLog {
      * Protobuf type {@code com.yahoo.maha.proto.MahaRequestProto.SortByColumnInfo}
      */
     public static final class SortByColumnInfo extends
-        com.google.protobuf.GeneratedMessage implements
+        com.google.protobuf.GeneratedMessageV3 implements
         // @@protoc_insertion_point(message_implements:com.yahoo.maha.proto.MahaRequestProto.SortByColumnInfo)
         SortByColumnInfoOrBuilder {
+    private static final long serialVersionUID = 0L;
       // Use SortByColumnInfo.newBuilder() to construct.
-      private SortByColumnInfo(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      private SortByColumnInfo(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
         super(builder);
-        this.unknownFields = builder.getUnknownFields();
       }
-      private SortByColumnInfo(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
-
-      private static final SortByColumnInfo defaultInstance;
-      public static SortByColumnInfo getDefaultInstance() {
-        return defaultInstance;
+      private SortByColumnInfo() {
+        alias_ = "";
+        order_ = 0;
       }
 
-      public SortByColumnInfo getDefaultInstanceForType() {
-        return defaultInstance;
+      @java.lang.Override
+      @SuppressWarnings({"unused"})
+      protected java.lang.Object newInstance(
+          UnusedPrivateParameter unused) {
+        return new SortByColumnInfo();
       }
 
-      private final com.google.protobuf.UnknownFieldSet unknownFields;
       @java.lang.Override
       public final com.google.protobuf.UnknownFieldSet
-          getUnknownFields() {
+      getUnknownFields() {
         return this.unknownFields;
-      }
-      private SortByColumnInfo(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        initFields();
-        int mutable_bitField0_ = 0;
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-            com.google.protobuf.UnknownFieldSet.newBuilder();
-        try {
-          boolean done = false;
-          while (!done) {
-            int tag = input.readTag();
-            switch (tag) {
-              case 0:
-                done = true;
-                break;
-              default: {
-                if (!parseUnknownField(input, unknownFields,
-                                       extensionRegistry, tag)) {
-                  done = true;
-                }
-                break;
-              }
-              case 10: {
-                com.google.protobuf.ByteString bs = input.readBytes();
-                bitField0_ |= 0x00000001;
-                alias_ = bs;
-                break;
-              }
-              case 16: {
-                int rawValue = input.readEnum();
-                com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order value = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order.valueOf(rawValue);
-                if (value == null) {
-                  unknownFields.mergeVarintField(2, rawValue);
-                } else {
-                  bitField0_ |= 0x00000002;
-                  order_ = value;
-                }
-                break;
-              }
-            }
-          }
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.setUnfinishedMessage(this);
-        } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(
-              e.getMessage()).setUnfinishedMessage(this);
-        } finally {
-          this.unknownFields = unknownFields.build();
-          makeExtensionsImmutable();
-        }
       }
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
         return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
                 com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo.class, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo.Builder.class);
       }
 
-      public static com.google.protobuf.Parser<SortByColumnInfo> PARSER =
-          new com.google.protobuf.AbstractParser<SortByColumnInfo>() {
-        public SortByColumnInfo parsePartialFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
-          return new SortByColumnInfo(input, extensionRegistry);
-        }
-      };
-
-      @java.lang.Override
-      public com.google.protobuf.Parser<SortByColumnInfo> getParserForType() {
-        return PARSER;
-      }
-
       private int bitField0_;
       public static final int ALIAS_FIELD_NUMBER = 1;
-      private java.lang.Object alias_;
+      private volatile java.lang.Object alias_;
       /**
        * <code>optional string alias = 1;</code>
+       * @return Whether the alias field is set.
        */
+      @java.lang.Override
       public boolean hasAlias() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>optional string alias = 1;</code>
+       * @return The alias.
        */
+      @java.lang.Override
       public java.lang.String getAlias() {
         java.lang.Object ref = alias_;
         if (ref instanceof java.lang.String) {
@@ -1921,15 +1799,15 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs = 
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            alias_ = s;
-          }
+          alias_ = s;
           return s;
         }
       }
       /**
        * <code>optional string alias = 1;</code>
+       * @return The bytes for alias.
        */
+      @java.lang.Override
       public com.google.protobuf.ByteString
           getAliasBytes() {
         java.lang.Object ref = alias_;
@@ -1945,25 +1823,33 @@ public final class MahaRequestLog {
       }
 
       public static final int ORDER_FIELD_NUMBER = 2;
-      private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order order_;
+      private int order_;
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Order order = 2;</code>
+       * @return Whether the order field is set.
        */
-      public boolean hasOrder() {
-        return ((bitField0_ & 0x00000002) == 0x00000002);
+      @java.lang.Override public boolean hasOrder() {
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Order order = 2;</code>
+       * @return The enum numeric value on the wire for order.
        */
-      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order getOrder() {
+      @java.lang.Override public int getOrderValue() {
         return order_;
       }
-
-      private void initFields() {
-        alias_ = "";
-        order_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order.ASC;
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Order order = 2;</code>
+       * @return The order.
+       */
+      @java.lang.Override public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order getOrder() {
+        @SuppressWarnings("deprecation")
+        com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order.valueOf(order_);
+        return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order.UNRECOGNIZED : result;
       }
+
       private byte memoizedIsInitialized = -1;
+      @java.lang.Override
       public final boolean isInitialized() {
         byte isInitialized = memoizedIsInitialized;
         if (isInitialized == 1) return true;
@@ -1973,44 +1859,90 @@ public final class MahaRequestLog {
         return true;
       }
 
+      @java.lang.Override
       public void writeTo(com.google.protobuf.CodedOutputStream output)
                           throws java.io.IOException {
-        getSerializedSize();
-        if (((bitField0_ & 0x00000001) == 0x00000001)) {
-          output.writeBytes(1, getAliasBytes());
+        if (((bitField0_ & 0x00000001) != 0)) {
+          com.google.protobuf.GeneratedMessageV3.writeString(output, 1, alias_);
         }
-        if (((bitField0_ & 0x00000002) == 0x00000002)) {
-          output.writeEnum(2, order_.getNumber());
+        if (((bitField0_ & 0x00000002) != 0)) {
+          output.writeEnum(2, order_);
         }
         getUnknownFields().writeTo(output);
       }
 
-      private int memoizedSerializedSize = -1;
+      @java.lang.Override
       public int getSerializedSize() {
-        int size = memoizedSerializedSize;
+        int size = memoizedSize;
         if (size != -1) return size;
 
         size = 0;
-        if (((bitField0_ & 0x00000001) == 0x00000001)) {
-          size += com.google.protobuf.CodedOutputStream
-            .computeBytesSize(1, getAliasBytes());
+        if (((bitField0_ & 0x00000001) != 0)) {
+          size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, alias_);
         }
-        if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        if (((bitField0_ & 0x00000002) != 0)) {
           size += com.google.protobuf.CodedOutputStream
-            .computeEnumSize(2, order_.getNumber());
+            .computeEnumSize(2, order_);
         }
         size += getUnknownFields().getSerializedSize();
-        memoizedSerializedSize = size;
+        memoizedSize = size;
         return size;
       }
 
-      private static final long serialVersionUID = 0L;
       @java.lang.Override
-      protected java.lang.Object writeReplace()
-          throws java.io.ObjectStreamException {
-        return super.writeReplace();
+      public boolean equals(final java.lang.Object obj) {
+        if (obj == this) {
+         return true;
+        }
+        if (!(obj instanceof com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo)) {
+          return super.equals(obj);
+        }
+        com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo other = (com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo) obj;
+
+        if (hasAlias() != other.hasAlias()) return false;
+        if (hasAlias()) {
+          if (!getAlias()
+              .equals(other.getAlias())) return false;
+        }
+        if (hasOrder() != other.hasOrder()) return false;
+        if (hasOrder()) {
+          if (order_ != other.order_) return false;
+        }
+        if (!getUnknownFields().equals(other.getUnknownFields())) return false;
+        return true;
       }
 
+      @java.lang.Override
+      public int hashCode() {
+        if (memoizedHashCode != 0) {
+          return memoizedHashCode;
+        }
+        int hash = 41;
+        hash = (19 * hash) + getDescriptor().hashCode();
+        if (hasAlias()) {
+          hash = (37 * hash) + ALIAS_FIELD_NUMBER;
+          hash = (53 * hash) + getAlias().hashCode();
+        }
+        if (hasOrder()) {
+          hash = (37 * hash) + ORDER_FIELD_NUMBER;
+          hash = (53 * hash) + order_;
+        }
+        hash = (29 * hash) + getUnknownFields().hashCode();
+        memoizedHashCode = hash;
+        return hash;
+      }
+
+      public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo parseFrom(
+          java.nio.ByteBuffer data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo parseFrom(
+          java.nio.ByteBuffer data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo parseFrom(
           com.google.protobuf.ByteString data)
           throws com.google.protobuf.InvalidProtocolBufferException {
@@ -2034,46 +1966,59 @@ public final class MahaRequestLog {
       }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo parseFrom(java.io.InputStream input)
           throws java.io.IOException {
-        return PARSER.parseFrom(input);
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
       }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo parseFrom(
           java.io.InputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        return PARSER.parseFrom(input, extensionRegistry);
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
       }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo parseDelimitedFrom(java.io.InputStream input)
           throws java.io.IOException {
-        return PARSER.parseDelimitedFrom(input);
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input);
       }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo parseDelimitedFrom(
           java.io.InputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        return PARSER.parseDelimitedFrom(input, extensionRegistry);
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
       }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo parseFrom(
           com.google.protobuf.CodedInputStream input)
           throws java.io.IOException {
-        return PARSER.parseFrom(input);
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
       }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo parseFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        return PARSER.parseFrom(input, extensionRegistry);
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
       }
 
-      public static Builder newBuilder() { return Builder.create(); }
+      @java.lang.Override
       public Builder newBuilderForType() { return newBuilder(); }
-      public static Builder newBuilder(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo prototype) {
-        return newBuilder().mergeFrom(prototype);
+      public static Builder newBuilder() {
+        return DEFAULT_INSTANCE.toBuilder();
       }
-      public Builder toBuilder() { return newBuilder(this); }
+      public static Builder newBuilder(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo prototype) {
+        return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+      }
+      @java.lang.Override
+      public Builder toBuilder() {
+        return this == DEFAULT_INSTANCE
+            ? new Builder() : new Builder().mergeFrom(this);
+      }
 
       @java.lang.Override
       protected Builder newBuilderForType(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         Builder builder = new Builder(parent);
         return builder;
       }
@@ -2081,7 +2026,7 @@ public final class MahaRequestLog {
        * Protobuf type {@code com.yahoo.maha.proto.MahaRequestProto.SortByColumnInfo}
        */
       public static final class Builder extends
-          com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+          com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
           // @@protoc_insertion_point(builder_implements:com.yahoo.maha.proto.MahaRequestProto.SortByColumnInfo)
           com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfoOrBuilder {
         public static final com.google.protobuf.Descriptors.Descriptor
@@ -2089,7 +2034,8 @@ public final class MahaRequestLog {
           return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_descriptor;
         }
 
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        @java.lang.Override
+        protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
             internalGetFieldAccessorTable() {
           return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_fieldAccessorTable
               .ensureFieldAccessorsInitialized(
@@ -2098,44 +2044,36 @@ public final class MahaRequestLog {
 
         // Construct using com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo.newBuilder()
         private Builder() {
-          maybeForceBuilderInitialization();
+
         }
 
         private Builder(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+            com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
           super(parent);
-          maybeForceBuilderInitialization();
-        }
-        private void maybeForceBuilderInitialization() {
-          if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-          }
-        }
-        private static Builder create() {
-          return new Builder();
-        }
 
+        }
+        @java.lang.Override
         public Builder clear() {
           super.clear();
           alias_ = "";
           bitField0_ = (bitField0_ & ~0x00000001);
-          order_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order.ASC;
+          order_ = 0;
           bitField0_ = (bitField0_ & ~0x00000002);
           return this;
         }
 
-        public Builder clone() {
-          return create().mergeFrom(buildPartial());
-        }
-
+        @java.lang.Override
         public com.google.protobuf.Descriptors.Descriptor
             getDescriptorForType() {
           return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_descriptor;
         }
 
+        @java.lang.Override
         public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo getDefaultInstanceForType() {
           return com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo.getDefaultInstance();
         }
 
+        @java.lang.Override
         public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo build() {
           com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo result = buildPartial();
           if (!result.isInitialized()) {
@@ -2144,15 +2082,16 @@ public final class MahaRequestLog {
           return result;
         }
 
+        @java.lang.Override
         public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo buildPartial() {
           com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo result = new com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo(this);
           int from_bitField0_ = bitField0_;
           int to_bitField0_ = 0;
-          if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          if (((from_bitField0_ & 0x00000001) != 0)) {
             to_bitField0_ |= 0x00000001;
           }
           result.alias_ = alias_;
-          if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          if (((from_bitField0_ & 0x00000002) != 0)) {
             to_bitField0_ |= 0x00000002;
           }
           result.order_ = order_;
@@ -2161,6 +2100,39 @@ public final class MahaRequestLog {
           return result;
         }
 
+        @java.lang.Override
+        public Builder clone() {
+          return super.clone();
+        }
+        @java.lang.Override
+        public Builder setField(
+            com.google.protobuf.Descriptors.FieldDescriptor field,
+            java.lang.Object value) {
+          return super.setField(field, value);
+        }
+        @java.lang.Override
+        public Builder clearField(
+            com.google.protobuf.Descriptors.FieldDescriptor field) {
+          return super.clearField(field);
+        }
+        @java.lang.Override
+        public Builder clearOneof(
+            com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+          return super.clearOneof(oneof);
+        }
+        @java.lang.Override
+        public Builder setRepeatedField(
+            com.google.protobuf.Descriptors.FieldDescriptor field,
+            int index, java.lang.Object value) {
+          return super.setRepeatedField(field, index, value);
+        }
+        @java.lang.Override
+        public Builder addRepeatedField(
+            com.google.protobuf.Descriptors.FieldDescriptor field,
+            java.lang.Object value) {
+          return super.addRepeatedField(field, value);
+        }
+        @java.lang.Override
         public Builder mergeFrom(com.google.protobuf.Message other) {
           if (other instanceof com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo) {
             return mergeFrom((com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo)other);
@@ -2181,28 +2153,54 @@ public final class MahaRequestLog {
             setOrder(other.getOrder());
           }
           this.mergeUnknownFields(other.getUnknownFields());
+          onChanged();
           return this;
         }
 
+        @java.lang.Override
         public final boolean isInitialized() {
           return true;
         }
 
+        @java.lang.Override
         public Builder mergeFrom(
             com.google.protobuf.CodedInputStream input,
             com.google.protobuf.ExtensionRegistryLite extensionRegistry)
             throws java.io.IOException {
-          com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo parsedMessage = null;
-          try {
-            parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-            parsedMessage = (com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo) e.getUnfinishedMessage();
-            throw e;
-          } finally {
-            if (parsedMessage != null) {
-              mergeFrom(parsedMessage);
-            }
+          if (extensionRegistry == null) {
+            throw new java.lang.NullPointerException();
           }
+          try {
+            boolean done = false;
+            while (!done) {
+              int tag = input.readTag();
+              switch (tag) {
+                case 0:
+                  done = true;
+                  break;
+                case 10: {
+                  alias_ = input.readStringRequireUtf8();
+                  bitField0_ |= 0x00000001;
+                  break;
+                } // case 10
+                case 16: {
+                  order_ = input.readEnum();
+                  bitField0_ |= 0x00000002;
+                  break;
+                } // case 16
+                default: {
+                  if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                    done = true; // was an endgroup tag
+                  }
+                  break;
+                } // default:
+              } // switch (tag)
+            } // while (!done)
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.unwrapIOException();
+          } finally {
+            onChanged();
+          } // finally
           return this;
         }
         private int bitField0_;
@@ -2210,12 +2208,14 @@ public final class MahaRequestLog {
         private java.lang.Object alias_ = "";
         /**
          * <code>optional string alias = 1;</code>
+         * @return Whether the alias field is set.
          */
         public boolean hasAlias() {
-          return ((bitField0_ & 0x00000001) == 0x00000001);
+          return ((bitField0_ & 0x00000001) != 0);
         }
         /**
          * <code>optional string alias = 1;</code>
+         * @return The alias.
          */
         public java.lang.String getAlias() {
           java.lang.Object ref = alias_;
@@ -2223,9 +2223,7 @@ public final class MahaRequestLog {
             com.google.protobuf.ByteString bs =
                 (com.google.protobuf.ByteString) ref;
             java.lang.String s = bs.toStringUtf8();
-            if (bs.isValidUtf8()) {
-              alias_ = s;
-            }
+            alias_ = s;
             return s;
           } else {
             return (java.lang.String) ref;
@@ -2233,6 +2231,7 @@ public final class MahaRequestLog {
         }
         /**
          * <code>optional string alias = 1;</code>
+         * @return The bytes for alias.
          */
         public com.google.protobuf.ByteString
             getAliasBytes() {
@@ -2249,6 +2248,8 @@ public final class MahaRequestLog {
         }
         /**
          * <code>optional string alias = 1;</code>
+         * @param value The alias to set.
+         * @return This builder for chaining.
          */
         public Builder setAlias(
             java.lang.String value) {
@@ -2262,6 +2263,7 @@ public final class MahaRequestLog {
         }
         /**
          * <code>optional string alias = 1;</code>
+         * @return This builder for chaining.
          */
         public Builder clearAlias() {
           bitField0_ = (bitField0_ & ~0x00000001);
@@ -2271,38 +2273,42 @@ public final class MahaRequestLog {
         }
         /**
          * <code>optional string alias = 1;</code>
+         * @param value The bytes for alias to set.
+         * @return This builder for chaining.
          */
         public Builder setAliasBytes(
             com.google.protobuf.ByteString value) {
           if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000001;
+  checkByteStringIsUtf8(value);
+          bitField0_ |= 0x00000001;
           alias_ = value;
           onChanged();
           return this;
         }
 
-        private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order order_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order.ASC;
+        private int order_ = 0;
         /**
          * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Order order = 2;</code>
+         * @return Whether the order field is set.
          */
-        public boolean hasOrder() {
-          return ((bitField0_ & 0x00000002) == 0x00000002);
+        @java.lang.Override public boolean hasOrder() {
+          return ((bitField0_ & 0x00000002) != 0);
         }
         /**
          * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Order order = 2;</code>
+         * @return The enum numeric value on the wire for order.
          */
-        public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order getOrder() {
+        @java.lang.Override public int getOrderValue() {
           return order_;
         }
         /**
          * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Order order = 2;</code>
+         * @param value The enum numeric value on the wire for order to set.
+         * @return This builder for chaining.
          */
-        public Builder setOrder(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order value) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
+        public Builder setOrderValue(int value) {
           bitField0_ |= 0x00000002;
           order_ = value;
           onChanged();
@@ -2310,23 +2316,100 @@ public final class MahaRequestLog {
         }
         /**
          * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Order order = 2;</code>
+         * @return The order.
          */
-        public Builder clearOrder() {
-          bitField0_ = (bitField0_ & ~0x00000002);
-          order_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order.ASC;
+        @java.lang.Override
+        public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order getOrder() {
+          @SuppressWarnings("deprecation")
+          com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order.valueOf(order_);
+          return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order.UNRECOGNIZED : result;
+        }
+        /**
+         * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Order order = 2;</code>
+         * @param value The order to set.
+         * @return This builder for chaining.
+         */
+        public Builder setOrder(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Order value) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          bitField0_ |= 0x00000002;
+          order_ = value.getNumber();
           onChanged();
           return this;
         }
+        /**
+         * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Order order = 2;</code>
+         * @return This builder for chaining.
+         */
+        public Builder clearOrder() {
+          bitField0_ = (bitField0_ & ~0x00000002);
+          order_ = 0;
+          onChanged();
+          return this;
+        }
+        @java.lang.Override
+        public final Builder setUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.setUnknownFields(unknownFields);
+        }
+
+        @java.lang.Override
+        public final Builder mergeUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.mergeUnknownFields(unknownFields);
+        }
+
 
         // @@protoc_insertion_point(builder_scope:com.yahoo.maha.proto.MahaRequestProto.SortByColumnInfo)
       }
 
+      // @@protoc_insertion_point(class_scope:com.yahoo.maha.proto.MahaRequestProto.SortByColumnInfo)
+      private static final com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo DEFAULT_INSTANCE;
       static {
-        defaultInstance = new SortByColumnInfo(true);
-        defaultInstance.initFields();
+        DEFAULT_INSTANCE = new com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo();
       }
 
-      // @@protoc_insertion_point(class_scope:com.yahoo.maha.proto.MahaRequestProto.SortByColumnInfo)
+      public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo getDefaultInstance() {
+        return DEFAULT_INSTANCE;
+      }
+
+      private static final com.google.protobuf.Parser<SortByColumnInfo>
+          PARSER = new com.google.protobuf.AbstractParser<SortByColumnInfo>() {
+        @java.lang.Override
+        public SortByColumnInfo parsePartialFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws com.google.protobuf.InvalidProtocolBufferException {
+          Builder builder = newBuilder();
+          try {
+            builder.mergeFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.setUnfinishedMessage(builder.buildPartial());
+          } catch (com.google.protobuf.UninitializedMessageException e) {
+            throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+          } catch (java.io.IOException e) {
+            throw new com.google.protobuf.InvalidProtocolBufferException(e)
+                .setUnfinishedMessage(builder.buildPartial());
+          }
+          return builder.buildPartial();
+        }
+      };
+
+      public static com.google.protobuf.Parser<SortByColumnInfo> parser() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Parser<SortByColumnInfo> getParserForType() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo getDefaultInstanceForType() {
+        return DEFAULT_INSTANCE;
+      }
+
     }
 
     public interface FactCostOrBuilder extends
@@ -2335,33 +2418,45 @@ public final class MahaRequestLog {
 
       /**
        * <code>optional string name = 1;</code>
+       * @return Whether the name field is set.
        */
       boolean hasName();
       /**
        * <code>optional string name = 1;</code>
+       * @return The name.
        */
       java.lang.String getName();
       /**
        * <code>optional string name = 1;</code>
+       * @return The bytes for name.
        */
       com.google.protobuf.ByteString
           getNameBytes();
 
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine engine = 2;</code>
+       * @return Whether the engine field is set.
        */
       boolean hasEngine();
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine engine = 2;</code>
+       * @return The enum numeric value on the wire for engine.
+       */
+      int getEngineValue();
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine engine = 2;</code>
+       * @return The engine.
        */
       com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine getEngine();
 
       /**
        * <code>optional int64 cost = 3;</code>
+       * @return Whether the cost field is set.
        */
       boolean hasCost();
       /**
        * <code>optional int64 cost = 3;</code>
+       * @return The cost.
        */
       long getCost();
     }
@@ -2369,127 +2464,60 @@ public final class MahaRequestLog {
      * Protobuf type {@code com.yahoo.maha.proto.MahaRequestProto.FactCost}
      */
     public static final class FactCost extends
-        com.google.protobuf.GeneratedMessage implements
+        com.google.protobuf.GeneratedMessageV3 implements
         // @@protoc_insertion_point(message_implements:com.yahoo.maha.proto.MahaRequestProto.FactCost)
         FactCostOrBuilder {
+    private static final long serialVersionUID = 0L;
       // Use FactCost.newBuilder() to construct.
-      private FactCost(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      private FactCost(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
         super(builder);
-        this.unknownFields = builder.getUnknownFields();
       }
-      private FactCost(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
-
-      private static final FactCost defaultInstance;
-      public static FactCost getDefaultInstance() {
-        return defaultInstance;
+      private FactCost() {
+        name_ = "";
+        engine_ = 0;
       }
 
-      public FactCost getDefaultInstanceForType() {
-        return defaultInstance;
+      @java.lang.Override
+      @SuppressWarnings({"unused"})
+      protected java.lang.Object newInstance(
+          UnusedPrivateParameter unused) {
+        return new FactCost();
       }
 
-      private final com.google.protobuf.UnknownFieldSet unknownFields;
       @java.lang.Override
       public final com.google.protobuf.UnknownFieldSet
-          getUnknownFields() {
+      getUnknownFields() {
         return this.unknownFields;
-      }
-      private FactCost(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        initFields();
-        int mutable_bitField0_ = 0;
-        com.google.protobuf.UnknownFieldSet.Builder unknownFields =
-            com.google.protobuf.UnknownFieldSet.newBuilder();
-        try {
-          boolean done = false;
-          while (!done) {
-            int tag = input.readTag();
-            switch (tag) {
-              case 0:
-                done = true;
-                break;
-              default: {
-                if (!parseUnknownField(input, unknownFields,
-                                       extensionRegistry, tag)) {
-                  done = true;
-                }
-                break;
-              }
-              case 10: {
-                com.google.protobuf.ByteString bs = input.readBytes();
-                bitField0_ |= 0x00000001;
-                name_ = bs;
-                break;
-              }
-              case 16: {
-                int rawValue = input.readEnum();
-                com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine value = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.valueOf(rawValue);
-                if (value == null) {
-                  unknownFields.mergeVarintField(2, rawValue);
-                } else {
-                  bitField0_ |= 0x00000002;
-                  engine_ = value;
-                }
-                break;
-              }
-              case 24: {
-                bitField0_ |= 0x00000004;
-                cost_ = input.readInt64();
-                break;
-              }
-            }
-          }
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          throw e.setUnfinishedMessage(this);
-        } catch (java.io.IOException e) {
-          throw new com.google.protobuf.InvalidProtocolBufferException(
-              e.getMessage()).setUnfinishedMessage(this);
-        } finally {
-          this.unknownFields = unknownFields.build();
-          makeExtensionsImmutable();
-        }
       }
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
         return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_FactCost_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_FactCost_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
                 com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost.class, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost.Builder.class);
       }
 
-      public static com.google.protobuf.Parser<FactCost> PARSER =
-          new com.google.protobuf.AbstractParser<FactCost>() {
-        public FactCost parsePartialFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
-          return new FactCost(input, extensionRegistry);
-        }
-      };
-
-      @java.lang.Override
-      public com.google.protobuf.Parser<FactCost> getParserForType() {
-        return PARSER;
-      }
-
       private int bitField0_;
       public static final int NAME_FIELD_NUMBER = 1;
-      private java.lang.Object name_;
+      private volatile java.lang.Object name_;
       /**
        * <code>optional string name = 1;</code>
+       * @return Whether the name field is set.
        */
+      @java.lang.Override
       public boolean hasName() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
        * <code>optional string name = 1;</code>
+       * @return The name.
        */
+      @java.lang.Override
       public java.lang.String getName() {
         java.lang.Object ref = name_;
         if (ref instanceof java.lang.String) {
@@ -2498,15 +2526,15 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs = 
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            name_ = s;
-          }
+          name_ = s;
           return s;
         }
       }
       /**
        * <code>optional string name = 1;</code>
+       * @return The bytes for name.
        */
+      @java.lang.Override
       public com.google.protobuf.ByteString
           getNameBytes() {
         java.lang.Object ref = name_;
@@ -2522,41 +2550,52 @@ public final class MahaRequestLog {
       }
 
       public static final int ENGINE_FIELD_NUMBER = 2;
-      private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine engine_;
+      private int engine_;
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine engine = 2;</code>
+       * @return Whether the engine field is set.
        */
-      public boolean hasEngine() {
-        return ((bitField0_ & 0x00000002) == 0x00000002);
+      @java.lang.Override public boolean hasEngine() {
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine engine = 2;</code>
+       * @return The enum numeric value on the wire for engine.
        */
-      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine getEngine() {
+      @java.lang.Override public int getEngineValue() {
         return engine_;
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine engine = 2;</code>
+       * @return The engine.
+       */
+      @java.lang.Override public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine getEngine() {
+        @SuppressWarnings("deprecation")
+        com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.valueOf(engine_);
+        return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.UNRECOGNIZED : result;
       }
 
       public static final int COST_FIELD_NUMBER = 3;
       private long cost_;
       /**
        * <code>optional int64 cost = 3;</code>
+       * @return Whether the cost field is set.
        */
+      @java.lang.Override
       public boolean hasCost() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+        return ((bitField0_ & 0x00000004) != 0);
       }
       /**
        * <code>optional int64 cost = 3;</code>
+       * @return The cost.
        */
+      @java.lang.Override
       public long getCost() {
         return cost_;
       }
 
-      private void initFields() {
-        name_ = "";
-        engine_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.Oracle;
-        cost_ = 0L;
-      }
       private byte memoizedIsInitialized = -1;
+      @java.lang.Override
       public final boolean isInitialized() {
         byte isInitialized = memoizedIsInitialized;
         if (isInitialized == 1) return true;
@@ -2566,51 +2605,107 @@ public final class MahaRequestLog {
         return true;
       }
 
+      @java.lang.Override
       public void writeTo(com.google.protobuf.CodedOutputStream output)
                           throws java.io.IOException {
-        getSerializedSize();
-        if (((bitField0_ & 0x00000001) == 0x00000001)) {
-          output.writeBytes(1, getNameBytes());
+        if (((bitField0_ & 0x00000001) != 0)) {
+          com.google.protobuf.GeneratedMessageV3.writeString(output, 1, name_);
         }
-        if (((bitField0_ & 0x00000002) == 0x00000002)) {
-          output.writeEnum(2, engine_.getNumber());
+        if (((bitField0_ & 0x00000002) != 0)) {
+          output.writeEnum(2, engine_);
         }
-        if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        if (((bitField0_ & 0x00000004) != 0)) {
           output.writeInt64(3, cost_);
         }
         getUnknownFields().writeTo(output);
       }
 
-      private int memoizedSerializedSize = -1;
+      @java.lang.Override
       public int getSerializedSize() {
-        int size = memoizedSerializedSize;
+        int size = memoizedSize;
         if (size != -1) return size;
 
         size = 0;
-        if (((bitField0_ & 0x00000001) == 0x00000001)) {
-          size += com.google.protobuf.CodedOutputStream
-            .computeBytesSize(1, getNameBytes());
+        if (((bitField0_ & 0x00000001) != 0)) {
+          size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, name_);
         }
-        if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        if (((bitField0_ & 0x00000002) != 0)) {
           size += com.google.protobuf.CodedOutputStream
-            .computeEnumSize(2, engine_.getNumber());
+            .computeEnumSize(2, engine_);
         }
-        if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        if (((bitField0_ & 0x00000004) != 0)) {
           size += com.google.protobuf.CodedOutputStream
             .computeInt64Size(3, cost_);
         }
         size += getUnknownFields().getSerializedSize();
-        memoizedSerializedSize = size;
+        memoizedSize = size;
         return size;
       }
 
-      private static final long serialVersionUID = 0L;
       @java.lang.Override
-      protected java.lang.Object writeReplace()
-          throws java.io.ObjectStreamException {
-        return super.writeReplace();
+      public boolean equals(final java.lang.Object obj) {
+        if (obj == this) {
+         return true;
+        }
+        if (!(obj instanceof com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost)) {
+          return super.equals(obj);
+        }
+        com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost other = (com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost) obj;
+
+        if (hasName() != other.hasName()) return false;
+        if (hasName()) {
+          if (!getName()
+              .equals(other.getName())) return false;
+        }
+        if (hasEngine() != other.hasEngine()) return false;
+        if (hasEngine()) {
+          if (engine_ != other.engine_) return false;
+        }
+        if (hasCost() != other.hasCost()) return false;
+        if (hasCost()) {
+          if (getCost()
+              != other.getCost()) return false;
+        }
+        if (!getUnknownFields().equals(other.getUnknownFields())) return false;
+        return true;
       }
 
+      @java.lang.Override
+      public int hashCode() {
+        if (memoizedHashCode != 0) {
+          return memoizedHashCode;
+        }
+        int hash = 41;
+        hash = (19 * hash) + getDescriptor().hashCode();
+        if (hasName()) {
+          hash = (37 * hash) + NAME_FIELD_NUMBER;
+          hash = (53 * hash) + getName().hashCode();
+        }
+        if (hasEngine()) {
+          hash = (37 * hash) + ENGINE_FIELD_NUMBER;
+          hash = (53 * hash) + engine_;
+        }
+        if (hasCost()) {
+          hash = (37 * hash) + COST_FIELD_NUMBER;
+          hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+              getCost());
+        }
+        hash = (29 * hash) + getUnknownFields().hashCode();
+        memoizedHashCode = hash;
+        return hash;
+      }
+
+      public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost parseFrom(
+          java.nio.ByteBuffer data)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data);
+      }
+      public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost parseFrom(
+          java.nio.ByteBuffer data,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return PARSER.parseFrom(data, extensionRegistry);
+      }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost parseFrom(
           com.google.protobuf.ByteString data)
           throws com.google.protobuf.InvalidProtocolBufferException {
@@ -2634,46 +2729,59 @@ public final class MahaRequestLog {
       }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost parseFrom(java.io.InputStream input)
           throws java.io.IOException {
-        return PARSER.parseFrom(input);
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
       }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost parseFrom(
           java.io.InputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        return PARSER.parseFrom(input, extensionRegistry);
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
       }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost parseDelimitedFrom(java.io.InputStream input)
           throws java.io.IOException {
-        return PARSER.parseDelimitedFrom(input);
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input);
       }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost parseDelimitedFrom(
           java.io.InputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        return PARSER.parseDelimitedFrom(input, extensionRegistry);
+        return com.google.protobuf.GeneratedMessageV3
+            .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
       }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost parseFrom(
           com.google.protobuf.CodedInputStream input)
           throws java.io.IOException {
-        return PARSER.parseFrom(input);
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input);
       }
       public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost parseFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        return PARSER.parseFrom(input, extensionRegistry);
+        return com.google.protobuf.GeneratedMessageV3
+            .parseWithIOException(PARSER, input, extensionRegistry);
       }
 
-      public static Builder newBuilder() { return Builder.create(); }
+      @java.lang.Override
       public Builder newBuilderForType() { return newBuilder(); }
-      public static Builder newBuilder(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost prototype) {
-        return newBuilder().mergeFrom(prototype);
+      public static Builder newBuilder() {
+        return DEFAULT_INSTANCE.toBuilder();
       }
-      public Builder toBuilder() { return newBuilder(this); }
+      public static Builder newBuilder(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost prototype) {
+        return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+      }
+      @java.lang.Override
+      public Builder toBuilder() {
+        return this == DEFAULT_INSTANCE
+            ? new Builder() : new Builder().mergeFrom(this);
+      }
 
       @java.lang.Override
       protected Builder newBuilderForType(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         Builder builder = new Builder(parent);
         return builder;
       }
@@ -2681,7 +2789,7 @@ public final class MahaRequestLog {
        * Protobuf type {@code com.yahoo.maha.proto.MahaRequestProto.FactCost}
        */
       public static final class Builder extends
-          com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+          com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
           // @@protoc_insertion_point(builder_implements:com.yahoo.maha.proto.MahaRequestProto.FactCost)
           com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCostOrBuilder {
         public static final com.google.protobuf.Descriptors.Descriptor
@@ -2689,7 +2797,8 @@ public final class MahaRequestLog {
           return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_FactCost_descriptor;
         }
 
-        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        @java.lang.Override
+        protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
             internalGetFieldAccessorTable() {
           return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_FactCost_fieldAccessorTable
               .ensureFieldAccessorsInitialized(
@@ -2698,46 +2807,38 @@ public final class MahaRequestLog {
 
         // Construct using com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost.newBuilder()
         private Builder() {
-          maybeForceBuilderInitialization();
+
         }
 
         private Builder(
-            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+            com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
           super(parent);
-          maybeForceBuilderInitialization();
-        }
-        private void maybeForceBuilderInitialization() {
-          if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-          }
-        }
-        private static Builder create() {
-          return new Builder();
-        }
 
+        }
+        @java.lang.Override
         public Builder clear() {
           super.clear();
           name_ = "";
           bitField0_ = (bitField0_ & ~0x00000001);
-          engine_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.Oracle;
+          engine_ = 0;
           bitField0_ = (bitField0_ & ~0x00000002);
           cost_ = 0L;
           bitField0_ = (bitField0_ & ~0x00000004);
           return this;
         }
 
-        public Builder clone() {
-          return create().mergeFrom(buildPartial());
-        }
-
+        @java.lang.Override
         public com.google.protobuf.Descriptors.Descriptor
             getDescriptorForType() {
           return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_FactCost_descriptor;
         }
 
+        @java.lang.Override
         public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost getDefaultInstanceForType() {
           return com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost.getDefaultInstance();
         }
 
+        @java.lang.Override
         public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost build() {
           com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost result = buildPartial();
           if (!result.isInitialized()) {
@@ -2746,27 +2847,61 @@ public final class MahaRequestLog {
           return result;
         }
 
+        @java.lang.Override
         public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost buildPartial() {
           com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost result = new com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost(this);
           int from_bitField0_ = bitField0_;
           int to_bitField0_ = 0;
-          if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          if (((from_bitField0_ & 0x00000001) != 0)) {
             to_bitField0_ |= 0x00000001;
           }
           result.name_ = name_;
-          if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          if (((from_bitField0_ & 0x00000002) != 0)) {
             to_bitField0_ |= 0x00000002;
           }
           result.engine_ = engine_;
-          if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          if (((from_bitField0_ & 0x00000004) != 0)) {
+            result.cost_ = cost_;
             to_bitField0_ |= 0x00000004;
           }
-          result.cost_ = cost_;
           result.bitField0_ = to_bitField0_;
           onBuilt();
           return result;
         }
 
+        @java.lang.Override
+        public Builder clone() {
+          return super.clone();
+        }
+        @java.lang.Override
+        public Builder setField(
+            com.google.protobuf.Descriptors.FieldDescriptor field,
+            java.lang.Object value) {
+          return super.setField(field, value);
+        }
+        @java.lang.Override
+        public Builder clearField(
+            com.google.protobuf.Descriptors.FieldDescriptor field) {
+          return super.clearField(field);
+        }
+        @java.lang.Override
+        public Builder clearOneof(
+            com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+          return super.clearOneof(oneof);
+        }
+        @java.lang.Override
+        public Builder setRepeatedField(
+            com.google.protobuf.Descriptors.FieldDescriptor field,
+            int index, java.lang.Object value) {
+          return super.setRepeatedField(field, index, value);
+        }
+        @java.lang.Override
+        public Builder addRepeatedField(
+            com.google.protobuf.Descriptors.FieldDescriptor field,
+            java.lang.Object value) {
+          return super.addRepeatedField(field, value);
+        }
+        @java.lang.Override
         public Builder mergeFrom(com.google.protobuf.Message other) {
           if (other instanceof com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost) {
             return mergeFrom((com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost)other);
@@ -2790,28 +2925,59 @@ public final class MahaRequestLog {
             setCost(other.getCost());
           }
           this.mergeUnknownFields(other.getUnknownFields());
+          onChanged();
           return this;
         }
 
+        @java.lang.Override
         public final boolean isInitialized() {
           return true;
         }
 
+        @java.lang.Override
         public Builder mergeFrom(
             com.google.protobuf.CodedInputStream input,
             com.google.protobuf.ExtensionRegistryLite extensionRegistry)
             throws java.io.IOException {
-          com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost parsedMessage = null;
-          try {
-            parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-            parsedMessage = (com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost) e.getUnfinishedMessage();
-            throw e;
-          } finally {
-            if (parsedMessage != null) {
-              mergeFrom(parsedMessage);
-            }
+          if (extensionRegistry == null) {
+            throw new java.lang.NullPointerException();
           }
+          try {
+            boolean done = false;
+            while (!done) {
+              int tag = input.readTag();
+              switch (tag) {
+                case 0:
+                  done = true;
+                  break;
+                case 10: {
+                  name_ = input.readStringRequireUtf8();
+                  bitField0_ |= 0x00000001;
+                  break;
+                } // case 10
+                case 16: {
+                  engine_ = input.readEnum();
+                  bitField0_ |= 0x00000002;
+                  break;
+                } // case 16
+                case 24: {
+                  cost_ = input.readInt64();
+                  bitField0_ |= 0x00000004;
+                  break;
+                } // case 24
+                default: {
+                  if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                    done = true; // was an endgroup tag
+                  }
+                  break;
+                } // default:
+              } // switch (tag)
+            } // while (!done)
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.unwrapIOException();
+          } finally {
+            onChanged();
+          } // finally
           return this;
         }
         private int bitField0_;
@@ -2819,12 +2985,14 @@ public final class MahaRequestLog {
         private java.lang.Object name_ = "";
         /**
          * <code>optional string name = 1;</code>
+         * @return Whether the name field is set.
          */
         public boolean hasName() {
-          return ((bitField0_ & 0x00000001) == 0x00000001);
+          return ((bitField0_ & 0x00000001) != 0);
         }
         /**
          * <code>optional string name = 1;</code>
+         * @return The name.
          */
         public java.lang.String getName() {
           java.lang.Object ref = name_;
@@ -2832,9 +3000,7 @@ public final class MahaRequestLog {
             com.google.protobuf.ByteString bs =
                 (com.google.protobuf.ByteString) ref;
             java.lang.String s = bs.toStringUtf8();
-            if (bs.isValidUtf8()) {
-              name_ = s;
-            }
+            name_ = s;
             return s;
           } else {
             return (java.lang.String) ref;
@@ -2842,6 +3008,7 @@ public final class MahaRequestLog {
         }
         /**
          * <code>optional string name = 1;</code>
+         * @return The bytes for name.
          */
         public com.google.protobuf.ByteString
             getNameBytes() {
@@ -2858,6 +3025,8 @@ public final class MahaRequestLog {
         }
         /**
          * <code>optional string name = 1;</code>
+         * @param value The name to set.
+         * @return This builder for chaining.
          */
         public Builder setName(
             java.lang.String value) {
@@ -2871,6 +3040,7 @@ public final class MahaRequestLog {
         }
         /**
          * <code>optional string name = 1;</code>
+         * @return This builder for chaining.
          */
         public Builder clearName() {
           bitField0_ = (bitField0_ & ~0x00000001);
@@ -2880,38 +3050,42 @@ public final class MahaRequestLog {
         }
         /**
          * <code>optional string name = 1;</code>
+         * @param value The bytes for name to set.
+         * @return This builder for chaining.
          */
         public Builder setNameBytes(
             com.google.protobuf.ByteString value) {
           if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000001;
+  checkByteStringIsUtf8(value);
+          bitField0_ |= 0x00000001;
           name_ = value;
           onChanged();
           return this;
         }
 
-        private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine engine_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.Oracle;
+        private int engine_ = 0;
         /**
          * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine engine = 2;</code>
+         * @return Whether the engine field is set.
          */
-        public boolean hasEngine() {
-          return ((bitField0_ & 0x00000002) == 0x00000002);
+        @java.lang.Override public boolean hasEngine() {
+          return ((bitField0_ & 0x00000002) != 0);
         }
         /**
          * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine engine = 2;</code>
+         * @return The enum numeric value on the wire for engine.
          */
-        public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine getEngine() {
+        @java.lang.Override public int getEngineValue() {
           return engine_;
         }
         /**
          * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine engine = 2;</code>
+         * @param value The enum numeric value on the wire for engine to set.
+         * @return This builder for chaining.
          */
-        public Builder setEngine(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine value) {
-          if (value == null) {
-            throw new NullPointerException();
-          }
+        public Builder setEngineValue(int value) {
           bitField0_ |= 0x00000002;
           engine_ = value;
           onChanged();
@@ -2919,10 +3093,35 @@ public final class MahaRequestLog {
         }
         /**
          * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine engine = 2;</code>
+         * @return The engine.
+         */
+        @java.lang.Override
+        public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine getEngine() {
+          @SuppressWarnings("deprecation")
+          com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.valueOf(engine_);
+          return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.UNRECOGNIZED : result;
+        }
+        /**
+         * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine engine = 2;</code>
+         * @param value The engine to set.
+         * @return This builder for chaining.
+         */
+        public Builder setEngine(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine value) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          bitField0_ |= 0x00000002;
+          engine_ = value.getNumber();
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine engine = 2;</code>
+         * @return This builder for chaining.
          */
         public Builder clearEngine() {
           bitField0_ = (bitField0_ & ~0x00000002);
-          engine_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.Oracle;
+          engine_ = 0;
           onChanged();
           return this;
         }
@@ -2930,18 +3129,24 @@ public final class MahaRequestLog {
         private long cost_ ;
         /**
          * <code>optional int64 cost = 3;</code>
+         * @return Whether the cost field is set.
          */
+        @java.lang.Override
         public boolean hasCost() {
-          return ((bitField0_ & 0x00000004) == 0x00000004);
+          return ((bitField0_ & 0x00000004) != 0);
         }
         /**
          * <code>optional int64 cost = 3;</code>
+         * @return The cost.
          */
+        @java.lang.Override
         public long getCost() {
           return cost_;
         }
         /**
          * <code>optional int64 cost = 3;</code>
+         * @param value The cost to set.
+         * @return This builder for chaining.
          */
         public Builder setCost(long value) {
           bitField0_ |= 0x00000004;
@@ -2951,6 +3156,7 @@ public final class MahaRequestLog {
         }
         /**
          * <code>optional int64 cost = 3;</code>
+         * @return This builder for chaining.
          */
         public Builder clearCost() {
           bitField0_ = (bitField0_ & ~0x00000004);
@@ -2958,31 +3164,87 @@ public final class MahaRequestLog {
           onChanged();
           return this;
         }
+        @java.lang.Override
+        public final Builder setUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.setUnknownFields(unknownFields);
+        }
+
+        @java.lang.Override
+        public final Builder mergeUnknownFields(
+            final com.google.protobuf.UnknownFieldSet unknownFields) {
+          return super.mergeUnknownFields(unknownFields);
+        }
+
 
         // @@protoc_insertion_point(builder_scope:com.yahoo.maha.proto.MahaRequestProto.FactCost)
       }
 
+      // @@protoc_insertion_point(class_scope:com.yahoo.maha.proto.MahaRequestProto.FactCost)
+      private static final com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost DEFAULT_INSTANCE;
       static {
-        defaultInstance = new FactCost(true);
-        defaultInstance.initFields();
+        DEFAULT_INSTANCE = new com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost();
       }
 
-      // @@protoc_insertion_point(class_scope:com.yahoo.maha.proto.MahaRequestProto.FactCost)
+      public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost getDefaultInstance() {
+        return DEFAULT_INSTANCE;
+      }
+
+      private static final com.google.protobuf.Parser<FactCost>
+          PARSER = new com.google.protobuf.AbstractParser<FactCost>() {
+        @java.lang.Override
+        public FactCost parsePartialFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws com.google.protobuf.InvalidProtocolBufferException {
+          Builder builder = newBuilder();
+          try {
+            builder.mergeFrom(input, extensionRegistry);
+          } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw e.setUnfinishedMessage(builder.buildPartial());
+          } catch (com.google.protobuf.UninitializedMessageException e) {
+            throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+          } catch (java.io.IOException e) {
+            throw new com.google.protobuf.InvalidProtocolBufferException(e)
+                .setUnfinishedMessage(builder.buildPartial());
+          }
+          return builder.buildPartial();
+        }
+      };
+
+      public static com.google.protobuf.Parser<FactCost> parser() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.Parser<FactCost> getParserForType() {
+        return PARSER;
+      }
+
+      @java.lang.Override
+      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost getDefaultInstanceForType() {
+        return DEFAULT_INSTANCE;
+      }
+
     }
 
     private int bitField0_;
     private int bitField1_;
     public static final int REQUESTID_FIELD_NUMBER = 1;
-    private java.lang.Object requestId_;
+    private volatile java.lang.Object requestId_;
     /**
-     * <code>required string requestId = 1;</code>
+     * <code>optional string requestId = 1;</code>
+     * @return Whether the requestId field is set.
      */
+    @java.lang.Override
     public boolean hasRequestId() {
-      return ((bitField0_ & 0x00000001) == 0x00000001);
+      return ((bitField0_ & 0x00000001) != 0);
     }
     /**
-     * <code>required string requestId = 1;</code>
+     * <code>optional string requestId = 1;</code>
+     * @return The requestId.
      */
+    @java.lang.Override
     public java.lang.String getRequestId() {
       java.lang.Object ref = requestId_;
       if (ref instanceof java.lang.String) {
@@ -2991,15 +3253,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          requestId_ = s;
-        }
+        requestId_ = s;
         return s;
       }
     }
     /**
-     * <code>required string requestId = 1;</code>
+     * <code>optional string requestId = 1;</code>
+     * @return The bytes for requestId.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getRequestIdBytes() {
       java.lang.Object ref = requestId_;
@@ -3017,29 +3279,37 @@ public final class MahaRequestLog {
     public static final int JSON_FIELD_NUMBER = 2;
     private com.google.protobuf.ByteString json_;
     /**
-     * <code>required bytes json = 2;</code>
+     * <code>optional bytes json = 2;</code>
+     * @return Whether the json field is set.
      */
+    @java.lang.Override
     public boolean hasJson() {
-      return ((bitField0_ & 0x00000002) == 0x00000002);
+      return ((bitField0_ & 0x00000002) != 0);
     }
     /**
-     * <code>required bytes json = 2;</code>
+     * <code>optional bytes json = 2;</code>
+     * @return The json.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString getJson() {
       return json_;
     }
 
     public static final int USERID_FIELD_NUMBER = 3;
-    private java.lang.Object userId_;
+    private volatile java.lang.Object userId_;
     /**
      * <code>optional string userId = 3;</code>
+     * @return Whether the userId field is set.
      */
+    @java.lang.Override
     public boolean hasUserId() {
-      return ((bitField0_ & 0x00000004) == 0x00000004);
+      return ((bitField0_ & 0x00000004) != 0);
     }
     /**
      * <code>optional string userId = 3;</code>
+     * @return The userId.
      */
+    @java.lang.Override
     public java.lang.String getUserId() {
       java.lang.Object ref = userId_;
       if (ref instanceof java.lang.String) {
@@ -3048,15 +3318,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          userId_ = s;
-        }
+        userId_ = s;
         return s;
       }
     }
     /**
      * <code>optional string userId = 3;</code>
+     * @return The bytes for userId.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getUserIdBytes() {
       java.lang.Object ref = userId_;
@@ -3072,16 +3342,20 @@ public final class MahaRequestLog {
     }
 
     public static final int CUBE_FIELD_NUMBER = 4;
-    private java.lang.Object cube_;
+    private volatile java.lang.Object cube_;
     /**
      * <code>optional string cube = 4;</code>
+     * @return Whether the cube field is set.
      */
+    @java.lang.Override
     public boolean hasCube() {
-      return ((bitField0_ & 0x00000008) == 0x00000008);
+      return ((bitField0_ & 0x00000008) != 0);
     }
     /**
      * <code>optional string cube = 4;</code>
+     * @return The cube.
      */
+    @java.lang.Override
     public java.lang.String getCube() {
       java.lang.Object ref = cube_;
       if (ref instanceof java.lang.String) {
@@ -3090,15 +3364,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          cube_ = s;
-        }
+        cube_ = s;
         return s;
       }
     }
     /**
      * <code>optional string cube = 4;</code>
+     * @return The bytes for cube.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getCubeBytes() {
       java.lang.Object ref = cube_;
@@ -3114,16 +3388,20 @@ public final class MahaRequestLog {
     }
 
     public static final int SCHEMA_FIELD_NUMBER = 5;
-    private java.lang.Object schema_;
+    private volatile java.lang.Object schema_;
     /**
      * <code>optional string schema = 5;</code>
+     * @return Whether the schema field is set.
      */
+    @java.lang.Override
     public boolean hasSchema() {
-      return ((bitField0_ & 0x00000010) == 0x00000010);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <code>optional string schema = 5;</code>
+     * @return The schema.
      */
+    @java.lang.Override
     public java.lang.String getSchema() {
       java.lang.Object ref = schema_;
       if (ref instanceof java.lang.String) {
@@ -3132,15 +3410,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          schema_ = s;
-        }
+        schema_ = s;
         return s;
       }
     }
     /**
      * <code>optional string schema = 5;</code>
+     * @return The bytes for schema.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getSchemaBytes() {
       java.lang.Object ref = schema_;
@@ -3159,43 +3437,62 @@ public final class MahaRequestLog {
     private boolean isInternal_;
     /**
      * <code>optional bool isInternal = 6;</code>
+     * @return Whether the isInternal field is set.
      */
+    @java.lang.Override
     public boolean hasIsInternal() {
-      return ((bitField0_ & 0x00000020) == 0x00000020);
+      return ((bitField0_ & 0x00000020) != 0);
     }
     /**
      * <code>optional bool isInternal = 6;</code>
+     * @return The isInternal.
      */
+    @java.lang.Override
     public boolean getIsInternal() {
       return isInternal_;
     }
 
     public static final int REQUESTTYPE_FIELD_NUMBER = 7;
-    private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType requestType_;
+    private int requestType_;
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.RequestType requestType = 7;</code>
+     * @return Whether the requestType field is set.
      */
-    public boolean hasRequestType() {
-      return ((bitField0_ & 0x00000040) == 0x00000040);
+    @java.lang.Override public boolean hasRequestType() {
+      return ((bitField0_ & 0x00000040) != 0);
     }
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.RequestType requestType = 7;</code>
+     * @return The enum numeric value on the wire for requestType.
      */
-    public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType getRequestType() {
+    @java.lang.Override public int getRequestTypeValue() {
       return requestType_;
+    }
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.RequestType requestType = 7;</code>
+     * @return The requestType.
+     */
+    @java.lang.Override public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType getRequestType() {
+      @SuppressWarnings("deprecation")
+      com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType.valueOf(requestType_);
+      return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType.UNRECOGNIZED : result;
     }
 
     public static final int DRIVINGQUERYENGINE_FIELD_NUMBER = 8;
-    private java.lang.Object drivingQueryEngine_;
+    private volatile java.lang.Object drivingQueryEngine_;
     /**
      * <code>optional string drivingQueryEngine = 8;</code>
+     * @return Whether the drivingQueryEngine field is set.
      */
+    @java.lang.Override
     public boolean hasDrivingQueryEngine() {
-      return ((bitField0_ & 0x00000080) == 0x00000080);
+      return ((bitField0_ & 0x00000080) != 0);
     }
     /**
      * <code>optional string drivingQueryEngine = 8;</code>
+     * @return The drivingQueryEngine.
      */
+    @java.lang.Override
     public java.lang.String getDrivingQueryEngine() {
       java.lang.Object ref = drivingQueryEngine_;
       if (ref instanceof java.lang.String) {
@@ -3204,15 +3501,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          drivingQueryEngine_ = s;
-        }
+        drivingQueryEngine_ = s;
         return s;
       }
     }
     /**
      * <code>optional string drivingQueryEngine = 8;</code>
+     * @return The bytes for drivingQueryEngine.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getDrivingQueryEngineBytes() {
       java.lang.Object ref = drivingQueryEngine_;
@@ -3228,16 +3525,20 @@ public final class MahaRequestLog {
     }
 
     public static final int DRIVINGTABLE_FIELD_NUMBER = 9;
-    private java.lang.Object drivingTable_;
+    private volatile java.lang.Object drivingTable_;
     /**
      * <code>optional string drivingTable = 9;</code>
+     * @return Whether the drivingTable field is set.
      */
+    @java.lang.Override
     public boolean hasDrivingTable() {
-      return ((bitField0_ & 0x00000100) == 0x00000100);
+      return ((bitField0_ & 0x00000100) != 0);
     }
     /**
      * <code>optional string drivingTable = 9;</code>
+     * @return The drivingTable.
      */
+    @java.lang.Override
     public java.lang.String getDrivingTable() {
       java.lang.Object ref = drivingTable_;
       if (ref instanceof java.lang.String) {
@@ -3246,15 +3547,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          drivingTable_ = s;
-        }
+        drivingTable_ = s;
         return s;
       }
     }
     /**
      * <code>optional string drivingTable = 9;</code>
+     * @return The bytes for drivingTable.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getDrivingTableBytes() {
       java.lang.Object ref = drivingTable_;
@@ -3270,16 +3571,20 @@ public final class MahaRequestLog {
     }
 
     public static final int QUERYCHAINTYPE_FIELD_NUMBER = 10;
-    private java.lang.Object queryChainType_;
+    private volatile java.lang.Object queryChainType_;
     /**
      * <code>optional string queryChainType = 10;</code>
+     * @return Whether the queryChainType field is set.
      */
+    @java.lang.Override
     public boolean hasQueryChainType() {
-      return ((bitField0_ & 0x00000200) == 0x00000200);
+      return ((bitField0_ & 0x00000200) != 0);
     }
     /**
      * <code>optional string queryChainType = 10;</code>
+     * @return The queryChainType.
      */
+    @java.lang.Override
     public java.lang.String getQueryChainType() {
       java.lang.Object ref = queryChainType_;
       if (ref instanceof java.lang.String) {
@@ -3288,15 +3593,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          queryChainType_ = s;
-        }
+        queryChainType_ = s;
         return s;
       }
     }
     /**
      * <code>optional string queryChainType = 10;</code>
+     * @return The bytes for queryChainType.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getQueryChainTypeBytes() {
       java.lang.Object ref = queryChainType_;
@@ -3312,16 +3617,20 @@ public final class MahaRequestLog {
     }
 
     public static final int FIRSTSUBSEQUENTQUERYENGINE_FIELD_NUMBER = 11;
-    private java.lang.Object firstSubsequentQueryEngine_;
+    private volatile java.lang.Object firstSubsequentQueryEngine_;
     /**
      * <code>optional string firstSubsequentQueryEngine = 11;</code>
+     * @return Whether the firstSubsequentQueryEngine field is set.
      */
+    @java.lang.Override
     public boolean hasFirstSubsequentQueryEngine() {
-      return ((bitField0_ & 0x00000400) == 0x00000400);
+      return ((bitField0_ & 0x00000400) != 0);
     }
     /**
      * <code>optional string firstSubsequentQueryEngine = 11;</code>
+     * @return The firstSubsequentQueryEngine.
      */
+    @java.lang.Override
     public java.lang.String getFirstSubsequentQueryEngine() {
       java.lang.Object ref = firstSubsequentQueryEngine_;
       if (ref instanceof java.lang.String) {
@@ -3330,15 +3639,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          firstSubsequentQueryEngine_ = s;
-        }
+        firstSubsequentQueryEngine_ = s;
         return s;
       }
     }
     /**
      * <code>optional string firstSubsequentQueryEngine = 11;</code>
+     * @return The bytes for firstSubsequentQueryEngine.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getFirstSubsequentQueryEngineBytes() {
       java.lang.Object ref = firstSubsequentQueryEngine_;
@@ -3354,16 +3663,20 @@ public final class MahaRequestLog {
     }
 
     public static final int FIRSTSUBSEQUENTQUERYTABLE_FIELD_NUMBER = 12;
-    private java.lang.Object firstSubsequentQueryTable_;
+    private volatile java.lang.Object firstSubsequentQueryTable_;
     /**
      * <code>optional string firstSubsequentQueryTable = 12;</code>
+     * @return Whether the firstSubsequentQueryTable field is set.
      */
+    @java.lang.Override
     public boolean hasFirstSubsequentQueryTable() {
-      return ((bitField0_ & 0x00000800) == 0x00000800);
+      return ((bitField0_ & 0x00000800) != 0);
     }
     /**
      * <code>optional string firstSubsequentQueryTable = 12;</code>
+     * @return The firstSubsequentQueryTable.
      */
+    @java.lang.Override
     public java.lang.String getFirstSubsequentQueryTable() {
       java.lang.Object ref = firstSubsequentQueryTable_;
       if (ref instanceof java.lang.String) {
@@ -3372,15 +3685,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          firstSubsequentQueryTable_ = s;
-        }
+        firstSubsequentQueryTable_ = s;
         return s;
       }
     }
     /**
      * <code>optional string firstSubsequentQueryTable = 12;</code>
+     * @return The bytes for firstSubsequentQueryTable.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getFirstSubsequentQueryTableBytes() {
       java.lang.Object ref = firstSubsequentQueryTable_;
@@ -3399,13 +3712,17 @@ public final class MahaRequestLog {
     private long requestStartTime_;
     /**
      * <code>optional int64 requestStartTime = 13;</code>
+     * @return Whether the requestStartTime field is set.
      */
+    @java.lang.Override
     public boolean hasRequestStartTime() {
-      return ((bitField0_ & 0x00001000) == 0x00001000);
+      return ((bitField0_ & 0x00001000) != 0);
     }
     /**
      * <code>optional int64 requestStartTime = 13;</code>
+     * @return The requestStartTime.
      */
+    @java.lang.Override
     public long getRequestStartTime() {
       return requestStartTime_;
     }
@@ -3414,13 +3731,17 @@ public final class MahaRequestLog {
     private long requestEndTime_;
     /**
      * <code>optional int64 requestEndTime = 14;</code>
+     * @return Whether the requestEndTime field is set.
      */
+    @java.lang.Override
     public boolean hasRequestEndTime() {
-      return ((bitField0_ & 0x00002000) == 0x00002000);
+      return ((bitField0_ & 0x00002000) != 0);
     }
     /**
      * <code>optional int64 requestEndTime = 14;</code>
+     * @return The requestEndTime.
      */
+    @java.lang.Override
     public long getRequestEndTime() {
       return requestEndTime_;
     }
@@ -3429,28 +3750,36 @@ public final class MahaRequestLog {
     private int status_;
     /**
      * <code>optional int32 status = 15;</code>
+     * @return Whether the status field is set.
      */
+    @java.lang.Override
     public boolean hasStatus() {
-      return ((bitField0_ & 0x00004000) == 0x00004000);
+      return ((bitField0_ & 0x00004000) != 0);
     }
     /**
      * <code>optional int32 status = 15;</code>
+     * @return The status.
      */
+    @java.lang.Override
     public int getStatus() {
       return status_;
     }
 
     public static final int ERRORMESSAGE_FIELD_NUMBER = 16;
-    private java.lang.Object errorMessage_;
+    private volatile java.lang.Object errorMessage_;
     /**
      * <code>optional string errorMessage = 16;</code>
+     * @return Whether the errorMessage field is set.
      */
+    @java.lang.Override
     public boolean hasErrorMessage() {
-      return ((bitField0_ & 0x00008000) == 0x00008000);
+      return ((bitField0_ & 0x00008000) != 0);
     }
     /**
      * <code>optional string errorMessage = 16;</code>
+     * @return The errorMessage.
      */
+    @java.lang.Override
     public java.lang.String getErrorMessage() {
       java.lang.Object ref = errorMessage_;
       if (ref instanceof java.lang.String) {
@@ -3459,15 +3788,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          errorMessage_ = s;
-        }
+        errorMessage_ = s;
         return s;
       }
     }
     /**
      * <code>optional string errorMessage = 16;</code>
+     * @return The bytes for errorMessage.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getErrorMessageBytes() {
       java.lang.Object ref = errorMessage_;
@@ -3486,13 +3815,17 @@ public final class MahaRequestLog {
     private boolean hasFactFilters_;
     /**
      * <code>optional bool hasFactFilters = 17;</code>
+     * @return Whether the hasFactFilters field is set.
      */
+    @java.lang.Override
     public boolean hasHasFactFilters() {
-      return ((bitField0_ & 0x00010000) == 0x00010000);
+      return ((bitField0_ & 0x00010000) != 0);
     }
     /**
      * <code>optional bool hasFactFilters = 17;</code>
+     * @return The hasFactFilters.
      */
+    @java.lang.Override
     public boolean getHasFactFilters() {
       return hasFactFilters_;
     }
@@ -3501,13 +3834,17 @@ public final class MahaRequestLog {
     private boolean hasNonFKFactFilters_;
     /**
      * <code>optional bool hasNonFKFactFilters = 18;</code>
+     * @return Whether the hasNonFKFactFilters field is set.
      */
+    @java.lang.Override
     public boolean hasHasNonFKFactFilters() {
-      return ((bitField0_ & 0x00020000) == 0x00020000);
+      return ((bitField0_ & 0x00020000) != 0);
     }
     /**
      * <code>optional bool hasNonFKFactFilters = 18;</code>
+     * @return The hasNonFKFactFilters.
      */
+    @java.lang.Override
     public boolean getHasNonFKFactFilters() {
       return hasNonFKFactFilters_;
     }
@@ -3516,13 +3853,17 @@ public final class MahaRequestLog {
     private boolean hasDimFilters_;
     /**
      * <code>optional bool hasDimFilters = 19;</code>
+     * @return Whether the hasDimFilters field is set.
      */
+    @java.lang.Override
     public boolean hasHasDimFilters() {
-      return ((bitField0_ & 0x00040000) == 0x00040000);
+      return ((bitField0_ & 0x00040000) != 0);
     }
     /**
      * <code>optional bool hasDimFilters = 19;</code>
+     * @return The hasDimFilters.
      */
+    @java.lang.Override
     public boolean getHasDimFilters() {
       return hasDimFilters_;
     }
@@ -3531,13 +3872,17 @@ public final class MahaRequestLog {
     private boolean hasNonFKDimFilters_;
     /**
      * <code>optional bool hasNonFKDimFilters = 20;</code>
+     * @return Whether the hasNonFKDimFilters field is set.
      */
+    @java.lang.Override
     public boolean hasHasNonFKDimFilters() {
-      return ((bitField0_ & 0x00080000) == 0x00080000);
+      return ((bitField0_ & 0x00080000) != 0);
     }
     /**
      * <code>optional bool hasNonFKDimFilters = 20;</code>
+     * @return The hasNonFKDimFilters.
      */
+    @java.lang.Override
     public boolean getHasNonFKDimFilters() {
       return hasNonFKDimFilters_;
     }
@@ -3546,13 +3891,17 @@ public final class MahaRequestLog {
     private boolean hasFactSortBy_;
     /**
      * <code>optional bool hasFactSortBy = 21;</code>
+     * @return Whether the hasFactSortBy field is set.
      */
+    @java.lang.Override
     public boolean hasHasFactSortBy() {
-      return ((bitField0_ & 0x00100000) == 0x00100000);
+      return ((bitField0_ & 0x00100000) != 0);
     }
     /**
      * <code>optional bool hasFactSortBy = 21;</code>
+     * @return The hasFactSortBy.
      */
+    @java.lang.Override
     public boolean getHasFactSortBy() {
       return hasFactSortBy_;
     }
@@ -3561,13 +3910,17 @@ public final class MahaRequestLog {
     private boolean hasDimSortBy_;
     /**
      * <code>optional bool hasDimSortBy = 22;</code>
+     * @return Whether the hasDimSortBy field is set.
      */
+    @java.lang.Override
     public boolean hasHasDimSortBy() {
-      return ((bitField0_ & 0x00200000) == 0x00200000);
+      return ((bitField0_ & 0x00200000) != 0);
     }
     /**
      * <code>optional bool hasDimSortBy = 22;</code>
+     * @return The hasDimSortBy.
      */
+    @java.lang.Override
     public boolean getHasDimSortBy() {
       return hasDimSortBy_;
     }
@@ -3576,13 +3929,17 @@ public final class MahaRequestLog {
     private boolean isFactDriven_;
     /**
      * <code>optional bool isFactDriven = 23;</code>
+     * @return Whether the isFactDriven field is set.
      */
+    @java.lang.Override
     public boolean hasIsFactDriven() {
-      return ((bitField0_ & 0x00400000) == 0x00400000);
+      return ((bitField0_ & 0x00400000) != 0);
     }
     /**
      * <code>optional bool isFactDriven = 23;</code>
+     * @return The isFactDriven.
      */
+    @java.lang.Override
     public boolean getIsFactDriven() {
       return isFactDriven_;
     }
@@ -3591,13 +3948,17 @@ public final class MahaRequestLog {
     private boolean forceDimDriven_;
     /**
      * <code>optional bool forceDimDriven = 24;</code>
+     * @return Whether the forceDimDriven field is set.
      */
+    @java.lang.Override
     public boolean hasForceDimDriven() {
-      return ((bitField0_ & 0x00800000) == 0x00800000);
+      return ((bitField0_ & 0x00800000) != 0);
     }
     /**
      * <code>optional bool forceDimDriven = 24;</code>
+     * @return The forceDimDriven.
      */
+    @java.lang.Override
     public boolean getForceDimDriven() {
       return forceDimDriven_;
     }
@@ -3606,13 +3967,17 @@ public final class MahaRequestLog {
     private boolean forceFactDriven_;
     /**
      * <code>optional bool forceFactDriven = 25;</code>
+     * @return Whether the forceFactDriven field is set.
      */
+    @java.lang.Override
     public boolean hasForceFactDriven() {
-      return ((bitField0_ & 0x01000000) == 0x01000000);
+      return ((bitField0_ & 0x01000000) != 0);
     }
     /**
      * <code>optional bool forceFactDriven = 25;</code>
+     * @return The forceFactDriven.
      */
+    @java.lang.Override
     public boolean getForceFactDriven() {
       return forceFactDriven_;
     }
@@ -3621,13 +3986,17 @@ public final class MahaRequestLog {
     private boolean hasNonDrivingDimSortOrFilter_;
     /**
      * <code>optional bool hasNonDrivingDimSortOrFilter = 26;</code>
+     * @return Whether the hasNonDrivingDimSortOrFilter field is set.
      */
+    @java.lang.Override
     public boolean hasHasNonDrivingDimSortOrFilter() {
-      return ((bitField0_ & 0x02000000) == 0x02000000);
+      return ((bitField0_ & 0x02000000) != 0);
     }
     /**
      * <code>optional bool hasNonDrivingDimSortOrFilter = 26;</code>
+     * @return The hasNonDrivingDimSortOrFilter.
      */
+    @java.lang.Override
     public boolean getHasNonDrivingDimSortOrFilter() {
       return hasNonDrivingDimSortOrFilter_;
     }
@@ -3636,13 +4005,17 @@ public final class MahaRequestLog {
     private boolean hasDimAndFactOperations_;
     /**
      * <code>optional bool hasDimAndFactOperations = 27;</code>
+     * @return Whether the hasDimAndFactOperations field is set.
      */
+    @java.lang.Override
     public boolean hasHasDimAndFactOperations() {
-      return ((bitField0_ & 0x04000000) == 0x04000000);
+      return ((bitField0_ & 0x04000000) != 0);
     }
     /**
      * <code>optional bool hasDimAndFactOperations = 27;</code>
+     * @return The hasDimAndFactOperations.
      */
+    @java.lang.Override
     public boolean getHasDimAndFactOperations() {
       return hasDimAndFactOperations_;
     }
@@ -3651,13 +4024,17 @@ public final class MahaRequestLog {
     private long dimCardinalityEstimate_;
     /**
      * <code>optional int64 dimCardinalityEstimate = 28;</code>
+     * @return Whether the dimCardinalityEstimate field is set.
      */
+    @java.lang.Override
     public boolean hasDimCardinalityEstimate() {
-      return ((bitField0_ & 0x08000000) == 0x08000000);
+      return ((bitField0_ & 0x08000000) != 0);
     }
     /**
      * <code>optional int64 dimCardinalityEstimate = 28;</code>
+     * @return The dimCardinalityEstimate.
      */
+    @java.lang.Override
     public long getDimCardinalityEstimate() {
       return dimCardinalityEstimate_;
     }
@@ -3667,12 +4044,14 @@ public final class MahaRequestLog {
     /**
      * <code>repeated .com.yahoo.maha.proto.MahaRequestProto.SortByColumnInfo requestSortByCols = 29;</code>
      */
+    @java.lang.Override
     public java.util.List<com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo> getRequestSortByColsList() {
       return requestSortByCols_;
     }
     /**
      * <code>repeated .com.yahoo.maha.proto.MahaRequestProto.SortByColumnInfo requestSortByCols = 29;</code>
      */
+    @java.lang.Override
     public java.util.List<? extends com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfoOrBuilder> 
         getRequestSortByColsOrBuilderList() {
       return requestSortByCols_;
@@ -3680,18 +4059,21 @@ public final class MahaRequestLog {
     /**
      * <code>repeated .com.yahoo.maha.proto.MahaRequestProto.SortByColumnInfo requestSortByCols = 29;</code>
      */
+    @java.lang.Override
     public int getRequestSortByColsCount() {
       return requestSortByCols_.size();
     }
     /**
      * <code>repeated .com.yahoo.maha.proto.MahaRequestProto.SortByColumnInfo requestSortByCols = 29;</code>
      */
+    @java.lang.Override
     public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo getRequestSortByCols(int index) {
       return requestSortByCols_.get(index);
     }
     /**
      * <code>repeated .com.yahoo.maha.proto.MahaRequestProto.SortByColumnInfo requestSortByCols = 29;</code>
      */
+    @java.lang.Override
     public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfoOrBuilder getRequestSortByColsOrBuilder(
         int index) {
       return requestSortByCols_.get(index);
@@ -3701,6 +4083,7 @@ public final class MahaRequestLog {
     private com.google.protobuf.LazyStringList dimensionsCandidates_;
     /**
      * <code>repeated string dimensionsCandidates = 30;</code>
+     * @return A list containing the dimensionsCandidates.
      */
     public com.google.protobuf.ProtocolStringList
         getDimensionsCandidatesList() {
@@ -3708,18 +4091,23 @@ public final class MahaRequestLog {
     }
     /**
      * <code>repeated string dimensionsCandidates = 30;</code>
+     * @return The count of dimensionsCandidates.
      */
     public int getDimensionsCandidatesCount() {
       return dimensionsCandidates_.size();
     }
     /**
      * <code>repeated string dimensionsCandidates = 30;</code>
+     * @param index The index of the element to return.
+     * @return The dimensionsCandidates at the given index.
      */
     public java.lang.String getDimensionsCandidates(int index) {
       return dimensionsCandidates_.get(index);
     }
     /**
      * <code>repeated string dimensionsCandidates = 30;</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the dimensionsCandidates at the given index.
      */
     public com.google.protobuf.ByteString
         getDimensionsCandidatesBytes(int index) {
@@ -3731,12 +4119,14 @@ public final class MahaRequestLog {
     /**
      * <code>repeated .com.yahoo.maha.proto.MahaRequestProto.FactCost factCost = 31;</code>
      */
+    @java.lang.Override
     public java.util.List<com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost> getFactCostList() {
       return factCost_;
     }
     /**
      * <code>repeated .com.yahoo.maha.proto.MahaRequestProto.FactCost factCost = 31;</code>
      */
+    @java.lang.Override
     public java.util.List<? extends com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCostOrBuilder> 
         getFactCostOrBuilderList() {
       return factCost_;
@@ -3744,18 +4134,21 @@ public final class MahaRequestLog {
     /**
      * <code>repeated .com.yahoo.maha.proto.MahaRequestProto.FactCost factCost = 31;</code>
      */
+    @java.lang.Override
     public int getFactCostCount() {
       return factCost_.size();
     }
     /**
      * <code>repeated .com.yahoo.maha.proto.MahaRequestProto.FactCost factCost = 31;</code>
      */
+    @java.lang.Override
     public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost getFactCost(int index) {
       return factCost_.get(index);
     }
     /**
      * <code>repeated .com.yahoo.maha.proto.MahaRequestProto.FactCost factCost = 31;</code>
      */
+    @java.lang.Override
     public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCostOrBuilder getFactCostOrBuilder(
         int index) {
       return factCost_.get(index);
@@ -3765,13 +4158,17 @@ public final class MahaRequestLog {
     private long drivingQueryEngineLatency_;
     /**
      * <code>optional int64 drivingQueryEngineLatency = 32;</code>
+     * @return Whether the drivingQueryEngineLatency field is set.
      */
+    @java.lang.Override
     public boolean hasDrivingQueryEngineLatency() {
-      return ((bitField0_ & 0x10000000) == 0x10000000);
+      return ((bitField0_ & 0x10000000) != 0);
     }
     /**
      * <code>optional int64 drivingQueryEngineLatency = 32;</code>
+     * @return The drivingQueryEngineLatency.
      */
+    @java.lang.Override
     public long getDrivingQueryEngineLatency() {
       return drivingQueryEngineLatency_;
     }
@@ -3780,13 +4177,17 @@ public final class MahaRequestLog {
     private long firstSubsequentQueryEngineLatency_;
     /**
      * <code>optional int64 firstSubsequentQueryEngineLatency = 33;</code>
+     * @return Whether the firstSubsequentQueryEngineLatency field is set.
      */
+    @java.lang.Override
     public boolean hasFirstSubsequentQueryEngineLatency() {
-      return ((bitField0_ & 0x20000000) == 0x20000000);
+      return ((bitField0_ & 0x20000000) != 0);
     }
     /**
      * <code>optional int64 firstSubsequentQueryEngineLatency = 33;</code>
+     * @return The firstSubsequentQueryEngineLatency.
      */
+    @java.lang.Override
     public long getFirstSubsequentQueryEngineLatency() {
       return firstSubsequentQueryEngineLatency_;
     }
@@ -3795,58 +4196,81 @@ public final class MahaRequestLog {
     private long reRunEngineQueryLatency_;
     /**
      * <code>optional int64 reRunEngineQueryLatency = 34;</code>
+     * @return Whether the reRunEngineQueryLatency field is set.
      */
+    @java.lang.Override
     public boolean hasReRunEngineQueryLatency() {
-      return ((bitField0_ & 0x40000000) == 0x40000000);
+      return ((bitField0_ & 0x40000000) != 0);
     }
     /**
      * <code>optional int64 reRunEngineQueryLatency = 34;</code>
+     * @return The reRunEngineQueryLatency.
      */
+    @java.lang.Override
     public long getReRunEngineQueryLatency() {
       return reRunEngineQueryLatency_;
     }
 
     public static final int RERUNENGINE_FIELD_NUMBER = 35;
-    private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine reRunEngine_;
+    private int reRunEngine_;
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine reRunEngine = 35;</code>
+     * @return Whether the reRunEngine field is set.
      */
-    public boolean hasReRunEngine() {
-      return ((bitField0_ & 0x80000000) == 0x80000000);
+    @java.lang.Override public boolean hasReRunEngine() {
+      return ((bitField0_ & 0x80000000) != 0);
     }
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine reRunEngine = 35;</code>
+     * @return The enum numeric value on the wire for reRunEngine.
      */
-    public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine getReRunEngine() {
+    @java.lang.Override public int getReRunEngineValue() {
       return reRunEngine_;
+    }
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine reRunEngine = 35;</code>
+     * @return The reRunEngine.
+     */
+    @java.lang.Override public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine getReRunEngine() {
+      @SuppressWarnings("deprecation")
+      com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.valueOf(reRunEngine_);
+      return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.UNRECOGNIZED : result;
     }
 
     public static final int JOBID_FIELD_NUMBER = 36;
     private long jobId_;
     /**
      * <code>optional int64 jobId = 36;</code>
+     * @return Whether the jobId field is set.
      */
+    @java.lang.Override
     public boolean hasJobId() {
-      return ((bitField1_ & 0x00000001) == 0x00000001);
+      return ((bitField1_ & 0x00000001) != 0);
     }
     /**
      * <code>optional int64 jobId = 36;</code>
+     * @return The jobId.
      */
+    @java.lang.Override
     public long getJobId() {
       return jobId_;
     }
 
     public static final int TIMEGRAIN_FIELD_NUMBER = 37;
-    private java.lang.Object timeGrain_;
+    private volatile java.lang.Object timeGrain_;
     /**
      * <code>optional string timeGrain = 37;</code>
+     * @return Whether the timeGrain field is set.
      */
+    @java.lang.Override
     public boolean hasTimeGrain() {
-      return ((bitField1_ & 0x00000002) == 0x00000002);
+      return ((bitField1_ & 0x00000002) != 0);
     }
     /**
      * <code>optional string timeGrain = 37;</code>
+     * @return The timeGrain.
      */
+    @java.lang.Override
     public java.lang.String getTimeGrain() {
       java.lang.Object ref = timeGrain_;
       if (ref instanceof java.lang.String) {
@@ -3855,15 +4279,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          timeGrain_ = s;
-        }
+        timeGrain_ = s;
         return s;
       }
     }
     /**
      * <code>optional string timeGrain = 37;</code>
+     * @return The bytes for timeGrain.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getTimeGrainBytes() {
       java.lang.Object ref = timeGrain_;
@@ -3879,46 +4303,65 @@ public final class MahaRequestLog {
     }
 
     public static final int ASYNCJOBSTATUS_FIELD_NUMBER = 38;
-    private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus asyncJobStatus_;
+    private int asyncJobStatus_;
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.AsyncJobStatus asyncJobStatus = 38;</code>
+     * @return Whether the asyncJobStatus field is set.
      */
-    public boolean hasAsyncJobStatus() {
-      return ((bitField1_ & 0x00000004) == 0x00000004);
+    @java.lang.Override public boolean hasAsyncJobStatus() {
+      return ((bitField1_ & 0x00000004) != 0);
     }
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.AsyncJobStatus asyncJobStatus = 38;</code>
+     * @return The enum numeric value on the wire for asyncJobStatus.
      */
-    public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus getAsyncJobStatus() {
+    @java.lang.Override public int getAsyncJobStatusValue() {
       return asyncJobStatus_;
+    }
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.AsyncJobStatus asyncJobStatus = 38;</code>
+     * @return The asyncJobStatus.
+     */
+    @java.lang.Override public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus getAsyncJobStatus() {
+      @SuppressWarnings("deprecation")
+      com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus.valueOf(asyncJobStatus_);
+      return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus.UNRECOGNIZED : result;
     }
 
     public static final int ISDRYRUN_FIELD_NUMBER = 39;
     private boolean isDryRun_;
     /**
      * <code>optional bool isDryRun = 39;</code>
+     * @return Whether the isDryRun field is set.
      */
+    @java.lang.Override
     public boolean hasIsDryRun() {
-      return ((bitField1_ & 0x00000008) == 0x00000008);
+      return ((bitField1_ & 0x00000008) != 0);
     }
     /**
      * <code>optional bool isDryRun = 39;</code>
+     * @return The isDryRun.
      */
+    @java.lang.Override
     public boolean getIsDryRun() {
       return isDryRun_;
     }
 
     public static final int JOBRESULTURL_FIELD_NUMBER = 40;
-    private java.lang.Object jobResultURL_;
+    private volatile java.lang.Object jobResultURL_;
     /**
      * <code>optional string jobResultURL = 40;</code>
+     * @return Whether the jobResultURL field is set.
      */
+    @java.lang.Override
     public boolean hasJobResultURL() {
-      return ((bitField1_ & 0x00000010) == 0x00000010);
+      return ((bitField1_ & 0x00000010) != 0);
     }
     /**
      * <code>optional string jobResultURL = 40;</code>
+     * @return The jobResultURL.
      */
+    @java.lang.Override
     public java.lang.String getJobResultURL() {
       java.lang.Object ref = jobResultURL_;
       if (ref instanceof java.lang.String) {
@@ -3927,15 +4370,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          jobResultURL_ = s;
-        }
+        jobResultURL_ = s;
         return s;
       }
     }
     /**
      * <code>optional string jobResultURL = 40;</code>
+     * @return The bytes for jobResultURL.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getJobResultURLBytes() {
       java.lang.Object ref = jobResultURL_;
@@ -3951,16 +4394,20 @@ public final class MahaRequestLog {
     }
 
     public static final int JOBNAME_FIELD_NUMBER = 41;
-    private java.lang.Object jobName_;
+    private volatile java.lang.Object jobName_;
     /**
      * <code>optional string jobName = 41;</code>
+     * @return Whether the jobName field is set.
      */
+    @java.lang.Override
     public boolean hasJobName() {
-      return ((bitField1_ & 0x00000020) == 0x00000020);
+      return ((bitField1_ & 0x00000020) != 0);
     }
     /**
      * <code>optional string jobName = 41;</code>
+     * @return The jobName.
      */
+    @java.lang.Override
     public java.lang.String getJobName() {
       java.lang.Object ref = jobName_;
       if (ref instanceof java.lang.String) {
@@ -3969,15 +4416,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          jobName_ = s;
-        }
+        jobName_ = s;
         return s;
       }
     }
     /**
      * <code>optional string jobName = 41;</code>
+     * @return The bytes for jobName.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getJobNameBytes() {
       java.lang.Object ref = jobName_;
@@ -3996,58 +4443,81 @@ public final class MahaRequestLog {
     private long queueWaitingTime_;
     /**
      * <code>optional int64 queueWaitingTime = 42;</code>
+     * @return Whether the queueWaitingTime field is set.
      */
+    @java.lang.Override
     public boolean hasQueueWaitingTime() {
-      return ((bitField1_ & 0x00000040) == 0x00000040);
+      return ((bitField1_ & 0x00000040) != 0);
     }
     /**
      * <code>optional int64 queueWaitingTime = 42;</code>
+     * @return The queueWaitingTime.
      */
+    @java.lang.Override
     public long getQueueWaitingTime() {
       return queueWaitingTime_;
     }
 
     public static final int QUEUETYPE_FIELD_NUMBER = 43;
-    private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType queueType_;
+    private int queueType_;
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.QueueType queueType = 43;</code>
+     * @return Whether the queueType field is set.
      */
-    public boolean hasQueueType() {
-      return ((bitField1_ & 0x00000080) == 0x00000080);
+    @java.lang.Override public boolean hasQueueType() {
+      return ((bitField1_ & 0x00000080) != 0);
     }
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.QueueType queueType = 43;</code>
+     * @return The enum numeric value on the wire for queueType.
      */
-    public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType getQueueType() {
+    @java.lang.Override public int getQueueTypeValue() {
       return queueType_;
+    }
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.QueueType queueType = 43;</code>
+     * @return The queueType.
+     */
+    @java.lang.Override public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType getQueueType() {
+      @SuppressWarnings("deprecation")
+      com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType.valueOf(queueType_);
+      return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType.UNRECOGNIZED : result;
     }
 
     public static final int CUBEREVISION_FIELD_NUMBER = 44;
     private long cubeRevision_;
     /**
      * <code>optional int64 cubeRevision = 44;</code>
+     * @return Whether the cubeRevision field is set.
      */
+    @java.lang.Override
     public boolean hasCubeRevision() {
-      return ((bitField1_ & 0x00000100) == 0x00000100);
+      return ((bitField1_ & 0x00000100) != 0);
     }
     /**
      * <code>optional int64 cubeRevision = 44;</code>
+     * @return The cubeRevision.
      */
+    @java.lang.Override
     public long getCubeRevision() {
       return cubeRevision_;
     }
 
     public static final int MAHASERVICEREGISTRYNAME_FIELD_NUMBER = 45;
-    private java.lang.Object mahaServiceRegistryName_;
+    private volatile java.lang.Object mahaServiceRegistryName_;
     /**
      * <code>optional string mahaServiceRegistryName = 45;</code>
+     * @return Whether the mahaServiceRegistryName field is set.
      */
+    @java.lang.Override
     public boolean hasMahaServiceRegistryName() {
-      return ((bitField1_ & 0x00000200) == 0x00000200);
+      return ((bitField1_ & 0x00000200) != 0);
     }
     /**
      * <code>optional string mahaServiceRegistryName = 45;</code>
+     * @return The mahaServiceRegistryName.
      */
+    @java.lang.Override
     public java.lang.String getMahaServiceRegistryName() {
       java.lang.Object ref = mahaServiceRegistryName_;
       if (ref instanceof java.lang.String) {
@@ -4056,15 +4526,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          mahaServiceRegistryName_ = s;
-        }
+        mahaServiceRegistryName_ = s;
         return s;
       }
     }
     /**
      * <code>optional string mahaServiceRegistryName = 45;</code>
+     * @return The bytes for mahaServiceRegistryName.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getMahaServiceRegistryNameBytes() {
       java.lang.Object ref = mahaServiceRegistryName_;
@@ -4080,16 +4550,20 @@ public final class MahaRequestLog {
     }
 
     public static final int MAHASERVICEHOSTNAME_FIELD_NUMBER = 46;
-    private java.lang.Object mahaServiceHostname_;
+    private volatile java.lang.Object mahaServiceHostname_;
     /**
      * <code>optional string mahaServiceHostname = 46;</code>
+     * @return Whether the mahaServiceHostname field is set.
      */
+    @java.lang.Override
     public boolean hasMahaServiceHostname() {
-      return ((bitField1_ & 0x00000400) == 0x00000400);
+      return ((bitField1_ & 0x00000400) != 0);
     }
     /**
      * <code>optional string mahaServiceHostname = 46;</code>
+     * @return The mahaServiceHostname.
      */
+    @java.lang.Override
     public java.lang.String getMahaServiceHostname() {
       java.lang.Object ref = mahaServiceHostname_;
       if (ref instanceof java.lang.String) {
@@ -4098,15 +4572,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          mahaServiceHostname_ = s;
-        }
+        mahaServiceHostname_ = s;
         return s;
       }
     }
     /**
      * <code>optional string mahaServiceHostname = 46;</code>
+     * @return The bytes for mahaServiceHostname.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getMahaServiceHostnameBytes() {
       java.lang.Object ref = mahaServiceHostname_;
@@ -4125,13 +4599,17 @@ public final class MahaRequestLog {
     private boolean isGrainOptimized_;
     /**
      * <code>optional bool isGrainOptimized = 47;</code>
+     * @return Whether the isGrainOptimized field is set.
      */
+    @java.lang.Override
     public boolean hasIsGrainOptimized() {
-      return ((bitField1_ & 0x00000800) == 0x00000800);
+      return ((bitField1_ & 0x00000800) != 0);
     }
     /**
      * <code>optional bool isGrainOptimized = 47;</code>
+     * @return The isGrainOptimized.
      */
+    @java.lang.Override
     public boolean getIsGrainOptimized() {
       return isGrainOptimized_;
     }
@@ -4140,28 +4618,36 @@ public final class MahaRequestLog {
     private boolean isIndexOptimized_;
     /**
      * <code>optional bool isIndexOptimized = 48;</code>
+     * @return Whether the isIndexOptimized field is set.
      */
+    @java.lang.Override
     public boolean hasIsIndexOptimized() {
-      return ((bitField1_ & 0x00001000) == 0x00001000);
+      return ((bitField1_ & 0x00001000) != 0);
     }
     /**
      * <code>optional bool isIndexOptimized = 48;</code>
+     * @return The isIndexOptimized.
      */
+    @java.lang.Override
     public boolean getIsIndexOptimized() {
       return isIndexOptimized_;
     }
 
     public static final int CURATOR_FIELD_NUMBER = 49;
-    private java.lang.Object curator_;
+    private volatile java.lang.Object curator_;
     /**
      * <code>optional string curator = 49;</code>
+     * @return Whether the curator field is set.
      */
+    @java.lang.Override
     public boolean hasCurator() {
-      return ((bitField1_ & 0x00002000) == 0x00002000);
+      return ((bitField1_ & 0x00002000) != 0);
     }
     /**
      * <code>optional string curator = 49;</code>
+     * @return The curator.
      */
+    @java.lang.Override
     public java.lang.String getCurator() {
       java.lang.Object ref = curator_;
       if (ref instanceof java.lang.String) {
@@ -4170,15 +4656,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          curator_ = s;
-        }
+        curator_ = s;
         return s;
       }
     }
     /**
      * <code>optional string curator = 49;</code>
+     * @return The bytes for curator.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getCuratorBytes() {
       java.lang.Object ref = curator_;
@@ -4194,16 +4680,20 @@ public final class MahaRequestLog {
     }
 
     public static final int RERUNENGINEQUERYTABLE_FIELD_NUMBER = 50;
-    private java.lang.Object reRunEngineQueryTable_;
+    private volatile java.lang.Object reRunEngineQueryTable_;
     /**
      * <code>optional string reRunEngineQueryTable = 50;</code>
+     * @return Whether the reRunEngineQueryTable field is set.
      */
+    @java.lang.Override
     public boolean hasReRunEngineQueryTable() {
-      return ((bitField1_ & 0x00004000) == 0x00004000);
+      return ((bitField1_ & 0x00004000) != 0);
     }
     /**
      * <code>optional string reRunEngineQueryTable = 50;</code>
+     * @return The reRunEngineQueryTable.
      */
+    @java.lang.Override
     public java.lang.String getReRunEngineQueryTable() {
       java.lang.Object ref = reRunEngineQueryTable_;
       if (ref instanceof java.lang.String) {
@@ -4212,15 +4702,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          reRunEngineQueryTable_ = s;
-        }
+        reRunEngineQueryTable_ = s;
         return s;
       }
     }
     /**
      * <code>optional string reRunEngineQueryTable = 50;</code>
+     * @return The bytes for reRunEngineQueryTable.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getReRunEngineQueryTableBytes() {
       java.lang.Object ref = reRunEngineQueryTable_;
@@ -4239,13 +4729,17 @@ public final class MahaRequestLog {
     private boolean isScanOptimized_;
     /**
      * <code>optional bool isScanOptimized = 51;</code>
+     * @return Whether the isScanOptimized field is set.
      */
+    @java.lang.Override
     public boolean hasIsScanOptimized() {
-      return ((bitField1_ & 0x00008000) == 0x00008000);
+      return ((bitField1_ & 0x00008000) != 0);
     }
     /**
      * <code>optional bool isScanOptimized = 51;</code>
+     * @return The isScanOptimized.
      */
+    @java.lang.Override
     public boolean getIsScanOptimized() {
       return isScanOptimized_;
     }
@@ -4254,13 +4748,17 @@ public final class MahaRequestLog {
     private long scanRows_;
     /**
      * <code>optional int64 scanRows = 52;</code>
+     * @return Whether the scanRows field is set.
      */
+    @java.lang.Override
     public boolean hasScanRows() {
-      return ((bitField1_ & 0x00010000) == 0x00010000);
+      return ((bitField1_ & 0x00010000) != 0);
     }
     /**
      * <code>optional int64 scanRows = 52;</code>
+     * @return The scanRows.
      */
+    @java.lang.Override
     public long getScanRows() {
       return scanRows_;
     }
@@ -4269,13 +4767,17 @@ public final class MahaRequestLog {
     private long grainRows_;
     /**
      * <code>optional int64 grainRows = 53;</code>
+     * @return Whether the grainRows field is set.
      */
+    @java.lang.Override
     public boolean hasGrainRows() {
-      return ((bitField1_ & 0x00020000) == 0x00020000);
+      return ((bitField1_ & 0x00020000) != 0);
     }
     /**
      * <code>optional int64 grainRows = 53;</code>
+     * @return The grainRows.
      */
+    @java.lang.Override
     public long getGrainRows() {
       return grainRows_;
     }
@@ -4284,13 +4786,17 @@ public final class MahaRequestLog {
     private boolean isDebug_;
     /**
      * <code>optional bool isDebug = 54;</code>
+     * @return Whether the isDebug field is set.
      */
+    @java.lang.Override
     public boolean hasIsDebug() {
-      return ((bitField1_ & 0x00040000) == 0x00040000);
+      return ((bitField1_ & 0x00040000) != 0);
     }
     /**
      * <code>optional bool isDebug = 54;</code>
+     * @return The isDebug.
      */
+    @java.lang.Override
     public boolean getIsDebug() {
       return isDebug_;
     }
@@ -4299,28 +4805,36 @@ public final class MahaRequestLog {
     private boolean isTest_;
     /**
      * <code>optional bool isTest = 55;</code>
+     * @return Whether the isTest field is set.
      */
+    @java.lang.Override
     public boolean hasIsTest() {
-      return ((bitField1_ & 0x00080000) == 0x00080000);
+      return ((bitField1_ & 0x00080000) != 0);
     }
     /**
      * <code>optional bool isTest = 55;</code>
+     * @return The isTest.
      */
+    @java.lang.Override
     public boolean getIsTest() {
       return isTest_;
     }
 
     public static final int TESTNAME_FIELD_NUMBER = 56;
-    private java.lang.Object testName_;
+    private volatile java.lang.Object testName_;
     /**
      * <code>optional string testName = 56;</code>
+     * @return Whether the testName field is set.
      */
+    @java.lang.Override
     public boolean hasTestName() {
-      return ((bitField1_ & 0x00100000) == 0x00100000);
+      return ((bitField1_ & 0x00100000) != 0);
     }
     /**
      * <code>optional string testName = 56;</code>
+     * @return The testName.
      */
+    @java.lang.Override
     public java.lang.String getTestName() {
       java.lang.Object ref = testName_;
       if (ref instanceof java.lang.String) {
@@ -4329,15 +4843,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          testName_ = s;
-        }
+        testName_ = s;
         return s;
       }
     }
     /**
      * <code>optional string testName = 56;</code>
+     * @return The bytes for testName.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getTestNameBytes() {
       java.lang.Object ref = testName_;
@@ -4356,6 +4870,7 @@ public final class MahaRequestLog {
     private com.google.protobuf.LazyStringList labels_;
     /**
      * <code>repeated string labels = 57;</code>
+     * @return A list containing the labels.
      */
     public com.google.protobuf.ProtocolStringList
         getLabelsList() {
@@ -4363,18 +4878,23 @@ public final class MahaRequestLog {
     }
     /**
      * <code>repeated string labels = 57;</code>
+     * @return The count of labels.
      */
     public int getLabelsCount() {
       return labels_.size();
     }
     /**
      * <code>repeated string labels = 57;</code>
+     * @param index The index of the element to return.
+     * @return The labels at the given index.
      */
     public java.lang.String getLabels(int index) {
       return labels_.get(index);
     }
     /**
      * <code>repeated string labels = 57;</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the labels at the given index.
      */
     public com.google.protobuf.ByteString
         getLabelsBytes(int index) {
@@ -4382,16 +4902,20 @@ public final class MahaRequestLog {
     }
 
     public static final int REQUESTHASH_FIELD_NUMBER = 58;
-    private java.lang.Object requestHash_;
+    private volatile java.lang.Object requestHash_;
     /**
      * <code>optional string requestHash = 58;</code>
+     * @return Whether the requestHash field is set.
      */
+    @java.lang.Override
     public boolean hasRequestHash() {
-      return ((bitField1_ & 0x00200000) == 0x00200000);
+      return ((bitField1_ & 0x00200000) != 0);
     }
     /**
      * <code>optional string requestHash = 58;</code>
+     * @return The requestHash.
      */
+    @java.lang.Override
     public java.lang.String getRequestHash() {
       java.lang.Object ref = requestHash_;
       if (ref instanceof java.lang.String) {
@@ -4400,15 +4924,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          requestHash_ = s;
-        }
+        requestHash_ = s;
         return s;
       }
     }
     /**
      * <code>optional string requestHash = 58;</code>
+     * @return The bytes for requestHash.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getRequestHashBytes() {
       java.lang.Object ref = requestHash_;
@@ -4424,16 +4948,20 @@ public final class MahaRequestLog {
     }
 
     public static final int JOBIDSTRING_FIELD_NUMBER = 59;
-    private java.lang.Object jobIdString_;
+    private volatile java.lang.Object jobIdString_;
     /**
      * <code>optional string jobIdString = 59;</code>
+     * @return Whether the jobIdString field is set.
      */
+    @java.lang.Override
     public boolean hasJobIdString() {
-      return ((bitField1_ & 0x00400000) == 0x00400000);
+      return ((bitField1_ & 0x00400000) != 0);
     }
     /**
      * <code>optional string jobIdString = 59;</code>
+     * @return The jobIdString.
      */
+    @java.lang.Override
     public java.lang.String getJobIdString() {
       java.lang.Object ref = jobIdString_;
       if (ref instanceof java.lang.String) {
@@ -4442,15 +4970,15 @@ public final class MahaRequestLog {
         com.google.protobuf.ByteString bs = 
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          jobIdString_ = s;
-        }
+        jobIdString_ = s;
         return s;
       }
     }
     /**
      * <code>optional string jobIdString = 59;</code>
+     * @return The bytes for jobIdString.
      */
+    @java.lang.Override
     public com.google.protobuf.ByteString
         getJobIdStringBytes() {
       java.lang.Object ref = jobIdString_;
@@ -4469,417 +4997,352 @@ public final class MahaRequestLog {
     private long numDays_;
     /**
      * <code>optional int64 numDays = 60;</code>
+     * @return Whether the numDays field is set.
      */
+    @java.lang.Override
     public boolean hasNumDays() {
-      return ((bitField1_ & 0x00800000) == 0x00800000);
+      return ((bitField1_ & 0x00800000) != 0);
     }
     /**
      * <code>optional int64 numDays = 60;</code>
+     * @return The numDays.
      */
+    @java.lang.Override
     public long getNumDays() {
       return numDays_;
     }
 
     public static final int WORKERSTATUS_FIELD_NUMBER = 61;
-    private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus workerStatus_;
+    private int workerStatus_;
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+     * @return Whether the workerStatus field is set.
      */
-    public boolean hasWorkerStatus() {
-      return ((bitField1_ & 0x01000000) == 0x01000000);
+    @java.lang.Override public boolean hasWorkerStatus() {
+      return ((bitField1_ & 0x01000000) != 0);
     }
     /**
      * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+     * @return The enum numeric value on the wire for workerStatus.
      */
-    public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus getWorkerStatus() {
+    @java.lang.Override public int getWorkerStatusValue() {
       return workerStatus_;
     }
-
-    private void initFields() {
-      requestId_ = "";
-      json_ = com.google.protobuf.ByteString.EMPTY;
-      userId_ = "";
-      cube_ = "";
-      schema_ = "";
-      isInternal_ = false;
-      requestType_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType.SYNC;
-      drivingQueryEngine_ = "";
-      drivingTable_ = "";
-      queryChainType_ = "";
-      firstSubsequentQueryEngine_ = "";
-      firstSubsequentQueryTable_ = "";
-      requestStartTime_ = 0L;
-      requestEndTime_ = 0L;
-      status_ = 0;
-      errorMessage_ = "";
-      hasFactFilters_ = false;
-      hasNonFKFactFilters_ = false;
-      hasDimFilters_ = false;
-      hasNonFKDimFilters_ = false;
-      hasFactSortBy_ = false;
-      hasDimSortBy_ = false;
-      isFactDriven_ = false;
-      forceDimDriven_ = false;
-      forceFactDriven_ = false;
-      hasNonDrivingDimSortOrFilter_ = false;
-      hasDimAndFactOperations_ = false;
-      dimCardinalityEstimate_ = 0L;
-      requestSortByCols_ = java.util.Collections.emptyList();
-      dimensionsCandidates_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-      factCost_ = java.util.Collections.emptyList();
-      drivingQueryEngineLatency_ = 0L;
-      firstSubsequentQueryEngineLatency_ = 0L;
-      reRunEngineQueryLatency_ = 0L;
-      reRunEngine_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.Oracle;
-      jobId_ = 0L;
-      timeGrain_ = "";
-      asyncJobStatus_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus.SUBMITTED;
-      isDryRun_ = false;
-      jobResultURL_ = "";
-      jobName_ = "";
-      queueWaitingTime_ = 0L;
-      queueType_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType.PULSAR;
-      cubeRevision_ = 0L;
-      mahaServiceRegistryName_ = "";
-      mahaServiceHostname_ = "";
-      isGrainOptimized_ = false;
-      isIndexOptimized_ = false;
-      curator_ = "";
-      reRunEngineQueryTable_ = "";
-      isScanOptimized_ = false;
-      scanRows_ = 0L;
-      grainRows_ = 0L;
-      isDebug_ = false;
-      isTest_ = false;
-      testName_ = "";
-      labels_ = com.google.protobuf.LazyStringArrayList.EMPTY;
-      requestHash_ = "";
-      jobIdString_ = "";
-      numDays_ = 0L;
-      workerStatus_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.WORKER_RUNNING;
+    /**
+     * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+     * @return The workerStatus.
+     */
+    @java.lang.Override public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus getWorkerStatus() {
+      @SuppressWarnings("deprecation")
+      com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.valueOf(workerStatus_);
+      return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.UNRECOGNIZED : result;
     }
+
     private byte memoizedIsInitialized = -1;
+    @java.lang.Override
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
       if (isInitialized == 1) return true;
       if (isInitialized == 0) return false;
 
-      if (!hasRequestId()) {
-        memoizedIsInitialized = 0;
-        return false;
-      }
-      if (!hasJson()) {
-        memoizedIsInitialized = 0;
-        return false;
-      }
       memoizedIsInitialized = 1;
       return true;
     }
 
+    @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      getSerializedSize();
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        output.writeBytes(1, getRequestIdBytes());
+      if (((bitField0_ & 0x00000001) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, requestId_);
       }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+      if (((bitField0_ & 0x00000002) != 0)) {
         output.writeBytes(2, json_);
       }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeBytes(3, getUserIdBytes());
+      if (((bitField0_ & 0x00000004) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 3, userId_);
       }
-      if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        output.writeBytes(4, getCubeBytes());
+      if (((bitField0_ & 0x00000008) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 4, cube_);
       }
-      if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        output.writeBytes(5, getSchemaBytes());
+      if (((bitField0_ & 0x00000010) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 5, schema_);
       }
-      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+      if (((bitField0_ & 0x00000020) != 0)) {
         output.writeBool(6, isInternal_);
       }
-      if (((bitField0_ & 0x00000040) == 0x00000040)) {
-        output.writeEnum(7, requestType_.getNumber());
+      if (((bitField0_ & 0x00000040) != 0)) {
+        output.writeEnum(7, requestType_);
       }
-      if (((bitField0_ & 0x00000080) == 0x00000080)) {
-        output.writeBytes(8, getDrivingQueryEngineBytes());
+      if (((bitField0_ & 0x00000080) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 8, drivingQueryEngine_);
       }
-      if (((bitField0_ & 0x00000100) == 0x00000100)) {
-        output.writeBytes(9, getDrivingTableBytes());
+      if (((bitField0_ & 0x00000100) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 9, drivingTable_);
       }
-      if (((bitField0_ & 0x00000200) == 0x00000200)) {
-        output.writeBytes(10, getQueryChainTypeBytes());
+      if (((bitField0_ & 0x00000200) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 10, queryChainType_);
       }
-      if (((bitField0_ & 0x00000400) == 0x00000400)) {
-        output.writeBytes(11, getFirstSubsequentQueryEngineBytes());
+      if (((bitField0_ & 0x00000400) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 11, firstSubsequentQueryEngine_);
       }
-      if (((bitField0_ & 0x00000800) == 0x00000800)) {
-        output.writeBytes(12, getFirstSubsequentQueryTableBytes());
+      if (((bitField0_ & 0x00000800) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 12, firstSubsequentQueryTable_);
       }
-      if (((bitField0_ & 0x00001000) == 0x00001000)) {
+      if (((bitField0_ & 0x00001000) != 0)) {
         output.writeInt64(13, requestStartTime_);
       }
-      if (((bitField0_ & 0x00002000) == 0x00002000)) {
+      if (((bitField0_ & 0x00002000) != 0)) {
         output.writeInt64(14, requestEndTime_);
       }
-      if (((bitField0_ & 0x00004000) == 0x00004000)) {
+      if (((bitField0_ & 0x00004000) != 0)) {
         output.writeInt32(15, status_);
       }
-      if (((bitField0_ & 0x00008000) == 0x00008000)) {
-        output.writeBytes(16, getErrorMessageBytes());
+      if (((bitField0_ & 0x00008000) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 16, errorMessage_);
       }
-      if (((bitField0_ & 0x00010000) == 0x00010000)) {
+      if (((bitField0_ & 0x00010000) != 0)) {
         output.writeBool(17, hasFactFilters_);
       }
-      if (((bitField0_ & 0x00020000) == 0x00020000)) {
+      if (((bitField0_ & 0x00020000) != 0)) {
         output.writeBool(18, hasNonFKFactFilters_);
       }
-      if (((bitField0_ & 0x00040000) == 0x00040000)) {
+      if (((bitField0_ & 0x00040000) != 0)) {
         output.writeBool(19, hasDimFilters_);
       }
-      if (((bitField0_ & 0x00080000) == 0x00080000)) {
+      if (((bitField0_ & 0x00080000) != 0)) {
         output.writeBool(20, hasNonFKDimFilters_);
       }
-      if (((bitField0_ & 0x00100000) == 0x00100000)) {
+      if (((bitField0_ & 0x00100000) != 0)) {
         output.writeBool(21, hasFactSortBy_);
       }
-      if (((bitField0_ & 0x00200000) == 0x00200000)) {
+      if (((bitField0_ & 0x00200000) != 0)) {
         output.writeBool(22, hasDimSortBy_);
       }
-      if (((bitField0_ & 0x00400000) == 0x00400000)) {
+      if (((bitField0_ & 0x00400000) != 0)) {
         output.writeBool(23, isFactDriven_);
       }
-      if (((bitField0_ & 0x00800000) == 0x00800000)) {
+      if (((bitField0_ & 0x00800000) != 0)) {
         output.writeBool(24, forceDimDriven_);
       }
-      if (((bitField0_ & 0x01000000) == 0x01000000)) {
+      if (((bitField0_ & 0x01000000) != 0)) {
         output.writeBool(25, forceFactDriven_);
       }
-      if (((bitField0_ & 0x02000000) == 0x02000000)) {
+      if (((bitField0_ & 0x02000000) != 0)) {
         output.writeBool(26, hasNonDrivingDimSortOrFilter_);
       }
-      if (((bitField0_ & 0x04000000) == 0x04000000)) {
+      if (((bitField0_ & 0x04000000) != 0)) {
         output.writeBool(27, hasDimAndFactOperations_);
       }
-      if (((bitField0_ & 0x08000000) == 0x08000000)) {
+      if (((bitField0_ & 0x08000000) != 0)) {
         output.writeInt64(28, dimCardinalityEstimate_);
       }
       for (int i = 0; i < requestSortByCols_.size(); i++) {
         output.writeMessage(29, requestSortByCols_.get(i));
       }
       for (int i = 0; i < dimensionsCandidates_.size(); i++) {
-        output.writeBytes(30, dimensionsCandidates_.getByteString(i));
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 30, dimensionsCandidates_.getRaw(i));
       }
       for (int i = 0; i < factCost_.size(); i++) {
         output.writeMessage(31, factCost_.get(i));
       }
-      if (((bitField0_ & 0x10000000) == 0x10000000)) {
+      if (((bitField0_ & 0x10000000) != 0)) {
         output.writeInt64(32, drivingQueryEngineLatency_);
       }
-      if (((bitField0_ & 0x20000000) == 0x20000000)) {
+      if (((bitField0_ & 0x20000000) != 0)) {
         output.writeInt64(33, firstSubsequentQueryEngineLatency_);
       }
-      if (((bitField0_ & 0x40000000) == 0x40000000)) {
+      if (((bitField0_ & 0x40000000) != 0)) {
         output.writeInt64(34, reRunEngineQueryLatency_);
       }
-      if (((bitField0_ & 0x80000000) == 0x80000000)) {
-        output.writeEnum(35, reRunEngine_.getNumber());
+      if (((bitField0_ & 0x80000000) != 0)) {
+        output.writeEnum(35, reRunEngine_);
       }
-      if (((bitField1_ & 0x00000001) == 0x00000001)) {
+      if (((bitField1_ & 0x00000001) != 0)) {
         output.writeInt64(36, jobId_);
       }
-      if (((bitField1_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(37, getTimeGrainBytes());
+      if (((bitField1_ & 0x00000002) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 37, timeGrain_);
       }
-      if (((bitField1_ & 0x00000004) == 0x00000004)) {
-        output.writeEnum(38, asyncJobStatus_.getNumber());
+      if (((bitField1_ & 0x00000004) != 0)) {
+        output.writeEnum(38, asyncJobStatus_);
       }
-      if (((bitField1_ & 0x00000008) == 0x00000008)) {
+      if (((bitField1_ & 0x00000008) != 0)) {
         output.writeBool(39, isDryRun_);
       }
-      if (((bitField1_ & 0x00000010) == 0x00000010)) {
-        output.writeBytes(40, getJobResultURLBytes());
+      if (((bitField1_ & 0x00000010) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 40, jobResultURL_);
       }
-      if (((bitField1_ & 0x00000020) == 0x00000020)) {
-        output.writeBytes(41, getJobNameBytes());
+      if (((bitField1_ & 0x00000020) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 41, jobName_);
       }
-      if (((bitField1_ & 0x00000040) == 0x00000040)) {
+      if (((bitField1_ & 0x00000040) != 0)) {
         output.writeInt64(42, queueWaitingTime_);
       }
-      if (((bitField1_ & 0x00000080) == 0x00000080)) {
-        output.writeEnum(43, queueType_.getNumber());
+      if (((bitField1_ & 0x00000080) != 0)) {
+        output.writeEnum(43, queueType_);
       }
-      if (((bitField1_ & 0x00000100) == 0x00000100)) {
+      if (((bitField1_ & 0x00000100) != 0)) {
         output.writeInt64(44, cubeRevision_);
       }
-      if (((bitField1_ & 0x00000200) == 0x00000200)) {
-        output.writeBytes(45, getMahaServiceRegistryNameBytes());
+      if (((bitField1_ & 0x00000200) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 45, mahaServiceRegistryName_);
       }
-      if (((bitField1_ & 0x00000400) == 0x00000400)) {
-        output.writeBytes(46, getMahaServiceHostnameBytes());
+      if (((bitField1_ & 0x00000400) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 46, mahaServiceHostname_);
       }
-      if (((bitField1_ & 0x00000800) == 0x00000800)) {
+      if (((bitField1_ & 0x00000800) != 0)) {
         output.writeBool(47, isGrainOptimized_);
       }
-      if (((bitField1_ & 0x00001000) == 0x00001000)) {
+      if (((bitField1_ & 0x00001000) != 0)) {
         output.writeBool(48, isIndexOptimized_);
       }
-      if (((bitField1_ & 0x00002000) == 0x00002000)) {
-        output.writeBytes(49, getCuratorBytes());
+      if (((bitField1_ & 0x00002000) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 49, curator_);
       }
-      if (((bitField1_ & 0x00004000) == 0x00004000)) {
-        output.writeBytes(50, getReRunEngineQueryTableBytes());
+      if (((bitField1_ & 0x00004000) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 50, reRunEngineQueryTable_);
       }
-      if (((bitField1_ & 0x00008000) == 0x00008000)) {
+      if (((bitField1_ & 0x00008000) != 0)) {
         output.writeBool(51, isScanOptimized_);
       }
-      if (((bitField1_ & 0x00010000) == 0x00010000)) {
+      if (((bitField1_ & 0x00010000) != 0)) {
         output.writeInt64(52, scanRows_);
       }
-      if (((bitField1_ & 0x00020000) == 0x00020000)) {
+      if (((bitField1_ & 0x00020000) != 0)) {
         output.writeInt64(53, grainRows_);
       }
-      if (((bitField1_ & 0x00040000) == 0x00040000)) {
+      if (((bitField1_ & 0x00040000) != 0)) {
         output.writeBool(54, isDebug_);
       }
-      if (((bitField1_ & 0x00080000) == 0x00080000)) {
+      if (((bitField1_ & 0x00080000) != 0)) {
         output.writeBool(55, isTest_);
       }
-      if (((bitField1_ & 0x00100000) == 0x00100000)) {
-        output.writeBytes(56, getTestNameBytes());
+      if (((bitField1_ & 0x00100000) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 56, testName_);
       }
       for (int i = 0; i < labels_.size(); i++) {
-        output.writeBytes(57, labels_.getByteString(i));
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 57, labels_.getRaw(i));
       }
-      if (((bitField1_ & 0x00200000) == 0x00200000)) {
-        output.writeBytes(58, getRequestHashBytes());
+      if (((bitField1_ & 0x00200000) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 58, requestHash_);
       }
-      if (((bitField1_ & 0x00400000) == 0x00400000)) {
-        output.writeBytes(59, getJobIdStringBytes());
+      if (((bitField1_ & 0x00400000) != 0)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 59, jobIdString_);
       }
-      if (((bitField1_ & 0x00800000) == 0x00800000)) {
+      if (((bitField1_ & 0x00800000) != 0)) {
         output.writeInt64(60, numDays_);
       }
-      if (((bitField1_ & 0x01000000) == 0x01000000)) {
-        output.writeEnum(61, workerStatus_.getNumber());
+      if (((bitField1_ & 0x01000000) != 0)) {
+        output.writeEnum(61, workerStatus_);
       }
       getUnknownFields().writeTo(output);
     }
 
-    private int memoizedSerializedSize = -1;
+    @java.lang.Override
     public int getSerializedSize() {
-      int size = memoizedSerializedSize;
+      int size = memoizedSize;
       if (size != -1) return size;
 
       size = 0;
-      if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getRequestIdBytes());
+      if (((bitField0_ & 0x00000001) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, requestId_);
       }
-      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+      if (((bitField0_ & 0x00000002) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(2, json_);
       }
-      if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(3, getUserIdBytes());
+      if (((bitField0_ & 0x00000004) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, userId_);
       }
-      if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(4, getCubeBytes());
+      if (((bitField0_ & 0x00000008) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(4, cube_);
       }
-      if (((bitField0_ & 0x00000010) == 0x00000010)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(5, getSchemaBytes());
+      if (((bitField0_ & 0x00000010) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(5, schema_);
       }
-      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+      if (((bitField0_ & 0x00000020) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(6, isInternal_);
       }
-      if (((bitField0_ & 0x00000040) == 0x00000040)) {
+      if (((bitField0_ & 0x00000040) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeEnumSize(7, requestType_.getNumber());
+          .computeEnumSize(7, requestType_);
       }
-      if (((bitField0_ & 0x00000080) == 0x00000080)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(8, getDrivingQueryEngineBytes());
+      if (((bitField0_ & 0x00000080) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(8, drivingQueryEngine_);
       }
-      if (((bitField0_ & 0x00000100) == 0x00000100)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(9, getDrivingTableBytes());
+      if (((bitField0_ & 0x00000100) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(9, drivingTable_);
       }
-      if (((bitField0_ & 0x00000200) == 0x00000200)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(10, getQueryChainTypeBytes());
+      if (((bitField0_ & 0x00000200) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(10, queryChainType_);
       }
-      if (((bitField0_ & 0x00000400) == 0x00000400)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(11, getFirstSubsequentQueryEngineBytes());
+      if (((bitField0_ & 0x00000400) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(11, firstSubsequentQueryEngine_);
       }
-      if (((bitField0_ & 0x00000800) == 0x00000800)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(12, getFirstSubsequentQueryTableBytes());
+      if (((bitField0_ & 0x00000800) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(12, firstSubsequentQueryTable_);
       }
-      if (((bitField0_ & 0x00001000) == 0x00001000)) {
+      if (((bitField0_ & 0x00001000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(13, requestStartTime_);
       }
-      if (((bitField0_ & 0x00002000) == 0x00002000)) {
+      if (((bitField0_ & 0x00002000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(14, requestEndTime_);
       }
-      if (((bitField0_ & 0x00004000) == 0x00004000)) {
+      if (((bitField0_ & 0x00004000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(15, status_);
       }
-      if (((bitField0_ & 0x00008000) == 0x00008000)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(16, getErrorMessageBytes());
+      if (((bitField0_ & 0x00008000) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(16, errorMessage_);
       }
-      if (((bitField0_ & 0x00010000) == 0x00010000)) {
+      if (((bitField0_ & 0x00010000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(17, hasFactFilters_);
       }
-      if (((bitField0_ & 0x00020000) == 0x00020000)) {
+      if (((bitField0_ & 0x00020000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(18, hasNonFKFactFilters_);
       }
-      if (((bitField0_ & 0x00040000) == 0x00040000)) {
+      if (((bitField0_ & 0x00040000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(19, hasDimFilters_);
       }
-      if (((bitField0_ & 0x00080000) == 0x00080000)) {
+      if (((bitField0_ & 0x00080000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(20, hasNonFKDimFilters_);
       }
-      if (((bitField0_ & 0x00100000) == 0x00100000)) {
+      if (((bitField0_ & 0x00100000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(21, hasFactSortBy_);
       }
-      if (((bitField0_ & 0x00200000) == 0x00200000)) {
+      if (((bitField0_ & 0x00200000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(22, hasDimSortBy_);
       }
-      if (((bitField0_ & 0x00400000) == 0x00400000)) {
+      if (((bitField0_ & 0x00400000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(23, isFactDriven_);
       }
-      if (((bitField0_ & 0x00800000) == 0x00800000)) {
+      if (((bitField0_ & 0x00800000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(24, forceDimDriven_);
       }
-      if (((bitField0_ & 0x01000000) == 0x01000000)) {
+      if (((bitField0_ & 0x01000000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(25, forceFactDriven_);
       }
-      if (((bitField0_ & 0x02000000) == 0x02000000)) {
+      if (((bitField0_ & 0x02000000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(26, hasNonDrivingDimSortOrFilter_);
       }
-      if (((bitField0_ & 0x04000000) == 0x04000000)) {
+      if (((bitField0_ & 0x04000000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(27, hasDimAndFactOperations_);
       }
-      if (((bitField0_ & 0x08000000) == 0x08000000)) {
+      if (((bitField0_ & 0x08000000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(28, dimCardinalityEstimate_);
       }
@@ -4890,8 +5353,7 @@ public final class MahaRequestLog {
       {
         int dataSize = 0;
         for (int i = 0; i < dimensionsCandidates_.size(); i++) {
-          dataSize += com.google.protobuf.CodedOutputStream
-            .computeBytesSizeNoTag(dimensionsCandidates_.getByteString(i));
+          dataSize += computeStringSizeNoTag(dimensionsCandidates_.getRaw(i));
         }
         size += dataSize;
         size += 2 * getDimensionsCandidatesList().size();
@@ -4900,143 +5362,724 @@ public final class MahaRequestLog {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(31, factCost_.get(i));
       }
-      if (((bitField0_ & 0x10000000) == 0x10000000)) {
+      if (((bitField0_ & 0x10000000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(32, drivingQueryEngineLatency_);
       }
-      if (((bitField0_ & 0x20000000) == 0x20000000)) {
+      if (((bitField0_ & 0x20000000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(33, firstSubsequentQueryEngineLatency_);
       }
-      if (((bitField0_ & 0x40000000) == 0x40000000)) {
+      if (((bitField0_ & 0x40000000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(34, reRunEngineQueryLatency_);
       }
-      if (((bitField0_ & 0x80000000) == 0x80000000)) {
+      if (((bitField0_ & 0x80000000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeEnumSize(35, reRunEngine_.getNumber());
+          .computeEnumSize(35, reRunEngine_);
       }
-      if (((bitField1_ & 0x00000001) == 0x00000001)) {
+      if (((bitField1_ & 0x00000001) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(36, jobId_);
       }
-      if (((bitField1_ & 0x00000002) == 0x00000002)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(37, getTimeGrainBytes());
+      if (((bitField1_ & 0x00000002) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(37, timeGrain_);
       }
-      if (((bitField1_ & 0x00000004) == 0x00000004)) {
+      if (((bitField1_ & 0x00000004) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeEnumSize(38, asyncJobStatus_.getNumber());
+          .computeEnumSize(38, asyncJobStatus_);
       }
-      if (((bitField1_ & 0x00000008) == 0x00000008)) {
+      if (((bitField1_ & 0x00000008) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(39, isDryRun_);
       }
-      if (((bitField1_ & 0x00000010) == 0x00000010)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(40, getJobResultURLBytes());
+      if (((bitField1_ & 0x00000010) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(40, jobResultURL_);
       }
-      if (((bitField1_ & 0x00000020) == 0x00000020)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(41, getJobNameBytes());
+      if (((bitField1_ & 0x00000020) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(41, jobName_);
       }
-      if (((bitField1_ & 0x00000040) == 0x00000040)) {
+      if (((bitField1_ & 0x00000040) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(42, queueWaitingTime_);
       }
-      if (((bitField1_ & 0x00000080) == 0x00000080)) {
+      if (((bitField1_ & 0x00000080) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeEnumSize(43, queueType_.getNumber());
+          .computeEnumSize(43, queueType_);
       }
-      if (((bitField1_ & 0x00000100) == 0x00000100)) {
+      if (((bitField1_ & 0x00000100) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(44, cubeRevision_);
       }
-      if (((bitField1_ & 0x00000200) == 0x00000200)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(45, getMahaServiceRegistryNameBytes());
+      if (((bitField1_ & 0x00000200) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(45, mahaServiceRegistryName_);
       }
-      if (((bitField1_ & 0x00000400) == 0x00000400)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(46, getMahaServiceHostnameBytes());
+      if (((bitField1_ & 0x00000400) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(46, mahaServiceHostname_);
       }
-      if (((bitField1_ & 0x00000800) == 0x00000800)) {
+      if (((bitField1_ & 0x00000800) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(47, isGrainOptimized_);
       }
-      if (((bitField1_ & 0x00001000) == 0x00001000)) {
+      if (((bitField1_ & 0x00001000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(48, isIndexOptimized_);
       }
-      if (((bitField1_ & 0x00002000) == 0x00002000)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(49, getCuratorBytes());
+      if (((bitField1_ & 0x00002000) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(49, curator_);
       }
-      if (((bitField1_ & 0x00004000) == 0x00004000)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(50, getReRunEngineQueryTableBytes());
+      if (((bitField1_ & 0x00004000) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(50, reRunEngineQueryTable_);
       }
-      if (((bitField1_ & 0x00008000) == 0x00008000)) {
+      if (((bitField1_ & 0x00008000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(51, isScanOptimized_);
       }
-      if (((bitField1_ & 0x00010000) == 0x00010000)) {
+      if (((bitField1_ & 0x00010000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(52, scanRows_);
       }
-      if (((bitField1_ & 0x00020000) == 0x00020000)) {
+      if (((bitField1_ & 0x00020000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(53, grainRows_);
       }
-      if (((bitField1_ & 0x00040000) == 0x00040000)) {
+      if (((bitField1_ & 0x00040000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(54, isDebug_);
       }
-      if (((bitField1_ & 0x00080000) == 0x00080000)) {
+      if (((bitField1_ & 0x00080000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(55, isTest_);
       }
-      if (((bitField1_ & 0x00100000) == 0x00100000)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(56, getTestNameBytes());
+      if (((bitField1_ & 0x00100000) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(56, testName_);
       }
       {
         int dataSize = 0;
         for (int i = 0; i < labels_.size(); i++) {
-          dataSize += com.google.protobuf.CodedOutputStream
-            .computeBytesSizeNoTag(labels_.getByteString(i));
+          dataSize += computeStringSizeNoTag(labels_.getRaw(i));
         }
         size += dataSize;
         size += 2 * getLabelsList().size();
       }
-      if (((bitField1_ & 0x00200000) == 0x00200000)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(58, getRequestHashBytes());
+      if (((bitField1_ & 0x00200000) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(58, requestHash_);
       }
-      if (((bitField1_ & 0x00400000) == 0x00400000)) {
-        size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(59, getJobIdStringBytes());
+      if (((bitField1_ & 0x00400000) != 0)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(59, jobIdString_);
       }
-      if (((bitField1_ & 0x00800000) == 0x00800000)) {
+      if (((bitField1_ & 0x00800000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(60, numDays_);
       }
-      if (((bitField1_ & 0x01000000) == 0x01000000)) {
+      if (((bitField1_ & 0x01000000) != 0)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeEnumSize(61, workerStatus_.getNumber());
+          .computeEnumSize(61, workerStatus_);
       }
       size += getUnknownFields().getSerializedSize();
-      memoizedSerializedSize = size;
+      memoizedSize = size;
       return size;
     }
 
-    private static final long serialVersionUID = 0L;
     @java.lang.Override
-    protected java.lang.Object writeReplace()
-        throws java.io.ObjectStreamException {
-      return super.writeReplace();
+    public boolean equals(final java.lang.Object obj) {
+      if (obj == this) {
+       return true;
+      }
+      if (!(obj instanceof com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto)) {
+        return super.equals(obj);
+      }
+      com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto other = (com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto) obj;
+
+      if (hasRequestId() != other.hasRequestId()) return false;
+      if (hasRequestId()) {
+        if (!getRequestId()
+            .equals(other.getRequestId())) return false;
+      }
+      if (hasJson() != other.hasJson()) return false;
+      if (hasJson()) {
+        if (!getJson()
+            .equals(other.getJson())) return false;
+      }
+      if (hasUserId() != other.hasUserId()) return false;
+      if (hasUserId()) {
+        if (!getUserId()
+            .equals(other.getUserId())) return false;
+      }
+      if (hasCube() != other.hasCube()) return false;
+      if (hasCube()) {
+        if (!getCube()
+            .equals(other.getCube())) return false;
+      }
+      if (hasSchema() != other.hasSchema()) return false;
+      if (hasSchema()) {
+        if (!getSchema()
+            .equals(other.getSchema())) return false;
+      }
+      if (hasIsInternal() != other.hasIsInternal()) return false;
+      if (hasIsInternal()) {
+        if (getIsInternal()
+            != other.getIsInternal()) return false;
+      }
+      if (hasRequestType() != other.hasRequestType()) return false;
+      if (hasRequestType()) {
+        if (requestType_ != other.requestType_) return false;
+      }
+      if (hasDrivingQueryEngine() != other.hasDrivingQueryEngine()) return false;
+      if (hasDrivingQueryEngine()) {
+        if (!getDrivingQueryEngine()
+            .equals(other.getDrivingQueryEngine())) return false;
+      }
+      if (hasDrivingTable() != other.hasDrivingTable()) return false;
+      if (hasDrivingTable()) {
+        if (!getDrivingTable()
+            .equals(other.getDrivingTable())) return false;
+      }
+      if (hasQueryChainType() != other.hasQueryChainType()) return false;
+      if (hasQueryChainType()) {
+        if (!getQueryChainType()
+            .equals(other.getQueryChainType())) return false;
+      }
+      if (hasFirstSubsequentQueryEngine() != other.hasFirstSubsequentQueryEngine()) return false;
+      if (hasFirstSubsequentQueryEngine()) {
+        if (!getFirstSubsequentQueryEngine()
+            .equals(other.getFirstSubsequentQueryEngine())) return false;
+      }
+      if (hasFirstSubsequentQueryTable() != other.hasFirstSubsequentQueryTable()) return false;
+      if (hasFirstSubsequentQueryTable()) {
+        if (!getFirstSubsequentQueryTable()
+            .equals(other.getFirstSubsequentQueryTable())) return false;
+      }
+      if (hasRequestStartTime() != other.hasRequestStartTime()) return false;
+      if (hasRequestStartTime()) {
+        if (getRequestStartTime()
+            != other.getRequestStartTime()) return false;
+      }
+      if (hasRequestEndTime() != other.hasRequestEndTime()) return false;
+      if (hasRequestEndTime()) {
+        if (getRequestEndTime()
+            != other.getRequestEndTime()) return false;
+      }
+      if (hasStatus() != other.hasStatus()) return false;
+      if (hasStatus()) {
+        if (getStatus()
+            != other.getStatus()) return false;
+      }
+      if (hasErrorMessage() != other.hasErrorMessage()) return false;
+      if (hasErrorMessage()) {
+        if (!getErrorMessage()
+            .equals(other.getErrorMessage())) return false;
+      }
+      if (hasHasFactFilters() != other.hasHasFactFilters()) return false;
+      if (hasHasFactFilters()) {
+        if (getHasFactFilters()
+            != other.getHasFactFilters()) return false;
+      }
+      if (hasHasNonFKFactFilters() != other.hasHasNonFKFactFilters()) return false;
+      if (hasHasNonFKFactFilters()) {
+        if (getHasNonFKFactFilters()
+            != other.getHasNonFKFactFilters()) return false;
+      }
+      if (hasHasDimFilters() != other.hasHasDimFilters()) return false;
+      if (hasHasDimFilters()) {
+        if (getHasDimFilters()
+            != other.getHasDimFilters()) return false;
+      }
+      if (hasHasNonFKDimFilters() != other.hasHasNonFKDimFilters()) return false;
+      if (hasHasNonFKDimFilters()) {
+        if (getHasNonFKDimFilters()
+            != other.getHasNonFKDimFilters()) return false;
+      }
+      if (hasHasFactSortBy() != other.hasHasFactSortBy()) return false;
+      if (hasHasFactSortBy()) {
+        if (getHasFactSortBy()
+            != other.getHasFactSortBy()) return false;
+      }
+      if (hasHasDimSortBy() != other.hasHasDimSortBy()) return false;
+      if (hasHasDimSortBy()) {
+        if (getHasDimSortBy()
+            != other.getHasDimSortBy()) return false;
+      }
+      if (hasIsFactDriven() != other.hasIsFactDriven()) return false;
+      if (hasIsFactDriven()) {
+        if (getIsFactDriven()
+            != other.getIsFactDriven()) return false;
+      }
+      if (hasForceDimDriven() != other.hasForceDimDriven()) return false;
+      if (hasForceDimDriven()) {
+        if (getForceDimDriven()
+            != other.getForceDimDriven()) return false;
+      }
+      if (hasForceFactDriven() != other.hasForceFactDriven()) return false;
+      if (hasForceFactDriven()) {
+        if (getForceFactDriven()
+            != other.getForceFactDriven()) return false;
+      }
+      if (hasHasNonDrivingDimSortOrFilter() != other.hasHasNonDrivingDimSortOrFilter()) return false;
+      if (hasHasNonDrivingDimSortOrFilter()) {
+        if (getHasNonDrivingDimSortOrFilter()
+            != other.getHasNonDrivingDimSortOrFilter()) return false;
+      }
+      if (hasHasDimAndFactOperations() != other.hasHasDimAndFactOperations()) return false;
+      if (hasHasDimAndFactOperations()) {
+        if (getHasDimAndFactOperations()
+            != other.getHasDimAndFactOperations()) return false;
+      }
+      if (hasDimCardinalityEstimate() != other.hasDimCardinalityEstimate()) return false;
+      if (hasDimCardinalityEstimate()) {
+        if (getDimCardinalityEstimate()
+            != other.getDimCardinalityEstimate()) return false;
+      }
+      if (!getRequestSortByColsList()
+          .equals(other.getRequestSortByColsList())) return false;
+      if (!getDimensionsCandidatesList()
+          .equals(other.getDimensionsCandidatesList())) return false;
+      if (!getFactCostList()
+          .equals(other.getFactCostList())) return false;
+      if (hasDrivingQueryEngineLatency() != other.hasDrivingQueryEngineLatency()) return false;
+      if (hasDrivingQueryEngineLatency()) {
+        if (getDrivingQueryEngineLatency()
+            != other.getDrivingQueryEngineLatency()) return false;
+      }
+      if (hasFirstSubsequentQueryEngineLatency() != other.hasFirstSubsequentQueryEngineLatency()) return false;
+      if (hasFirstSubsequentQueryEngineLatency()) {
+        if (getFirstSubsequentQueryEngineLatency()
+            != other.getFirstSubsequentQueryEngineLatency()) return false;
+      }
+      if (hasReRunEngineQueryLatency() != other.hasReRunEngineQueryLatency()) return false;
+      if (hasReRunEngineQueryLatency()) {
+        if (getReRunEngineQueryLatency()
+            != other.getReRunEngineQueryLatency()) return false;
+      }
+      if (hasReRunEngine() != other.hasReRunEngine()) return false;
+      if (hasReRunEngine()) {
+        if (reRunEngine_ != other.reRunEngine_) return false;
+      }
+      if (hasJobId() != other.hasJobId()) return false;
+      if (hasJobId()) {
+        if (getJobId()
+            != other.getJobId()) return false;
+      }
+      if (hasTimeGrain() != other.hasTimeGrain()) return false;
+      if (hasTimeGrain()) {
+        if (!getTimeGrain()
+            .equals(other.getTimeGrain())) return false;
+      }
+      if (hasAsyncJobStatus() != other.hasAsyncJobStatus()) return false;
+      if (hasAsyncJobStatus()) {
+        if (asyncJobStatus_ != other.asyncJobStatus_) return false;
+      }
+      if (hasIsDryRun() != other.hasIsDryRun()) return false;
+      if (hasIsDryRun()) {
+        if (getIsDryRun()
+            != other.getIsDryRun()) return false;
+      }
+      if (hasJobResultURL() != other.hasJobResultURL()) return false;
+      if (hasJobResultURL()) {
+        if (!getJobResultURL()
+            .equals(other.getJobResultURL())) return false;
+      }
+      if (hasJobName() != other.hasJobName()) return false;
+      if (hasJobName()) {
+        if (!getJobName()
+            .equals(other.getJobName())) return false;
+      }
+      if (hasQueueWaitingTime() != other.hasQueueWaitingTime()) return false;
+      if (hasQueueWaitingTime()) {
+        if (getQueueWaitingTime()
+            != other.getQueueWaitingTime()) return false;
+      }
+      if (hasQueueType() != other.hasQueueType()) return false;
+      if (hasQueueType()) {
+        if (queueType_ != other.queueType_) return false;
+      }
+      if (hasCubeRevision() != other.hasCubeRevision()) return false;
+      if (hasCubeRevision()) {
+        if (getCubeRevision()
+            != other.getCubeRevision()) return false;
+      }
+      if (hasMahaServiceRegistryName() != other.hasMahaServiceRegistryName()) return false;
+      if (hasMahaServiceRegistryName()) {
+        if (!getMahaServiceRegistryName()
+            .equals(other.getMahaServiceRegistryName())) return false;
+      }
+      if (hasMahaServiceHostname() != other.hasMahaServiceHostname()) return false;
+      if (hasMahaServiceHostname()) {
+        if (!getMahaServiceHostname()
+            .equals(other.getMahaServiceHostname())) return false;
+      }
+      if (hasIsGrainOptimized() != other.hasIsGrainOptimized()) return false;
+      if (hasIsGrainOptimized()) {
+        if (getIsGrainOptimized()
+            != other.getIsGrainOptimized()) return false;
+      }
+      if (hasIsIndexOptimized() != other.hasIsIndexOptimized()) return false;
+      if (hasIsIndexOptimized()) {
+        if (getIsIndexOptimized()
+            != other.getIsIndexOptimized()) return false;
+      }
+      if (hasCurator() != other.hasCurator()) return false;
+      if (hasCurator()) {
+        if (!getCurator()
+            .equals(other.getCurator())) return false;
+      }
+      if (hasReRunEngineQueryTable() != other.hasReRunEngineQueryTable()) return false;
+      if (hasReRunEngineQueryTable()) {
+        if (!getReRunEngineQueryTable()
+            .equals(other.getReRunEngineQueryTable())) return false;
+      }
+      if (hasIsScanOptimized() != other.hasIsScanOptimized()) return false;
+      if (hasIsScanOptimized()) {
+        if (getIsScanOptimized()
+            != other.getIsScanOptimized()) return false;
+      }
+      if (hasScanRows() != other.hasScanRows()) return false;
+      if (hasScanRows()) {
+        if (getScanRows()
+            != other.getScanRows()) return false;
+      }
+      if (hasGrainRows() != other.hasGrainRows()) return false;
+      if (hasGrainRows()) {
+        if (getGrainRows()
+            != other.getGrainRows()) return false;
+      }
+      if (hasIsDebug() != other.hasIsDebug()) return false;
+      if (hasIsDebug()) {
+        if (getIsDebug()
+            != other.getIsDebug()) return false;
+      }
+      if (hasIsTest() != other.hasIsTest()) return false;
+      if (hasIsTest()) {
+        if (getIsTest()
+            != other.getIsTest()) return false;
+      }
+      if (hasTestName() != other.hasTestName()) return false;
+      if (hasTestName()) {
+        if (!getTestName()
+            .equals(other.getTestName())) return false;
+      }
+      if (!getLabelsList()
+          .equals(other.getLabelsList())) return false;
+      if (hasRequestHash() != other.hasRequestHash()) return false;
+      if (hasRequestHash()) {
+        if (!getRequestHash()
+            .equals(other.getRequestHash())) return false;
+      }
+      if (hasJobIdString() != other.hasJobIdString()) return false;
+      if (hasJobIdString()) {
+        if (!getJobIdString()
+            .equals(other.getJobIdString())) return false;
+      }
+      if (hasNumDays() != other.hasNumDays()) return false;
+      if (hasNumDays()) {
+        if (getNumDays()
+            != other.getNumDays()) return false;
+      }
+      if (hasWorkerStatus() != other.hasWorkerStatus()) return false;
+      if (hasWorkerStatus()) {
+        if (workerStatus_ != other.workerStatus_) return false;
+      }
+      if (!getUnknownFields().equals(other.getUnknownFields())) return false;
+      return true;
     }
 
+    @java.lang.Override
+    public int hashCode() {
+      if (memoizedHashCode != 0) {
+        return memoizedHashCode;
+      }
+      int hash = 41;
+      hash = (19 * hash) + getDescriptor().hashCode();
+      if (hasRequestId()) {
+        hash = (37 * hash) + REQUESTID_FIELD_NUMBER;
+        hash = (53 * hash) + getRequestId().hashCode();
+      }
+      if (hasJson()) {
+        hash = (37 * hash) + JSON_FIELD_NUMBER;
+        hash = (53 * hash) + getJson().hashCode();
+      }
+      if (hasUserId()) {
+        hash = (37 * hash) + USERID_FIELD_NUMBER;
+        hash = (53 * hash) + getUserId().hashCode();
+      }
+      if (hasCube()) {
+        hash = (37 * hash) + CUBE_FIELD_NUMBER;
+        hash = (53 * hash) + getCube().hashCode();
+      }
+      if (hasSchema()) {
+        hash = (37 * hash) + SCHEMA_FIELD_NUMBER;
+        hash = (53 * hash) + getSchema().hashCode();
+      }
+      if (hasIsInternal()) {
+        hash = (37 * hash) + ISINTERNAL_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getIsInternal());
+      }
+      if (hasRequestType()) {
+        hash = (37 * hash) + REQUESTTYPE_FIELD_NUMBER;
+        hash = (53 * hash) + requestType_;
+      }
+      if (hasDrivingQueryEngine()) {
+        hash = (37 * hash) + DRIVINGQUERYENGINE_FIELD_NUMBER;
+        hash = (53 * hash) + getDrivingQueryEngine().hashCode();
+      }
+      if (hasDrivingTable()) {
+        hash = (37 * hash) + DRIVINGTABLE_FIELD_NUMBER;
+        hash = (53 * hash) + getDrivingTable().hashCode();
+      }
+      if (hasQueryChainType()) {
+        hash = (37 * hash) + QUERYCHAINTYPE_FIELD_NUMBER;
+        hash = (53 * hash) + getQueryChainType().hashCode();
+      }
+      if (hasFirstSubsequentQueryEngine()) {
+        hash = (37 * hash) + FIRSTSUBSEQUENTQUERYENGINE_FIELD_NUMBER;
+        hash = (53 * hash) + getFirstSubsequentQueryEngine().hashCode();
+      }
+      if (hasFirstSubsequentQueryTable()) {
+        hash = (37 * hash) + FIRSTSUBSEQUENTQUERYTABLE_FIELD_NUMBER;
+        hash = (53 * hash) + getFirstSubsequentQueryTable().hashCode();
+      }
+      if (hasRequestStartTime()) {
+        hash = (37 * hash) + REQUESTSTARTTIME_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getRequestStartTime());
+      }
+      if (hasRequestEndTime()) {
+        hash = (37 * hash) + REQUESTENDTIME_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getRequestEndTime());
+      }
+      if (hasStatus()) {
+        hash = (37 * hash) + STATUS_FIELD_NUMBER;
+        hash = (53 * hash) + getStatus();
+      }
+      if (hasErrorMessage()) {
+        hash = (37 * hash) + ERRORMESSAGE_FIELD_NUMBER;
+        hash = (53 * hash) + getErrorMessage().hashCode();
+      }
+      if (hasHasFactFilters()) {
+        hash = (37 * hash) + HASFACTFILTERS_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getHasFactFilters());
+      }
+      if (hasHasNonFKFactFilters()) {
+        hash = (37 * hash) + HASNONFKFACTFILTERS_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getHasNonFKFactFilters());
+      }
+      if (hasHasDimFilters()) {
+        hash = (37 * hash) + HASDIMFILTERS_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getHasDimFilters());
+      }
+      if (hasHasNonFKDimFilters()) {
+        hash = (37 * hash) + HASNONFKDIMFILTERS_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getHasNonFKDimFilters());
+      }
+      if (hasHasFactSortBy()) {
+        hash = (37 * hash) + HASFACTSORTBY_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getHasFactSortBy());
+      }
+      if (hasHasDimSortBy()) {
+        hash = (37 * hash) + HASDIMSORTBY_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getHasDimSortBy());
+      }
+      if (hasIsFactDriven()) {
+        hash = (37 * hash) + ISFACTDRIVEN_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getIsFactDriven());
+      }
+      if (hasForceDimDriven()) {
+        hash = (37 * hash) + FORCEDIMDRIVEN_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getForceDimDriven());
+      }
+      if (hasForceFactDriven()) {
+        hash = (37 * hash) + FORCEFACTDRIVEN_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getForceFactDriven());
+      }
+      if (hasHasNonDrivingDimSortOrFilter()) {
+        hash = (37 * hash) + HASNONDRIVINGDIMSORTORFILTER_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getHasNonDrivingDimSortOrFilter());
+      }
+      if (hasHasDimAndFactOperations()) {
+        hash = (37 * hash) + HASDIMANDFACTOPERATIONS_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getHasDimAndFactOperations());
+      }
+      if (hasDimCardinalityEstimate()) {
+        hash = (37 * hash) + DIMCARDINALITYESTIMATE_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getDimCardinalityEstimate());
+      }
+      if (getRequestSortByColsCount() > 0) {
+        hash = (37 * hash) + REQUESTSORTBYCOLS_FIELD_NUMBER;
+        hash = (53 * hash) + getRequestSortByColsList().hashCode();
+      }
+      if (getDimensionsCandidatesCount() > 0) {
+        hash = (37 * hash) + DIMENSIONSCANDIDATES_FIELD_NUMBER;
+        hash = (53 * hash) + getDimensionsCandidatesList().hashCode();
+      }
+      if (getFactCostCount() > 0) {
+        hash = (37 * hash) + FACTCOST_FIELD_NUMBER;
+        hash = (53 * hash) + getFactCostList().hashCode();
+      }
+      if (hasDrivingQueryEngineLatency()) {
+        hash = (37 * hash) + DRIVINGQUERYENGINELATENCY_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getDrivingQueryEngineLatency());
+      }
+      if (hasFirstSubsequentQueryEngineLatency()) {
+        hash = (37 * hash) + FIRSTSUBSEQUENTQUERYENGINELATENCY_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getFirstSubsequentQueryEngineLatency());
+      }
+      if (hasReRunEngineQueryLatency()) {
+        hash = (37 * hash) + RERUNENGINEQUERYLATENCY_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getReRunEngineQueryLatency());
+      }
+      if (hasReRunEngine()) {
+        hash = (37 * hash) + RERUNENGINE_FIELD_NUMBER;
+        hash = (53 * hash) + reRunEngine_;
+      }
+      if (hasJobId()) {
+        hash = (37 * hash) + JOBID_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getJobId());
+      }
+      if (hasTimeGrain()) {
+        hash = (37 * hash) + TIMEGRAIN_FIELD_NUMBER;
+        hash = (53 * hash) + getTimeGrain().hashCode();
+      }
+      if (hasAsyncJobStatus()) {
+        hash = (37 * hash) + ASYNCJOBSTATUS_FIELD_NUMBER;
+        hash = (53 * hash) + asyncJobStatus_;
+      }
+      if (hasIsDryRun()) {
+        hash = (37 * hash) + ISDRYRUN_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getIsDryRun());
+      }
+      if (hasJobResultURL()) {
+        hash = (37 * hash) + JOBRESULTURL_FIELD_NUMBER;
+        hash = (53 * hash) + getJobResultURL().hashCode();
+      }
+      if (hasJobName()) {
+        hash = (37 * hash) + JOBNAME_FIELD_NUMBER;
+        hash = (53 * hash) + getJobName().hashCode();
+      }
+      if (hasQueueWaitingTime()) {
+        hash = (37 * hash) + QUEUEWAITINGTIME_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getQueueWaitingTime());
+      }
+      if (hasQueueType()) {
+        hash = (37 * hash) + QUEUETYPE_FIELD_NUMBER;
+        hash = (53 * hash) + queueType_;
+      }
+      if (hasCubeRevision()) {
+        hash = (37 * hash) + CUBEREVISION_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getCubeRevision());
+      }
+      if (hasMahaServiceRegistryName()) {
+        hash = (37 * hash) + MAHASERVICEREGISTRYNAME_FIELD_NUMBER;
+        hash = (53 * hash) + getMahaServiceRegistryName().hashCode();
+      }
+      if (hasMahaServiceHostname()) {
+        hash = (37 * hash) + MAHASERVICEHOSTNAME_FIELD_NUMBER;
+        hash = (53 * hash) + getMahaServiceHostname().hashCode();
+      }
+      if (hasIsGrainOptimized()) {
+        hash = (37 * hash) + ISGRAINOPTIMIZED_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getIsGrainOptimized());
+      }
+      if (hasIsIndexOptimized()) {
+        hash = (37 * hash) + ISINDEXOPTIMIZED_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getIsIndexOptimized());
+      }
+      if (hasCurator()) {
+        hash = (37 * hash) + CURATOR_FIELD_NUMBER;
+        hash = (53 * hash) + getCurator().hashCode();
+      }
+      if (hasReRunEngineQueryTable()) {
+        hash = (37 * hash) + RERUNENGINEQUERYTABLE_FIELD_NUMBER;
+        hash = (53 * hash) + getReRunEngineQueryTable().hashCode();
+      }
+      if (hasIsScanOptimized()) {
+        hash = (37 * hash) + ISSCANOPTIMIZED_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getIsScanOptimized());
+      }
+      if (hasScanRows()) {
+        hash = (37 * hash) + SCANROWS_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getScanRows());
+      }
+      if (hasGrainRows()) {
+        hash = (37 * hash) + GRAINROWS_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getGrainRows());
+      }
+      if (hasIsDebug()) {
+        hash = (37 * hash) + ISDEBUG_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getIsDebug());
+      }
+      if (hasIsTest()) {
+        hash = (37 * hash) + ISTEST_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+            getIsTest());
+      }
+      if (hasTestName()) {
+        hash = (37 * hash) + TESTNAME_FIELD_NUMBER;
+        hash = (53 * hash) + getTestName().hashCode();
+      }
+      if (getLabelsCount() > 0) {
+        hash = (37 * hash) + LABELS_FIELD_NUMBER;
+        hash = (53 * hash) + getLabelsList().hashCode();
+      }
+      if (hasRequestHash()) {
+        hash = (37 * hash) + REQUESTHASH_FIELD_NUMBER;
+        hash = (53 * hash) + getRequestHash().hashCode();
+      }
+      if (hasJobIdString()) {
+        hash = (37 * hash) + JOBIDSTRING_FIELD_NUMBER;
+        hash = (53 * hash) + getJobIdString().hashCode();
+      }
+      if (hasNumDays()) {
+        hash = (37 * hash) + NUMDAYS_FIELD_NUMBER;
+        hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+            getNumDays());
+      }
+      if (hasWorkerStatus()) {
+        hash = (37 * hash) + WORKERSTATUS_FIELD_NUMBER;
+        hash = (53 * hash) + workerStatus_;
+      }
+      hash = (29 * hash) + getUnknownFields().hashCode();
+      memoizedHashCode = hash;
+      return hash;
+    }
+
+    public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
     public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -5060,46 +6103,59 @@ public final class MahaRequestLog {
     }
     public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input);
     }
     public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
     public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return PARSER.parseFrom(input);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input);
     }
     public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return PARSER.parseFrom(input, extensionRegistry);
+      return com.google.protobuf.GeneratedMessageV3
+          .parseWithIOException(PARSER, input, extensionRegistry);
     }
 
-    public static Builder newBuilder() { return Builder.create(); }
+    @java.lang.Override
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto prototype) {
-      return newBuilder().mergeFrom(prototype);
+    public static Builder newBuilder() {
+      return DEFAULT_INSTANCE.toBuilder();
     }
-    public Builder toBuilder() { return newBuilder(this); }
+    public static Builder newBuilder(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto prototype) {
+      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+    }
+    @java.lang.Override
+    public Builder toBuilder() {
+      return this == DEFAULT_INSTANCE
+          ? new Builder() : new Builder().mergeFrom(this);
+    }
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -5107,7 +6163,7 @@ public final class MahaRequestLog {
      * Protobuf type {@code com.yahoo.maha.proto.MahaRequestProto}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessage.Builder<Builder> implements
+        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:com.yahoo.maha.proto.MahaRequestProto)
         com.yahoo.maha.proto.MahaRequestLog.MahaRequestProtoOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
@@ -5115,7 +6171,8 @@ public final class MahaRequestLog {
         return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor;
       }
 
-      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      @java.lang.Override
+      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -5124,24 +6181,15 @@ public final class MahaRequestLog {
 
       // Construct using com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.newBuilder()
       private Builder() {
-        maybeForceBuilderInitialization();
+
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
         super(parent);
-        maybeForceBuilderInitialization();
-      }
-      private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
-          getRequestSortByColsFieldBuilder();
-          getFactCostFieldBuilder();
-        }
-      }
-      private static Builder create() {
-        return new Builder();
-      }
 
+      }
+      @java.lang.Override
       public Builder clear() {
         super.clear();
         requestId_ = "";
@@ -5156,7 +6204,7 @@ public final class MahaRequestLog {
         bitField0_ = (bitField0_ & ~0x00000010);
         isInternal_ = false;
         bitField0_ = (bitField0_ & ~0x00000020);
-        requestType_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType.SYNC;
+        requestType_ = 0;
         bitField0_ = (bitField0_ & ~0x00000040);
         drivingQueryEngine_ = "";
         bitField0_ = (bitField0_ & ~0x00000080);
@@ -5202,31 +6250,33 @@ public final class MahaRequestLog {
         bitField0_ = (bitField0_ & ~0x08000000);
         if (requestSortByColsBuilder_ == null) {
           requestSortByCols_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x10000000);
         } else {
+          requestSortByCols_ = null;
           requestSortByColsBuilder_.clear();
         }
+        bitField0_ = (bitField0_ & ~0x10000000);
         dimensionsCandidates_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField0_ = (bitField0_ & ~0x20000000);
         if (factCostBuilder_ == null) {
           factCost_ = java.util.Collections.emptyList();
-          bitField0_ = (bitField0_ & ~0x40000000);
         } else {
+          factCost_ = null;
           factCostBuilder_.clear();
         }
+        bitField0_ = (bitField0_ & ~0x40000000);
         drivingQueryEngineLatency_ = 0L;
         bitField0_ = (bitField0_ & ~0x80000000);
         firstSubsequentQueryEngineLatency_ = 0L;
         bitField1_ = (bitField1_ & ~0x00000001);
         reRunEngineQueryLatency_ = 0L;
         bitField1_ = (bitField1_ & ~0x00000002);
-        reRunEngine_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.Oracle;
+        reRunEngine_ = 0;
         bitField1_ = (bitField1_ & ~0x00000004);
         jobId_ = 0L;
         bitField1_ = (bitField1_ & ~0x00000008);
         timeGrain_ = "";
         bitField1_ = (bitField1_ & ~0x00000010);
-        asyncJobStatus_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus.SUBMITTED;
+        asyncJobStatus_ = 0;
         bitField1_ = (bitField1_ & ~0x00000020);
         isDryRun_ = false;
         bitField1_ = (bitField1_ & ~0x00000040);
@@ -5236,7 +6286,7 @@ public final class MahaRequestLog {
         bitField1_ = (bitField1_ & ~0x00000100);
         queueWaitingTime_ = 0L;
         bitField1_ = (bitField1_ & ~0x00000200);
-        queueType_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType.PULSAR;
+        queueType_ = 0;
         bitField1_ = (bitField1_ & ~0x00000400);
         cubeRevision_ = 0L;
         bitField1_ = (bitField1_ & ~0x00000800);
@@ -5272,24 +6322,23 @@ public final class MahaRequestLog {
         bitField1_ = (bitField1_ & ~0x04000000);
         numDays_ = 0L;
         bitField1_ = (bitField1_ & ~0x08000000);
-        workerStatus_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.WORKER_RUNNING;
+        workerStatus_ = 0;
         bitField1_ = (bitField1_ & ~0x10000000);
         return this;
       }
 
-      public Builder clone() {
-        return create().mergeFrom(buildPartial());
-      }
-
+      @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
         return com.yahoo.maha.proto.MahaRequestLog.internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor;
       }
 
+      @java.lang.Override
       public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto getDefaultInstanceForType() {
         return com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.getDefaultInstance();
       }
 
+      @java.lang.Override
       public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto build() {
         com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto result = buildPartial();
         if (!result.isInitialized()) {
@@ -5298,126 +6347,127 @@ public final class MahaRequestLog {
         return result;
       }
 
+      @java.lang.Override
       public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto buildPartial() {
         com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto result = new com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto(this);
         int from_bitField0_ = bitField0_;
         int from_bitField1_ = bitField1_;
         int to_bitField0_ = 0;
         int to_bitField1_ = 0;
-        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+        if (((from_bitField0_ & 0x00000001) != 0)) {
           to_bitField0_ |= 0x00000001;
         }
         result.requestId_ = requestId_;
-        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+        if (((from_bitField0_ & 0x00000002) != 0)) {
           to_bitField0_ |= 0x00000002;
         }
         result.json_ = json_;
-        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+        if (((from_bitField0_ & 0x00000004) != 0)) {
           to_bitField0_ |= 0x00000004;
         }
         result.userId_ = userId_;
-        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+        if (((from_bitField0_ & 0x00000008) != 0)) {
           to_bitField0_ |= 0x00000008;
         }
         result.cube_ = cube_;
-        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+        if (((from_bitField0_ & 0x00000010) != 0)) {
           to_bitField0_ |= 0x00000010;
         }
         result.schema_ = schema_;
-        if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
+        if (((from_bitField0_ & 0x00000020) != 0)) {
+          result.isInternal_ = isInternal_;
           to_bitField0_ |= 0x00000020;
         }
-        result.isInternal_ = isInternal_;
-        if (((from_bitField0_ & 0x00000040) == 0x00000040)) {
+        if (((from_bitField0_ & 0x00000040) != 0)) {
           to_bitField0_ |= 0x00000040;
         }
         result.requestType_ = requestType_;
-        if (((from_bitField0_ & 0x00000080) == 0x00000080)) {
+        if (((from_bitField0_ & 0x00000080) != 0)) {
           to_bitField0_ |= 0x00000080;
         }
         result.drivingQueryEngine_ = drivingQueryEngine_;
-        if (((from_bitField0_ & 0x00000100) == 0x00000100)) {
+        if (((from_bitField0_ & 0x00000100) != 0)) {
           to_bitField0_ |= 0x00000100;
         }
         result.drivingTable_ = drivingTable_;
-        if (((from_bitField0_ & 0x00000200) == 0x00000200)) {
+        if (((from_bitField0_ & 0x00000200) != 0)) {
           to_bitField0_ |= 0x00000200;
         }
         result.queryChainType_ = queryChainType_;
-        if (((from_bitField0_ & 0x00000400) == 0x00000400)) {
+        if (((from_bitField0_ & 0x00000400) != 0)) {
           to_bitField0_ |= 0x00000400;
         }
         result.firstSubsequentQueryEngine_ = firstSubsequentQueryEngine_;
-        if (((from_bitField0_ & 0x00000800) == 0x00000800)) {
+        if (((from_bitField0_ & 0x00000800) != 0)) {
           to_bitField0_ |= 0x00000800;
         }
         result.firstSubsequentQueryTable_ = firstSubsequentQueryTable_;
-        if (((from_bitField0_ & 0x00001000) == 0x00001000)) {
+        if (((from_bitField0_ & 0x00001000) != 0)) {
+          result.requestStartTime_ = requestStartTime_;
           to_bitField0_ |= 0x00001000;
         }
-        result.requestStartTime_ = requestStartTime_;
-        if (((from_bitField0_ & 0x00002000) == 0x00002000)) {
+        if (((from_bitField0_ & 0x00002000) != 0)) {
+          result.requestEndTime_ = requestEndTime_;
           to_bitField0_ |= 0x00002000;
         }
-        result.requestEndTime_ = requestEndTime_;
-        if (((from_bitField0_ & 0x00004000) == 0x00004000)) {
+        if (((from_bitField0_ & 0x00004000) != 0)) {
+          result.status_ = status_;
           to_bitField0_ |= 0x00004000;
         }
-        result.status_ = status_;
-        if (((from_bitField0_ & 0x00008000) == 0x00008000)) {
+        if (((from_bitField0_ & 0x00008000) != 0)) {
           to_bitField0_ |= 0x00008000;
         }
         result.errorMessage_ = errorMessage_;
-        if (((from_bitField0_ & 0x00010000) == 0x00010000)) {
+        if (((from_bitField0_ & 0x00010000) != 0)) {
+          result.hasFactFilters_ = hasFactFilters_;
           to_bitField0_ |= 0x00010000;
         }
-        result.hasFactFilters_ = hasFactFilters_;
-        if (((from_bitField0_ & 0x00020000) == 0x00020000)) {
+        if (((from_bitField0_ & 0x00020000) != 0)) {
+          result.hasNonFKFactFilters_ = hasNonFKFactFilters_;
           to_bitField0_ |= 0x00020000;
         }
-        result.hasNonFKFactFilters_ = hasNonFKFactFilters_;
-        if (((from_bitField0_ & 0x00040000) == 0x00040000)) {
+        if (((from_bitField0_ & 0x00040000) != 0)) {
+          result.hasDimFilters_ = hasDimFilters_;
           to_bitField0_ |= 0x00040000;
         }
-        result.hasDimFilters_ = hasDimFilters_;
-        if (((from_bitField0_ & 0x00080000) == 0x00080000)) {
+        if (((from_bitField0_ & 0x00080000) != 0)) {
+          result.hasNonFKDimFilters_ = hasNonFKDimFilters_;
           to_bitField0_ |= 0x00080000;
         }
-        result.hasNonFKDimFilters_ = hasNonFKDimFilters_;
-        if (((from_bitField0_ & 0x00100000) == 0x00100000)) {
+        if (((from_bitField0_ & 0x00100000) != 0)) {
+          result.hasFactSortBy_ = hasFactSortBy_;
           to_bitField0_ |= 0x00100000;
         }
-        result.hasFactSortBy_ = hasFactSortBy_;
-        if (((from_bitField0_ & 0x00200000) == 0x00200000)) {
+        if (((from_bitField0_ & 0x00200000) != 0)) {
+          result.hasDimSortBy_ = hasDimSortBy_;
           to_bitField0_ |= 0x00200000;
         }
-        result.hasDimSortBy_ = hasDimSortBy_;
-        if (((from_bitField0_ & 0x00400000) == 0x00400000)) {
+        if (((from_bitField0_ & 0x00400000) != 0)) {
+          result.isFactDriven_ = isFactDriven_;
           to_bitField0_ |= 0x00400000;
         }
-        result.isFactDriven_ = isFactDriven_;
-        if (((from_bitField0_ & 0x00800000) == 0x00800000)) {
+        if (((from_bitField0_ & 0x00800000) != 0)) {
+          result.forceDimDriven_ = forceDimDriven_;
           to_bitField0_ |= 0x00800000;
         }
-        result.forceDimDriven_ = forceDimDriven_;
-        if (((from_bitField0_ & 0x01000000) == 0x01000000)) {
+        if (((from_bitField0_ & 0x01000000) != 0)) {
+          result.forceFactDriven_ = forceFactDriven_;
           to_bitField0_ |= 0x01000000;
         }
-        result.forceFactDriven_ = forceFactDriven_;
-        if (((from_bitField0_ & 0x02000000) == 0x02000000)) {
+        if (((from_bitField0_ & 0x02000000) != 0)) {
+          result.hasNonDrivingDimSortOrFilter_ = hasNonDrivingDimSortOrFilter_;
           to_bitField0_ |= 0x02000000;
         }
-        result.hasNonDrivingDimSortOrFilter_ = hasNonDrivingDimSortOrFilter_;
-        if (((from_bitField0_ & 0x04000000) == 0x04000000)) {
+        if (((from_bitField0_ & 0x04000000) != 0)) {
+          result.hasDimAndFactOperations_ = hasDimAndFactOperations_;
           to_bitField0_ |= 0x04000000;
         }
-        result.hasDimAndFactOperations_ = hasDimAndFactOperations_;
-        if (((from_bitField0_ & 0x08000000) == 0x08000000)) {
+        if (((from_bitField0_ & 0x08000000) != 0)) {
+          result.dimCardinalityEstimate_ = dimCardinalityEstimate_;
           to_bitField0_ |= 0x08000000;
         }
-        result.dimCardinalityEstimate_ = dimCardinalityEstimate_;
         if (requestSortByColsBuilder_ == null) {
-          if (((bitField0_ & 0x10000000) == 0x10000000)) {
+          if (((bitField0_ & 0x10000000) != 0)) {
             requestSortByCols_ = java.util.Collections.unmodifiableList(requestSortByCols_);
             bitField0_ = (bitField0_ & ~0x10000000);
           }
@@ -5425,13 +6475,13 @@ public final class MahaRequestLog {
         } else {
           result.requestSortByCols_ = requestSortByColsBuilder_.build();
         }
-        if (((bitField0_ & 0x20000000) == 0x20000000)) {
+        if (((bitField0_ & 0x20000000) != 0)) {
           dimensionsCandidates_ = dimensionsCandidates_.getUnmodifiableView();
           bitField0_ = (bitField0_ & ~0x20000000);
         }
         result.dimensionsCandidates_ = dimensionsCandidates_;
         if (factCostBuilder_ == null) {
-          if (((bitField0_ & 0x40000000) == 0x40000000)) {
+          if (((bitField0_ & 0x40000000) != 0)) {
             factCost_ = java.util.Collections.unmodifiableList(factCost_);
             bitField0_ = (bitField0_ & ~0x40000000);
           }
@@ -5439,124 +6489,124 @@ public final class MahaRequestLog {
         } else {
           result.factCost_ = factCostBuilder_.build();
         }
-        if (((from_bitField0_ & 0x80000000) == 0x80000000)) {
+        if (((from_bitField0_ & 0x80000000) != 0)) {
+          result.drivingQueryEngineLatency_ = drivingQueryEngineLatency_;
           to_bitField0_ |= 0x10000000;
         }
-        result.drivingQueryEngineLatency_ = drivingQueryEngineLatency_;
-        if (((from_bitField1_ & 0x00000001) == 0x00000001)) {
+        if (((from_bitField1_ & 0x00000001) != 0)) {
+          result.firstSubsequentQueryEngineLatency_ = firstSubsequentQueryEngineLatency_;
           to_bitField0_ |= 0x20000000;
         }
-        result.firstSubsequentQueryEngineLatency_ = firstSubsequentQueryEngineLatency_;
-        if (((from_bitField1_ & 0x00000002) == 0x00000002)) {
+        if (((from_bitField1_ & 0x00000002) != 0)) {
+          result.reRunEngineQueryLatency_ = reRunEngineQueryLatency_;
           to_bitField0_ |= 0x40000000;
         }
-        result.reRunEngineQueryLatency_ = reRunEngineQueryLatency_;
-        if (((from_bitField1_ & 0x00000004) == 0x00000004)) {
+        if (((from_bitField1_ & 0x00000004) != 0)) {
           to_bitField0_ |= 0x80000000;
         }
         result.reRunEngine_ = reRunEngine_;
-        if (((from_bitField1_ & 0x00000008) == 0x00000008)) {
+        if (((from_bitField1_ & 0x00000008) != 0)) {
+          result.jobId_ = jobId_;
           to_bitField1_ |= 0x00000001;
         }
-        result.jobId_ = jobId_;
-        if (((from_bitField1_ & 0x00000010) == 0x00000010)) {
+        if (((from_bitField1_ & 0x00000010) != 0)) {
           to_bitField1_ |= 0x00000002;
         }
         result.timeGrain_ = timeGrain_;
-        if (((from_bitField1_ & 0x00000020) == 0x00000020)) {
+        if (((from_bitField1_ & 0x00000020) != 0)) {
           to_bitField1_ |= 0x00000004;
         }
         result.asyncJobStatus_ = asyncJobStatus_;
-        if (((from_bitField1_ & 0x00000040) == 0x00000040)) {
+        if (((from_bitField1_ & 0x00000040) != 0)) {
+          result.isDryRun_ = isDryRun_;
           to_bitField1_ |= 0x00000008;
         }
-        result.isDryRun_ = isDryRun_;
-        if (((from_bitField1_ & 0x00000080) == 0x00000080)) {
+        if (((from_bitField1_ & 0x00000080) != 0)) {
           to_bitField1_ |= 0x00000010;
         }
         result.jobResultURL_ = jobResultURL_;
-        if (((from_bitField1_ & 0x00000100) == 0x00000100)) {
+        if (((from_bitField1_ & 0x00000100) != 0)) {
           to_bitField1_ |= 0x00000020;
         }
         result.jobName_ = jobName_;
-        if (((from_bitField1_ & 0x00000200) == 0x00000200)) {
+        if (((from_bitField1_ & 0x00000200) != 0)) {
+          result.queueWaitingTime_ = queueWaitingTime_;
           to_bitField1_ |= 0x00000040;
         }
-        result.queueWaitingTime_ = queueWaitingTime_;
-        if (((from_bitField1_ & 0x00000400) == 0x00000400)) {
+        if (((from_bitField1_ & 0x00000400) != 0)) {
           to_bitField1_ |= 0x00000080;
         }
         result.queueType_ = queueType_;
-        if (((from_bitField1_ & 0x00000800) == 0x00000800)) {
+        if (((from_bitField1_ & 0x00000800) != 0)) {
+          result.cubeRevision_ = cubeRevision_;
           to_bitField1_ |= 0x00000100;
         }
-        result.cubeRevision_ = cubeRevision_;
-        if (((from_bitField1_ & 0x00001000) == 0x00001000)) {
+        if (((from_bitField1_ & 0x00001000) != 0)) {
           to_bitField1_ |= 0x00000200;
         }
         result.mahaServiceRegistryName_ = mahaServiceRegistryName_;
-        if (((from_bitField1_ & 0x00002000) == 0x00002000)) {
+        if (((from_bitField1_ & 0x00002000) != 0)) {
           to_bitField1_ |= 0x00000400;
         }
         result.mahaServiceHostname_ = mahaServiceHostname_;
-        if (((from_bitField1_ & 0x00004000) == 0x00004000)) {
+        if (((from_bitField1_ & 0x00004000) != 0)) {
+          result.isGrainOptimized_ = isGrainOptimized_;
           to_bitField1_ |= 0x00000800;
         }
-        result.isGrainOptimized_ = isGrainOptimized_;
-        if (((from_bitField1_ & 0x00008000) == 0x00008000)) {
+        if (((from_bitField1_ & 0x00008000) != 0)) {
+          result.isIndexOptimized_ = isIndexOptimized_;
           to_bitField1_ |= 0x00001000;
         }
-        result.isIndexOptimized_ = isIndexOptimized_;
-        if (((from_bitField1_ & 0x00010000) == 0x00010000)) {
+        if (((from_bitField1_ & 0x00010000) != 0)) {
           to_bitField1_ |= 0x00002000;
         }
         result.curator_ = curator_;
-        if (((from_bitField1_ & 0x00020000) == 0x00020000)) {
+        if (((from_bitField1_ & 0x00020000) != 0)) {
           to_bitField1_ |= 0x00004000;
         }
         result.reRunEngineQueryTable_ = reRunEngineQueryTable_;
-        if (((from_bitField1_ & 0x00040000) == 0x00040000)) {
+        if (((from_bitField1_ & 0x00040000) != 0)) {
+          result.isScanOptimized_ = isScanOptimized_;
           to_bitField1_ |= 0x00008000;
         }
-        result.isScanOptimized_ = isScanOptimized_;
-        if (((from_bitField1_ & 0x00080000) == 0x00080000)) {
+        if (((from_bitField1_ & 0x00080000) != 0)) {
+          result.scanRows_ = scanRows_;
           to_bitField1_ |= 0x00010000;
         }
-        result.scanRows_ = scanRows_;
-        if (((from_bitField1_ & 0x00100000) == 0x00100000)) {
+        if (((from_bitField1_ & 0x00100000) != 0)) {
+          result.grainRows_ = grainRows_;
           to_bitField1_ |= 0x00020000;
         }
-        result.grainRows_ = grainRows_;
-        if (((from_bitField1_ & 0x00200000) == 0x00200000)) {
+        if (((from_bitField1_ & 0x00200000) != 0)) {
+          result.isDebug_ = isDebug_;
           to_bitField1_ |= 0x00040000;
         }
-        result.isDebug_ = isDebug_;
-        if (((from_bitField1_ & 0x00400000) == 0x00400000)) {
+        if (((from_bitField1_ & 0x00400000) != 0)) {
+          result.isTest_ = isTest_;
           to_bitField1_ |= 0x00080000;
         }
-        result.isTest_ = isTest_;
-        if (((from_bitField1_ & 0x00800000) == 0x00800000)) {
+        if (((from_bitField1_ & 0x00800000) != 0)) {
           to_bitField1_ |= 0x00100000;
         }
         result.testName_ = testName_;
-        if (((bitField1_ & 0x01000000) == 0x01000000)) {
+        if (((bitField1_ & 0x01000000) != 0)) {
           labels_ = labels_.getUnmodifiableView();
           bitField1_ = (bitField1_ & ~0x01000000);
         }
         result.labels_ = labels_;
-        if (((from_bitField1_ & 0x02000000) == 0x02000000)) {
+        if (((from_bitField1_ & 0x02000000) != 0)) {
           to_bitField1_ |= 0x00200000;
         }
         result.requestHash_ = requestHash_;
-        if (((from_bitField1_ & 0x04000000) == 0x04000000)) {
+        if (((from_bitField1_ & 0x04000000) != 0)) {
           to_bitField1_ |= 0x00400000;
         }
         result.jobIdString_ = jobIdString_;
-        if (((from_bitField1_ & 0x08000000) == 0x08000000)) {
+        if (((from_bitField1_ & 0x08000000) != 0)) {
+          result.numDays_ = numDays_;
           to_bitField1_ |= 0x00800000;
         }
-        result.numDays_ = numDays_;
-        if (((from_bitField1_ & 0x10000000) == 0x10000000)) {
+        if (((from_bitField1_ & 0x10000000) != 0)) {
           to_bitField1_ |= 0x01000000;
         }
         result.workerStatus_ = workerStatus_;
@@ -5566,6 +6616,39 @@ public final class MahaRequestLog {
         return result;
       }
 
+      @java.lang.Override
+      public Builder clone() {
+        return super.clone();
+      }
+      @java.lang.Override
+      public Builder setField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.setField(field, value);
+      }
+      @java.lang.Override
+      public Builder clearField(
+          com.google.protobuf.Descriptors.FieldDescriptor field) {
+        return super.clearField(field);
+      }
+      @java.lang.Override
+      public Builder clearOneof(
+          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
+        return super.clearOneof(oneof);
+      }
+      @java.lang.Override
+      public Builder setRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          int index, java.lang.Object value) {
+        return super.setRepeatedField(field, index, value);
+      }
+      @java.lang.Override
+      public Builder addRepeatedField(
+          com.google.protobuf.Descriptors.FieldDescriptor field,
+          java.lang.Object value) {
+        return super.addRepeatedField(field, value);
+      }
+      @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto) {
           return mergeFrom((com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto)other);
@@ -5700,7 +6783,7 @@ public final class MahaRequestLog {
               requestSortByCols_ = other.requestSortByCols_;
               bitField0_ = (bitField0_ & ~0x10000000);
               requestSortByColsBuilder_ = 
-                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getRequestSortByColsFieldBuilder() : null;
             } else {
               requestSortByColsBuilder_.addAllMessages(other.requestSortByCols_);
@@ -5736,7 +6819,7 @@ public final class MahaRequestLog {
               factCost_ = other.factCost_;
               bitField0_ = (bitField0_ & ~0x40000000);
               factCostBuilder_ = 
-                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
                    getFactCostFieldBuilder() : null;
             } else {
               factCostBuilder_.addAllMessages(other.factCost_);
@@ -5861,36 +6944,367 @@ public final class MahaRequestLog {
           setWorkerStatus(other.getWorkerStatus());
         }
         this.mergeUnknownFields(other.getUnknownFields());
+        onChanged();
         return this;
       }
 
+      @java.lang.Override
       public final boolean isInitialized() {
-        if (!hasRequestId()) {
-          
-          return false;
-        }
-        if (!hasJson()) {
-          
-          return false;
-        }
         return true;
       }
 
+      @java.lang.Override
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto parsedMessage = null;
-        try {
-          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
-        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto) e.getUnfinishedMessage();
-          throw e;
-        } finally {
-          if (parsedMessage != null) {
-            mergeFrom(parsedMessage);
-          }
+        if (extensionRegistry == null) {
+          throw new java.lang.NullPointerException();
         }
+        try {
+          boolean done = false;
+          while (!done) {
+            int tag = input.readTag();
+            switch (tag) {
+              case 0:
+                done = true;
+                break;
+              case 10: {
+                requestId_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000001;
+                break;
+              } // case 10
+              case 18: {
+                json_ = input.readBytes();
+                bitField0_ |= 0x00000002;
+                break;
+              } // case 18
+              case 26: {
+                userId_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000004;
+                break;
+              } // case 26
+              case 34: {
+                cube_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000008;
+                break;
+              } // case 34
+              case 42: {
+                schema_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000010;
+                break;
+              } // case 42
+              case 48: {
+                isInternal_ = input.readBool();
+                bitField0_ |= 0x00000020;
+                break;
+              } // case 48
+              case 56: {
+                requestType_ = input.readEnum();
+                bitField0_ |= 0x00000040;
+                break;
+              } // case 56
+              case 66: {
+                drivingQueryEngine_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000080;
+                break;
+              } // case 66
+              case 74: {
+                drivingTable_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000100;
+                break;
+              } // case 74
+              case 82: {
+                queryChainType_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000200;
+                break;
+              } // case 82
+              case 90: {
+                firstSubsequentQueryEngine_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000400;
+                break;
+              } // case 90
+              case 98: {
+                firstSubsequentQueryTable_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00000800;
+                break;
+              } // case 98
+              case 104: {
+                requestStartTime_ = input.readInt64();
+                bitField0_ |= 0x00001000;
+                break;
+              } // case 104
+              case 112: {
+                requestEndTime_ = input.readInt64();
+                bitField0_ |= 0x00002000;
+                break;
+              } // case 112
+              case 120: {
+                status_ = input.readInt32();
+                bitField0_ |= 0x00004000;
+                break;
+              } // case 120
+              case 130: {
+                errorMessage_ = input.readStringRequireUtf8();
+                bitField0_ |= 0x00008000;
+                break;
+              } // case 130
+              case 136: {
+                hasFactFilters_ = input.readBool();
+                bitField0_ |= 0x00010000;
+                break;
+              } // case 136
+              case 144: {
+                hasNonFKFactFilters_ = input.readBool();
+                bitField0_ |= 0x00020000;
+                break;
+              } // case 144
+              case 152: {
+                hasDimFilters_ = input.readBool();
+                bitField0_ |= 0x00040000;
+                break;
+              } // case 152
+              case 160: {
+                hasNonFKDimFilters_ = input.readBool();
+                bitField0_ |= 0x00080000;
+                break;
+              } // case 160
+              case 168: {
+                hasFactSortBy_ = input.readBool();
+                bitField0_ |= 0x00100000;
+                break;
+              } // case 168
+              case 176: {
+                hasDimSortBy_ = input.readBool();
+                bitField0_ |= 0x00200000;
+                break;
+              } // case 176
+              case 184: {
+                isFactDriven_ = input.readBool();
+                bitField0_ |= 0x00400000;
+                break;
+              } // case 184
+              case 192: {
+                forceDimDriven_ = input.readBool();
+                bitField0_ |= 0x00800000;
+                break;
+              } // case 192
+              case 200: {
+                forceFactDriven_ = input.readBool();
+                bitField0_ |= 0x01000000;
+                break;
+              } // case 200
+              case 208: {
+                hasNonDrivingDimSortOrFilter_ = input.readBool();
+                bitField0_ |= 0x02000000;
+                break;
+              } // case 208
+              case 216: {
+                hasDimAndFactOperations_ = input.readBool();
+                bitField0_ |= 0x04000000;
+                break;
+              } // case 216
+              case 224: {
+                dimCardinalityEstimate_ = input.readInt64();
+                bitField0_ |= 0x08000000;
+                break;
+              } // case 224
+              case 234: {
+                com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo m =
+                    input.readMessage(
+                        com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo.parser(),
+                        extensionRegistry);
+                if (requestSortByColsBuilder_ == null) {
+                  ensureRequestSortByColsIsMutable();
+                  requestSortByCols_.add(m);
+                } else {
+                  requestSortByColsBuilder_.addMessage(m);
+                }
+                break;
+              } // case 234
+              case 242: {
+                java.lang.String s = input.readStringRequireUtf8();
+                ensureDimensionsCandidatesIsMutable();
+                dimensionsCandidates_.add(s);
+                break;
+              } // case 242
+              case 250: {
+                com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost m =
+                    input.readMessage(
+                        com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost.parser(),
+                        extensionRegistry);
+                if (factCostBuilder_ == null) {
+                  ensureFactCostIsMutable();
+                  factCost_.add(m);
+                } else {
+                  factCostBuilder_.addMessage(m);
+                }
+                break;
+              } // case 250
+              case 256: {
+                drivingQueryEngineLatency_ = input.readInt64();
+                bitField0_ |= 0x80000000;
+                break;
+              } // case 256
+              case 264: {
+                firstSubsequentQueryEngineLatency_ = input.readInt64();
+                bitField1_ |= 0x00000001;
+                break;
+              } // case 264
+              case 272: {
+                reRunEngineQueryLatency_ = input.readInt64();
+                bitField1_ |= 0x00000002;
+                break;
+              } // case 272
+              case 280: {
+                reRunEngine_ = input.readEnum();
+                bitField1_ |= 0x00000004;
+                break;
+              } // case 280
+              case 288: {
+                jobId_ = input.readInt64();
+                bitField1_ |= 0x00000008;
+                break;
+              } // case 288
+              case 298: {
+                timeGrain_ = input.readStringRequireUtf8();
+                bitField1_ |= 0x00000010;
+                break;
+              } // case 298
+              case 304: {
+                asyncJobStatus_ = input.readEnum();
+                bitField1_ |= 0x00000020;
+                break;
+              } // case 304
+              case 312: {
+                isDryRun_ = input.readBool();
+                bitField1_ |= 0x00000040;
+                break;
+              } // case 312
+              case 322: {
+                jobResultURL_ = input.readStringRequireUtf8();
+                bitField1_ |= 0x00000080;
+                break;
+              } // case 322
+              case 330: {
+                jobName_ = input.readStringRequireUtf8();
+                bitField1_ |= 0x00000100;
+                break;
+              } // case 330
+              case 336: {
+                queueWaitingTime_ = input.readInt64();
+                bitField1_ |= 0x00000200;
+                break;
+              } // case 336
+              case 344: {
+                queueType_ = input.readEnum();
+                bitField1_ |= 0x00000400;
+                break;
+              } // case 344
+              case 352: {
+                cubeRevision_ = input.readInt64();
+                bitField1_ |= 0x00000800;
+                break;
+              } // case 352
+              case 362: {
+                mahaServiceRegistryName_ = input.readStringRequireUtf8();
+                bitField1_ |= 0x00001000;
+                break;
+              } // case 362
+              case 370: {
+                mahaServiceHostname_ = input.readStringRequireUtf8();
+                bitField1_ |= 0x00002000;
+                break;
+              } // case 370
+              case 376: {
+                isGrainOptimized_ = input.readBool();
+                bitField1_ |= 0x00004000;
+                break;
+              } // case 376
+              case 384: {
+                isIndexOptimized_ = input.readBool();
+                bitField1_ |= 0x00008000;
+                break;
+              } // case 384
+              case 394: {
+                curator_ = input.readStringRequireUtf8();
+                bitField1_ |= 0x00010000;
+                break;
+              } // case 394
+              case 402: {
+                reRunEngineQueryTable_ = input.readStringRequireUtf8();
+                bitField1_ |= 0x00020000;
+                break;
+              } // case 402
+              case 408: {
+                isScanOptimized_ = input.readBool();
+                bitField1_ |= 0x00040000;
+                break;
+              } // case 408
+              case 416: {
+                scanRows_ = input.readInt64();
+                bitField1_ |= 0x00080000;
+                break;
+              } // case 416
+              case 424: {
+                grainRows_ = input.readInt64();
+                bitField1_ |= 0x00100000;
+                break;
+              } // case 424
+              case 432: {
+                isDebug_ = input.readBool();
+                bitField1_ |= 0x00200000;
+                break;
+              } // case 432
+              case 440: {
+                isTest_ = input.readBool();
+                bitField1_ |= 0x00400000;
+                break;
+              } // case 440
+              case 450: {
+                testName_ = input.readStringRequireUtf8();
+                bitField1_ |= 0x00800000;
+                break;
+              } // case 450
+              case 458: {
+                java.lang.String s = input.readStringRequireUtf8();
+                ensureLabelsIsMutable();
+                labels_.add(s);
+                break;
+              } // case 458
+              case 466: {
+                requestHash_ = input.readStringRequireUtf8();
+                bitField1_ |= 0x02000000;
+                break;
+              } // case 466
+              case 474: {
+                jobIdString_ = input.readStringRequireUtf8();
+                bitField1_ |= 0x04000000;
+                break;
+              } // case 474
+              case 480: {
+                numDays_ = input.readInt64();
+                bitField1_ |= 0x08000000;
+                break;
+              } // case 480
+              case 488: {
+                workerStatus_ = input.readEnum();
+                bitField1_ |= 0x10000000;
+                break;
+              } // case 488
+              default: {
+                if (!super.parseUnknownField(input, extensionRegistry, tag)) {
+                  done = true; // was an endgroup tag
+                }
+                break;
+              } // default:
+            } // switch (tag)
+          } // while (!done)
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.unwrapIOException();
+        } finally {
+          onChanged();
+        } // finally
         return this;
       }
       private int bitField0_;
@@ -5898,13 +7312,15 @@ public final class MahaRequestLog {
 
       private java.lang.Object requestId_ = "";
       /**
-       * <code>required string requestId = 1;</code>
+       * <code>optional string requestId = 1;</code>
+       * @return Whether the requestId field is set.
        */
       public boolean hasRequestId() {
-        return ((bitField0_ & 0x00000001) == 0x00000001);
+        return ((bitField0_ & 0x00000001) != 0);
       }
       /**
-       * <code>required string requestId = 1;</code>
+       * <code>optional string requestId = 1;</code>
+       * @return The requestId.
        */
       public java.lang.String getRequestId() {
         java.lang.Object ref = requestId_;
@@ -5912,16 +7328,15 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            requestId_ = s;
-          }
+          requestId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
         }
       }
       /**
-       * <code>required string requestId = 1;</code>
+       * <code>optional string requestId = 1;</code>
+       * @return The bytes for requestId.
        */
       public com.google.protobuf.ByteString
           getRequestIdBytes() {
@@ -5937,7 +7352,9 @@ public final class MahaRequestLog {
         }
       }
       /**
-       * <code>required string requestId = 1;</code>
+       * <code>optional string requestId = 1;</code>
+       * @param value The requestId to set.
+       * @return This builder for chaining.
        */
       public Builder setRequestId(
           java.lang.String value) {
@@ -5950,7 +7367,8 @@ public final class MahaRequestLog {
         return this;
       }
       /**
-       * <code>required string requestId = 1;</code>
+       * <code>optional string requestId = 1;</code>
+       * @return This builder for chaining.
        */
       public Builder clearRequestId() {
         bitField0_ = (bitField0_ & ~0x00000001);
@@ -5959,14 +7377,17 @@ public final class MahaRequestLog {
         return this;
       }
       /**
-       * <code>required string requestId = 1;</code>
+       * <code>optional string requestId = 1;</code>
+       * @param value The bytes for requestId to set.
+       * @return This builder for chaining.
        */
       public Builder setRequestIdBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000001;
+  checkByteStringIsUtf8(value);
+        bitField0_ |= 0x00000001;
         requestId_ = value;
         onChanged();
         return this;
@@ -5974,19 +7395,25 @@ public final class MahaRequestLog {
 
       private com.google.protobuf.ByteString json_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required bytes json = 2;</code>
+       * <code>optional bytes json = 2;</code>
+       * @return Whether the json field is set.
        */
+      @java.lang.Override
       public boolean hasJson() {
-        return ((bitField0_ & 0x00000002) == 0x00000002);
+        return ((bitField0_ & 0x00000002) != 0);
       }
       /**
-       * <code>required bytes json = 2;</code>
+       * <code>optional bytes json = 2;</code>
+       * @return The json.
        */
+      @java.lang.Override
       public com.google.protobuf.ByteString getJson() {
         return json_;
       }
       /**
-       * <code>required bytes json = 2;</code>
+       * <code>optional bytes json = 2;</code>
+       * @param value The json to set.
+       * @return This builder for chaining.
        */
       public Builder setJson(com.google.protobuf.ByteString value) {
         if (value == null) {
@@ -5998,7 +7425,8 @@ public final class MahaRequestLog {
         return this;
       }
       /**
-       * <code>required bytes json = 2;</code>
+       * <code>optional bytes json = 2;</code>
+       * @return This builder for chaining.
        */
       public Builder clearJson() {
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -6010,12 +7438,14 @@ public final class MahaRequestLog {
       private java.lang.Object userId_ = "";
       /**
        * <code>optional string userId = 3;</code>
+       * @return Whether the userId field is set.
        */
       public boolean hasUserId() {
-        return ((bitField0_ & 0x00000004) == 0x00000004);
+        return ((bitField0_ & 0x00000004) != 0);
       }
       /**
        * <code>optional string userId = 3;</code>
+       * @return The userId.
        */
       public java.lang.String getUserId() {
         java.lang.Object ref = userId_;
@@ -6023,9 +7453,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            userId_ = s;
-          }
+          userId_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -6033,6 +7461,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string userId = 3;</code>
+       * @return The bytes for userId.
        */
       public com.google.protobuf.ByteString
           getUserIdBytes() {
@@ -6049,6 +7478,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string userId = 3;</code>
+       * @param value The userId to set.
+       * @return This builder for chaining.
        */
       public Builder setUserId(
           java.lang.String value) {
@@ -6062,6 +7493,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string userId = 3;</code>
+       * @return This builder for chaining.
        */
       public Builder clearUserId() {
         bitField0_ = (bitField0_ & ~0x00000004);
@@ -6071,13 +7503,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string userId = 3;</code>
+       * @param value The bytes for userId to set.
+       * @return This builder for chaining.
        */
       public Builder setUserIdBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000004;
+  checkByteStringIsUtf8(value);
+        bitField0_ |= 0x00000004;
         userId_ = value;
         onChanged();
         return this;
@@ -6086,12 +7521,14 @@ public final class MahaRequestLog {
       private java.lang.Object cube_ = "";
       /**
        * <code>optional string cube = 4;</code>
+       * @return Whether the cube field is set.
        */
       public boolean hasCube() {
-        return ((bitField0_ & 0x00000008) == 0x00000008);
+        return ((bitField0_ & 0x00000008) != 0);
       }
       /**
        * <code>optional string cube = 4;</code>
+       * @return The cube.
        */
       public java.lang.String getCube() {
         java.lang.Object ref = cube_;
@@ -6099,9 +7536,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            cube_ = s;
-          }
+          cube_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -6109,6 +7544,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string cube = 4;</code>
+       * @return The bytes for cube.
        */
       public com.google.protobuf.ByteString
           getCubeBytes() {
@@ -6125,6 +7561,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string cube = 4;</code>
+       * @param value The cube to set.
+       * @return This builder for chaining.
        */
       public Builder setCube(
           java.lang.String value) {
@@ -6138,6 +7576,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string cube = 4;</code>
+       * @return This builder for chaining.
        */
       public Builder clearCube() {
         bitField0_ = (bitField0_ & ~0x00000008);
@@ -6147,13 +7586,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string cube = 4;</code>
+       * @param value The bytes for cube to set.
+       * @return This builder for chaining.
        */
       public Builder setCubeBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000008;
+  checkByteStringIsUtf8(value);
+        bitField0_ |= 0x00000008;
         cube_ = value;
         onChanged();
         return this;
@@ -6162,12 +7604,14 @@ public final class MahaRequestLog {
       private java.lang.Object schema_ = "";
       /**
        * <code>optional string schema = 5;</code>
+       * @return Whether the schema field is set.
        */
       public boolean hasSchema() {
-        return ((bitField0_ & 0x00000010) == 0x00000010);
+        return ((bitField0_ & 0x00000010) != 0);
       }
       /**
        * <code>optional string schema = 5;</code>
+       * @return The schema.
        */
       public java.lang.String getSchema() {
         java.lang.Object ref = schema_;
@@ -6175,9 +7619,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            schema_ = s;
-          }
+          schema_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -6185,6 +7627,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string schema = 5;</code>
+       * @return The bytes for schema.
        */
       public com.google.protobuf.ByteString
           getSchemaBytes() {
@@ -6201,6 +7644,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string schema = 5;</code>
+       * @param value The schema to set.
+       * @return This builder for chaining.
        */
       public Builder setSchema(
           java.lang.String value) {
@@ -6214,6 +7659,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string schema = 5;</code>
+       * @return This builder for chaining.
        */
       public Builder clearSchema() {
         bitField0_ = (bitField0_ & ~0x00000010);
@@ -6223,13 +7669,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string schema = 5;</code>
+       * @param value The bytes for schema to set.
+       * @return This builder for chaining.
        */
       public Builder setSchemaBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000010;
+  checkByteStringIsUtf8(value);
+        bitField0_ |= 0x00000010;
         schema_ = value;
         onChanged();
         return this;
@@ -6238,18 +7687,24 @@ public final class MahaRequestLog {
       private boolean isInternal_ ;
       /**
        * <code>optional bool isInternal = 6;</code>
+       * @return Whether the isInternal field is set.
        */
+      @java.lang.Override
       public boolean hasIsInternal() {
-        return ((bitField0_ & 0x00000020) == 0x00000020);
+        return ((bitField0_ & 0x00000020) != 0);
       }
       /**
        * <code>optional bool isInternal = 6;</code>
+       * @return The isInternal.
        */
+      @java.lang.Override
       public boolean getIsInternal() {
         return isInternal_;
       }
       /**
        * <code>optional bool isInternal = 6;</code>
+       * @param value The isInternal to set.
+       * @return This builder for chaining.
        */
       public Builder setIsInternal(boolean value) {
         bitField0_ |= 0x00000020;
@@ -6259,6 +7714,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool isInternal = 6;</code>
+       * @return This builder for chaining.
        */
       public Builder clearIsInternal() {
         bitField0_ = (bitField0_ & ~0x00000020);
@@ -6267,26 +7723,27 @@ public final class MahaRequestLog {
         return this;
       }
 
-      private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType requestType_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType.SYNC;
+      private int requestType_ = 0;
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.RequestType requestType = 7;</code>
+       * @return Whether the requestType field is set.
        */
-      public boolean hasRequestType() {
-        return ((bitField0_ & 0x00000040) == 0x00000040);
+      @java.lang.Override public boolean hasRequestType() {
+        return ((bitField0_ & 0x00000040) != 0);
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.RequestType requestType = 7;</code>
+       * @return The enum numeric value on the wire for requestType.
        */
-      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType getRequestType() {
+      @java.lang.Override public int getRequestTypeValue() {
         return requestType_;
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.RequestType requestType = 7;</code>
+       * @param value The enum numeric value on the wire for requestType to set.
+       * @return This builder for chaining.
        */
-      public Builder setRequestType(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType value) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
+      public Builder setRequestTypeValue(int value) {
         bitField0_ |= 0x00000040;
         requestType_ = value;
         onChanged();
@@ -6294,10 +7751,35 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.RequestType requestType = 7;</code>
+       * @return The requestType.
+       */
+      @java.lang.Override
+      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType getRequestType() {
+        @SuppressWarnings("deprecation")
+        com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType.valueOf(requestType_);
+        return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType.UNRECOGNIZED : result;
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.RequestType requestType = 7;</code>
+       * @param value The requestType to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRequestType(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        bitField0_ |= 0x00000040;
+        requestType_ = value.getNumber();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.RequestType requestType = 7;</code>
+       * @return This builder for chaining.
        */
       public Builder clearRequestType() {
         bitField0_ = (bitField0_ & ~0x00000040);
-        requestType_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.RequestType.SYNC;
+        requestType_ = 0;
         onChanged();
         return this;
       }
@@ -6305,12 +7787,14 @@ public final class MahaRequestLog {
       private java.lang.Object drivingQueryEngine_ = "";
       /**
        * <code>optional string drivingQueryEngine = 8;</code>
+       * @return Whether the drivingQueryEngine field is set.
        */
       public boolean hasDrivingQueryEngine() {
-        return ((bitField0_ & 0x00000080) == 0x00000080);
+        return ((bitField0_ & 0x00000080) != 0);
       }
       /**
        * <code>optional string drivingQueryEngine = 8;</code>
+       * @return The drivingQueryEngine.
        */
       public java.lang.String getDrivingQueryEngine() {
         java.lang.Object ref = drivingQueryEngine_;
@@ -6318,9 +7802,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            drivingQueryEngine_ = s;
-          }
+          drivingQueryEngine_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -6328,6 +7810,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string drivingQueryEngine = 8;</code>
+       * @return The bytes for drivingQueryEngine.
        */
       public com.google.protobuf.ByteString
           getDrivingQueryEngineBytes() {
@@ -6344,6 +7827,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string drivingQueryEngine = 8;</code>
+       * @param value The drivingQueryEngine to set.
+       * @return This builder for chaining.
        */
       public Builder setDrivingQueryEngine(
           java.lang.String value) {
@@ -6357,6 +7842,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string drivingQueryEngine = 8;</code>
+       * @return This builder for chaining.
        */
       public Builder clearDrivingQueryEngine() {
         bitField0_ = (bitField0_ & ~0x00000080);
@@ -6366,13 +7852,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string drivingQueryEngine = 8;</code>
+       * @param value The bytes for drivingQueryEngine to set.
+       * @return This builder for chaining.
        */
       public Builder setDrivingQueryEngineBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000080;
+  checkByteStringIsUtf8(value);
+        bitField0_ |= 0x00000080;
         drivingQueryEngine_ = value;
         onChanged();
         return this;
@@ -6381,12 +7870,14 @@ public final class MahaRequestLog {
       private java.lang.Object drivingTable_ = "";
       /**
        * <code>optional string drivingTable = 9;</code>
+       * @return Whether the drivingTable field is set.
        */
       public boolean hasDrivingTable() {
-        return ((bitField0_ & 0x00000100) == 0x00000100);
+        return ((bitField0_ & 0x00000100) != 0);
       }
       /**
        * <code>optional string drivingTable = 9;</code>
+       * @return The drivingTable.
        */
       public java.lang.String getDrivingTable() {
         java.lang.Object ref = drivingTable_;
@@ -6394,9 +7885,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            drivingTable_ = s;
-          }
+          drivingTable_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -6404,6 +7893,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string drivingTable = 9;</code>
+       * @return The bytes for drivingTable.
        */
       public com.google.protobuf.ByteString
           getDrivingTableBytes() {
@@ -6420,6 +7910,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string drivingTable = 9;</code>
+       * @param value The drivingTable to set.
+       * @return This builder for chaining.
        */
       public Builder setDrivingTable(
           java.lang.String value) {
@@ -6433,6 +7925,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string drivingTable = 9;</code>
+       * @return This builder for chaining.
        */
       public Builder clearDrivingTable() {
         bitField0_ = (bitField0_ & ~0x00000100);
@@ -6442,13 +7935,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string drivingTable = 9;</code>
+       * @param value The bytes for drivingTable to set.
+       * @return This builder for chaining.
        */
       public Builder setDrivingTableBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000100;
+  checkByteStringIsUtf8(value);
+        bitField0_ |= 0x00000100;
         drivingTable_ = value;
         onChanged();
         return this;
@@ -6457,12 +7953,14 @@ public final class MahaRequestLog {
       private java.lang.Object queryChainType_ = "";
       /**
        * <code>optional string queryChainType = 10;</code>
+       * @return Whether the queryChainType field is set.
        */
       public boolean hasQueryChainType() {
-        return ((bitField0_ & 0x00000200) == 0x00000200);
+        return ((bitField0_ & 0x00000200) != 0);
       }
       /**
        * <code>optional string queryChainType = 10;</code>
+       * @return The queryChainType.
        */
       public java.lang.String getQueryChainType() {
         java.lang.Object ref = queryChainType_;
@@ -6470,9 +7968,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            queryChainType_ = s;
-          }
+          queryChainType_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -6480,6 +7976,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string queryChainType = 10;</code>
+       * @return The bytes for queryChainType.
        */
       public com.google.protobuf.ByteString
           getQueryChainTypeBytes() {
@@ -6496,6 +7993,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string queryChainType = 10;</code>
+       * @param value The queryChainType to set.
+       * @return This builder for chaining.
        */
       public Builder setQueryChainType(
           java.lang.String value) {
@@ -6509,6 +8008,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string queryChainType = 10;</code>
+       * @return This builder for chaining.
        */
       public Builder clearQueryChainType() {
         bitField0_ = (bitField0_ & ~0x00000200);
@@ -6518,13 +8018,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string queryChainType = 10;</code>
+       * @param value The bytes for queryChainType to set.
+       * @return This builder for chaining.
        */
       public Builder setQueryChainTypeBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000200;
+  checkByteStringIsUtf8(value);
+        bitField0_ |= 0x00000200;
         queryChainType_ = value;
         onChanged();
         return this;
@@ -6533,12 +8036,14 @@ public final class MahaRequestLog {
       private java.lang.Object firstSubsequentQueryEngine_ = "";
       /**
        * <code>optional string firstSubsequentQueryEngine = 11;</code>
+       * @return Whether the firstSubsequentQueryEngine field is set.
        */
       public boolean hasFirstSubsequentQueryEngine() {
-        return ((bitField0_ & 0x00000400) == 0x00000400);
+        return ((bitField0_ & 0x00000400) != 0);
       }
       /**
        * <code>optional string firstSubsequentQueryEngine = 11;</code>
+       * @return The firstSubsequentQueryEngine.
        */
       public java.lang.String getFirstSubsequentQueryEngine() {
         java.lang.Object ref = firstSubsequentQueryEngine_;
@@ -6546,9 +8051,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            firstSubsequentQueryEngine_ = s;
-          }
+          firstSubsequentQueryEngine_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -6556,6 +8059,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string firstSubsequentQueryEngine = 11;</code>
+       * @return The bytes for firstSubsequentQueryEngine.
        */
       public com.google.protobuf.ByteString
           getFirstSubsequentQueryEngineBytes() {
@@ -6572,6 +8076,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string firstSubsequentQueryEngine = 11;</code>
+       * @param value The firstSubsequentQueryEngine to set.
+       * @return This builder for chaining.
        */
       public Builder setFirstSubsequentQueryEngine(
           java.lang.String value) {
@@ -6585,6 +8091,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string firstSubsequentQueryEngine = 11;</code>
+       * @return This builder for chaining.
        */
       public Builder clearFirstSubsequentQueryEngine() {
         bitField0_ = (bitField0_ & ~0x00000400);
@@ -6594,13 +8101,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string firstSubsequentQueryEngine = 11;</code>
+       * @param value The bytes for firstSubsequentQueryEngine to set.
+       * @return This builder for chaining.
        */
       public Builder setFirstSubsequentQueryEngineBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000400;
+  checkByteStringIsUtf8(value);
+        bitField0_ |= 0x00000400;
         firstSubsequentQueryEngine_ = value;
         onChanged();
         return this;
@@ -6609,12 +8119,14 @@ public final class MahaRequestLog {
       private java.lang.Object firstSubsequentQueryTable_ = "";
       /**
        * <code>optional string firstSubsequentQueryTable = 12;</code>
+       * @return Whether the firstSubsequentQueryTable field is set.
        */
       public boolean hasFirstSubsequentQueryTable() {
-        return ((bitField0_ & 0x00000800) == 0x00000800);
+        return ((bitField0_ & 0x00000800) != 0);
       }
       /**
        * <code>optional string firstSubsequentQueryTable = 12;</code>
+       * @return The firstSubsequentQueryTable.
        */
       public java.lang.String getFirstSubsequentQueryTable() {
         java.lang.Object ref = firstSubsequentQueryTable_;
@@ -6622,9 +8134,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            firstSubsequentQueryTable_ = s;
-          }
+          firstSubsequentQueryTable_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -6632,6 +8142,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string firstSubsequentQueryTable = 12;</code>
+       * @return The bytes for firstSubsequentQueryTable.
        */
       public com.google.protobuf.ByteString
           getFirstSubsequentQueryTableBytes() {
@@ -6648,6 +8159,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string firstSubsequentQueryTable = 12;</code>
+       * @param value The firstSubsequentQueryTable to set.
+       * @return This builder for chaining.
        */
       public Builder setFirstSubsequentQueryTable(
           java.lang.String value) {
@@ -6661,6 +8174,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string firstSubsequentQueryTable = 12;</code>
+       * @return This builder for chaining.
        */
       public Builder clearFirstSubsequentQueryTable() {
         bitField0_ = (bitField0_ & ~0x00000800);
@@ -6670,13 +8184,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string firstSubsequentQueryTable = 12;</code>
+       * @param value The bytes for firstSubsequentQueryTable to set.
+       * @return This builder for chaining.
        */
       public Builder setFirstSubsequentQueryTableBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000800;
+  checkByteStringIsUtf8(value);
+        bitField0_ |= 0x00000800;
         firstSubsequentQueryTable_ = value;
         onChanged();
         return this;
@@ -6685,18 +8202,24 @@ public final class MahaRequestLog {
       private long requestStartTime_ ;
       /**
        * <code>optional int64 requestStartTime = 13;</code>
+       * @return Whether the requestStartTime field is set.
        */
+      @java.lang.Override
       public boolean hasRequestStartTime() {
-        return ((bitField0_ & 0x00001000) == 0x00001000);
+        return ((bitField0_ & 0x00001000) != 0);
       }
       /**
        * <code>optional int64 requestStartTime = 13;</code>
+       * @return The requestStartTime.
        */
+      @java.lang.Override
       public long getRequestStartTime() {
         return requestStartTime_;
       }
       /**
        * <code>optional int64 requestStartTime = 13;</code>
+       * @param value The requestStartTime to set.
+       * @return This builder for chaining.
        */
       public Builder setRequestStartTime(long value) {
         bitField0_ |= 0x00001000;
@@ -6706,6 +8229,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int64 requestStartTime = 13;</code>
+       * @return This builder for chaining.
        */
       public Builder clearRequestStartTime() {
         bitField0_ = (bitField0_ & ~0x00001000);
@@ -6717,18 +8241,24 @@ public final class MahaRequestLog {
       private long requestEndTime_ ;
       /**
        * <code>optional int64 requestEndTime = 14;</code>
+       * @return Whether the requestEndTime field is set.
        */
+      @java.lang.Override
       public boolean hasRequestEndTime() {
-        return ((bitField0_ & 0x00002000) == 0x00002000);
+        return ((bitField0_ & 0x00002000) != 0);
       }
       /**
        * <code>optional int64 requestEndTime = 14;</code>
+       * @return The requestEndTime.
        */
+      @java.lang.Override
       public long getRequestEndTime() {
         return requestEndTime_;
       }
       /**
        * <code>optional int64 requestEndTime = 14;</code>
+       * @param value The requestEndTime to set.
+       * @return This builder for chaining.
        */
       public Builder setRequestEndTime(long value) {
         bitField0_ |= 0x00002000;
@@ -6738,6 +8268,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int64 requestEndTime = 14;</code>
+       * @return This builder for chaining.
        */
       public Builder clearRequestEndTime() {
         bitField0_ = (bitField0_ & ~0x00002000);
@@ -6749,18 +8280,24 @@ public final class MahaRequestLog {
       private int status_ ;
       /**
        * <code>optional int32 status = 15;</code>
+       * @return Whether the status field is set.
        */
+      @java.lang.Override
       public boolean hasStatus() {
-        return ((bitField0_ & 0x00004000) == 0x00004000);
+        return ((bitField0_ & 0x00004000) != 0);
       }
       /**
        * <code>optional int32 status = 15;</code>
+       * @return The status.
        */
+      @java.lang.Override
       public int getStatus() {
         return status_;
       }
       /**
        * <code>optional int32 status = 15;</code>
+       * @param value The status to set.
+       * @return This builder for chaining.
        */
       public Builder setStatus(int value) {
         bitField0_ |= 0x00004000;
@@ -6770,6 +8307,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int32 status = 15;</code>
+       * @return This builder for chaining.
        */
       public Builder clearStatus() {
         bitField0_ = (bitField0_ & ~0x00004000);
@@ -6781,12 +8319,14 @@ public final class MahaRequestLog {
       private java.lang.Object errorMessage_ = "";
       /**
        * <code>optional string errorMessage = 16;</code>
+       * @return Whether the errorMessage field is set.
        */
       public boolean hasErrorMessage() {
-        return ((bitField0_ & 0x00008000) == 0x00008000);
+        return ((bitField0_ & 0x00008000) != 0);
       }
       /**
        * <code>optional string errorMessage = 16;</code>
+       * @return The errorMessage.
        */
       public java.lang.String getErrorMessage() {
         java.lang.Object ref = errorMessage_;
@@ -6794,9 +8334,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            errorMessage_ = s;
-          }
+          errorMessage_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -6804,6 +8342,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string errorMessage = 16;</code>
+       * @return The bytes for errorMessage.
        */
       public com.google.protobuf.ByteString
           getErrorMessageBytes() {
@@ -6820,6 +8359,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string errorMessage = 16;</code>
+       * @param value The errorMessage to set.
+       * @return This builder for chaining.
        */
       public Builder setErrorMessage(
           java.lang.String value) {
@@ -6833,6 +8374,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string errorMessage = 16;</code>
+       * @return This builder for chaining.
        */
       public Builder clearErrorMessage() {
         bitField0_ = (bitField0_ & ~0x00008000);
@@ -6842,13 +8384,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string errorMessage = 16;</code>
+       * @param value The bytes for errorMessage to set.
+       * @return This builder for chaining.
        */
       public Builder setErrorMessageBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00008000;
+  checkByteStringIsUtf8(value);
+        bitField0_ |= 0x00008000;
         errorMessage_ = value;
         onChanged();
         return this;
@@ -6857,18 +8402,24 @@ public final class MahaRequestLog {
       private boolean hasFactFilters_ ;
       /**
        * <code>optional bool hasFactFilters = 17;</code>
+       * @return Whether the hasFactFilters field is set.
        */
+      @java.lang.Override
       public boolean hasHasFactFilters() {
-        return ((bitField0_ & 0x00010000) == 0x00010000);
+        return ((bitField0_ & 0x00010000) != 0);
       }
       /**
        * <code>optional bool hasFactFilters = 17;</code>
+       * @return The hasFactFilters.
        */
+      @java.lang.Override
       public boolean getHasFactFilters() {
         return hasFactFilters_;
       }
       /**
        * <code>optional bool hasFactFilters = 17;</code>
+       * @param value The hasFactFilters to set.
+       * @return This builder for chaining.
        */
       public Builder setHasFactFilters(boolean value) {
         bitField0_ |= 0x00010000;
@@ -6878,6 +8429,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool hasFactFilters = 17;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHasFactFilters() {
         bitField0_ = (bitField0_ & ~0x00010000);
@@ -6889,18 +8441,24 @@ public final class MahaRequestLog {
       private boolean hasNonFKFactFilters_ ;
       /**
        * <code>optional bool hasNonFKFactFilters = 18;</code>
+       * @return Whether the hasNonFKFactFilters field is set.
        */
+      @java.lang.Override
       public boolean hasHasNonFKFactFilters() {
-        return ((bitField0_ & 0x00020000) == 0x00020000);
+        return ((bitField0_ & 0x00020000) != 0);
       }
       /**
        * <code>optional bool hasNonFKFactFilters = 18;</code>
+       * @return The hasNonFKFactFilters.
        */
+      @java.lang.Override
       public boolean getHasNonFKFactFilters() {
         return hasNonFKFactFilters_;
       }
       /**
        * <code>optional bool hasNonFKFactFilters = 18;</code>
+       * @param value The hasNonFKFactFilters to set.
+       * @return This builder for chaining.
        */
       public Builder setHasNonFKFactFilters(boolean value) {
         bitField0_ |= 0x00020000;
@@ -6910,6 +8468,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool hasNonFKFactFilters = 18;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHasNonFKFactFilters() {
         bitField0_ = (bitField0_ & ~0x00020000);
@@ -6921,18 +8480,24 @@ public final class MahaRequestLog {
       private boolean hasDimFilters_ ;
       /**
        * <code>optional bool hasDimFilters = 19;</code>
+       * @return Whether the hasDimFilters field is set.
        */
+      @java.lang.Override
       public boolean hasHasDimFilters() {
-        return ((bitField0_ & 0x00040000) == 0x00040000);
+        return ((bitField0_ & 0x00040000) != 0);
       }
       /**
        * <code>optional bool hasDimFilters = 19;</code>
+       * @return The hasDimFilters.
        */
+      @java.lang.Override
       public boolean getHasDimFilters() {
         return hasDimFilters_;
       }
       /**
        * <code>optional bool hasDimFilters = 19;</code>
+       * @param value The hasDimFilters to set.
+       * @return This builder for chaining.
        */
       public Builder setHasDimFilters(boolean value) {
         bitField0_ |= 0x00040000;
@@ -6942,6 +8507,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool hasDimFilters = 19;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHasDimFilters() {
         bitField0_ = (bitField0_ & ~0x00040000);
@@ -6953,18 +8519,24 @@ public final class MahaRequestLog {
       private boolean hasNonFKDimFilters_ ;
       /**
        * <code>optional bool hasNonFKDimFilters = 20;</code>
+       * @return Whether the hasNonFKDimFilters field is set.
        */
+      @java.lang.Override
       public boolean hasHasNonFKDimFilters() {
-        return ((bitField0_ & 0x00080000) == 0x00080000);
+        return ((bitField0_ & 0x00080000) != 0);
       }
       /**
        * <code>optional bool hasNonFKDimFilters = 20;</code>
+       * @return The hasNonFKDimFilters.
        */
+      @java.lang.Override
       public boolean getHasNonFKDimFilters() {
         return hasNonFKDimFilters_;
       }
       /**
        * <code>optional bool hasNonFKDimFilters = 20;</code>
+       * @param value The hasNonFKDimFilters to set.
+       * @return This builder for chaining.
        */
       public Builder setHasNonFKDimFilters(boolean value) {
         bitField0_ |= 0x00080000;
@@ -6974,6 +8546,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool hasNonFKDimFilters = 20;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHasNonFKDimFilters() {
         bitField0_ = (bitField0_ & ~0x00080000);
@@ -6985,18 +8558,24 @@ public final class MahaRequestLog {
       private boolean hasFactSortBy_ ;
       /**
        * <code>optional bool hasFactSortBy = 21;</code>
+       * @return Whether the hasFactSortBy field is set.
        */
+      @java.lang.Override
       public boolean hasHasFactSortBy() {
-        return ((bitField0_ & 0x00100000) == 0x00100000);
+        return ((bitField0_ & 0x00100000) != 0);
       }
       /**
        * <code>optional bool hasFactSortBy = 21;</code>
+       * @return The hasFactSortBy.
        */
+      @java.lang.Override
       public boolean getHasFactSortBy() {
         return hasFactSortBy_;
       }
       /**
        * <code>optional bool hasFactSortBy = 21;</code>
+       * @param value The hasFactSortBy to set.
+       * @return This builder for chaining.
        */
       public Builder setHasFactSortBy(boolean value) {
         bitField0_ |= 0x00100000;
@@ -7006,6 +8585,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool hasFactSortBy = 21;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHasFactSortBy() {
         bitField0_ = (bitField0_ & ~0x00100000);
@@ -7017,18 +8597,24 @@ public final class MahaRequestLog {
       private boolean hasDimSortBy_ ;
       /**
        * <code>optional bool hasDimSortBy = 22;</code>
+       * @return Whether the hasDimSortBy field is set.
        */
+      @java.lang.Override
       public boolean hasHasDimSortBy() {
-        return ((bitField0_ & 0x00200000) == 0x00200000);
+        return ((bitField0_ & 0x00200000) != 0);
       }
       /**
        * <code>optional bool hasDimSortBy = 22;</code>
+       * @return The hasDimSortBy.
        */
+      @java.lang.Override
       public boolean getHasDimSortBy() {
         return hasDimSortBy_;
       }
       /**
        * <code>optional bool hasDimSortBy = 22;</code>
+       * @param value The hasDimSortBy to set.
+       * @return This builder for chaining.
        */
       public Builder setHasDimSortBy(boolean value) {
         bitField0_ |= 0x00200000;
@@ -7038,6 +8624,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool hasDimSortBy = 22;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHasDimSortBy() {
         bitField0_ = (bitField0_ & ~0x00200000);
@@ -7049,18 +8636,24 @@ public final class MahaRequestLog {
       private boolean isFactDriven_ ;
       /**
        * <code>optional bool isFactDriven = 23;</code>
+       * @return Whether the isFactDriven field is set.
        */
+      @java.lang.Override
       public boolean hasIsFactDriven() {
-        return ((bitField0_ & 0x00400000) == 0x00400000);
+        return ((bitField0_ & 0x00400000) != 0);
       }
       /**
        * <code>optional bool isFactDriven = 23;</code>
+       * @return The isFactDriven.
        */
+      @java.lang.Override
       public boolean getIsFactDriven() {
         return isFactDriven_;
       }
       /**
        * <code>optional bool isFactDriven = 23;</code>
+       * @param value The isFactDriven to set.
+       * @return This builder for chaining.
        */
       public Builder setIsFactDriven(boolean value) {
         bitField0_ |= 0x00400000;
@@ -7070,6 +8663,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool isFactDriven = 23;</code>
+       * @return This builder for chaining.
        */
       public Builder clearIsFactDriven() {
         bitField0_ = (bitField0_ & ~0x00400000);
@@ -7081,18 +8675,24 @@ public final class MahaRequestLog {
       private boolean forceDimDriven_ ;
       /**
        * <code>optional bool forceDimDriven = 24;</code>
+       * @return Whether the forceDimDriven field is set.
        */
+      @java.lang.Override
       public boolean hasForceDimDriven() {
-        return ((bitField0_ & 0x00800000) == 0x00800000);
+        return ((bitField0_ & 0x00800000) != 0);
       }
       /**
        * <code>optional bool forceDimDriven = 24;</code>
+       * @return The forceDimDriven.
        */
+      @java.lang.Override
       public boolean getForceDimDriven() {
         return forceDimDriven_;
       }
       /**
        * <code>optional bool forceDimDriven = 24;</code>
+       * @param value The forceDimDriven to set.
+       * @return This builder for chaining.
        */
       public Builder setForceDimDriven(boolean value) {
         bitField0_ |= 0x00800000;
@@ -7102,6 +8702,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool forceDimDriven = 24;</code>
+       * @return This builder for chaining.
        */
       public Builder clearForceDimDriven() {
         bitField0_ = (bitField0_ & ~0x00800000);
@@ -7113,18 +8714,24 @@ public final class MahaRequestLog {
       private boolean forceFactDriven_ ;
       /**
        * <code>optional bool forceFactDriven = 25;</code>
+       * @return Whether the forceFactDriven field is set.
        */
+      @java.lang.Override
       public boolean hasForceFactDriven() {
-        return ((bitField0_ & 0x01000000) == 0x01000000);
+        return ((bitField0_ & 0x01000000) != 0);
       }
       /**
        * <code>optional bool forceFactDriven = 25;</code>
+       * @return The forceFactDriven.
        */
+      @java.lang.Override
       public boolean getForceFactDriven() {
         return forceFactDriven_;
       }
       /**
        * <code>optional bool forceFactDriven = 25;</code>
+       * @param value The forceFactDriven to set.
+       * @return This builder for chaining.
        */
       public Builder setForceFactDriven(boolean value) {
         bitField0_ |= 0x01000000;
@@ -7134,6 +8741,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool forceFactDriven = 25;</code>
+       * @return This builder for chaining.
        */
       public Builder clearForceFactDriven() {
         bitField0_ = (bitField0_ & ~0x01000000);
@@ -7145,18 +8753,24 @@ public final class MahaRequestLog {
       private boolean hasNonDrivingDimSortOrFilter_ ;
       /**
        * <code>optional bool hasNonDrivingDimSortOrFilter = 26;</code>
+       * @return Whether the hasNonDrivingDimSortOrFilter field is set.
        */
+      @java.lang.Override
       public boolean hasHasNonDrivingDimSortOrFilter() {
-        return ((bitField0_ & 0x02000000) == 0x02000000);
+        return ((bitField0_ & 0x02000000) != 0);
       }
       /**
        * <code>optional bool hasNonDrivingDimSortOrFilter = 26;</code>
+       * @return The hasNonDrivingDimSortOrFilter.
        */
+      @java.lang.Override
       public boolean getHasNonDrivingDimSortOrFilter() {
         return hasNonDrivingDimSortOrFilter_;
       }
       /**
        * <code>optional bool hasNonDrivingDimSortOrFilter = 26;</code>
+       * @param value The hasNonDrivingDimSortOrFilter to set.
+       * @return This builder for chaining.
        */
       public Builder setHasNonDrivingDimSortOrFilter(boolean value) {
         bitField0_ |= 0x02000000;
@@ -7166,6 +8780,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool hasNonDrivingDimSortOrFilter = 26;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHasNonDrivingDimSortOrFilter() {
         bitField0_ = (bitField0_ & ~0x02000000);
@@ -7177,18 +8792,24 @@ public final class MahaRequestLog {
       private boolean hasDimAndFactOperations_ ;
       /**
        * <code>optional bool hasDimAndFactOperations = 27;</code>
+       * @return Whether the hasDimAndFactOperations field is set.
        */
+      @java.lang.Override
       public boolean hasHasDimAndFactOperations() {
-        return ((bitField0_ & 0x04000000) == 0x04000000);
+        return ((bitField0_ & 0x04000000) != 0);
       }
       /**
        * <code>optional bool hasDimAndFactOperations = 27;</code>
+       * @return The hasDimAndFactOperations.
        */
+      @java.lang.Override
       public boolean getHasDimAndFactOperations() {
         return hasDimAndFactOperations_;
       }
       /**
        * <code>optional bool hasDimAndFactOperations = 27;</code>
+       * @param value The hasDimAndFactOperations to set.
+       * @return This builder for chaining.
        */
       public Builder setHasDimAndFactOperations(boolean value) {
         bitField0_ |= 0x04000000;
@@ -7198,6 +8819,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool hasDimAndFactOperations = 27;</code>
+       * @return This builder for chaining.
        */
       public Builder clearHasDimAndFactOperations() {
         bitField0_ = (bitField0_ & ~0x04000000);
@@ -7209,18 +8831,24 @@ public final class MahaRequestLog {
       private long dimCardinalityEstimate_ ;
       /**
        * <code>optional int64 dimCardinalityEstimate = 28;</code>
+       * @return Whether the dimCardinalityEstimate field is set.
        */
+      @java.lang.Override
       public boolean hasDimCardinalityEstimate() {
-        return ((bitField0_ & 0x08000000) == 0x08000000);
+        return ((bitField0_ & 0x08000000) != 0);
       }
       /**
        * <code>optional int64 dimCardinalityEstimate = 28;</code>
+       * @return The dimCardinalityEstimate.
        */
+      @java.lang.Override
       public long getDimCardinalityEstimate() {
         return dimCardinalityEstimate_;
       }
       /**
        * <code>optional int64 dimCardinalityEstimate = 28;</code>
+       * @param value The dimCardinalityEstimate to set.
+       * @return This builder for chaining.
        */
       public Builder setDimCardinalityEstimate(long value) {
         bitField0_ |= 0x08000000;
@@ -7230,6 +8858,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int64 dimCardinalityEstimate = 28;</code>
+       * @return This builder for chaining.
        */
       public Builder clearDimCardinalityEstimate() {
         bitField0_ = (bitField0_ & ~0x08000000);
@@ -7241,13 +8870,13 @@ public final class MahaRequestLog {
       private java.util.List<com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo> requestSortByCols_ =
         java.util.Collections.emptyList();
       private void ensureRequestSortByColsIsMutable() {
-        if (!((bitField0_ & 0x10000000) == 0x10000000)) {
+        if (!((bitField0_ & 0x10000000) != 0)) {
           requestSortByCols_ = new java.util.ArrayList<com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo>(requestSortByCols_);
           bitField0_ |= 0x10000000;
          }
       }
 
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private com.google.protobuf.RepeatedFieldBuilderV3<
           com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo.Builder, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfoOrBuilder> requestSortByColsBuilder_;
 
       /**
@@ -7463,14 +9092,14 @@ public final class MahaRequestLog {
            getRequestSortByColsBuilderList() {
         return getRequestSortByColsFieldBuilder().getBuilderList();
       }
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private com.google.protobuf.RepeatedFieldBuilderV3<
           com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo.Builder, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfoOrBuilder> 
           getRequestSortByColsFieldBuilder() {
         if (requestSortByColsBuilder_ == null) {
-          requestSortByColsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+          requestSortByColsBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfo.Builder, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.SortByColumnInfoOrBuilder>(
                   requestSortByCols_,
-                  ((bitField0_ & 0x10000000) == 0x10000000),
+                  ((bitField0_ & 0x10000000) != 0),
                   getParentForChildren(),
                   isClean());
           requestSortByCols_ = null;
@@ -7480,13 +9109,14 @@ public final class MahaRequestLog {
 
       private com.google.protobuf.LazyStringList dimensionsCandidates_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       private void ensureDimensionsCandidatesIsMutable() {
-        if (!((bitField0_ & 0x20000000) == 0x20000000)) {
+        if (!((bitField0_ & 0x20000000) != 0)) {
           dimensionsCandidates_ = new com.google.protobuf.LazyStringArrayList(dimensionsCandidates_);
           bitField0_ |= 0x20000000;
          }
       }
       /**
        * <code>repeated string dimensionsCandidates = 30;</code>
+       * @return A list containing the dimensionsCandidates.
        */
       public com.google.protobuf.ProtocolStringList
           getDimensionsCandidatesList() {
@@ -7494,18 +9124,23 @@ public final class MahaRequestLog {
       }
       /**
        * <code>repeated string dimensionsCandidates = 30;</code>
+       * @return The count of dimensionsCandidates.
        */
       public int getDimensionsCandidatesCount() {
         return dimensionsCandidates_.size();
       }
       /**
        * <code>repeated string dimensionsCandidates = 30;</code>
+       * @param index The index of the element to return.
+       * @return The dimensionsCandidates at the given index.
        */
       public java.lang.String getDimensionsCandidates(int index) {
         return dimensionsCandidates_.get(index);
       }
       /**
        * <code>repeated string dimensionsCandidates = 30;</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the dimensionsCandidates at the given index.
        */
       public com.google.protobuf.ByteString
           getDimensionsCandidatesBytes(int index) {
@@ -7513,6 +9148,9 @@ public final class MahaRequestLog {
       }
       /**
        * <code>repeated string dimensionsCandidates = 30;</code>
+       * @param index The index to set the value at.
+       * @param value The dimensionsCandidates to set.
+       * @return This builder for chaining.
        */
       public Builder setDimensionsCandidates(
           int index, java.lang.String value) {
@@ -7526,6 +9164,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>repeated string dimensionsCandidates = 30;</code>
+       * @param value The dimensionsCandidates to add.
+       * @return This builder for chaining.
        */
       public Builder addDimensionsCandidates(
           java.lang.String value) {
@@ -7539,6 +9179,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>repeated string dimensionsCandidates = 30;</code>
+       * @param values The dimensionsCandidates to add.
+       * @return This builder for chaining.
        */
       public Builder addAllDimensionsCandidates(
           java.lang.Iterable<java.lang.String> values) {
@@ -7550,6 +9192,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>repeated string dimensionsCandidates = 30;</code>
+       * @return This builder for chaining.
        */
       public Builder clearDimensionsCandidates() {
         dimensionsCandidates_ = com.google.protobuf.LazyStringArrayList.EMPTY;
@@ -7559,13 +9202,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>repeated string dimensionsCandidates = 30;</code>
+       * @param value The bytes of the dimensionsCandidates to add.
+       * @return This builder for chaining.
        */
       public Builder addDimensionsCandidatesBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  ensureDimensionsCandidatesIsMutable();
+  checkByteStringIsUtf8(value);
+        ensureDimensionsCandidatesIsMutable();
         dimensionsCandidates_.add(value);
         onChanged();
         return this;
@@ -7574,13 +9220,13 @@ public final class MahaRequestLog {
       private java.util.List<com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost> factCost_ =
         java.util.Collections.emptyList();
       private void ensureFactCostIsMutable() {
-        if (!((bitField0_ & 0x40000000) == 0x40000000)) {
+        if (!((bitField0_ & 0x40000000) != 0)) {
           factCost_ = new java.util.ArrayList<com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost>(factCost_);
           bitField0_ |= 0x40000000;
          }
       }
 
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private com.google.protobuf.RepeatedFieldBuilderV3<
           com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost.Builder, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCostOrBuilder> factCostBuilder_;
 
       /**
@@ -7796,14 +9442,14 @@ public final class MahaRequestLog {
            getFactCostBuilderList() {
         return getFactCostFieldBuilder().getBuilderList();
       }
-      private com.google.protobuf.RepeatedFieldBuilder<
+      private com.google.protobuf.RepeatedFieldBuilderV3<
           com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost.Builder, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCostOrBuilder> 
           getFactCostFieldBuilder() {
         if (factCostBuilder_ == null) {
-          factCostBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+          factCostBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
               com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCost.Builder, com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.FactCostOrBuilder>(
                   factCost_,
-                  ((bitField0_ & 0x40000000) == 0x40000000),
+                  ((bitField0_ & 0x40000000) != 0),
                   getParentForChildren(),
                   isClean());
           factCost_ = null;
@@ -7814,18 +9460,24 @@ public final class MahaRequestLog {
       private long drivingQueryEngineLatency_ ;
       /**
        * <code>optional int64 drivingQueryEngineLatency = 32;</code>
+       * @return Whether the drivingQueryEngineLatency field is set.
        */
+      @java.lang.Override
       public boolean hasDrivingQueryEngineLatency() {
-        return ((bitField0_ & 0x80000000) == 0x80000000);
+        return ((bitField0_ & 0x80000000) != 0);
       }
       /**
        * <code>optional int64 drivingQueryEngineLatency = 32;</code>
+       * @return The drivingQueryEngineLatency.
        */
+      @java.lang.Override
       public long getDrivingQueryEngineLatency() {
         return drivingQueryEngineLatency_;
       }
       /**
        * <code>optional int64 drivingQueryEngineLatency = 32;</code>
+       * @param value The drivingQueryEngineLatency to set.
+       * @return This builder for chaining.
        */
       public Builder setDrivingQueryEngineLatency(long value) {
         bitField0_ |= 0x80000000;
@@ -7835,6 +9487,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int64 drivingQueryEngineLatency = 32;</code>
+       * @return This builder for chaining.
        */
       public Builder clearDrivingQueryEngineLatency() {
         bitField0_ = (bitField0_ & ~0x80000000);
@@ -7846,18 +9499,24 @@ public final class MahaRequestLog {
       private long firstSubsequentQueryEngineLatency_ ;
       /**
        * <code>optional int64 firstSubsequentQueryEngineLatency = 33;</code>
+       * @return Whether the firstSubsequentQueryEngineLatency field is set.
        */
+      @java.lang.Override
       public boolean hasFirstSubsequentQueryEngineLatency() {
-        return ((bitField1_ & 0x00000001) == 0x00000001);
+        return ((bitField1_ & 0x00000001) != 0);
       }
       /**
        * <code>optional int64 firstSubsequentQueryEngineLatency = 33;</code>
+       * @return The firstSubsequentQueryEngineLatency.
        */
+      @java.lang.Override
       public long getFirstSubsequentQueryEngineLatency() {
         return firstSubsequentQueryEngineLatency_;
       }
       /**
        * <code>optional int64 firstSubsequentQueryEngineLatency = 33;</code>
+       * @param value The firstSubsequentQueryEngineLatency to set.
+       * @return This builder for chaining.
        */
       public Builder setFirstSubsequentQueryEngineLatency(long value) {
         bitField1_ |= 0x00000001;
@@ -7867,6 +9526,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int64 firstSubsequentQueryEngineLatency = 33;</code>
+       * @return This builder for chaining.
        */
       public Builder clearFirstSubsequentQueryEngineLatency() {
         bitField1_ = (bitField1_ & ~0x00000001);
@@ -7878,18 +9538,24 @@ public final class MahaRequestLog {
       private long reRunEngineQueryLatency_ ;
       /**
        * <code>optional int64 reRunEngineQueryLatency = 34;</code>
+       * @return Whether the reRunEngineQueryLatency field is set.
        */
+      @java.lang.Override
       public boolean hasReRunEngineQueryLatency() {
-        return ((bitField1_ & 0x00000002) == 0x00000002);
+        return ((bitField1_ & 0x00000002) != 0);
       }
       /**
        * <code>optional int64 reRunEngineQueryLatency = 34;</code>
+       * @return The reRunEngineQueryLatency.
        */
+      @java.lang.Override
       public long getReRunEngineQueryLatency() {
         return reRunEngineQueryLatency_;
       }
       /**
        * <code>optional int64 reRunEngineQueryLatency = 34;</code>
+       * @param value The reRunEngineQueryLatency to set.
+       * @return This builder for chaining.
        */
       public Builder setReRunEngineQueryLatency(long value) {
         bitField1_ |= 0x00000002;
@@ -7899,6 +9565,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int64 reRunEngineQueryLatency = 34;</code>
+       * @return This builder for chaining.
        */
       public Builder clearReRunEngineQueryLatency() {
         bitField1_ = (bitField1_ & ~0x00000002);
@@ -7907,26 +9574,27 @@ public final class MahaRequestLog {
         return this;
       }
 
-      private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine reRunEngine_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.Oracle;
+      private int reRunEngine_ = 0;
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine reRunEngine = 35;</code>
+       * @return Whether the reRunEngine field is set.
        */
-      public boolean hasReRunEngine() {
-        return ((bitField1_ & 0x00000004) == 0x00000004);
+      @java.lang.Override public boolean hasReRunEngine() {
+        return ((bitField1_ & 0x00000004) != 0);
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine reRunEngine = 35;</code>
+       * @return The enum numeric value on the wire for reRunEngine.
        */
-      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine getReRunEngine() {
+      @java.lang.Override public int getReRunEngineValue() {
         return reRunEngine_;
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine reRunEngine = 35;</code>
+       * @param value The enum numeric value on the wire for reRunEngine to set.
+       * @return This builder for chaining.
        */
-      public Builder setReRunEngine(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine value) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
+      public Builder setReRunEngineValue(int value) {
         bitField1_ |= 0x00000004;
         reRunEngine_ = value;
         onChanged();
@@ -7934,10 +9602,35 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine reRunEngine = 35;</code>
+       * @return The reRunEngine.
+       */
+      @java.lang.Override
+      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine getReRunEngine() {
+        @SuppressWarnings("deprecation")
+        com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.valueOf(reRunEngine_);
+        return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.UNRECOGNIZED : result;
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine reRunEngine = 35;</code>
+       * @param value The reRunEngine to set.
+       * @return This builder for chaining.
+       */
+      public Builder setReRunEngine(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        bitField1_ |= 0x00000004;
+        reRunEngine_ = value.getNumber();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.Engine reRunEngine = 35;</code>
+       * @return This builder for chaining.
        */
       public Builder clearReRunEngine() {
         bitField1_ = (bitField1_ & ~0x00000004);
-        reRunEngine_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.Engine.Oracle;
+        reRunEngine_ = 0;
         onChanged();
         return this;
       }
@@ -7945,18 +9638,24 @@ public final class MahaRequestLog {
       private long jobId_ ;
       /**
        * <code>optional int64 jobId = 36;</code>
+       * @return Whether the jobId field is set.
        */
+      @java.lang.Override
       public boolean hasJobId() {
-        return ((bitField1_ & 0x00000008) == 0x00000008);
+        return ((bitField1_ & 0x00000008) != 0);
       }
       /**
        * <code>optional int64 jobId = 36;</code>
+       * @return The jobId.
        */
+      @java.lang.Override
       public long getJobId() {
         return jobId_;
       }
       /**
        * <code>optional int64 jobId = 36;</code>
+       * @param value The jobId to set.
+       * @return This builder for chaining.
        */
       public Builder setJobId(long value) {
         bitField1_ |= 0x00000008;
@@ -7966,6 +9665,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int64 jobId = 36;</code>
+       * @return This builder for chaining.
        */
       public Builder clearJobId() {
         bitField1_ = (bitField1_ & ~0x00000008);
@@ -7977,12 +9677,14 @@ public final class MahaRequestLog {
       private java.lang.Object timeGrain_ = "";
       /**
        * <code>optional string timeGrain = 37;</code>
+       * @return Whether the timeGrain field is set.
        */
       public boolean hasTimeGrain() {
-        return ((bitField1_ & 0x00000010) == 0x00000010);
+        return ((bitField1_ & 0x00000010) != 0);
       }
       /**
        * <code>optional string timeGrain = 37;</code>
+       * @return The timeGrain.
        */
       public java.lang.String getTimeGrain() {
         java.lang.Object ref = timeGrain_;
@@ -7990,9 +9692,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            timeGrain_ = s;
-          }
+          timeGrain_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -8000,6 +9700,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string timeGrain = 37;</code>
+       * @return The bytes for timeGrain.
        */
       public com.google.protobuf.ByteString
           getTimeGrainBytes() {
@@ -8016,6 +9717,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string timeGrain = 37;</code>
+       * @param value The timeGrain to set.
+       * @return This builder for chaining.
        */
       public Builder setTimeGrain(
           java.lang.String value) {
@@ -8029,6 +9732,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string timeGrain = 37;</code>
+       * @return This builder for chaining.
        */
       public Builder clearTimeGrain() {
         bitField1_ = (bitField1_ & ~0x00000010);
@@ -8038,38 +9742,42 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string timeGrain = 37;</code>
+       * @param value The bytes for timeGrain to set.
+       * @return This builder for chaining.
        */
       public Builder setTimeGrainBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField1_ |= 0x00000010;
+  checkByteStringIsUtf8(value);
+        bitField1_ |= 0x00000010;
         timeGrain_ = value;
         onChanged();
         return this;
       }
 
-      private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus asyncJobStatus_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus.SUBMITTED;
+      private int asyncJobStatus_ = 0;
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.AsyncJobStatus asyncJobStatus = 38;</code>
+       * @return Whether the asyncJobStatus field is set.
        */
-      public boolean hasAsyncJobStatus() {
-        return ((bitField1_ & 0x00000020) == 0x00000020);
+      @java.lang.Override public boolean hasAsyncJobStatus() {
+        return ((bitField1_ & 0x00000020) != 0);
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.AsyncJobStatus asyncJobStatus = 38;</code>
+       * @return The enum numeric value on the wire for asyncJobStatus.
        */
-      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus getAsyncJobStatus() {
+      @java.lang.Override public int getAsyncJobStatusValue() {
         return asyncJobStatus_;
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.AsyncJobStatus asyncJobStatus = 38;</code>
+       * @param value The enum numeric value on the wire for asyncJobStatus to set.
+       * @return This builder for chaining.
        */
-      public Builder setAsyncJobStatus(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus value) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
+      public Builder setAsyncJobStatusValue(int value) {
         bitField1_ |= 0x00000020;
         asyncJobStatus_ = value;
         onChanged();
@@ -8077,10 +9785,35 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.AsyncJobStatus asyncJobStatus = 38;</code>
+       * @return The asyncJobStatus.
+       */
+      @java.lang.Override
+      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus getAsyncJobStatus() {
+        @SuppressWarnings("deprecation")
+        com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus.valueOf(asyncJobStatus_);
+        return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus.UNRECOGNIZED : result;
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.AsyncJobStatus asyncJobStatus = 38;</code>
+       * @param value The asyncJobStatus to set.
+       * @return This builder for chaining.
+       */
+      public Builder setAsyncJobStatus(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        bitField1_ |= 0x00000020;
+        asyncJobStatus_ = value.getNumber();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.AsyncJobStatus asyncJobStatus = 38;</code>
+       * @return This builder for chaining.
        */
       public Builder clearAsyncJobStatus() {
         bitField1_ = (bitField1_ & ~0x00000020);
-        asyncJobStatus_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.AsyncJobStatus.SUBMITTED;
+        asyncJobStatus_ = 0;
         onChanged();
         return this;
       }
@@ -8088,18 +9821,24 @@ public final class MahaRequestLog {
       private boolean isDryRun_ ;
       /**
        * <code>optional bool isDryRun = 39;</code>
+       * @return Whether the isDryRun field is set.
        */
+      @java.lang.Override
       public boolean hasIsDryRun() {
-        return ((bitField1_ & 0x00000040) == 0x00000040);
+        return ((bitField1_ & 0x00000040) != 0);
       }
       /**
        * <code>optional bool isDryRun = 39;</code>
+       * @return The isDryRun.
        */
+      @java.lang.Override
       public boolean getIsDryRun() {
         return isDryRun_;
       }
       /**
        * <code>optional bool isDryRun = 39;</code>
+       * @param value The isDryRun to set.
+       * @return This builder for chaining.
        */
       public Builder setIsDryRun(boolean value) {
         bitField1_ |= 0x00000040;
@@ -8109,6 +9848,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool isDryRun = 39;</code>
+       * @return This builder for chaining.
        */
       public Builder clearIsDryRun() {
         bitField1_ = (bitField1_ & ~0x00000040);
@@ -8120,12 +9860,14 @@ public final class MahaRequestLog {
       private java.lang.Object jobResultURL_ = "";
       /**
        * <code>optional string jobResultURL = 40;</code>
+       * @return Whether the jobResultURL field is set.
        */
       public boolean hasJobResultURL() {
-        return ((bitField1_ & 0x00000080) == 0x00000080);
+        return ((bitField1_ & 0x00000080) != 0);
       }
       /**
        * <code>optional string jobResultURL = 40;</code>
+       * @return The jobResultURL.
        */
       public java.lang.String getJobResultURL() {
         java.lang.Object ref = jobResultURL_;
@@ -8133,9 +9875,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            jobResultURL_ = s;
-          }
+          jobResultURL_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -8143,6 +9883,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string jobResultURL = 40;</code>
+       * @return The bytes for jobResultURL.
        */
       public com.google.protobuf.ByteString
           getJobResultURLBytes() {
@@ -8159,6 +9900,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string jobResultURL = 40;</code>
+       * @param value The jobResultURL to set.
+       * @return This builder for chaining.
        */
       public Builder setJobResultURL(
           java.lang.String value) {
@@ -8172,6 +9915,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string jobResultURL = 40;</code>
+       * @return This builder for chaining.
        */
       public Builder clearJobResultURL() {
         bitField1_ = (bitField1_ & ~0x00000080);
@@ -8181,13 +9925,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string jobResultURL = 40;</code>
+       * @param value The bytes for jobResultURL to set.
+       * @return This builder for chaining.
        */
       public Builder setJobResultURLBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField1_ |= 0x00000080;
+  checkByteStringIsUtf8(value);
+        bitField1_ |= 0x00000080;
         jobResultURL_ = value;
         onChanged();
         return this;
@@ -8196,12 +9943,14 @@ public final class MahaRequestLog {
       private java.lang.Object jobName_ = "";
       /**
        * <code>optional string jobName = 41;</code>
+       * @return Whether the jobName field is set.
        */
       public boolean hasJobName() {
-        return ((bitField1_ & 0x00000100) == 0x00000100);
+        return ((bitField1_ & 0x00000100) != 0);
       }
       /**
        * <code>optional string jobName = 41;</code>
+       * @return The jobName.
        */
       public java.lang.String getJobName() {
         java.lang.Object ref = jobName_;
@@ -8209,9 +9958,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            jobName_ = s;
-          }
+          jobName_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -8219,6 +9966,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string jobName = 41;</code>
+       * @return The bytes for jobName.
        */
       public com.google.protobuf.ByteString
           getJobNameBytes() {
@@ -8235,6 +9983,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string jobName = 41;</code>
+       * @param value The jobName to set.
+       * @return This builder for chaining.
        */
       public Builder setJobName(
           java.lang.String value) {
@@ -8248,6 +9998,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string jobName = 41;</code>
+       * @return This builder for chaining.
        */
       public Builder clearJobName() {
         bitField1_ = (bitField1_ & ~0x00000100);
@@ -8257,13 +10008,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string jobName = 41;</code>
+       * @param value The bytes for jobName to set.
+       * @return This builder for chaining.
        */
       public Builder setJobNameBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField1_ |= 0x00000100;
+  checkByteStringIsUtf8(value);
+        bitField1_ |= 0x00000100;
         jobName_ = value;
         onChanged();
         return this;
@@ -8272,18 +10026,24 @@ public final class MahaRequestLog {
       private long queueWaitingTime_ ;
       /**
        * <code>optional int64 queueWaitingTime = 42;</code>
+       * @return Whether the queueWaitingTime field is set.
        */
+      @java.lang.Override
       public boolean hasQueueWaitingTime() {
-        return ((bitField1_ & 0x00000200) == 0x00000200);
+        return ((bitField1_ & 0x00000200) != 0);
       }
       /**
        * <code>optional int64 queueWaitingTime = 42;</code>
+       * @return The queueWaitingTime.
        */
+      @java.lang.Override
       public long getQueueWaitingTime() {
         return queueWaitingTime_;
       }
       /**
        * <code>optional int64 queueWaitingTime = 42;</code>
+       * @param value The queueWaitingTime to set.
+       * @return This builder for chaining.
        */
       public Builder setQueueWaitingTime(long value) {
         bitField1_ |= 0x00000200;
@@ -8293,6 +10053,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int64 queueWaitingTime = 42;</code>
+       * @return This builder for chaining.
        */
       public Builder clearQueueWaitingTime() {
         bitField1_ = (bitField1_ & ~0x00000200);
@@ -8301,26 +10062,27 @@ public final class MahaRequestLog {
         return this;
       }
 
-      private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType queueType_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType.PULSAR;
+      private int queueType_ = 0;
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.QueueType queueType = 43;</code>
+       * @return Whether the queueType field is set.
        */
-      public boolean hasQueueType() {
-        return ((bitField1_ & 0x00000400) == 0x00000400);
+      @java.lang.Override public boolean hasQueueType() {
+        return ((bitField1_ & 0x00000400) != 0);
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.QueueType queueType = 43;</code>
+       * @return The enum numeric value on the wire for queueType.
        */
-      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType getQueueType() {
+      @java.lang.Override public int getQueueTypeValue() {
         return queueType_;
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.QueueType queueType = 43;</code>
+       * @param value The enum numeric value on the wire for queueType to set.
+       * @return This builder for chaining.
        */
-      public Builder setQueueType(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType value) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
+      public Builder setQueueTypeValue(int value) {
         bitField1_ |= 0x00000400;
         queueType_ = value;
         onChanged();
@@ -8328,10 +10090,35 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.QueueType queueType = 43;</code>
+       * @return The queueType.
+       */
+      @java.lang.Override
+      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType getQueueType() {
+        @SuppressWarnings("deprecation")
+        com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType.valueOf(queueType_);
+        return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType.UNRECOGNIZED : result;
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.QueueType queueType = 43;</code>
+       * @param value The queueType to set.
+       * @return This builder for chaining.
+       */
+      public Builder setQueueType(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        bitField1_ |= 0x00000400;
+        queueType_ = value.getNumber();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.QueueType queueType = 43;</code>
+       * @return This builder for chaining.
        */
       public Builder clearQueueType() {
         bitField1_ = (bitField1_ & ~0x00000400);
-        queueType_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.QueueType.PULSAR;
+        queueType_ = 0;
         onChanged();
         return this;
       }
@@ -8339,18 +10126,24 @@ public final class MahaRequestLog {
       private long cubeRevision_ ;
       /**
        * <code>optional int64 cubeRevision = 44;</code>
+       * @return Whether the cubeRevision field is set.
        */
+      @java.lang.Override
       public boolean hasCubeRevision() {
-        return ((bitField1_ & 0x00000800) == 0x00000800);
+        return ((bitField1_ & 0x00000800) != 0);
       }
       /**
        * <code>optional int64 cubeRevision = 44;</code>
+       * @return The cubeRevision.
        */
+      @java.lang.Override
       public long getCubeRevision() {
         return cubeRevision_;
       }
       /**
        * <code>optional int64 cubeRevision = 44;</code>
+       * @param value The cubeRevision to set.
+       * @return This builder for chaining.
        */
       public Builder setCubeRevision(long value) {
         bitField1_ |= 0x00000800;
@@ -8360,6 +10153,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int64 cubeRevision = 44;</code>
+       * @return This builder for chaining.
        */
       public Builder clearCubeRevision() {
         bitField1_ = (bitField1_ & ~0x00000800);
@@ -8371,12 +10165,14 @@ public final class MahaRequestLog {
       private java.lang.Object mahaServiceRegistryName_ = "";
       /**
        * <code>optional string mahaServiceRegistryName = 45;</code>
+       * @return Whether the mahaServiceRegistryName field is set.
        */
       public boolean hasMahaServiceRegistryName() {
-        return ((bitField1_ & 0x00001000) == 0x00001000);
+        return ((bitField1_ & 0x00001000) != 0);
       }
       /**
        * <code>optional string mahaServiceRegistryName = 45;</code>
+       * @return The mahaServiceRegistryName.
        */
       public java.lang.String getMahaServiceRegistryName() {
         java.lang.Object ref = mahaServiceRegistryName_;
@@ -8384,9 +10180,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            mahaServiceRegistryName_ = s;
-          }
+          mahaServiceRegistryName_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -8394,6 +10188,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string mahaServiceRegistryName = 45;</code>
+       * @return The bytes for mahaServiceRegistryName.
        */
       public com.google.protobuf.ByteString
           getMahaServiceRegistryNameBytes() {
@@ -8410,6 +10205,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string mahaServiceRegistryName = 45;</code>
+       * @param value The mahaServiceRegistryName to set.
+       * @return This builder for chaining.
        */
       public Builder setMahaServiceRegistryName(
           java.lang.String value) {
@@ -8423,6 +10220,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string mahaServiceRegistryName = 45;</code>
+       * @return This builder for chaining.
        */
       public Builder clearMahaServiceRegistryName() {
         bitField1_ = (bitField1_ & ~0x00001000);
@@ -8432,13 +10230,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string mahaServiceRegistryName = 45;</code>
+       * @param value The bytes for mahaServiceRegistryName to set.
+       * @return This builder for chaining.
        */
       public Builder setMahaServiceRegistryNameBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField1_ |= 0x00001000;
+  checkByteStringIsUtf8(value);
+        bitField1_ |= 0x00001000;
         mahaServiceRegistryName_ = value;
         onChanged();
         return this;
@@ -8447,12 +10248,14 @@ public final class MahaRequestLog {
       private java.lang.Object mahaServiceHostname_ = "";
       /**
        * <code>optional string mahaServiceHostname = 46;</code>
+       * @return Whether the mahaServiceHostname field is set.
        */
       public boolean hasMahaServiceHostname() {
-        return ((bitField1_ & 0x00002000) == 0x00002000);
+        return ((bitField1_ & 0x00002000) != 0);
       }
       /**
        * <code>optional string mahaServiceHostname = 46;</code>
+       * @return The mahaServiceHostname.
        */
       public java.lang.String getMahaServiceHostname() {
         java.lang.Object ref = mahaServiceHostname_;
@@ -8460,9 +10263,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            mahaServiceHostname_ = s;
-          }
+          mahaServiceHostname_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -8470,6 +10271,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string mahaServiceHostname = 46;</code>
+       * @return The bytes for mahaServiceHostname.
        */
       public com.google.protobuf.ByteString
           getMahaServiceHostnameBytes() {
@@ -8486,6 +10288,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string mahaServiceHostname = 46;</code>
+       * @param value The mahaServiceHostname to set.
+       * @return This builder for chaining.
        */
       public Builder setMahaServiceHostname(
           java.lang.String value) {
@@ -8499,6 +10303,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string mahaServiceHostname = 46;</code>
+       * @return This builder for chaining.
        */
       public Builder clearMahaServiceHostname() {
         bitField1_ = (bitField1_ & ~0x00002000);
@@ -8508,13 +10313,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string mahaServiceHostname = 46;</code>
+       * @param value The bytes for mahaServiceHostname to set.
+       * @return This builder for chaining.
        */
       public Builder setMahaServiceHostnameBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField1_ |= 0x00002000;
+  checkByteStringIsUtf8(value);
+        bitField1_ |= 0x00002000;
         mahaServiceHostname_ = value;
         onChanged();
         return this;
@@ -8523,18 +10331,24 @@ public final class MahaRequestLog {
       private boolean isGrainOptimized_ ;
       /**
        * <code>optional bool isGrainOptimized = 47;</code>
+       * @return Whether the isGrainOptimized field is set.
        */
+      @java.lang.Override
       public boolean hasIsGrainOptimized() {
-        return ((bitField1_ & 0x00004000) == 0x00004000);
+        return ((bitField1_ & 0x00004000) != 0);
       }
       /**
        * <code>optional bool isGrainOptimized = 47;</code>
+       * @return The isGrainOptimized.
        */
+      @java.lang.Override
       public boolean getIsGrainOptimized() {
         return isGrainOptimized_;
       }
       /**
        * <code>optional bool isGrainOptimized = 47;</code>
+       * @param value The isGrainOptimized to set.
+       * @return This builder for chaining.
        */
       public Builder setIsGrainOptimized(boolean value) {
         bitField1_ |= 0x00004000;
@@ -8544,6 +10358,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool isGrainOptimized = 47;</code>
+       * @return This builder for chaining.
        */
       public Builder clearIsGrainOptimized() {
         bitField1_ = (bitField1_ & ~0x00004000);
@@ -8555,18 +10370,24 @@ public final class MahaRequestLog {
       private boolean isIndexOptimized_ ;
       /**
        * <code>optional bool isIndexOptimized = 48;</code>
+       * @return Whether the isIndexOptimized field is set.
        */
+      @java.lang.Override
       public boolean hasIsIndexOptimized() {
-        return ((bitField1_ & 0x00008000) == 0x00008000);
+        return ((bitField1_ & 0x00008000) != 0);
       }
       /**
        * <code>optional bool isIndexOptimized = 48;</code>
+       * @return The isIndexOptimized.
        */
+      @java.lang.Override
       public boolean getIsIndexOptimized() {
         return isIndexOptimized_;
       }
       /**
        * <code>optional bool isIndexOptimized = 48;</code>
+       * @param value The isIndexOptimized to set.
+       * @return This builder for chaining.
        */
       public Builder setIsIndexOptimized(boolean value) {
         bitField1_ |= 0x00008000;
@@ -8576,6 +10397,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool isIndexOptimized = 48;</code>
+       * @return This builder for chaining.
        */
       public Builder clearIsIndexOptimized() {
         bitField1_ = (bitField1_ & ~0x00008000);
@@ -8587,12 +10409,14 @@ public final class MahaRequestLog {
       private java.lang.Object curator_ = "";
       /**
        * <code>optional string curator = 49;</code>
+       * @return Whether the curator field is set.
        */
       public boolean hasCurator() {
-        return ((bitField1_ & 0x00010000) == 0x00010000);
+        return ((bitField1_ & 0x00010000) != 0);
       }
       /**
        * <code>optional string curator = 49;</code>
+       * @return The curator.
        */
       public java.lang.String getCurator() {
         java.lang.Object ref = curator_;
@@ -8600,9 +10424,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            curator_ = s;
-          }
+          curator_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -8610,6 +10432,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string curator = 49;</code>
+       * @return The bytes for curator.
        */
       public com.google.protobuf.ByteString
           getCuratorBytes() {
@@ -8626,6 +10449,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string curator = 49;</code>
+       * @param value The curator to set.
+       * @return This builder for chaining.
        */
       public Builder setCurator(
           java.lang.String value) {
@@ -8639,6 +10464,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string curator = 49;</code>
+       * @return This builder for chaining.
        */
       public Builder clearCurator() {
         bitField1_ = (bitField1_ & ~0x00010000);
@@ -8648,13 +10474,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string curator = 49;</code>
+       * @param value The bytes for curator to set.
+       * @return This builder for chaining.
        */
       public Builder setCuratorBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField1_ |= 0x00010000;
+  checkByteStringIsUtf8(value);
+        bitField1_ |= 0x00010000;
         curator_ = value;
         onChanged();
         return this;
@@ -8663,12 +10492,14 @@ public final class MahaRequestLog {
       private java.lang.Object reRunEngineQueryTable_ = "";
       /**
        * <code>optional string reRunEngineQueryTable = 50;</code>
+       * @return Whether the reRunEngineQueryTable field is set.
        */
       public boolean hasReRunEngineQueryTable() {
-        return ((bitField1_ & 0x00020000) == 0x00020000);
+        return ((bitField1_ & 0x00020000) != 0);
       }
       /**
        * <code>optional string reRunEngineQueryTable = 50;</code>
+       * @return The reRunEngineQueryTable.
        */
       public java.lang.String getReRunEngineQueryTable() {
         java.lang.Object ref = reRunEngineQueryTable_;
@@ -8676,9 +10507,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            reRunEngineQueryTable_ = s;
-          }
+          reRunEngineQueryTable_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -8686,6 +10515,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string reRunEngineQueryTable = 50;</code>
+       * @return The bytes for reRunEngineQueryTable.
        */
       public com.google.protobuf.ByteString
           getReRunEngineQueryTableBytes() {
@@ -8702,6 +10532,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string reRunEngineQueryTable = 50;</code>
+       * @param value The reRunEngineQueryTable to set.
+       * @return This builder for chaining.
        */
       public Builder setReRunEngineQueryTable(
           java.lang.String value) {
@@ -8715,6 +10547,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string reRunEngineQueryTable = 50;</code>
+       * @return This builder for chaining.
        */
       public Builder clearReRunEngineQueryTable() {
         bitField1_ = (bitField1_ & ~0x00020000);
@@ -8724,13 +10557,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string reRunEngineQueryTable = 50;</code>
+       * @param value The bytes for reRunEngineQueryTable to set.
+       * @return This builder for chaining.
        */
       public Builder setReRunEngineQueryTableBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField1_ |= 0x00020000;
+  checkByteStringIsUtf8(value);
+        bitField1_ |= 0x00020000;
         reRunEngineQueryTable_ = value;
         onChanged();
         return this;
@@ -8739,18 +10575,24 @@ public final class MahaRequestLog {
       private boolean isScanOptimized_ ;
       /**
        * <code>optional bool isScanOptimized = 51;</code>
+       * @return Whether the isScanOptimized field is set.
        */
+      @java.lang.Override
       public boolean hasIsScanOptimized() {
-        return ((bitField1_ & 0x00040000) == 0x00040000);
+        return ((bitField1_ & 0x00040000) != 0);
       }
       /**
        * <code>optional bool isScanOptimized = 51;</code>
+       * @return The isScanOptimized.
        */
+      @java.lang.Override
       public boolean getIsScanOptimized() {
         return isScanOptimized_;
       }
       /**
        * <code>optional bool isScanOptimized = 51;</code>
+       * @param value The isScanOptimized to set.
+       * @return This builder for chaining.
        */
       public Builder setIsScanOptimized(boolean value) {
         bitField1_ |= 0x00040000;
@@ -8760,6 +10602,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool isScanOptimized = 51;</code>
+       * @return This builder for chaining.
        */
       public Builder clearIsScanOptimized() {
         bitField1_ = (bitField1_ & ~0x00040000);
@@ -8771,18 +10614,24 @@ public final class MahaRequestLog {
       private long scanRows_ ;
       /**
        * <code>optional int64 scanRows = 52;</code>
+       * @return Whether the scanRows field is set.
        */
+      @java.lang.Override
       public boolean hasScanRows() {
-        return ((bitField1_ & 0x00080000) == 0x00080000);
+        return ((bitField1_ & 0x00080000) != 0);
       }
       /**
        * <code>optional int64 scanRows = 52;</code>
+       * @return The scanRows.
        */
+      @java.lang.Override
       public long getScanRows() {
         return scanRows_;
       }
       /**
        * <code>optional int64 scanRows = 52;</code>
+       * @param value The scanRows to set.
+       * @return This builder for chaining.
        */
       public Builder setScanRows(long value) {
         bitField1_ |= 0x00080000;
@@ -8792,6 +10641,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int64 scanRows = 52;</code>
+       * @return This builder for chaining.
        */
       public Builder clearScanRows() {
         bitField1_ = (bitField1_ & ~0x00080000);
@@ -8803,18 +10653,24 @@ public final class MahaRequestLog {
       private long grainRows_ ;
       /**
        * <code>optional int64 grainRows = 53;</code>
+       * @return Whether the grainRows field is set.
        */
+      @java.lang.Override
       public boolean hasGrainRows() {
-        return ((bitField1_ & 0x00100000) == 0x00100000);
+        return ((bitField1_ & 0x00100000) != 0);
       }
       /**
        * <code>optional int64 grainRows = 53;</code>
+       * @return The grainRows.
        */
+      @java.lang.Override
       public long getGrainRows() {
         return grainRows_;
       }
       /**
        * <code>optional int64 grainRows = 53;</code>
+       * @param value The grainRows to set.
+       * @return This builder for chaining.
        */
       public Builder setGrainRows(long value) {
         bitField1_ |= 0x00100000;
@@ -8824,6 +10680,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int64 grainRows = 53;</code>
+       * @return This builder for chaining.
        */
       public Builder clearGrainRows() {
         bitField1_ = (bitField1_ & ~0x00100000);
@@ -8835,18 +10692,24 @@ public final class MahaRequestLog {
       private boolean isDebug_ ;
       /**
        * <code>optional bool isDebug = 54;</code>
+       * @return Whether the isDebug field is set.
        */
+      @java.lang.Override
       public boolean hasIsDebug() {
-        return ((bitField1_ & 0x00200000) == 0x00200000);
+        return ((bitField1_ & 0x00200000) != 0);
       }
       /**
        * <code>optional bool isDebug = 54;</code>
+       * @return The isDebug.
        */
+      @java.lang.Override
       public boolean getIsDebug() {
         return isDebug_;
       }
       /**
        * <code>optional bool isDebug = 54;</code>
+       * @param value The isDebug to set.
+       * @return This builder for chaining.
        */
       public Builder setIsDebug(boolean value) {
         bitField1_ |= 0x00200000;
@@ -8856,6 +10719,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool isDebug = 54;</code>
+       * @return This builder for chaining.
        */
       public Builder clearIsDebug() {
         bitField1_ = (bitField1_ & ~0x00200000);
@@ -8867,18 +10731,24 @@ public final class MahaRequestLog {
       private boolean isTest_ ;
       /**
        * <code>optional bool isTest = 55;</code>
+       * @return Whether the isTest field is set.
        */
+      @java.lang.Override
       public boolean hasIsTest() {
-        return ((bitField1_ & 0x00400000) == 0x00400000);
+        return ((bitField1_ & 0x00400000) != 0);
       }
       /**
        * <code>optional bool isTest = 55;</code>
+       * @return The isTest.
        */
+      @java.lang.Override
       public boolean getIsTest() {
         return isTest_;
       }
       /**
        * <code>optional bool isTest = 55;</code>
+       * @param value The isTest to set.
+       * @return This builder for chaining.
        */
       public Builder setIsTest(boolean value) {
         bitField1_ |= 0x00400000;
@@ -8888,6 +10758,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional bool isTest = 55;</code>
+       * @return This builder for chaining.
        */
       public Builder clearIsTest() {
         bitField1_ = (bitField1_ & ~0x00400000);
@@ -8899,12 +10770,14 @@ public final class MahaRequestLog {
       private java.lang.Object testName_ = "";
       /**
        * <code>optional string testName = 56;</code>
+       * @return Whether the testName field is set.
        */
       public boolean hasTestName() {
-        return ((bitField1_ & 0x00800000) == 0x00800000);
+        return ((bitField1_ & 0x00800000) != 0);
       }
       /**
        * <code>optional string testName = 56;</code>
+       * @return The testName.
        */
       public java.lang.String getTestName() {
         java.lang.Object ref = testName_;
@@ -8912,9 +10785,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            testName_ = s;
-          }
+          testName_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -8922,6 +10793,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string testName = 56;</code>
+       * @return The bytes for testName.
        */
       public com.google.protobuf.ByteString
           getTestNameBytes() {
@@ -8938,6 +10810,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string testName = 56;</code>
+       * @param value The testName to set.
+       * @return This builder for chaining.
        */
       public Builder setTestName(
           java.lang.String value) {
@@ -8951,6 +10825,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string testName = 56;</code>
+       * @return This builder for chaining.
        */
       public Builder clearTestName() {
         bitField1_ = (bitField1_ & ~0x00800000);
@@ -8960,13 +10835,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string testName = 56;</code>
+       * @param value The bytes for testName to set.
+       * @return This builder for chaining.
        */
       public Builder setTestNameBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField1_ |= 0x00800000;
+  checkByteStringIsUtf8(value);
+        bitField1_ |= 0x00800000;
         testName_ = value;
         onChanged();
         return this;
@@ -8974,13 +10852,14 @@ public final class MahaRequestLog {
 
       private com.google.protobuf.LazyStringList labels_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       private void ensureLabelsIsMutable() {
-        if (!((bitField1_ & 0x01000000) == 0x01000000)) {
+        if (!((bitField1_ & 0x01000000) != 0)) {
           labels_ = new com.google.protobuf.LazyStringArrayList(labels_);
           bitField1_ |= 0x01000000;
          }
       }
       /**
        * <code>repeated string labels = 57;</code>
+       * @return A list containing the labels.
        */
       public com.google.protobuf.ProtocolStringList
           getLabelsList() {
@@ -8988,18 +10867,23 @@ public final class MahaRequestLog {
       }
       /**
        * <code>repeated string labels = 57;</code>
+       * @return The count of labels.
        */
       public int getLabelsCount() {
         return labels_.size();
       }
       /**
        * <code>repeated string labels = 57;</code>
+       * @param index The index of the element to return.
+       * @return The labels at the given index.
        */
       public java.lang.String getLabels(int index) {
         return labels_.get(index);
       }
       /**
        * <code>repeated string labels = 57;</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the labels at the given index.
        */
       public com.google.protobuf.ByteString
           getLabelsBytes(int index) {
@@ -9007,6 +10891,9 @@ public final class MahaRequestLog {
       }
       /**
        * <code>repeated string labels = 57;</code>
+       * @param index The index to set the value at.
+       * @param value The labels to set.
+       * @return This builder for chaining.
        */
       public Builder setLabels(
           int index, java.lang.String value) {
@@ -9020,6 +10907,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>repeated string labels = 57;</code>
+       * @param value The labels to add.
+       * @return This builder for chaining.
        */
       public Builder addLabels(
           java.lang.String value) {
@@ -9033,6 +10922,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>repeated string labels = 57;</code>
+       * @param values The labels to add.
+       * @return This builder for chaining.
        */
       public Builder addAllLabels(
           java.lang.Iterable<java.lang.String> values) {
@@ -9044,6 +10935,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>repeated string labels = 57;</code>
+       * @return This builder for chaining.
        */
       public Builder clearLabels() {
         labels_ = com.google.protobuf.LazyStringArrayList.EMPTY;
@@ -9053,13 +10945,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>repeated string labels = 57;</code>
+       * @param value The bytes of the labels to add.
+       * @return This builder for chaining.
        */
       public Builder addLabelsBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  ensureLabelsIsMutable();
+  checkByteStringIsUtf8(value);
+        ensureLabelsIsMutable();
         labels_.add(value);
         onChanged();
         return this;
@@ -9068,12 +10963,14 @@ public final class MahaRequestLog {
       private java.lang.Object requestHash_ = "";
       /**
        * <code>optional string requestHash = 58;</code>
+       * @return Whether the requestHash field is set.
        */
       public boolean hasRequestHash() {
-        return ((bitField1_ & 0x02000000) == 0x02000000);
+        return ((bitField1_ & 0x02000000) != 0);
       }
       /**
        * <code>optional string requestHash = 58;</code>
+       * @return The requestHash.
        */
       public java.lang.String getRequestHash() {
         java.lang.Object ref = requestHash_;
@@ -9081,9 +10978,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            requestHash_ = s;
-          }
+          requestHash_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -9091,6 +10986,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string requestHash = 58;</code>
+       * @return The bytes for requestHash.
        */
       public com.google.protobuf.ByteString
           getRequestHashBytes() {
@@ -9107,6 +11003,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string requestHash = 58;</code>
+       * @param value The requestHash to set.
+       * @return This builder for chaining.
        */
       public Builder setRequestHash(
           java.lang.String value) {
@@ -9120,6 +11018,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string requestHash = 58;</code>
+       * @return This builder for chaining.
        */
       public Builder clearRequestHash() {
         bitField1_ = (bitField1_ & ~0x02000000);
@@ -9129,13 +11028,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string requestHash = 58;</code>
+       * @param value The bytes for requestHash to set.
+       * @return This builder for chaining.
        */
       public Builder setRequestHashBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField1_ |= 0x02000000;
+  checkByteStringIsUtf8(value);
+        bitField1_ |= 0x02000000;
         requestHash_ = value;
         onChanged();
         return this;
@@ -9144,12 +11046,14 @@ public final class MahaRequestLog {
       private java.lang.Object jobIdString_ = "";
       /**
        * <code>optional string jobIdString = 59;</code>
+       * @return Whether the jobIdString field is set.
        */
       public boolean hasJobIdString() {
-        return ((bitField1_ & 0x04000000) == 0x04000000);
+        return ((bitField1_ & 0x04000000) != 0);
       }
       /**
        * <code>optional string jobIdString = 59;</code>
+       * @return The jobIdString.
        */
       public java.lang.String getJobIdString() {
         java.lang.Object ref = jobIdString_;
@@ -9157,9 +11061,7 @@ public final class MahaRequestLog {
           com.google.protobuf.ByteString bs =
               (com.google.protobuf.ByteString) ref;
           java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            jobIdString_ = s;
-          }
+          jobIdString_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -9167,6 +11069,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string jobIdString = 59;</code>
+       * @return The bytes for jobIdString.
        */
       public com.google.protobuf.ByteString
           getJobIdStringBytes() {
@@ -9183,6 +11086,8 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string jobIdString = 59;</code>
+       * @param value The jobIdString to set.
+       * @return This builder for chaining.
        */
       public Builder setJobIdString(
           java.lang.String value) {
@@ -9196,6 +11101,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string jobIdString = 59;</code>
+       * @return This builder for chaining.
        */
       public Builder clearJobIdString() {
         bitField1_ = (bitField1_ & ~0x04000000);
@@ -9205,13 +11111,16 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional string jobIdString = 59;</code>
+       * @param value The bytes for jobIdString to set.
+       * @return This builder for chaining.
        */
       public Builder setJobIdStringBytes(
           com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField1_ |= 0x04000000;
+  checkByteStringIsUtf8(value);
+        bitField1_ |= 0x04000000;
         jobIdString_ = value;
         onChanged();
         return this;
@@ -9220,18 +11129,24 @@ public final class MahaRequestLog {
       private long numDays_ ;
       /**
        * <code>optional int64 numDays = 60;</code>
+       * @return Whether the numDays field is set.
        */
+      @java.lang.Override
       public boolean hasNumDays() {
-        return ((bitField1_ & 0x08000000) == 0x08000000);
+        return ((bitField1_ & 0x08000000) != 0);
       }
       /**
        * <code>optional int64 numDays = 60;</code>
+       * @return The numDays.
        */
+      @java.lang.Override
       public long getNumDays() {
         return numDays_;
       }
       /**
        * <code>optional int64 numDays = 60;</code>
+       * @param value The numDays to set.
+       * @return This builder for chaining.
        */
       public Builder setNumDays(long value) {
         bitField1_ |= 0x08000000;
@@ -9241,6 +11156,7 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional int64 numDays = 60;</code>
+       * @return This builder for chaining.
        */
       public Builder clearNumDays() {
         bitField1_ = (bitField1_ & ~0x08000000);
@@ -9249,26 +11165,27 @@ public final class MahaRequestLog {
         return this;
       }
 
-      private com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus workerStatus_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.WORKER_RUNNING;
+      private int workerStatus_ = 0;
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+       * @return Whether the workerStatus field is set.
        */
-      public boolean hasWorkerStatus() {
-        return ((bitField1_ & 0x10000000) == 0x10000000);
+      @java.lang.Override public boolean hasWorkerStatus() {
+        return ((bitField1_ & 0x10000000) != 0);
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+       * @return The enum numeric value on the wire for workerStatus.
        */
-      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus getWorkerStatus() {
+      @java.lang.Override public int getWorkerStatusValue() {
         return workerStatus_;
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+       * @param value The enum numeric value on the wire for workerStatus to set.
+       * @return This builder for chaining.
        */
-      public Builder setWorkerStatus(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus value) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
+      public Builder setWorkerStatusValue(int value) {
         bitField1_ |= 0x10000000;
         workerStatus_ = value;
         onChanged();
@@ -9276,101 +11193,187 @@ public final class MahaRequestLog {
       }
       /**
        * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+       * @return The workerStatus.
        */
-      public Builder clearWorkerStatus() {
-        bitField1_ = (bitField1_ & ~0x10000000);
-        workerStatus_ = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.WORKER_RUNNING;
+      @java.lang.Override
+      public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus getWorkerStatus() {
+        @SuppressWarnings("deprecation")
+        com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus result = com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.valueOf(workerStatus_);
+        return result == null ? com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus.UNRECOGNIZED : result;
+      }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+       * @param value The workerStatus to set.
+       * @return This builder for chaining.
+       */
+      public Builder setWorkerStatus(com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto.WorkerStatus value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        bitField1_ |= 0x10000000;
+        workerStatus_ = value.getNumber();
         onChanged();
         return this;
       }
+      /**
+       * <code>optional .com.yahoo.maha.proto.MahaRequestProto.WorkerStatus workerStatus = 61;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearWorkerStatus() {
+        bitField1_ = (bitField1_ & ~0x10000000);
+        workerStatus_ = 0;
+        onChanged();
+        return this;
+      }
+      @java.lang.Override
+      public final Builder setUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.setUnknownFields(unknownFields);
+      }
+
+      @java.lang.Override
+      public final Builder mergeUnknownFields(
+          final com.google.protobuf.UnknownFieldSet unknownFields) {
+        return super.mergeUnknownFields(unknownFields);
+      }
+
 
       // @@protoc_insertion_point(builder_scope:com.yahoo.maha.proto.MahaRequestProto)
     }
 
+    // @@protoc_insertion_point(class_scope:com.yahoo.maha.proto.MahaRequestProto)
+    private static final com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto DEFAULT_INSTANCE;
     static {
-      defaultInstance = new MahaRequestProto(true);
-      defaultInstance.initFields();
+      DEFAULT_INSTANCE = new com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto();
     }
 
-    // @@protoc_insertion_point(class_scope:com.yahoo.maha.proto.MahaRequestProto)
+    public static com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static final com.google.protobuf.Parser<MahaRequestProto>
+        PARSER = new com.google.protobuf.AbstractParser<MahaRequestProto>() {
+      @java.lang.Override
+      public MahaRequestProto parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        Builder builder = newBuilder();
+        try {
+          builder.mergeFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          throw e.setUnfinishedMessage(builder.buildPartial());
+        } catch (com.google.protobuf.UninitializedMessageException e) {
+          throw e.asInvalidProtocolBufferException().setUnfinishedMessage(builder.buildPartial());
+        } catch (java.io.IOException e) {
+          throw new com.google.protobuf.InvalidProtocolBufferException(e)
+              .setUnfinishedMessage(builder.buildPartial());
+        }
+        return builder.buildPartial();
+      }
+    };
+
+    public static com.google.protobuf.Parser<MahaRequestProto> parser() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<MahaRequestProto> getParserForType() {
+      return PARSER;
+    }
+
+    @java.lang.Override
+    public com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto getDefaultInstanceForType() {
+      return DEFAULT_INSTANCE;
+    }
+
   }
 
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_yahoo_maha_proto_MahaRequestProto_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_fieldAccessorTable;
   private static final com.google.protobuf.Descriptors.Descriptor
     internal_static_com_yahoo_maha_proto_MahaRequestProto_FactCost_descriptor;
-  private static
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+  private static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_com_yahoo_maha_proto_MahaRequestProto_FactCost_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
     return descriptor;
   }
-  private static com.google.protobuf.Descriptors.FileDescriptor
+  private static  com.google.protobuf.Descriptors.FileDescriptor
       descriptor;
   static {
     java.lang.String[] descriptorData = {
       "\n\024MahaRequestLog.proto\022\024com.yahoo.maha.p" +
-      "roto\"\230\023\n\020MahaRequestProto\022\021\n\trequestId\030\001" +
-      " \002(\t\022\014\n\004json\030\002 \002(\014\022\016\n\006userId\030\003 \001(\t\022\014\n\004cu" +
-      "be\030\004 \001(\t\022\016\n\006schema\030\005 \001(\t\022\022\n\nisInternal\030\006" +
-      " \001(\010\022G\n\013requestType\030\007 \001(\01622.com.yahoo.ma" +
-      "ha.proto.MahaRequestProto.RequestType\022\032\n" +
-      "\022drivingQueryEngine\030\010 \001(\t\022\024\n\014drivingTabl" +
-      "e\030\t \001(\t\022\026\n\016queryChainType\030\n \001(\t\022\"\n\032first" +
-      "SubsequentQueryEngine\030\013 \001(\t\022!\n\031firstSubs" +
-      "equentQueryTable\030\014 \001(\t\022\030\n\020requestStartTi",
-      "me\030\r \001(\003\022\026\n\016requestEndTime\030\016 \001(\003\022\016\n\006stat" +
-      "us\030\017 \001(\005\022\024\n\014errorMessage\030\020 \001(\t\022\026\n\016hasFac" +
-      "tFilters\030\021 \001(\010\022\033\n\023hasNonFKFactFilters\030\022 " +
-      "\001(\010\022\025\n\rhasDimFilters\030\023 \001(\010\022\032\n\022hasNonFKDi" +
-      "mFilters\030\024 \001(\010\022\025\n\rhasFactSortBy\030\025 \001(\010\022\024\n" +
-      "\014hasDimSortBy\030\026 \001(\010\022\024\n\014isFactDriven\030\027 \001(" +
-      "\010\022\026\n\016forceDimDriven\030\030 \001(\010\022\027\n\017forceFactDr" +
-      "iven\030\031 \001(\010\022$\n\034hasNonDrivingDimSortOrFilt" +
-      "er\030\032 \001(\010\022\037\n\027hasDimAndFactOperations\030\033 \001(" +
-      "\010\022\036\n\026dimCardinalityEstimate\030\034 \001(\003\022R\n\021req",
-      "uestSortByCols\030\035 \003(\01327.com.yahoo.maha.pr" +
-      "oto.MahaRequestProto.SortByColumnInfo\022\034\n" +
-      "\024dimensionsCandidates\030\036 \003(\t\022A\n\010factCost\030" +
-      "\037 \003(\0132/.com.yahoo.maha.proto.MahaRequest" +
-      "Proto.FactCost\022!\n\031drivingQueryEngineLate" +
-      "ncy\030  \001(\003\022)\n!firstSubsequentQueryEngineL" +
-      "atency\030! \001(\003\022\037\n\027reRunEngineQueryLatency\030" +
-      "\" \001(\003\022B\n\013reRunEngine\030# \001(\0162-.com.yahoo.m" +
-      "aha.proto.MahaRequestProto.Engine\022\r\n\005job" +
-      "Id\030$ \001(\003\022\021\n\ttimeGrain\030% \001(\t\022M\n\016asyncJobS",
-      "tatus\030& \001(\01625.com.yahoo.maha.proto.MahaR" +
-      "equestProto.AsyncJobStatus\022\020\n\010isDryRun\030\'" +
-      " \001(\010\022\024\n\014jobResultURL\030( \001(\t\022\017\n\007jobName\030) " +
-      "\001(\t\022\030\n\020queueWaitingTime\030* \001(\003\022C\n\tqueueTy" +
-      "pe\030+ \001(\01620.com.yahoo.maha.proto.MahaRequ" +
-      "estProto.QueueType\022\024\n\014cubeRevision\030, \001(\003" +
-      "\022\037\n\027mahaServiceRegistryName\030- \001(\t\022\033\n\023mah" +
-      "aServiceHostname\030. \001(\t\022\030\n\020isGrainOptimiz" +
-      "ed\030/ \001(\010\022\030\n\020isIndexOptimized\0300 \001(\010\022\017\n\007cu" +
-      "rator\0301 \001(\t\022\035\n\025reRunEngineQueryTable\0302 \001",
-      "(\t\022\027\n\017isScanOptimized\0303 \001(\010\022\020\n\010scanRows\030" +
-      "4 \001(\003\022\021\n\tgrainRows\0305 \001(\003\022\017\n\007isDebug\0306 \001(" +
-      "\010\022\016\n\006isTest\0307 \001(\010\022\020\n\010testName\0308 \001(\t\022\016\n\006l" +
-      "abels\0309 \003(\t\022\023\n\013requestHash\030: \001(\t\022\023\n\013jobI" +
-      "dString\030; \001(\t\022\017\n\007numDays\030< \001(\003\022I\n\014worker" +
+      "roto\"\245\036\n\020MahaRequestProto\022\026\n\trequestId\030\001" +
+      " \001(\tH\000\210\001\001\022\021\n\004json\030\002 \001(\014H\001\210\001\001\022\023\n\006userId\030\003" +
+      " \001(\tH\002\210\001\001\022\021\n\004cube\030\004 \001(\tH\003\210\001\001\022\023\n\006schema\030\005" +
+      " \001(\tH\004\210\001\001\022\027\n\nisInternal\030\006 \001(\010H\005\210\001\001\022L\n\013re" +
+      "questType\030\007 \001(\01622.com.yahoo.maha.proto.M" +
+      "ahaRequestProto.RequestTypeH\006\210\001\001\022\037\n\022driv" +
+      "ingQueryEngine\030\010 \001(\tH\007\210\001\001\022\031\n\014drivingTabl" +
+      "e\030\t \001(\tH\010\210\001\001\022\033\n\016queryChainType\030\n \001(\tH\t\210\001" +
+      "\001\022\'\n\032firstSubsequentQueryEngine\030\013 \001(\tH\n\210" +
+      "\001\001\022&\n\031firstSubsequentQueryTable\030\014 \001(\tH\013\210" +
+      "\001\001\022\035\n\020requestStartTime\030\r \001(\003H\014\210\001\001\022\033\n\016req" +
+      "uestEndTime\030\016 \001(\003H\r\210\001\001\022\023\n\006status\030\017 \001(\005H\016" +
+      "\210\001\001\022\031\n\014errorMessage\030\020 \001(\tH\017\210\001\001\022\033\n\016hasFac" +
+      "tFilters\030\021 \001(\010H\020\210\001\001\022 \n\023hasNonFKFactFilte" +
+      "rs\030\022 \001(\010H\021\210\001\001\022\032\n\rhasDimFilters\030\023 \001(\010H\022\210\001" +
+      "\001\022\037\n\022hasNonFKDimFilters\030\024 \001(\010H\023\210\001\001\022\032\n\rha" +
+      "sFactSortBy\030\025 \001(\010H\024\210\001\001\022\031\n\014hasDimSortBy\030\026" +
+      " \001(\010H\025\210\001\001\022\031\n\014isFactDriven\030\027 \001(\010H\026\210\001\001\022\033\n\016" +
+      "forceDimDriven\030\030 \001(\010H\027\210\001\001\022\034\n\017forceFactDr" +
+      "iven\030\031 \001(\010H\030\210\001\001\022)\n\034hasNonDrivingDimSortO" +
+      "rFilter\030\032 \001(\010H\031\210\001\001\022$\n\027hasDimAndFactOpera" +
+      "tions\030\033 \001(\010H\032\210\001\001\022#\n\026dimCardinalityEstima" +
+      "te\030\034 \001(\003H\033\210\001\001\022R\n\021requestSortByCols\030\035 \003(\013" +
+      "27.com.yahoo.maha.proto.MahaRequestProto" +
+      ".SortByColumnInfo\022\034\n\024dimensionsCandidate" +
+      "s\030\036 \003(\t\022A\n\010factCost\030\037 \003(\0132/.com.yahoo.ma" +
+      "ha.proto.MahaRequestProto.FactCost\022&\n\031dr" +
+      "ivingQueryEngineLatency\030  \001(\003H\034\210\001\001\022.\n!fi" +
+      "rstSubsequentQueryEngineLatency\030! \001(\003H\035\210" +
+      "\001\001\022$\n\027reRunEngineQueryLatency\030\" \001(\003H\036\210\001\001" +
+      "\022G\n\013reRunEngine\030# \001(\0162-.com.yahoo.maha.p" +
+      "roto.MahaRequestProto.EngineH\037\210\001\001\022\022\n\005job" +
+      "Id\030$ \001(\003H \210\001\001\022\026\n\ttimeGrain\030% \001(\tH!\210\001\001\022R\n" +
+      "\016asyncJobStatus\030& \001(\01625.com.yahoo.maha.p" +
+      "roto.MahaRequestProto.AsyncJobStatusH\"\210\001" +
+      "\001\022\025\n\010isDryRun\030\' \001(\010H#\210\001\001\022\031\n\014jobResultURL" +
+      "\030( \001(\tH$\210\001\001\022\024\n\007jobName\030) \001(\tH%\210\001\001\022\035\n\020que" +
+      "ueWaitingTime\030* \001(\003H&\210\001\001\022H\n\tqueueType\030+ " +
+      "\001(\01620.com.yahoo.maha.proto.MahaRequestPr" +
+      "oto.QueueTypeH\'\210\001\001\022\031\n\014cubeRevision\030, \001(\003" +
+      "H(\210\001\001\022$\n\027mahaServiceRegistryName\030- \001(\tH)" +
+      "\210\001\001\022 \n\023mahaServiceHostname\030. \001(\tH*\210\001\001\022\035\n" +
+      "\020isGrainOptimized\030/ \001(\010H+\210\001\001\022\035\n\020isIndexO" +
+      "ptimized\0300 \001(\010H,\210\001\001\022\024\n\007curator\0301 \001(\tH-\210\001" +
+      "\001\022\"\n\025reRunEngineQueryTable\0302 \001(\tH.\210\001\001\022\034\n" +
+      "\017isScanOptimized\0303 \001(\010H/\210\001\001\022\025\n\010scanRows\030" +
+      "4 \001(\003H0\210\001\001\022\026\n\tgrainRows\0305 \001(\003H1\210\001\001\022\024\n\007is" +
+      "Debug\0306 \001(\010H2\210\001\001\022\023\n\006isTest\0307 \001(\010H3\210\001\001\022\025\n" +
+      "\010testName\0308 \001(\tH4\210\001\001\022\016\n\006labels\0309 \003(\t\022\030\n\013" +
+      "requestHash\030: \001(\tH5\210\001\001\022\030\n\013jobIdString\030; " +
+      "\001(\tH6\210\001\001\022\024\n\007numDays\030< \001(\003H7\210\001\001\022N\n\014worker" +
       "Status\030= \001(\01623.com.yahoo.maha.proto.Maha" +
-      "RequestProto.WorkerStatus\032^\n\020SortByColum" +
-      "nInfo\022\r\n\005alias\030\001 \001(\t\022;\n\005order\030\002 \001(\0162,.co" +
-      "m.yahoo.maha.proto.MahaRequestProto.Orde" +
-      "r\032e\n\010FactCost\022\014\n\004name\030\001 \001(\t\022=\n\006engine\030\002 ",
-      "\001(\0162-.com.yahoo.maha.proto.MahaRequestPr" +
-      "oto.Engine\022\014\n\004cost\030\003 \001(\003\"\"\n\013RequestType\022" +
+      "RequestProto.WorkerStatusH8\210\001\001\032|\n\020SortBy" +
+      "ColumnInfo\022\022\n\005alias\030\001 \001(\tH\000\210\001\001\022@\n\005order\030" +
+      "\002 \001(\0162,.com.yahoo.maha.proto.MahaRequest" +
+      "Proto.OrderH\001\210\001\001B\010\n\006_aliasB\010\n\006_order\032\221\001\n" +
+      "\010FactCost\022\021\n\004name\030\001 \001(\tH\000\210\001\001\022B\n\006engine\030\002" +
+      " \001(\0162-.com.yahoo.maha.proto.MahaRequestP" +
+      "roto.EngineH\001\210\001\001\022\021\n\004cost\030\003 \001(\003H\002\210\001\001B\007\n\005_" +
+      "nameB\t\n\007_engineB\007\n\005_cost\"\"\n\013RequestType\022" +
       "\010\n\004SYNC\020\000\022\t\n\005ASYNC\020\001\"\032\n\005Order\022\007\n\003ASC\020\000\022\010" +
       "\n\004DESC\020\001\"5\n\006Engine\022\n\n\006Oracle\020\000\022\t\n\005Druid\020" +
       "\001\022\010\n\004Hive\020\002\022\n\n\006Presto\020\003\"G\n\016AsyncJobStatu" +
@@ -9378,42 +11381,60 @@ public final class MahaRequestLog {
       "\002\022\r\n\tCOMPLETED\020\003\"\"\n\tQueueType\022\n\n\006PULSAR\020" +
       "\000\022\t\n\005KAFKA\020\001\"\320\001\n\014WorkerStatus\022\022\n\016WORKER_" +
       "RUNNING\020\000\022\021\n\rWORKER_FAILED\020\001\022\022\n\016WORKER_R" +
-      "ETRIED\020\002\022\027\n\023WORKER_GRID_TIMEOUT\020\003\022 \n\034WOR",
+      "ETRIED\020\002\022\027\n\023WORKER_GRID_TIMEOUT\020\003\022 \n\034WOR" +
       "KER_TRANSFORMATION_FAILED\020\004\022\036\n\032WORKER_RE" +
       "SULT_STORE_FAILED\020\005\022\024\n\020WORKER_COMPLETED\020" +
-      "\006\022\024\n\020WORKER_SUBMITTED\020\007B\020B\016MahaRequestLo" +
-      "g"
+      "\006\022\024\n\020WORKER_SUBMITTED\020\007B\014\n\n_requestIdB\007\n" +
+      "\005_jsonB\t\n\007_userIdB\007\n\005_cubeB\t\n\007_schemaB\r\n" +
+      "\013_isInternalB\016\n\014_requestTypeB\025\n\023_driving" +
+      "QueryEngineB\017\n\r_drivingTableB\021\n\017_queryCh" +
+      "ainTypeB\035\n\033_firstSubsequentQueryEngineB\034" +
+      "\n\032_firstSubsequentQueryTableB\023\n\021_request" +
+      "StartTimeB\021\n\017_requestEndTimeB\t\n\007_statusB" +
+      "\017\n\r_errorMessageB\021\n\017_hasFactFiltersB\026\n\024_" +
+      "hasNonFKFactFiltersB\020\n\016_hasDimFiltersB\025\n" +
+      "\023_hasNonFKDimFiltersB\020\n\016_hasFactSortByB\017" +
+      "\n\r_hasDimSortByB\017\n\r_isFactDrivenB\021\n\017_for" +
+      "ceDimDrivenB\022\n\020_forceFactDrivenB\037\n\035_hasN" +
+      "onDrivingDimSortOrFilterB\032\n\030_hasDimAndFa" +
+      "ctOperationsB\031\n\027_dimCardinalityEstimateB" +
+      "\034\n\032_drivingQueryEngineLatencyB$\n\"_firstS" +
+      "ubsequentQueryEngineLatencyB\032\n\030_reRunEng" +
+      "ineQueryLatencyB\016\n\014_reRunEngineB\010\n\006_jobI" +
+      "dB\014\n\n_timeGrainB\021\n\017_asyncJobStatusB\013\n\t_i" +
+      "sDryRunB\017\n\r_jobResultURLB\n\n\010_jobNameB\023\n\021" +
+      "_queueWaitingTimeB\014\n\n_queueTypeB\017\n\r_cube" +
+      "RevisionB\032\n\030_mahaServiceRegistryNameB\026\n\024" +
+      "_mahaServiceHostnameB\023\n\021_isGrainOptimize" +
+      "dB\023\n\021_isIndexOptimizedB\n\n\010_curatorB\030\n\026_r" +
+      "eRunEngineQueryTableB\022\n\020_isScanOptimized" +
+      "B\013\n\t_scanRowsB\014\n\n_grainRowsB\n\n\010_isDebugB" +
+      "\t\n\007_isTestB\013\n\t_testNameB\016\n\014_requestHashB" +
+      "\016\n\014_jobIdStringB\n\n\010_numDaysB\017\n\r_workerSt" +
+      "atusB\020B\016MahaRequestLogb\006proto3"
     };
-    com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
-        new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
-          public com.google.protobuf.ExtensionRegistry assignDescriptors(
-              com.google.protobuf.Descriptors.FileDescriptor root) {
-            descriptor = root;
-            return null;
-          }
-        };
-    com.google.protobuf.Descriptors.FileDescriptor
+    descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-        }, assigner);
+        });
     internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor =
       getDescriptor().getMessageTypes().get(0);
     internal_static_com_yahoo_maha_proto_MahaRequestProto_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor,
-        new java.lang.String[] { "RequestId", "Json", "UserId", "Cube", "Schema", "IsInternal", "RequestType", "DrivingQueryEngine", "DrivingTable", "QueryChainType", "FirstSubsequentQueryEngine", "FirstSubsequentQueryTable", "RequestStartTime", "RequestEndTime", "Status", "ErrorMessage", "HasFactFilters", "HasNonFKFactFilters", "HasDimFilters", "HasNonFKDimFilters", "HasFactSortBy", "HasDimSortBy", "IsFactDriven", "ForceDimDriven", "ForceFactDriven", "HasNonDrivingDimSortOrFilter", "HasDimAndFactOperations", "DimCardinalityEstimate", "RequestSortByCols", "DimensionsCandidates", "FactCost", "DrivingQueryEngineLatency", "FirstSubsequentQueryEngineLatency", "ReRunEngineQueryLatency", "ReRunEngine", "JobId", "TimeGrain", "AsyncJobStatus", "IsDryRun", "JobResultURL", "JobName", "QueueWaitingTime", "QueueType", "CubeRevision", "MahaServiceRegistryName", "MahaServiceHostname", "IsGrainOptimized", "IsIndexOptimized", "Curator", "ReRunEngineQueryTable", "IsScanOptimized", "ScanRows", "GrainRows", "IsDebug", "IsTest", "TestName", "Labels", "RequestHash", "JobIdString", "NumDays", "WorkerStatus", });
+        new java.lang.String[] { "RequestId", "Json", "UserId", "Cube", "Schema", "IsInternal", "RequestType", "DrivingQueryEngine", "DrivingTable", "QueryChainType", "FirstSubsequentQueryEngine", "FirstSubsequentQueryTable", "RequestStartTime", "RequestEndTime", "Status", "ErrorMessage", "HasFactFilters", "HasNonFKFactFilters", "HasDimFilters", "HasNonFKDimFilters", "HasFactSortBy", "HasDimSortBy", "IsFactDriven", "ForceDimDriven", "ForceFactDriven", "HasNonDrivingDimSortOrFilter", "HasDimAndFactOperations", "DimCardinalityEstimate", "RequestSortByCols", "DimensionsCandidates", "FactCost", "DrivingQueryEngineLatency", "FirstSubsequentQueryEngineLatency", "ReRunEngineQueryLatency", "ReRunEngine", "JobId", "TimeGrain", "AsyncJobStatus", "IsDryRun", "JobResultURL", "JobName", "QueueWaitingTime", "QueueType", "CubeRevision", "MahaServiceRegistryName", "MahaServiceHostname", "IsGrainOptimized", "IsIndexOptimized", "Curator", "ReRunEngineQueryTable", "IsScanOptimized", "ScanRows", "GrainRows", "IsDebug", "IsTest", "TestName", "Labels", "RequestHash", "JobIdString", "NumDays", "WorkerStatus", "RequestId", "Json", "UserId", "Cube", "Schema", "IsInternal", "RequestType", "DrivingQueryEngine", "DrivingTable", "QueryChainType", "FirstSubsequentQueryEngine", "FirstSubsequentQueryTable", "RequestStartTime", "RequestEndTime", "Status", "ErrorMessage", "HasFactFilters", "HasNonFKFactFilters", "HasDimFilters", "HasNonFKDimFilters", "HasFactSortBy", "HasDimSortBy", "IsFactDriven", "ForceDimDriven", "ForceFactDriven", "HasNonDrivingDimSortOrFilter", "HasDimAndFactOperations", "DimCardinalityEstimate", "DrivingQueryEngineLatency", "FirstSubsequentQueryEngineLatency", "ReRunEngineQueryLatency", "ReRunEngine", "JobId", "TimeGrain", "AsyncJobStatus", "IsDryRun", "JobResultURL", "JobName", "QueueWaitingTime", "QueueType", "CubeRevision", "MahaServiceRegistryName", "MahaServiceHostname", "IsGrainOptimized", "IsIndexOptimized", "Curator", "ReRunEngineQueryTable", "IsScanOptimized", "ScanRows", "GrainRows", "IsDebug", "IsTest", "TestName", "RequestHash", "JobIdString", "NumDays", "WorkerStatus", });
     internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_descriptor =
       internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor.getNestedTypes().get(0);
     internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_descriptor,
-        new java.lang.String[] { "Alias", "Order", });
+        new java.lang.String[] { "Alias", "Order", "Alias", "Order", });
     internal_static_com_yahoo_maha_proto_MahaRequestProto_FactCost_descriptor =
       internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor.getNestedTypes().get(1);
     internal_static_com_yahoo_maha_proto_MahaRequestProto_FactCost_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_com_yahoo_maha_proto_MahaRequestProto_FactCost_descriptor,
-        new java.lang.String[] { "Name", "Engine", "Cost", });
+        new java.lang.String[] { "Name", "Engine", "Cost", "Name", "Engine", "Cost", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)
