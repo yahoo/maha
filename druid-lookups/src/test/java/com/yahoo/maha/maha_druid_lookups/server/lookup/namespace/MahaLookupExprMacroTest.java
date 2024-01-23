@@ -48,11 +48,7 @@ import java.util.concurrent.TimeoutException;
 public class MahaLookupExprMacroTest {
 
 
-    private static final Expr.ObjectBinding BINDINGS = InputBindings.forMap(
-            ImmutableMap.<String, Object>builder()
-                    .put("id1", "dim_key1")
-                    .build()
-    );
+    private static final Expr.ObjectBinding BINDINGS = createBindings();
 
     private static Map<String, List> lookupCache = ImmutableMap.of(
             "dim_key1", Arrays.asList("dim_key1", "dim_val1")
@@ -164,4 +160,11 @@ public class MahaLookupExprMacroTest {
         final Expr roundTrip = Parser.parse(expr.stringify(), macroTable);
         Assert.assertEquals(exprNotFlattened.stringify(), expectedResult, roundTrip.eval(BINDINGS).value());
     }
+
+    private static Expr.ObjectBinding createBindings()
+    {
+        ImmutableMap.Builder<String, Object> builder = ImmutableMap.of("id1", "dim_key1").builder();
+        return InputBindings.forMap(builder.build());
+    }
+
 }
