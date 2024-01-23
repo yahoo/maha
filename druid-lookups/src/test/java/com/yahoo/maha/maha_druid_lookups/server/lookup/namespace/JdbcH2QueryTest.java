@@ -119,7 +119,7 @@ public class JdbcH2QueryTest {
      */
     private void buildJdbcTablesToQuery() {
         scala.util.Try createResult = jdbcConnection.execute(
-                "CREATE TABLE ad (name VARCHAR2(255), id BIGINT, gpa DECIMAL, date TIMESTAMP, last_updated TIMESTAMP, title VARCHAR2(255), status VARCHAR2(255));");
+                "CREATE TABLE ad (name VARCHAR2(255), id BIGINT, gpa DECIMAL(9,2), date TIMESTAMP, last_updated TIMESTAMP, title VARCHAR2(255), status VARCHAR2(255));");
         Assert.assertTrue(createResult.isSuccess(),"Should not fail to create a table in H2.");
     }
 

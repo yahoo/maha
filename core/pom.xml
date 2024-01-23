@@ -143,7 +143,6 @@
             <groupId>org.apache.druid</groupId>
             <artifactId>druid-server</artifactId>
             <version>${druid.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.druid.extensions</groupId>
