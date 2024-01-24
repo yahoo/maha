@@ -51,8 +51,8 @@ public class MahaLookupOperatorConversionTest {
 
     @BeforeTest
     public void setUp(){
-        NullHandling.initializeForTests();
         ExpressionProcessing.initializeForTests();
+        NullHandling.initializeForTests();
     }
 
     @AfterTest
