@@ -157,7 +157,10 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
         if (list.size() >= index+1) {
             DruidExpression expression = list.get(index);
             if (expression != null) {
-                return (String) plannerContext.parseExpression(expression.getExpression()).getLiteralValue();
+                Expr expr = plannerContext.parseExpression(expression.getExpression());
+                if(expr != null) {
+                    return (String) expr.getLiteralValue();
+                }
             }
         }
         return valueIfMissing;

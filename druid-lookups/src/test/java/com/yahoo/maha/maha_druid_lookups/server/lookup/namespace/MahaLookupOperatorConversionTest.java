@@ -22,7 +22,7 @@
 
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -37,15 +37,16 @@ import org.apache.druid.segment.column.ColumnType;
 import org.apache.druid.segment.column.RowSignature;
 import org.apache.druid.segment.column.ColumnType;
 import org.apache.druid.sql.calcite.expression.DruidExpression;
+import org.apache.druid.sql.calcite.planner.ExpressionParser;
+import org.apache.druid.sql.calcite.planner.ExpressionParserImpl;
 import org.apache.druid.sql.calcite.planner.PlannerContext;
 
-import org.easymock.EasyMock;
-import org.easymock.IAnswer;
+import org.mockito.Mockito;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-import static org.easymock.EasyMock.anyString;
+import java.lang.reflect.Field;
 
 public class MahaLookupOperatorConversionTest {
 
@@ -61,7 +62,7 @@ public class MahaLookupOperatorConversionTest {
     }
 
     @Test
-    public void testLookupReturnsExpectedResults() throws JsonProcessingException {
+    public void testLookupReturnsExpectedResults() throws Exception {
         MahaLookupTestUtil util = new MahaLookupTestUtil();
         RexBuilder rexBuilder = new RexBuilder(util.typeFactory);
         RowSignature ROW_SIGNATURE = RowSignature
@@ -72,21 +73,15 @@ public class MahaLookupOperatorConversionTest {
                 .add("student_id", ColumnType.STRING)
                 .build();
 
-        final LookupExtractorFactoryContainerProvider manager = EasyMock.createStrictMock(LookupReferencesManager.class);
+        final LookupExtractorFactoryContainerProvider manager = Mockito.mock(LookupReferencesManager.class);
 
         MahaLookupOperatorConversion opConversion = new MahaLookupOperatorConversion(manager);
         ExprMacroTable exprMacroTable = TestExprMacroTable.INSTANCE;
-
-        PlannerContext plannerContext = EasyMock.createStrictMock(PlannerContext.class);
-        EasyMock.expect(plannerContext.parseExpression(anyString())).andAnswer(
-                new IAnswer<Expr>() {
-                    @Override
-                    public Expr answer() {
-                        return Parser.parse(EasyMock.getCurrentArguments()[0].toString(), exprMacroTable);
-                    }
-                }
-        ).anyTimes();
-        EasyMock.replay(plannerContext);
+        ExpressionParser expressionParser = new ExpressionParserImpl(exprMacroTable);
+        PlannerContext plannerContext = Mockito.mock(PlannerContext.class);
+        setStaticFieldValue(PlannerContext.class, plannerContext
+                , "expressionParser", expressionParser);
+        Mockito.doCallRealMethod().when(plannerContext).parseExpression(Mockito.anyString());
         MahaLookupTestUtil.MAHA_LOOKUP mahaLookup = new MahaLookupTestUtil.MAHA_LOOKUP(
                 util.makeInputRef("student_id", ROW_SIGNATURE, rexBuilder)
                 , Pair.of("student_lookup", SqlTypeName.VARCHAR)
@@ -107,7 +102,7 @@ public class MahaLookupOperatorConversionTest {
     }
 
     @Test
-    public void testBasicMappedLookup() throws JsonProcessingException {
+    public void testBasicMappedLookup() throws Exception {
         MahaLookupTestUtil util = new MahaLookupTestUtil();
         RexBuilder rexBuilder = new RexBuilder(util.typeFactory);
         RowSignature ROW_SIGNATURE = RowSignature
@@ -118,21 +113,15 @@ public class MahaLookupOperatorConversionTest {
                 .add("student_id", ColumnType.STRING)
                 .build();
 
-        final LookupExtractorFactoryContainerProvider manager = EasyMock.createStrictMock(LookupReferencesManager.class);
+        final LookupExtractorFactoryContainerProvider manager = Mockito.mock(LookupReferencesManager.class);
 
         MahaLookupOperatorConversion opConversion = new MahaLookupOperatorConversion(manager);
         ExprMacroTable exprMacroTable = TestExprMacroTable.INSTANCE;
-
-        PlannerContext plannerContext = EasyMock.createStrictMock(PlannerContext.class);
-        EasyMock.expect(plannerContext.parseExpression(anyString())).andAnswer(
-                new IAnswer<Expr>() {
-                    @Override
-                    public Expr answer() {
-                        return Parser.parse(EasyMock.getCurrentArguments()[0].toString(), exprMacroTable);
-                    }
-                }
-        ).anyTimes();
-        EasyMock.replay(plannerContext);
+        ExpressionParser expressionParser = new ExpressionParserImpl(exprMacroTable);
+        PlannerContext plannerContext = Mockito.mock(PlannerContext.class);
+        setStaticFieldValue(PlannerContext.class, plannerContext
+                , "expressionParser", expressionParser);
+        Mockito.doCallRealMethod().when(plannerContext).parseExpression(Mockito.anyString());
         MahaLookupTestUtil.MAHA_LOOKUP mahaLookup = new MahaLookupTestUtil.MAHA_LOOKUP(
                 util.makeInputRef("student_id", ROW_SIGNATURE, rexBuilder)
                 , Pair.of("student_lookup", SqlTypeName.VARCHAR)
@@ -156,7 +145,7 @@ public class MahaLookupOperatorConversionTest {
     }
 
     @Test
-    public void testInvalidLookupCol() {
+    public void testInvalidLookupCol() throws Exception {
         MahaLookupTestUtil util = new MahaLookupTestUtil();
         RexBuilder rexBuilder = new RexBuilder(util.typeFactory);
         RowSignature ROW_SIGNATURE = RowSignature
@@ -167,14 +156,15 @@ public class MahaLookupOperatorConversionTest {
                 .add("student_id", ColumnType.STRING)
                 .build();
 
-        final LookupExtractorFactoryContainerProvider manager = EasyMock.createStrictMock(LookupReferencesManager.class);
+        final LookupExtractorFactoryContainerProvider manager = Mockito.mock(LookupReferencesManager.class);
 
         MahaLookupOperatorConversion opConversion = new MahaLookupOperatorConversion(manager);
         ExprMacroTable exprMacroTable = TestExprMacroTable.INSTANCE;
-
-        PlannerContext plannerContext = EasyMock.createStrictMock(PlannerContext.class);
-        EasyMock.expect(plannerContext.getExprMacroTable()).andReturn(exprMacroTable).anyTimes();
-        EasyMock.replay(plannerContext);
+        ExpressionParser expressionParser = new ExpressionParserImpl(exprMacroTable);
+        PlannerContext plannerContext = Mockito.mock(PlannerContext.class);
+        setStaticFieldValue(PlannerContext.class, plannerContext
+                , "expressionParser", expressionParser);
+        Mockito.doCallRealMethod().when(plannerContext).parseExpression(Mockito.anyString());
         try {
             MahaLookupTestUtil.MAHA_LOOKUP mahaLookup = new MahaLookupTestUtil.MAHA_LOOKUP(
                     util.makeInputRef("student_id_fake", ROW_SIGNATURE, rexBuilder)
@@ -186,13 +176,13 @@ public class MahaLookupOperatorConversionTest {
                     , rexBuilder
             );
         } catch(IndexOutOfBoundsException ex) {
-            assert ex.getMessage().contains("-1");
+            assert ex.getMessage().contains("Index -1 out of bounds for length 4");
         }
     }
 
     //Currently, we don't assert on the value col used in the lookup & simply allow bad lookup cols to pass through.
     @Test
-    public void testInvalidValueCol() throws JsonProcessingException {
+    public void testInvalidValueCol() throws Exception {
         MahaLookupTestUtil util = new MahaLookupTestUtil();
         RexBuilder rexBuilder = new RexBuilder(util.typeFactory);
         RowSignature ROW_SIGNATURE = RowSignature
@@ -203,21 +193,15 @@ public class MahaLookupOperatorConversionTest {
                 .add("student_id", ColumnType.STRING)
                 .build();
 
-        final LookupExtractorFactoryContainerProvider manager = EasyMock.createStrictMock(LookupReferencesManager.class);
+        final LookupExtractorFactoryContainerProvider manager = Mockito.mock(LookupReferencesManager.class);
 
         MahaLookupOperatorConversion opConversion = new MahaLookupOperatorConversion(manager);
         ExprMacroTable exprMacroTable = TestExprMacroTable.INSTANCE;
-
-        PlannerContext plannerContext = EasyMock.createStrictMock(PlannerContext.class);
-        EasyMock.expect(plannerContext.parseExpression(anyString())).andAnswer(
-                new IAnswer<Expr>() {
-                    @Override
-                    public Expr answer() {
-                        return Parser.parse(EasyMock.getCurrentArguments()[0].toString(), exprMacroTable);
-                    }
-                }
-        ).anyTimes();
-        EasyMock.replay(plannerContext);
+        ExpressionParser expressionParser = new ExpressionParserImpl(exprMacroTable);
+        PlannerContext plannerContext = Mockito.mock(PlannerContext.class);
+        setStaticFieldValue(PlannerContext.class, plannerContext
+                , "expressionParser", expressionParser);
+        Mockito.doCallRealMethod().when(plannerContext).parseExpression(Mockito.anyString());
         MahaLookupTestUtil.MAHA_LOOKUP mahaLookup = new MahaLookupTestUtil.MAHA_LOOKUP(
                 util.makeInputRef("student_id", ROW_SIGNATURE, rexBuilder)
                 , Pair.of("student_lookup", SqlTypeName.VARCHAR)
@@ -243,7 +227,7 @@ public class MahaLookupOperatorConversionTest {
     }
 
     @Test
-    public void testMappedLookupWithNullKeys() throws JsonProcessingException {
+    public void testMappedLookupWithNullKeys() throws Exception {
         MahaLookupTestUtil util = new MahaLookupTestUtil();
         RexBuilder rexBuilder = new RexBuilder(util.typeFactory);
         RowSignature ROW_SIGNATURE = RowSignature
@@ -254,21 +238,15 @@ public class MahaLookupOperatorConversionTest {
                 .add("student_id", ColumnType.STRING)
                 .build();
 
-        final LookupExtractorFactoryContainerProvider manager = EasyMock.createStrictMock(LookupReferencesManager.class);
+        final LookupExtractorFactoryContainerProvider manager = Mockito.mock(LookupReferencesManager.class);
 
         MahaLookupOperatorConversion opConversion = new MahaLookupOperatorConversion(manager);
         ExprMacroTable exprMacroTable = TestExprMacroTable.INSTANCE;
-
-        PlannerContext plannerContext = EasyMock.createStrictMock(PlannerContext.class);
-        EasyMock.expect(plannerContext.parseExpression(anyString())).andAnswer(
-                new IAnswer<Expr>() {
-                    @Override
-                    public Expr answer() {
-                        return Parser.parse(EasyMock.getCurrentArguments()[0].toString(), exprMacroTable);
-                    }
-                }
-        ).anyTimes();
-        EasyMock.replay(plannerContext);
+        ExpressionParser expressionParser = new ExpressionParserImpl(exprMacroTable);
+        PlannerContext plannerContext = Mockito.mock(PlannerContext.class);
+        setStaticFieldValue(PlannerContext.class, plannerContext
+                , "expressionParser", expressionParser);
+        Mockito.doCallRealMethod().when(plannerContext).parseExpression(Mockito.anyString());
         MahaLookupTestUtil.MAHA_LOOKUP mahaLookup = new MahaLookupTestUtil.MAHA_LOOKUP(
                 util.makeInputRef("student_id", ROW_SIGNATURE, rexBuilder)
                 , Pair.of("student_lookup", SqlTypeName.VARCHAR)
@@ -292,5 +270,14 @@ public class MahaLookupOperatorConversionTest {
         assert json.contains("\"dimensionOverrideMap\":{\"a\":\"A\",\"NULL\":\"B\"},\"secondaryColOverrideMap\":{\"b\":\"B\",\"NULL\":\"A\"},\"useQueryLevelCache\":false");
     }
 
+    public static void setStaticFieldValue(
+            final Class<?> clz,
+            final Object obj,
+            final String fieldName,
+            final Object value) throws Exception {
+        final Field f = FieldUtils.getField(clz, fieldName, true);
+        FieldUtils.removeFinalModifier(f);
+        f.set(obj, value);
+    }
 
 }

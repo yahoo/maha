@@ -55,6 +55,8 @@
         <freemarker.version>2.3.20</freemarker.version>
         <enumeratum.version>1.7.3</enumeratum.version>
         <kafka.version>3.6.1</kafka.version>
+        <testng.version>7.9.0</testng.version>
+        <easymock.version>5.2.0</easymock.version>
         <caffeine.version>3.1.8</caffeine.version>
         <archaius.version>2.3.13</archaius.version>
         <bytebuddy.version>1.14.1</bytebuddy.version>
