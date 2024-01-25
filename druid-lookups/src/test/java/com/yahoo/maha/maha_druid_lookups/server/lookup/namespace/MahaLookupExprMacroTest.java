@@ -29,6 +29,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNa
 import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.math.expr.Expr;
 import org.apache.druid.math.expr.ExprMacroTable;
+import org.apache.druid.math.expr.ExpressionProcessing;
 import org.apache.druid.math.expr.ExpressionType;
 import org.apache.druid.math.expr.InputBindings;
 import org.apache.druid.math.expr.Parser;
@@ -67,6 +68,7 @@ public class MahaLookupExprMacroTest {
     public static void setUpClass()
     {
         NullHandling.initializeForTests();
+        ExpressionProcessing.initializeForTests();
 
         //Construct LookupExtractor
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
