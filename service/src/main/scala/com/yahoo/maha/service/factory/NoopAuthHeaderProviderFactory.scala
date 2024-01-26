@@ -1,7 +1,7 @@
 package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.core.request.fieldExtended
-import com.yahoo.maha.executor.druid.NoopAuthHeaderProvider
+import com.yahoo.maha.executor.druid.{AuthHeaderProvider, NoopAuthHeaderProvider}
 import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import org.json4s.JValue
 import scalaz.syntax.applicative._
@@ -16,7 +16,7 @@ class NoopAuthHeaderProviderFactory extends AuthHeaderProviderFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: JValue)(implicit context: MahaServiceConfigContext): MahaServiceConfig.MahaConfigResult[NoopAuthHeaderProvider] = {
+  override def fromJson(configJson: JValue)(implicit context: MahaServiceConfigContext): MahaServiceConfig.MahaConfigResult[AuthHeaderProvider] = {
     import org.json4s.scalaz.JsonScalaz._
     val noopDomainResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("domain")(configJson)
     val noopServiceResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("service")(configJson)
@@ -25,7 +25,7 @@ class NoopAuthHeaderProviderFactory extends AuthHeaderProviderFactory {
 
     (noopDomainResult |@| noopServiceResult |@| noopPrivateKeyNameResult |@| noopPrivateKeyIdResult) {
       (_, _, _, _) => {
-        new NoopAuthHeaderProvider
+        new NoopAuthHeaderProvider().asInstanceOf[AuthHeaderProvider]
       }
     }
   }

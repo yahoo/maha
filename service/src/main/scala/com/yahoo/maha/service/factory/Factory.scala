@@ -165,19 +165,19 @@ trait AuthHeaderProviderFactory extends BaseFactory {
 
 import scalaz.syntax.validation._
 class NoopUserTimeZoneProviderFactory extends UserTimeZoneProviderFactory {
-  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[UserTimeZoneProvider] = NoopUserTimeZoneProvider.successNel
+  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[UserTimeZoneProvider] = NoopUserTimeZoneProvider.asInstanceOf[UserTimeZoneProvider].successNel
   def supportedProperties: List[(String, Boolean)] = List.empty
 }
 class PassThroughUTCTimeProviderFactory extends UTCTimeProviderFactory {
-  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider] = PassThroughUTCTimeProvider.successNel
+  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider] = PassThroughUTCTimeProvider.asInstanceOf[UTCTimeProvider].successNel
   def supportedProperties: List[(String, Boolean)] = List.empty
 }
 class BaseUTCTimeProviderFactory extends UTCTimeProviderFactory {
-  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider] = new BaseUTCTimeProvider().successNel
+  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider] = new BaseUTCTimeProvider().asInstanceOf[UTCTimeProvider].successNel
   def supportedProperties: List[(String, Boolean)] = List.empty
 }
 class PassThroughPasswordProviderFactory  extends  PasswordProviderFactory {
-  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[PasswordProvider] = PassThroughPasswordProvider.successNel
+  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[PasswordProvider] = PassThroughPasswordProvider.asInstanceOf[PasswordProvider].successNel
   def supportedProperties: List[(String, Boolean)] = List.empty
 }
 
@@ -336,7 +336,7 @@ class DefaultBucketingConfigFactory extends BucketingConfigFactory {
 }
 
 class DefaultPartitionColumnRendererFactory extends PartitionColumnRendererFactory {
-  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] =  DefaultPartitionColumnRenderer.successNel
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] =  DefaultPartitionColumnRenderer.asInstanceOf[PartitionColumnRenderer].successNel
 
   override def supportedProperties: List[(String, Boolean)] = {
     List.empty
@@ -344,7 +344,7 @@ class DefaultPartitionColumnRendererFactory extends PartitionColumnRendererFacto
 }
 
 class BigqueryPartitionColumnRendererFactory extends PartitionColumnRendererFactory {
-  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] =  BigqueryPartitionColumnRenderer.successNel
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] =  BigqueryPartitionColumnRenderer.asInstanceOf[PartitionColumnRenderer].successNel
 
   override def supportedProperties: List[(String, Boolean)] = {
     List.empty
@@ -352,31 +352,31 @@ class BigqueryPartitionColumnRendererFactory extends PartitionColumnRendererFact
 }
 
 class NoopExecutionLifecycleListenerFactory extends  ExecutionLifecycleListenerFactory {
-  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[ExecutionLifecycleListener] = new NoopExecutionLifecycleListener().successNel
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[ExecutionLifecycleListener] = new NoopExecutionLifecycleListener().asInstanceOf[ExecutionLifecycleListener].successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
 
 class DefaultResultSetTransformersFactory extends ResultSetTransformersFactory {
-  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[List[ResultSetTransformer]] =  ResultSetTransformer.DEFAULT_TRANSFORMS.successNel
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[List[ResultSetTransformer]] =  ResultSetTransformer.DEFAULT_TRANSFORMS.asInstanceOf[List[ResultSetTransformer]].successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
 
 class DefaultDimCostEstimatorFactory extends DimCostEstimatorFactory {
-  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext) : MahaConfigResult[DimCostEstimator] = new DefaultDimEstimator().successNel
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext) : MahaConfigResult[DimCostEstimator] = new DefaultDimEstimator().asInstanceOf[DimCostEstimator].successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
 
 class DefaultFactCostEstimatorFactory extends FactCostEstimatorFactory {
-  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext) : MahaConfigResult[FactCostEstimator] = new DefaultFactEstimator().successNel
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext) : MahaConfigResult[FactCostEstimator] = new DefaultFactEstimator().asInstanceOf[FactCostEstimator].successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
 
 class DefaultRejectedExecutionHandlerFactory extends RejectedExecutionHandlerFactory {
-  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[RejectedExecutionHandler] = new CustomRejectPolicy().successNel
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[RejectedExecutionHandler] = new CustomRejectPolicy().asInstanceOf[RejectedExecutionHandler].successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }

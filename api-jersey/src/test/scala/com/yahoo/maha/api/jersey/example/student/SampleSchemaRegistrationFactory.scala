@@ -40,9 +40,9 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             DimCol("class_id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("section_id", IntType(3))
-            , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
-            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
-            , DimCol("date", DateType())
+            , DimCol("myyear", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
+            , DimCol("mycomment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("mydate", DateType())
             ),
           Set(
              FactCol("total_marks", IntType())
@@ -56,9 +56,9 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("class_id", "Class ID", Equality),
             PubCol("student_id", "Student ID", Equality),
             PubCol("section_id", "Section ID", Equality),
-            PubCol("date", "Day", Equality),
-            PubCol("year", "Year", Equality),
-            PubCol("comment", "Remarks", InEqualityLike)
+            PubCol("mydate", "Day", Equality),
+            PubCol("myyear", "Year", Equality),
+            PubCol("mycomment", "Remarks", InEqualityLike)
           ),
           Set(
             PublicFactCol("total_marks", "Total Marks", InBetweenEquality),

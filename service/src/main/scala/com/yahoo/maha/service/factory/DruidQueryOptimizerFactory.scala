@@ -58,7 +58,7 @@ class AsyncDruidQueryOptimizerFactory extends DruidQueryOptimizerFactory {
 
 
 class DefaultDruidQueryOptimizerFactory extends DruidQueryOptimizerFactory {
-  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[DruidQueryOptimizer] = new SyncDruidQueryOptimizer().successNel
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[DruidQueryOptimizer] = new SyncDruidQueryOptimizer().asInstanceOf[DruidQueryOptimizer].successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }

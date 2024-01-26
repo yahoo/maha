@@ -25,7 +25,7 @@ class DataSourceConnectionPoolFactoryTest extends BaseFactoryTest{
     val jsonString =   s"""
                          |{
                          |"driverClassName" : "org.h2.Driver",
-                         |"jdbcUrl" : "jdbc:h2:mem:$uuid;MODE=Oracle;DB_CLOSE_DELAY=-1",
+                         |"jdbcUrl" : "jdbc:h2:mem:$uuid;DB_CLOSE_DELAY=-1",
                          |"username" : "sa",
                          |"passwordProviderFactoryClassName" : "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
                          |"passwordProviderConfig" : [{"key" : "value"}],
@@ -54,7 +54,7 @@ class DataSourceConnectionPoolFactoryTest extends BaseFactoryTest{
         val connection = new JdbcConnection(ds)
         assert(ds.asInstanceOf[HikariDataSource].getIdleTimeout == 1000000)
         assert(ds.asInstanceOf[HikariDataSource].getPoolName == "test-pool")
-        val ddlResult = connection.executeUpdate("create table test(key varchar(20), value varchar(20));")
+        val ddlResult = connection.executeUpdate("create table test1(mykey varchar(20), myvalue varchar(20));")
         assert(ddlResult.isSuccess)
     }
     assert(KvPair.fieldJSONW.write(KvPair("1", "2")).isInstanceOf[JValue])

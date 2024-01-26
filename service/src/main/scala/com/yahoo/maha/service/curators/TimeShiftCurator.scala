@@ -62,13 +62,9 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
   override val isSingleton: Boolean = true
   override def requiresDefaultCurator: Boolean = false
 
-  override def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+  override def parseConfig(config: CuratorJsonConfig): JsonScalaz.Result[CuratorConfig] = {
     val timeshiftConfigTry : JsonScalaz.Result[TimeShiftConfig] = TimeShiftConfig.parse(config)
-    Validation
-      .fromTryCatchNonFatal{
-        require(timeshiftConfigTry.isSuccess, "Must succeed in creating a timeshiftConfig " + timeshiftConfigTry)
-        timeshiftConfigTry.toOption.get}
-      .leftMap[JsonScalaz.Error](t => JsonScalaz.UncategorizedError("parseTimeShiftConfigValidation", t.getMessage, List.empty)).toValidationNel
+    timeshiftConfigTry.map(_.asInstanceOf[CuratorConfig])
   }
   private[this] def getRequestModelForPreviousWindow(registryName: String,
                                                      bucketParams: BucketParams,

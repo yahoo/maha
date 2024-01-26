@@ -64,13 +64,14 @@ object ExampleMahaService extends Logging {
         publicFact.factList.foreach {
           fact=>
             val ddl = ddlGenerator.toDDL(fact)
-            assert(jdbcConnection.get.executeUpdate(ddl).isSuccess)
+            val result = jdbcConnection.get.executeUpdate(ddl)
+            assert(result.isSuccess, result)
         }
     }
 
     val insertSql =
       """
-        INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment)
+        INSERT INTO student_grade_sheet (myyear, section_id, student_id, class_id, total_marks, mydate, mycomment)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       """
 

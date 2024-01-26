@@ -29,7 +29,7 @@ trait ResultSetTransformer extends Logging {
 }
 
 object ResultSetTransformer {
-  val DEFAULT_TRANSFORMS = List(new DateTransformer, new NumberTransformer)
+  val DEFAULT_TRANSFORMS: List[ResultSetTransformer] = List(new DateTransformer, new NumberTransformer)
 }
 
 object DateTransformer {

@@ -53,9 +53,9 @@ trait Curator extends Ordered[Curator] {
 
   def requiresDefaultCurator: Boolean
 
-  def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+  def parseConfig(config: CuratorJsonConfig): JsonScalaz.Result[CuratorConfig] = {
     import scalaz.syntax.validation._
-    NoConfig.successNel
+    NoConfig.asInstanceOf[CuratorConfig].successNel
   }
 
   protected def requestModelValidator: CuratorRequestModelValidator
@@ -241,13 +241,9 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
 
   override def priority: Int = 1
 
-  override def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+  override def parseConfig(config: CuratorJsonConfig): JsonScalaz.Result[CuratorConfig] = {
     val rowCountConfigTry : JsonScalaz.Result[RowCountConfig] = RowCountConfig.parse(config)
-    Validation
-      .fromTryCatchNonFatal{
-        require(rowCountConfigTry.isSuccess, "Must succeed in creating a rowCountConfig " + rowCountConfigTry)
-        rowCountConfigTry.toOption.get}
-      .leftMap[JsonScalaz.Error](t => JsonScalaz.UncategorizedError("parseRowCountConfigValidation", t.getMessage, List.empty)).toValidationNel
+    rowCountConfigTry.map(_.asInstanceOf[CuratorConfig])
   }
 
   override def process(resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]]

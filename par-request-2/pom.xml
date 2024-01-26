@@ -132,6 +132,7 @@
                         -Xmx2048m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/heapdump
                         -Djdk.attach.allowAttachSelf=true
                         -Duser.timezone=UTC
+                        -XX:+EnableDynamicAgentLoading
                     </argLine>
                     <workingDirectory>target/FORK_DIRECTORY_${surefire.forkNumber}</workingDirectory>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>

@@ -39,7 +39,7 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
 
   def stageData(): Unit = {
-    val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment, month, top_student_id, batch_id, group_id, hour)
+    val insertSql = """INSERT INTO student_grade_sheet (myyear, section_id, student_id, class_id, total_marks, mydate, mycomment, mymonth, top_student_id, batch_id, group_id, myhour)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
     val rows: List[Seq[Any]] = List(

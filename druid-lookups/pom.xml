@@ -321,6 +321,7 @@
                         -Xmx2048m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/heapdump
                         -Djdk.attach.allowAttachSelf=true
                         -Duser.timezone=UTC
+                        -XX:+EnableDynamicAgentLoading
                     </argLine>
                 </configuration>
             </plugin>

@@ -83,7 +83,7 @@ object ExampleMahaService extends Logging {
 
     val insertSql =
       """
-        INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment)
+        INSERT INTO student_grade_sheet (myyear, section_id, student_id, class_id, total_marks, mydate, mycomment)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       """
 

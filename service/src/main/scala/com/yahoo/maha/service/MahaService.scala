@@ -489,7 +489,7 @@ object MahaServiceConfig {
 
   private[this] val closer: Closer = Closer.create()
 
-  type MahaConfigResult[+A] = scalaz.ValidationNel[MahaServiceError, A]
+  type MahaConfigResult[A] = scalaz.ValidationNel[MahaServiceError, A]
 
   implicit class Option2MahaConfigResult[A](option: Option[A]) {
     def toMahaConfigResult(errFn: => MahaServiceError) : MahaConfigResult[A] = {
@@ -497,12 +497,12 @@ object MahaServiceConfig {
     }
   }
 
-  def fromJson(ba: Array[Byte]): MahaServiceConfig.MahaConfigResult[_<:MahaServiceConfig] = {
+  def fromJson(ba: Array[Byte]): MahaServiceConfig.MahaConfigResult[MahaServiceConfig] = {
     val json = {
       Try(parse(new String(ba, StandardCharsets.UTF_8))) match {
         case t if t.isSuccess => t.get
         case t if t.isFailure => {
-          return Failure(JsonParseError(s"invalidInputJson : ${t.failed.get.getMessage}", Option(t.failed.toOption.get))).toValidationNel
+          return Validation.failureNel(JsonParseError(s"invalidInputJson : ${t.failed.get.getMessage}", Option(t.failed.toOption.get)))
         }
       }
     }
@@ -560,7 +560,7 @@ object MahaServiceConfig {
             ))
           }
         }
-        DefaultMahaServiceConfig(postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap)
+        DefaultMahaServiceConfig(postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap).asInstanceOf[MahaServiceConfig]
       }
     mahaServiceConfig
   }
@@ -690,7 +690,8 @@ object MahaServiceConfig {
           case (name, jsonConfig) =>
             val factoryResult: MahaConfigResult[QueryGeneratorFactory] = getFactory[QueryGeneratorFactory](jsonConfig.className, closer)
             val built: MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = factoryResult.flatMap(_.fromJson(jsonConfig.json))
-            built.map(g => (name, g))
+            val result: MahaServiceConfig.MahaConfigResult[(String, QueryGenerator[_ <: EngineRequirement])] = built.map(g => (name, g))
+            result
         }
       }
       val resultList: MahaServiceConfig.MahaConfigResult[List[(String, QueryGenerator[_ <: EngineRequirement])]] =
@@ -843,7 +844,7 @@ object DynamicMahaServiceConfig {
       Try(parse(new String(ba, StandardCharsets.UTF_8))) match {
         case t if t.isSuccess => t.get
         case t if t.isFailure => {
-          return Failure(JsonParseError(s"invalidInputJson : ${t.failed.get.getMessage}", Option(t.failed.toOption.get))).toValidationNel
+          return Validation.failureNel(JsonParseError(s"invalidInputJson : ${t.failed.get.getMessage}", Option(t.failed.toOption.get)))
         }
       }
     }

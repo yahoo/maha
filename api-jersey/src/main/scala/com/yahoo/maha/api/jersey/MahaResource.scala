@@ -5,10 +5,10 @@ package com.yahoo.maha.api.jersey
 import java.util.UUID
 import com.yahoo.maha.service.calcite.avatica.{AvaticaMahaJsonHandler, AvaticaMahaProtobufHandler, MahaAvaticaService}
 
-import javax.servlet.http.HttpServletRequest
-import javax.ws.rs.container.{AsyncResponse, ContainerRequestContext, Suspended}
-import javax.ws.rs.core.{Context, MediaType}
-import javax.ws.rs.{Path, Produces, _}
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.ws.rs.container.{AsyncResponse, ContainerRequestContext, Suspended}
+import jakarta.ws.rs.core.{Context, MediaType}
+import jakarta.ws.rs.{Path, Produces, _}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.{BaseRequest, ReportingRequest, RequestContext}
 import com.yahoo.maha.core.{Schema, _}

@@ -52,13 +52,9 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
   override val isSingleton: Boolean = false
   override val requiresDefaultCurator = true
 
-  override def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+  override def parseConfig(config: CuratorJsonConfig): JsonScalaz.Result[CuratorConfig] = {
     val totalMetricsConfigTry : JsonScalaz.Result[TotalMetricsConfig] = TotalMetricsConfig.parse(config)
-    Validation
-      .fromTryCatchNonFatal{
-        require(totalMetricsConfigTry.isSuccess, "Must succeed in creating a totalMetricsConfig " + totalMetricsConfigTry)
-        totalMetricsConfigTry.toOption.get}
-      .leftMap[JsonScalaz.Error](t => JsonScalaz.UncategorizedError("parseTotalMetricsConfigValidation", t.getMessage, List.empty)).toValidationNel
+    totalMetricsConfigTry.map(_.asInstanceOf[CuratorConfig])
   }
 
   override def process(resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]]

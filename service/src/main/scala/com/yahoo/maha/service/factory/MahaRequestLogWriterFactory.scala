@@ -18,18 +18,16 @@ import scalaz.Scalaz
 class KafkaMahaRequestLogWriterFactory extends MahaRequestLogWriterFactory {
   override def fromJson(config: JValue, isLoggingEnabled: Boolean): MahaConfigResult[MahaRequestLogWriter] = {
     val kafkaRequestLoggingConfigResult: Result[JsonKafkaRequestLoggingConfig] = JsonKafkaRequestLoggingConfig.parse.read(config)
-     for {
-       kafkaRequestLoggingConfig <- kafkaRequestLoggingConfigResult
-     } yield {
-       new KafkaMahaRequestLogWriter(kafkaRequestLoggingConfig.config, isLoggingEnabled)
-     }
+    kafkaRequestLoggingConfigResult.map {
+      kafkaRequestLoggingConfig => new KafkaMahaRequestLogWriter(kafkaRequestLoggingConfig.config, isLoggingEnabled).asInstanceOf[MahaRequestLogWriter]
+    }
   }
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
 
 class NoopMahaRequestLogWriterFactory extends MahaRequestLogWriterFactory {
   import Scalaz._
-  override def fromJson(config: JValue, isLoggingEnabled: Boolean): MahaConfigResult[MahaRequestLogWriter] = new NoopMahaRequestLogWriter().successNel
+  override def fromJson(config: JValue, isLoggingEnabled: Boolean): MahaConfigResult[MahaRequestLogWriter] = new NoopMahaRequestLogWriter().asInstanceOf[MahaRequestLogWriter].successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }

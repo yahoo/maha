@@ -38,9 +38,9 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             DimCol("class_id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("section_id", IntType(3))
-            , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
-            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
-            , DimCol("date", DateType())
+            , DimCol("myyear", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
+            , DimCol("mycomment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("mydate", DateType())
             ),
           Set(
              FactCol("total_marks", IntType())
@@ -54,9 +54,9 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("class_id", "Class ID", InNotInEqualityNotEquals),
             PubCol("student_id", "Student ID", InNotInEqualityNotEquals),
             PubCol("section_id", "Section ID", InNotInEqualityNotEquals),
-            PubCol("date", "Day", InNotInBetweenEqualityNotEqualsGreaterLesser),
-            PubCol("year", "Year", InNotInBetweenEqualityNotEqualsGreaterLesser),
-            PubCol("comment", "Remarks", InEqualityLike)
+            PubCol("mydate", "Day", InNotInBetweenEqualityNotEqualsGreaterLesser),
+            PubCol("myyear", "Year", InNotInBetweenEqualityNotEqualsGreaterLesser),
+            PubCol("mycomment", "Remarks", InEqualityLike)
           ),
           Set(
             PublicFactCol("total_marks", "Total Marks", InNotInBetweenEqualityNotEqualsGreaterLesser),

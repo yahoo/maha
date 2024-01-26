@@ -347,11 +347,11 @@ class PrestoQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAf
         //CREATE TABLE ad_presto (id VARCHAR2(244), num INT, decimalValue DECIMAL, dt DATE, ts TIMESTAMP)
         CREATE TABLE ad_presto (
           id NUMBER
-          , title VARCHAR2(255 CHAR)
+          , title VARCHAR2(255)
           , advertiser_id NUMBER
           , campaign_id NUMBER
           , ad_group_id NUMBER
-          , status VARCHAR2(255 CHAR)
+          , status VARCHAR2(255)
           , created_date TIMESTAMP
           , load_time NUMBER
           , last_updated TIMESTAMP)
@@ -363,10 +363,10 @@ class PrestoQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAf
       """
         CREATE TABLE ad_group_presto (
           id NUMBER
-          , name  VARCHAR2(255 CHAR)
+          , name  VARCHAR2(255)
           , advertiser_id NUMBER
           , campaign_id NUMBER
-          , status VARCHAR2(255 CHAR)
+          , status VARCHAR2(255)
           , created_date TIMESTAMP
           , last_updated TIMESTAMP)
       """
@@ -377,9 +377,9 @@ class PrestoQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAf
       """
         CREATE TABLE campaign_presto (
           id NUMBER
-          , name  VARCHAR2(255 CHAR)
+          , name  VARCHAR2(255)
           , advertiser_id NUMBER
-          , status VARCHAR2(255 CHAR)
+          , status VARCHAR2(255)
           , created_date TIMESTAMP
           , load_time NUMBER
           , last_updated TIMESTAMP)
@@ -391,8 +391,8 @@ class PrestoQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAf
       """
         CREATE TABLE advertiser_presto (
           id NUMBER
-          , name  VARCHAR2(255 CHAR)
-          , status VARCHAR2(255 CHAR)
+          , name  VARCHAR2(255)
+          , status VARCHAR2(255)
           , created_date TIMESTAMP
           , last_updated TIMESTAMP)
       """
@@ -414,7 +414,7 @@ class PrestoQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAf
           , clicks NUMBER(19)
           , spend NUMBER(21,6)
           , max_bid NUMBER(21,6)
-          , network_type VARCHAR2(100 CHAR))
+          , network_type VARCHAR2(100))
       """
     )
     assert(resultAdsStats.isSuccess && resultAdsStats.toOption.get === false)

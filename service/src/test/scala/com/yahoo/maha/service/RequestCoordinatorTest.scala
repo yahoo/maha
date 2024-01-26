@@ -8,7 +8,6 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.curators._
-import com.yahoo.maha.service.error.MahaServiceExecutionException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.output.{JsonOutputFormat, StringStream}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
@@ -1624,7 +1623,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       result.right.get.get().right.get
     }
     val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name).head.requestResult
-    val rowcountCuratorRequestResult: CuratorError = requestCoordinatorResult.failureResults(RowCountCurator.name).head
+    val rowcountCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(RowCountCurator.name).head.requestResult
 
     val defaultExpectedSet = Set(
       "Row(Map(Section ID -> 2, Student Name -> 4, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 99, ACTIVE))"
@@ -1640,15 +1639,13 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     assert(defaultExpectedSet.size == defaultCount)
 
-
-    // H2 can not execute the Oracle Specific syntax of COUNT(*) OVER([*]) TOTALROWS, h2 has plan to fix it in next release 1.5
-    val rowCountCuratorError = rowcountCuratorRequestResult.error.throwableOption.get
-    assert(rowCountCuratorError.isInstanceOf[MahaServiceExecutionException])
-    val mahaServiceExecutionException = rowCountCuratorError.asInstanceOf[MahaServiceExecutionException]
-    assert(mahaServiceExecutionException.source.get.getMessage.contains("Syntax error in SQL statement"))
-
-    // Setting the rowCount as  rowCountCurator fails
-    mahaRequestContext.mutableState.put(RowCountCurator.name, 1)
+    val rowcountExpectedSet = Set(
+      "Row(Map(Student ID -> 0, TOTALROWS -> 1),ArrayBuffer(213, 1))"
+    )
+    rowcountCuratorRequestResult.queryPipelineResult.rowList.foreach(
+      row => {
+        assert(rowcountExpectedSet.contains(row.toString))
+      })
 
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 

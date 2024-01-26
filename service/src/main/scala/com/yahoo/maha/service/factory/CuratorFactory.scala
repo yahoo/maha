@@ -9,7 +9,7 @@ import scalaz.syntax.validation._
 class DefaultCuratorFactory extends CuratorFactory {
 
   override def fromJson(configJson: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Curator] = {
-    new DefaultCurator().successNel
+    new DefaultCurator().asInstanceOf[Curator].successNel
   }
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
@@ -18,7 +18,7 @@ class DefaultCuratorFactory extends CuratorFactory {
 class RowCountCuratorFactory extends CuratorFactory {
 
   override def fromJson(configJson: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Curator] = {
-    new RowCountCurator().successNel
+    new RowCountCurator().asInstanceOf[Curator].successNel
   }
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
@@ -27,7 +27,7 @@ class RowCountCuratorFactory extends CuratorFactory {
 class TimeShiftCuratorFactory extends CuratorFactory {
 
   override def fromJson(configJson: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Curator] = {
-    new TimeShiftCurator().successNel
+    new TimeShiftCurator().asInstanceOf[Curator].successNel
   }
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
@@ -36,7 +36,7 @@ class TimeShiftCuratorFactory extends CuratorFactory {
 class DrillDownCuratorFactory extends CuratorFactory {
 
   override def fromJson(configJson: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Curator] = {
-    new DrilldownCurator().successNel
+    new DrilldownCurator().asInstanceOf[Curator].successNel
   }
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
@@ -46,7 +46,7 @@ class DrillDownCuratorFactory extends CuratorFactory {
 class TotalMetricsCuratorFactory extends CuratorFactory {
 
   override def fromJson(configJson: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Curator] = {
-    new TotalMetricsCurator().successNel
+    new TotalMetricsCurator().asInstanceOf[Curator].successNel
   }
 
   override def supportedProperties: List[(String, Boolean)] = List.empty

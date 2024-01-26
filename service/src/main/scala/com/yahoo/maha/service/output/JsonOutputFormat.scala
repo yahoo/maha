@@ -100,7 +100,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult
       jsonGenerator.writeStartObject() //{
       if (curatorAndRequestResults.nonEmpty) {
         jsonGenerator.writeFieldName("results") // "results":
-        jsonGenerator.writeStartArray(curatorAndRequestResults.size) //[
+        jsonGenerator.writeStartArray() //[
         curatorAndRequestResults.foreach {
           crr =>
             renderSuccessResult(jsonGenerator, crr.curatorResult.index, crr.requestResult.queryPipelineResult
@@ -110,7 +110,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult
       }
       if (curatorErrors.nonEmpty) {
         jsonGenerator.writeFieldName("errors") // "errors":
-        jsonGenerator.writeStartArray(curatorErrors.size) //[
+        jsonGenerator.writeStartArray() //[
         curatorErrors.foreach {
           ce =>
             renderFailureResult(jsonGenerator, ce, ce.index)

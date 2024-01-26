@@ -34,21 +34,22 @@ object JsonUtils {
   import Scalaz._
   def stringListField(name: String)(json: JValue): Result[List[String]] = json match {
     case JObject(fs) =>
-      fs.find(_._1 == name)
+      val result = fs.find(_._1 == name)
         .map {
         case (_, JArray(s)) =>
           s.collect {
             case jvalue if jvalue != JNull => string(jvalue)
           }.sequence[Result, String]
-        case (_, x) => UnexpectedJSONError(x, classOf[JArray]).asInstanceOf[JsonScalaz.Error].failureNel
-      }.getOrElse(NoSuchFieldError(name, json).asInstanceOf[JsonScalaz.Error].failureNel)
+        case (_, x) => UnexpectedJSONError(x, classOf[JArray]).asInstanceOf[JsonScalaz.Error].failureNel[List[String]]
+      }
+      result.getOrElse(NoSuchFieldError(name, json).asInstanceOf[JsonScalaz.Error].failureNel)
     case x => UnexpectedJSONError(x, classOf[JObject]).asInstanceOf[JsonScalaz.Error].failureNel
   }
 
   def booleanFalse(json: JValue): Result[Boolean] = false.successNel
 
-  def optionNone[T](json: JValue): Result[Option[T]] = None.successNel
-  def noneDateTimeZone(json: JValue): Result[Option[DateTimeZone]] = None.successNel
+  def optionNone[T](json: JValue): Result[Option[T]] = Option.empty[T].successNel
+  def noneDateTimeZone(json: JValue): Result[Option[DateTimeZone]] = Option.empty[DateTimeZone].successNel
   /**
    * Implicits used for JSON converters, IE Set, Map, Annotations, etc.
    */

@@ -16,18 +16,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.typesafe.play</groupId>
-            <artifactId>play_2.12</artifactId>
-            <version>2.6.15</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <artifactId>*</artifactId>
-                    <groupId>*</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <groupId>org.roaringbitmap</groupId>
             <artifactId>RoaringBitmap</artifactId>
             <version>0.9.0</version>
@@ -228,11 +216,11 @@
             <artifactId>byte-buddy</artifactId>
             <version>${bytebuddy.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-actor_${scala.major.version}</artifactId>
-            <scope>test</scope>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.typesafe.akka</groupId>-->
+<!--            <artifactId>akka-actor_${scala.major.version}</artifactId>-->
+<!--            <scope>test</scope>-->
+<!--        </dependency>-->
     </dependencies>
 
     <profiles>
@@ -281,6 +269,7 @@
                         -Xmx2048m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp/heapdump
                         -Djdk.attach.allowAttachSelf=true
                         -Duser.timezone=UTC
+                        -XX:+EnableDynamicAgentLoading
                     </argLine>
                 </configuration>
             </plugin>

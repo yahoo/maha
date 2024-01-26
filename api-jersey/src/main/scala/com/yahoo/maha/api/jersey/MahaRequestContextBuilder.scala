@@ -3,7 +3,7 @@ package com.yahoo.maha.api.jersey
 import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.service.MahaRequestContext
-import javax.ws.rs.container.ContainerRequestContext
+import jakarta.ws.rs.container.ContainerRequestContext
 
 trait MahaRequestContextBuilder {
   def build(registryName: String
