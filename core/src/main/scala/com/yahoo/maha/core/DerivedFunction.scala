@@ -123,6 +123,19 @@ object DruidDerivedFunction {
       )
   }
 
+  case class JAVASCRIPT_WITH_LIST_OF_FIELDS(fieldNames: List[String], function: String) extends DruidDerivedFunction {
+    val dimColNames: List[String] = fieldNames.map(_.replaceAll("[}{]", ""))
+
+    override def asJSON(): JObject =
+      makeObj(
+        List(
+          ("function_type" -> toJSON(this.getClass.getSimpleName)),
+          ("fieldNames" -> toJSON(fieldNames)),
+          ("function" -> toJSON(function))
+        )
+      )
+  }
+
   case class REGEX(fieldName: String, expr: String, index: Int, replaceMissingValue: Boolean, replaceMissingValueWith: String) extends DruidDerivedFunction {
     val dimColName = fieldName.replaceAll("[}{]", "")
 
