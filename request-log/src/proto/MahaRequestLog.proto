@@ -52,6 +52,7 @@ message MahaRequestProto{
     Druid = 1;
     Hive = 2;
     Presto = 3;
+    Postgres = 4;
   }
   message FactCost{
   optional string name = 1;

@@ -1195,6 +1195,10 @@ public final class MahaRequestLog {
        * <code>Presto = 3;</code>
        */
       Presto(3),
+      /**
+       * <code>Postgres = 4;</code>
+       */
+      Postgres(4),
       UNRECOGNIZED(-1),
       ;
 
@@ -1214,6 +1218,10 @@ public final class MahaRequestLog {
        * <code>Presto = 3;</code>
        */
       public static final int Presto_VALUE = 3;
+      /**
+       * <code>Postgres = 4;</code>
+       */
+      public static final int Postgres_VALUE = 4;
 
 
       public final int getNumber() {
@@ -1244,6 +1252,7 @@ public final class MahaRequestLog {
           case 1: return Druid;
           case 2: return Hive;
           case 3: return Presto;
+          case 4: return Postgres;
           default: return null;
         }
       }
@@ -11314,7 +11323,7 @@ public final class MahaRequestLog {
   static {
     java.lang.String[] descriptorData = {
       "\n\024MahaRequestLog.proto\022\024com.yahoo.maha.p" +
-      "roto\"\245\036\n\020MahaRequestProto\022\026\n\trequestId\030\001" +
+      "roto\"\263\036\n\020MahaRequestProto\022\026\n\trequestId\030\001" +
       " \001(\tH\000\210\001\001\022\021\n\004json\030\002 \001(\014H\001\210\001\001\022\023\n\006userId\030\003" +
       " \001(\tH\002\210\001\001\022\021\n\004cube\030\004 \001(\tH\003\210\001\001\022\023\n\006schema\030\005" +
       " \001(\tH\004\210\001\001\022\027\n\nisInternal\030\006 \001(\010H\005\210\001\001\022L\n\013re" +
@@ -11375,43 +11384,44 @@ public final class MahaRequestLog {
       "roto.EngineH\001\210\001\001\022\021\n\004cost\030\003 \001(\003H\002\210\001\001B\007\n\005_" +
       "nameB\t\n\007_engineB\007\n\005_cost\"\"\n\013RequestType\022" +
       "\010\n\004SYNC\020\000\022\t\n\005ASYNC\020\001\"\032\n\005Order\022\007\n\003ASC\020\000\022\010" +
-      "\n\004DESC\020\001\"5\n\006Engine\022\n\n\006Oracle\020\000\022\t\n\005Druid\020" +
-      "\001\022\010\n\004Hive\020\002\022\n\n\006Presto\020\003\"G\n\016AsyncJobStatu" +
-      "s\022\r\n\tSUBMITTED\020\000\022\013\n\007RUNNING\020\001\022\n\n\006FAILED\020" +
-      "\002\022\r\n\tCOMPLETED\020\003\"\"\n\tQueueType\022\n\n\006PULSAR\020" +
-      "\000\022\t\n\005KAFKA\020\001\"\320\001\n\014WorkerStatus\022\022\n\016WORKER_" +
-      "RUNNING\020\000\022\021\n\rWORKER_FAILED\020\001\022\022\n\016WORKER_R" +
-      "ETRIED\020\002\022\027\n\023WORKER_GRID_TIMEOUT\020\003\022 \n\034WOR" +
-      "KER_TRANSFORMATION_FAILED\020\004\022\036\n\032WORKER_RE" +
-      "SULT_STORE_FAILED\020\005\022\024\n\020WORKER_COMPLETED\020" +
-      "\006\022\024\n\020WORKER_SUBMITTED\020\007B\014\n\n_requestIdB\007\n" +
-      "\005_jsonB\t\n\007_userIdB\007\n\005_cubeB\t\n\007_schemaB\r\n" +
-      "\013_isInternalB\016\n\014_requestTypeB\025\n\023_driving" +
-      "QueryEngineB\017\n\r_drivingTableB\021\n\017_queryCh" +
-      "ainTypeB\035\n\033_firstSubsequentQueryEngineB\034" +
-      "\n\032_firstSubsequentQueryTableB\023\n\021_request" +
-      "StartTimeB\021\n\017_requestEndTimeB\t\n\007_statusB" +
-      "\017\n\r_errorMessageB\021\n\017_hasFactFiltersB\026\n\024_" +
-      "hasNonFKFactFiltersB\020\n\016_hasDimFiltersB\025\n" +
-      "\023_hasNonFKDimFiltersB\020\n\016_hasFactSortByB\017" +
-      "\n\r_hasDimSortByB\017\n\r_isFactDrivenB\021\n\017_for" +
-      "ceDimDrivenB\022\n\020_forceFactDrivenB\037\n\035_hasN" +
-      "onDrivingDimSortOrFilterB\032\n\030_hasDimAndFa" +
-      "ctOperationsB\031\n\027_dimCardinalityEstimateB" +
-      "\034\n\032_drivingQueryEngineLatencyB$\n\"_firstS" +
-      "ubsequentQueryEngineLatencyB\032\n\030_reRunEng" +
-      "ineQueryLatencyB\016\n\014_reRunEngineB\010\n\006_jobI" +
-      "dB\014\n\n_timeGrainB\021\n\017_asyncJobStatusB\013\n\t_i" +
-      "sDryRunB\017\n\r_jobResultURLB\n\n\010_jobNameB\023\n\021" +
-      "_queueWaitingTimeB\014\n\n_queueTypeB\017\n\r_cube" +
-      "RevisionB\032\n\030_mahaServiceRegistryNameB\026\n\024" +
-      "_mahaServiceHostnameB\023\n\021_isGrainOptimize" +
-      "dB\023\n\021_isIndexOptimizedB\n\n\010_curatorB\030\n\026_r" +
-      "eRunEngineQueryTableB\022\n\020_isScanOptimized" +
-      "B\013\n\t_scanRowsB\014\n\n_grainRowsB\n\n\010_isDebugB" +
-      "\t\n\007_isTestB\013\n\t_testNameB\016\n\014_requestHashB" +
-      "\016\n\014_jobIdStringB\n\n\010_numDaysB\017\n\r_workerSt" +
-      "atusB\020B\016MahaRequestLogb\006proto3"
+      "\n\004DESC\020\001\"C\n\006Engine\022\n\n\006Oracle\020\000\022\t\n\005Druid\020" +
+      "\001\022\010\n\004Hive\020\002\022\n\n\006Presto\020\003\022\014\n\010Postgres\020\004\"G\n" +
+      "\016AsyncJobStatus\022\r\n\tSUBMITTED\020\000\022\013\n\007RUNNIN" +
+      "G\020\001\022\n\n\006FAILED\020\002\022\r\n\tCOMPLETED\020\003\"\"\n\tQueueT" +
+      "ype\022\n\n\006PULSAR\020\000\022\t\n\005KAFKA\020\001\"\320\001\n\014WorkerSta" +
+      "tus\022\022\n\016WORKER_RUNNING\020\000\022\021\n\rWORKER_FAILED" +
+      "\020\001\022\022\n\016WORKER_RETRIED\020\002\022\027\n\023WORKER_GRID_TI" +
+      "MEOUT\020\003\022 \n\034WORKER_TRANSFORMATION_FAILED\020" +
+      "\004\022\036\n\032WORKER_RESULT_STORE_FAILED\020\005\022\024\n\020WOR" +
+      "KER_COMPLETED\020\006\022\024\n\020WORKER_SUBMITTED\020\007B\014\n" +
+      "\n_requestIdB\007\n\005_jsonB\t\n\007_userIdB\007\n\005_cube" +
+      "B\t\n\007_schemaB\r\n\013_isInternalB\016\n\014_requestTy" +
+      "peB\025\n\023_drivingQueryEngineB\017\n\r_drivingTab" +
+      "leB\021\n\017_queryChainTypeB\035\n\033_firstSubsequen" +
+      "tQueryEngineB\034\n\032_firstSubsequentQueryTab" +
+      "leB\023\n\021_requestStartTimeB\021\n\017_requestEndTi" +
+      "meB\t\n\007_statusB\017\n\r_errorMessageB\021\n\017_hasFa" +
+      "ctFiltersB\026\n\024_hasNonFKFactFiltersB\020\n\016_ha" +
+      "sDimFiltersB\025\n\023_hasNonFKDimFiltersB\020\n\016_h" +
+      "asFactSortByB\017\n\r_hasDimSortByB\017\n\r_isFact" +
+      "DrivenB\021\n\017_forceDimDrivenB\022\n\020_forceFactD" +
+      "rivenB\037\n\035_hasNonDrivingDimSortOrFilterB\032" +
+      "\n\030_hasDimAndFactOperationsB\031\n\027_dimCardin" +
+      "alityEstimateB\034\n\032_drivingQueryEngineLate" +
+      "ncyB$\n\"_firstSubsequentQueryEngineLatenc" +
+      "yB\032\n\030_reRunEngineQueryLatencyB\016\n\014_reRunE" +
+      "ngineB\010\n\006_jobIdB\014\n\n_timeGrainB\021\n\017_asyncJ" +
+      "obStatusB\013\n\t_isDryRunB\017\n\r_jobResultURLB\n" +
+      "\n\010_jobNameB\023\n\021_queueWaitingTimeB\014\n\n_queu" +
+      "eTypeB\017\n\r_cubeRevisionB\032\n\030_mahaServiceRe" +
+      "gistryNameB\026\n\024_mahaServiceHostnameB\023\n\021_i" +
+      "sGrainOptimizedB\023\n\021_isIndexOptimizedB\n\n\010" +
+      "_curatorB\030\n\026_reRunEngineQueryTableB\022\n\020_i" +
+      "sScanOptimizedB\013\n\t_scanRowsB\014\n\n_grainRow" +
+      "sB\n\n\010_isDebugB\t\n\007_isTestB\013\n\t_testNameB\016\n" +
+      "\014_requestHashB\016\n\014_jobIdStringB\n\n\010_numDay" +
+      "sB\017\n\r_workerStatusB\020B\016MahaRequestLogb\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
