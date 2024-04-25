@@ -30,7 +30,7 @@
         <json4s.version>3.6.9</json4s.version>
         <scalatest.version>3.2.2</scalatest.version>
         <scalaz.version>7.2.30</scalaz.version>
-        <jackson.version>2.11.3</jackson.version>
+        <jackson.version>2.13.4.1</jackson.version>
         <httpclient.version>4.5.12</httpclient.version>
         <guava.version>29.0-jre</guava.version>
         <jodatime.version>2.10.6</jodatime.version>
