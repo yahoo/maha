@@ -570,8 +570,9 @@ object DefaultQueryPipelineFactory extends Logging {
         val (name, bundles) = iter.next()
         //find druid first
         var dc = bundles.filter(_.dim.engine == DruidEngine)
+
         //find supported druid multi engine next
-        if (dc.isEmpty) {
+        if (dc.isEmpty || requestModel.forceDimDriven) {
           druidMultiQueryEngineList.exists {
             engine =>
               dc = bundles.filter(_.dim.engine == engine)
