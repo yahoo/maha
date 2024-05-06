@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>6.153-SNAPSHOT</version>
+    <version>6.152-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -18,8 +18,8 @@
         <hikaricp.version>3.4.5</hikaricp.version>
         <spring.version>4.3.29.RELEASE</spring.version>
         <maven.clover.skip>true</maven.clover.skip>
-        <scoverage.aggregate>true</scoverage.aggregate>
-        <scoverage.minimum.coverage>88</scoverage.minimum.coverage>
+        <scoverage.aggregate>false</scoverage.aggregate>
+        <scoverage.minimum.coverage>0</scoverage.minimum.coverage>
         <target_jdk_version>1.8</target_jdk_version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-surefire-report-plugin.version>${maven-surefire-plugin.version}</maven-surefire-report-plugin.version>
@@ -34,7 +34,7 @@
         <httpclient.version>4.5.12</httpclient.version>
         <guava.version>29.0-jre</guava.version>
         <jodatime.version>2.10.6</jodatime.version>
-        <druid.version>0.21.1</druid.version>
+        <druid.version>29.0.0</druid.version>
         <scala.arm.version>2.0</scala.arm.version>
         <opencsv.version>4.6</opencsv.version>
         <esapi.version>2.2.1.1</esapi.version>

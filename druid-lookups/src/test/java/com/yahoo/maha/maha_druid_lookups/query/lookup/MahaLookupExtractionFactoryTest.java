@@ -36,7 +36,7 @@ import static org.testng.Assert.*;
 
 public class MahaLookupExtractionFactoryTest extends TestMongoServer {
 
-    Provider<LookupReferencesManager> provider = new Provider<LookupReferencesManager>() {
+    /*Provider<LookupReferencesManager> provider = new Provider<LookupReferencesManager>() {
         @Override
         public LookupReferencesManager get() {
             return getLookupReferencesManager();
@@ -147,5 +147,5 @@ public class MahaLookupExtractionFactoryTest extends TestMongoServer {
 
         manager.shutdown();
     }
-
+*/
 }

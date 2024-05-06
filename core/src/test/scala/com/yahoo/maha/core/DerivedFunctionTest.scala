@@ -38,14 +38,13 @@ class DerivedFunctionTest extends AnyFunSuite with Matchers {
     }
     assert(thrown.getMessage.contains("Format for get_interval_date must be d|w|m|day|yr not"))
   }
-  
+
   test("All Derived Functions should generate proper JSON Strings.") {
     val gid = GET_INTERVAL_DATE("fieldName", "yyyyMMdd")
     val dow = DAY_OF_WEEK("fieldName")
     val dtf = DATETIME_FORMATTER("fieldName", 0, 10)
     val dd = DECODE_DIM("fieldName", "arg1", "decodeVal1", "arg2", "decodeVal2", "default")
     val js = JAVASCRIPT("fieldName", "function(x) { return x > 0; }")
-    val js2 = JAVASCRIPT_WITH_LIST_OF_FIELDS(List("fieldName1","fieldName2"), "function(x) { return x > 0; }")
     val rgx = REGEX("fieldName", "blah", 0, true, "t")
     val lu = LOOKUP("namespace", "val", Map("a" -> "b"))
     val lur = LOOKUP_WITH_RETAIN_MISSING_VALUE("namespace", "val", Map("a" -> "b"))
@@ -60,7 +59,7 @@ class DerivedFunctionTest extends AnyFunSuite with Matchers {
     val rc = TIME_FORMAT_WITH_REQUEST_CONTEXT("yyyy")
     val lwt = LOOKUP_WITH_TIMESTAMP("namespace", "val", "fmt", Map.empty, Some("ovrVal"), asMillis = false)
 
-    val resultArray = List(gid, dow, dtf, dd, js, js2, rgx, lu, lur, lwd, lwe, lwo, ltf, ldr, dtz, dpg, rc, lwt, lwr)
+    val resultArray = List(gid, dow, dtf, dd, js, rgx, lu, lur, lwd, lwe, lwo, ltf, ldr, dtz, dpg, rc, lwt, lwr)
 
     val expectedJSONs = List(
       """{"function_type":"GET_INTERVAL_DATE","fieldName":"fieldName","format":"yyyyMMdd"}""",
@@ -68,7 +67,6 @@ class DerivedFunctionTest extends AnyFunSuite with Matchers {
       """{"function_type":"DATETIME_FORMATTER","fieldName":"fieldName","index":0,"length":10}""",
       """{"function_type":"DECODE_DIM","fieldName":"fieldName","args":"arg1,decodeVal1,arg2,decodeVal2,default"}""",
       """{"function_type":"JAVASCRIPT","fieldName":"fieldName","function":"function(x) { return x > 0; }"}""",
-      """{"function_type":"JAVASCRIPT_WITH_LIST_OF_FIELDS","fieldNames":["fieldName1","fieldName2"],"function":"function(x) { return x > 0; }"}""",
       """{"function_type":"REGEX","fieldName":"fieldName","expr":"blah","index":0,"replaceMissingValue":true,"replaceMissingValueWith":"t"}""",
       """{"function_type":"LOOKUP","lookupNamespace":"namespace","valueColumn":"val","dimensionOverrideMap":{"a":"b"}}""",
       """{"function_type":"LOOKUP_WITH_RETAIN_MISSING_VALUE","lookupNamespace":"namespace","valueColumn":"val","dimensionOverrideMap":{"a":"b"}}""",

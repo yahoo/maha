@@ -40,7 +40,7 @@ import org.apache.druid.query.spec.{MultipleIntervalSegmentSpec, QuerySegmentSpe
 import org.apache.druid.query.timeseries.TimeseriesResultValue
 import org.apache.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
 import org.apache.druid.query.{DataSource, Druids, Result, TableDataSource, UnionDataSource}
-import org.apache.druid.segment.column.ValueType
+import org.apache.druid.segment.column.{ColumnType, ValueType}
 import org.joda.time.{DateTime, DateTimeZone, Interval, Period}
 
 import scala.collection.mutable.ArrayBuffer
@@ -306,7 +306,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       new TableDataSource(dataSource.split(",").head)
     else {
       val unionSources = dataSource.split(",").toSet
-      val unionSourcesObject: List[TableDataSource] = unionSources.map(source => new TableDataSource(source)).toList
+      val unionSourcesObject: List[DataSource] = unionSources.map(source => new TableDataSource(source)).toList
       new UnionDataSource(unionSourcesObject.asJava)
     }
   }
@@ -903,8 +903,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
   }
 
-  private[this] def getDimValueType(column: Column): ValueType = {
-    ValueType.STRING
+  private[this] def getDimValueType(column: Column): ColumnType = {
+    ColumnType.STRING
   }
 
   private[this] def getAggregatorsForOuterQuery(queryContext: FactQueryContext): (mutable.Buffer[AggregatorFactory], mutable.Buffer[PostAggregator]) = {
