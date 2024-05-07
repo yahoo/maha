@@ -43,6 +43,7 @@ import org.junit.rules.ExpectedException;
 import javax.annotation.Nullable;
 import org.joda.time.Period;
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 public class MahaLookupExprMacroTest {
 
@@ -102,6 +103,16 @@ public class MahaLookupExprMacroTest {
             public LookupIntrospectHandler getIntrospectHandler()
             {
                 return null;
+            }
+
+            @Override
+            public void awaitInitialization() throws InterruptedException, TimeoutException {
+                return;
+            }
+
+            @Override
+            public boolean isInitialized() {
+                return false;
             }
 
             @Override

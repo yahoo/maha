@@ -42,24 +42,13 @@ public class URILookupExtractor<U extends List<String>> extends OnlineDatastoreL
     }
 
     @Override
-    public boolean canIterate() {
-        return true;
+    public boolean supportsAsMap() {
+        return false;
     }
 
     @Override
-    public boolean canGetKeySet()
-    {
-        return true;
+    public Map<String, String> asMap() {
+        return super.asMap();
     }
 
-    @Override
-    public Iterable<Map.Entry<String, String>> iterable() {
-        return super.iterable();
-    }
-
-    @Override
-    public Set<String> keySet()
-    {
-        return getMap().keySet();
-    }
 }

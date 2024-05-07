@@ -25,24 +25,13 @@ public class JDBCLookupExtractor<U extends List<String>> extends OnlineDatastore
     }
 
     @Override
-    public boolean canIterate() {
-        return true;
-    }
-
-    @Override
-    public boolean canGetKeySet()
-    {
+    public boolean supportsAsMap() {
         return false;
     }
 
     @Override
-    public Iterable<Map.Entry<String, String>> iterable() {
-        return super.iterable();
+    public Map<String, String> asMap() {
+        return super.asMap();
     }
 
-    @Override
-    public Set<String> keySet()
-    {
-        return new HashSet<>();
-    }
 }

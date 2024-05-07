@@ -25,24 +25,12 @@ public class JDBCLookupExtractorWithLeaderAndFollower<U extends List<String>> ex
     }
 
     @Override
-    public boolean canIterate() {
-        return true;
-    }
-
-    @Override
-    public boolean canGetKeySet()
-    {
+    public boolean supportsAsMap() {
         return false;
     }
 
     @Override
-    public Iterable<Map.Entry<String, String>> iterable() {
-        return super.iterable();
-    }
-
-    @Override
-    public Set<String> keySet()
-    {
-        return new HashSet<>();
+    public Map<String, String> asMap() {
+        return super.asMap();
     }
 }

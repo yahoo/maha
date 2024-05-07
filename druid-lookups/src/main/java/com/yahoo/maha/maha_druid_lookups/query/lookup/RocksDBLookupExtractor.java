@@ -38,22 +38,16 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
     @Override
     public byte[] getCacheByteValue(String key, String valueColumn, Optional<DecodeConfig> decodeConfigOptional, RocksDB db) {
-       return cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, schemaFactory, lookupService, serviceEmitter, extractionNamespace);
+        return cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, schemaFactory, lookupService, serviceEmitter, extractionNamespace);
     }
 
     @Override
-    public boolean canIterate() {
-        return true;
-    }
-
-    @Override
-    public boolean canGetKeySet()
-    {
+    public boolean supportsAsMap() {
         return false;
     }
 
     @Override
-    public Iterable<Map.Entry<String, String>> iterable() {
+    public Map<String, String> asMap() {
         Map<String, String> tempMap = new java.util.HashMap<>();
 
         try {
@@ -86,12 +80,7 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
             LOG.error(e, "Caught exception. Returning iterable to empty map.");
         }
 
-        return tempMap.entrySet();
+        return tempMap;
     }
 
-    @Override
-    public Set<String> keySet()
-    {
-        return new HashSet<>();
-    }
 }

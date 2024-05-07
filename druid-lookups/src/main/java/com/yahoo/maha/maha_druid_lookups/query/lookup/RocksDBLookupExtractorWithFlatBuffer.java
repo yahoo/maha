@@ -38,24 +38,12 @@ public class RocksDBLookupExtractorWithFlatBuffer<U> extends BaseRocksDBLookupEx
     }
 
     @Override
-    public boolean canIterate() {
-        return true;
-    }
-
-    @Override
-    public boolean canGetKeySet()
-    {
+    public boolean supportsAsMap() {
         return false;
     }
 
     @Override
-    public Iterable<Map.Entry<String, String>> iterable() {
-        return staticMap.entrySet();
-    }
-
-    @Override
-    public Set<String> keySet()
-    {
-        return new HashSet<>();
+    public Map<String, String> asMap() {
+        return staticMap;
     }
 }
