@@ -251,7 +251,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
                             log.error(t, "Error in namespace [%s]", implDatum.name);
                         }
                     }
-                }
+                }, MoreExecutors.directExecutor()
         );
         future.cancel(true);
         try {

@@ -2,6 +2,7 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
+import com.yahoo.maha.jdbc.JdbcConnection;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -15,7 +16,6 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.h2.jdbc.JdbcConnection;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
 import org.mockito.Mock;
