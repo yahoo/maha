@@ -3,6 +3,8 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
@@ -37,7 +39,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor {
     private static final Logger LOG = new Logger(BaseRocksDBLookupExtractor.class);
 
-    protected static final ObjectMapper objectMapper = new ObjectMapper();
+    protected static final ObjectMapper objectMapper = JsonMapper.builder().addModule(new JodaModule()).build();
     private final Map<String, U> map;
     protected final RocksDBExtractionNamespace extractionNamespace;
     protected RocksDBManager rocksDBManager;

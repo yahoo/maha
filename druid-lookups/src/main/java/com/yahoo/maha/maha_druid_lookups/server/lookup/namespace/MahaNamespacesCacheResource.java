@@ -3,6 +3,8 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.fasterxml.jackson.jaxrs.smile.SmileMediaTypes;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
@@ -32,7 +34,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class MahaNamespacesCacheResource
 {
     private static final Logger log = new Logger(MahaNamespacesCacheResource.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = JsonMapper.builder().addModule(new JodaModule()).build();
     private final MahaNamespaceExtractionCacheManager mahaNamespaceExtractionCacheManager;
     private final ServiceEmitter serviceEmitter;
 
