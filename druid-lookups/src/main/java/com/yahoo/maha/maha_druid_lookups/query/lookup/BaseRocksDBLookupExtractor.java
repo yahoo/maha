@@ -3,6 +3,8 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
@@ -37,7 +39,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor {
     private static final Logger LOG = new Logger(BaseRocksDBLookupExtractor.class);
 
-    protected static final ObjectMapper objectMapper = new ObjectMapper();
+    protected static final ObjectMapper objectMapper = JsonMapper.builder().addModule(new JodaModule()).build();
     private final Map<String, U> map;
     protected final RocksDBExtractionNamespace extractionNamespace;
     protected RocksDBManager rocksDBManager;
@@ -126,7 +128,7 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
                 if (db == null) {
                     LOG.error("RocksDB instance is null");
                     LOG.error("Failed to get lookup value from cache. Falling back to lookupService.");
-                    serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE + "_" + extractionNamespace.getNamespace(), 1));
+                    serviceEmitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE + "_" + extractionNamespace.getNamespace(), 1));
                     String cacheByteString = new String(lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional))).trim();
                     return util.populateCacheStringFromOverride(cacheByteString, secondaryColOverrideMap);
                 }
@@ -142,7 +144,7 @@ public abstract class BaseRocksDBLookupExtractor<U> extends MahaLookupExtractor 
                                 extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic(),
                                 key);
                         missingLookupCache.put(key, extractionNamespaceAsByteArray);
-                        serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_PUBLISH_MISSING_LOOKUP_SUCCESS, 1));
+                        serviceEmitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_PUBLISH_MISSING_LOOKUP_SUCCESS, Integer.valueOf(1)));
                     }
                     return null;
                 } else {

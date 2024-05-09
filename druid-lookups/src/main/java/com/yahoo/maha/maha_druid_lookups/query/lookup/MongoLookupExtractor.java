@@ -9,6 +9,7 @@ import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class MongoLookupExtractor<U extends List<String>> extends OnlineDatastoreLookupExtractor {
     private static final Logger LOG = new Logger(MethodHandles.lookup().lookupClass());
@@ -23,12 +24,13 @@ public class MongoLookupExtractor<U extends List<String>> extends OnlineDatastor
     }
 
     @Override
-    public boolean canIterate() {
-        return true;
+    public boolean supportsAsMap() {
+        return false;
     }
 
     @Override
-    public Iterable<Map.Entry<String, String>> iterable() {
-        return staticMap.entrySet();
+    public Map<String, String> asMap() {
+        return staticMap;
     }
+
 }

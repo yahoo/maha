@@ -169,12 +169,7 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
     }
 
     @Override
-    public boolean canIterate() {
-        return extractionNamespace.isCacheEnabled();
-    }
-
-    @Override
-    public Iterable<Map.Entry<String, String>> iterable() {
+    public Map<String, String> asMap() {
         Map<String, String> tempMap = new HashMap<>();
         int numEntriesIterated = 0;
         try {
@@ -199,6 +194,6 @@ abstract public class OnlineDatastoreLookupExtractor<U extends List<String>> ext
             log.error(e, "Caught exception. Returning iterable to empty map.");
         }
 
-        return tempMap.entrySet();
+        return tempMap;
     }
 }

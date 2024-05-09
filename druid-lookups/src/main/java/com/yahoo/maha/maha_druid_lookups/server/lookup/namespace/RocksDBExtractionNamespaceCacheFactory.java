@@ -67,11 +67,11 @@ public class RocksDBExtractionNamespaceCacheFactory
             public String call() {
                 try {
                     String loadTime = rocksDBManager.createDB(extractionNamespace, lastVersion);
-                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_SUCCESS, 1));
+                    emitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_SUCCESS, 1));
                     return loadTime;
                 } catch(Exception e) {
                     LOG.error(e, "Caught exception while RocksDB creation, error: %s, namespace: %s, lastVersion: [%s]", e.getMessage(), extractionNamespace.getLookupName(),lastVersion);
-                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_FAILURE, 1));
+                    emitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_FAILURE, 1));
                     return lastVersion;
                 }
             }
@@ -117,7 +117,7 @@ public class RocksDBExtractionNamespaceCacheFactory
             }
         } catch (RocksDBException e) {
             LOG.error(e, "RocksDBException");
-            emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_SIZE_FAILURE, 1));
+            emitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_SIZE_FAILURE, 1));
         }
         return ZERO;
     }

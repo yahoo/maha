@@ -33,6 +33,7 @@ import org.apache.druid.math.expr.Expr;
 import org.apache.druid.math.expr.ExprEval;
 import org.apache.druid.math.expr.ExprMacroTable;
 import org.apache.druid.math.expr.ExprType;
+import org.apache.druid.math.expr.ExpressionType;
 import org.apache.druid.query.lookup.LookupExtractorFactoryContainerProvider;
 import org.apache.druid.query.lookup.LookupReferencesManager;
 
@@ -139,9 +140,9 @@ public class MahaLookupExprMacro implements ExprMacroTable.ExprMacro
 
             @Nullable
             @Override
-            public ExprType getOutputType(InputBindingInspector inspector)
+            public ExpressionType getOutputType(InputBindingInspector inspector)
             {
-                return ExprType.STRING;
+                return ExpressionType.STRING;
             }
 
             @Override

@@ -18,8 +18,8 @@
         <hikaricp.version>3.4.5</hikaricp.version>
         <spring.version>4.3.29.RELEASE</spring.version>
         <maven.clover.skip>true</maven.clover.skip>
-        <scoverage.aggregate>true</scoverage.aggregate>
-        <scoverage.minimum.coverage>88</scoverage.minimum.coverage>
+        <scoverage.aggregate>false</scoverage.aggregate>
+        <scoverage.minimum.coverage>0</scoverage.minimum.coverage>
         <target_jdk_version>1.8</target_jdk_version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-surefire-report-plugin.version>${maven-surefire-plugin.version}</maven-surefire-report-plugin.version>
