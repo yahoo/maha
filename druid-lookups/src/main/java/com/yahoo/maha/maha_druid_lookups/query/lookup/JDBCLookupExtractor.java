@@ -9,6 +9,7 @@ import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class JDBCLookupExtractor<U extends List<String>> extends OnlineDatastoreLookupExtractor<U> {
     private static final Logger LOG = new Logger(MethodHandles.lookup().lookupClass());
@@ -24,11 +25,21 @@ public class JDBCLookupExtractor<U extends List<String>> extends OnlineDatastore
 
     @Override
     public boolean canIterate() {
-        return true;
+        return false;
+    }
+
+    @Override
+    public boolean canGetKeySet() {
+        return false;
     }
 
     @Override
     public Iterable<Map.Entry<String, String>> iterable() {
         return super.iterable();
+    }
+
+    @Override
+    public Set<String> keySet() {
+        return null;
     }
 }

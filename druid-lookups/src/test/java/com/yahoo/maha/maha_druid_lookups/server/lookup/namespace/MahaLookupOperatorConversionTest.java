@@ -29,9 +29,10 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.math.expr.ExprMacroTable;
+import org.apache.druid.math.expr.ExpressionProcessing;
 import org.apache.druid.query.lookup.*;
 import org.apache.druid.segment.column.RowSignature;
-import org.apache.druid.segment.column.ValueType;
+import org.apache.druid.segment.column.ColumnType;
 import org.apache.druid.sql.calcite.expression.DruidExpression;
 import org.apache.druid.sql.calcite.planner.PlannerContext;
 
@@ -45,6 +46,8 @@ public class MahaLookupOperatorConversionTest {
     @BeforeTest
     public void setUp(){
         NullHandling.initializeForTests();
+        ExpressionProcessing.initializeForTests(false);
+        ExpressionProcessing.initializeForStrictBooleansTests(false);
     }
 
     @AfterTest
@@ -58,10 +61,10 @@ public class MahaLookupOperatorConversionTest {
         RexBuilder rexBuilder = new RexBuilder(util.typeFactory);
         RowSignature ROW_SIGNATURE = RowSignature
                 .builder()
-                .add("d", ValueType.DOUBLE)
-                .add("l", ValueType.LONG)
-                .add("s", ValueType.STRING)
-                .add("student_id", ValueType.STRING)
+                .add("d", ColumnType.DOUBLE)
+                .add("l", ColumnType.LONG)
+                .add("s", ColumnType.STRING)
+                .add("student_id", ColumnType.STRING)
                 .build();
 
         final LookupExtractorFactoryContainerProvider manager = EasyMock.createStrictMock(LookupReferencesManager.class);
@@ -97,10 +100,10 @@ public class MahaLookupOperatorConversionTest {
         RexBuilder rexBuilder = new RexBuilder(util.typeFactory);
         RowSignature ROW_SIGNATURE = RowSignature
                 .builder()
-                .add("d", ValueType.DOUBLE)
-                .add("l", ValueType.LONG)
-                .add("grade", ValueType.STRING)
-                .add("student_id", ValueType.STRING)
+                .add("d", ColumnType.DOUBLE)
+                .add("l", ColumnType.LONG)
+                .add("grade", ColumnType.STRING)
+                .add("student_id", ColumnType.STRING)
                 .build();
 
         final LookupExtractorFactoryContainerProvider manager = EasyMock.createStrictMock(LookupReferencesManager.class);
@@ -139,10 +142,10 @@ public class MahaLookupOperatorConversionTest {
         RexBuilder rexBuilder = new RexBuilder(util.typeFactory);
         RowSignature ROW_SIGNATURE = RowSignature
                 .builder()
-                .add("d", ValueType.DOUBLE)
-                .add("l", ValueType.LONG)
-                .add("grade", ValueType.STRING)
-                .add("student_id", ValueType.STRING)
+                .add("d", ColumnType.DOUBLE)
+                .add("l", ColumnType.LONG)
+                .add("grade", ColumnType.STRING)
+                .add("student_id", ColumnType.STRING)
                 .build();
 
         final LookupExtractorFactoryContainerProvider manager = EasyMock.createStrictMock(LookupReferencesManager.class);
@@ -175,10 +178,10 @@ public class MahaLookupOperatorConversionTest {
         RexBuilder rexBuilder = new RexBuilder(util.typeFactory);
         RowSignature ROW_SIGNATURE = RowSignature
                 .builder()
-                .add("d", ValueType.DOUBLE)
-                .add("l", ValueType.LONG)
-                .add("grade", ValueType.STRING)
-                .add("student_id", ValueType.STRING)
+                .add("d", ColumnType.DOUBLE)
+                .add("l", ColumnType.LONG)
+                .add("grade", ColumnType.STRING)
+                .add("student_id", ColumnType.STRING)
                 .build();
 
         final LookupExtractorFactoryContainerProvider manager = EasyMock.createStrictMock(LookupReferencesManager.class);
@@ -219,10 +222,10 @@ public class MahaLookupOperatorConversionTest {
         RexBuilder rexBuilder = new RexBuilder(util.typeFactory);
         RowSignature ROW_SIGNATURE = RowSignature
                 .builder()
-                .add("d", ValueType.DOUBLE)
-                .add("l", ValueType.LONG)
-                .add("grade", ValueType.STRING)
-                .add("student_id", ValueType.STRING)
+                .add("d", ColumnType.DOUBLE)
+                .add("l", ColumnType.LONG)
+                .add("grade", ColumnType.STRING)
+                .add("student_id", ColumnType.STRING)
                 .build();
 
         final LookupExtractorFactoryContainerProvider manager = EasyMock.createStrictMock(LookupReferencesManager.class);
