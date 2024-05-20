@@ -29,7 +29,6 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNa
 import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.math.expr.Expr;
 import org.apache.druid.math.expr.ExprMacroTable;
-import org.apache.druid.math.expr.InputBindings;
 import org.apache.druid.math.expr.Parser;
 import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.druid.query.lookup.*;
@@ -43,12 +42,11 @@ import org.junit.rules.ExpectedException;
 import javax.annotation.Nullable;
 import org.joda.time.Period;
 import java.util.*;
-import java.util.concurrent.TimeoutException;
 
 public class MahaLookupExprMacroTest {
 
 
-    private static final Expr.ObjectBinding BINDINGS = InputBindings.forMap(
+    private static final Expr.ObjectBinding BINDINGS = Parser.withMap(
             ImmutableMap.<String, Object>builder()
                     .put("id1", "dim_key1")
                     .build()
@@ -103,16 +101,6 @@ public class MahaLookupExprMacroTest {
             public LookupIntrospectHandler getIntrospectHandler()
             {
                 return null;
-            }
-
-            @Override
-            public void awaitInitialization() throws InterruptedException, TimeoutException {
-                return;
-            }
-
-            @Override
-            public boolean isInitialized() {
-                return false;
             }
 
             @Override

@@ -46,7 +46,7 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunner {
             }
         } catch (Exception e) {
             LOG.error(e, "Caught exception while getting cache value");
-            emitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
+            emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
         }
         return null;
     }
@@ -91,11 +91,11 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunner {
                     if (newLastUpdated > extractionNamespace.getLastUpdatedTime()) {
                         extractionNamespace.setLastUpdatedTime(newLastUpdated);
                     }
-                    serviceEmitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_SUCCESS, Integer.valueOf(1)));
+                    serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_SUCCESS, 1));
                 }
             } catch (Exception e) {
                 LOG.error(e, "Caught exception while updating cache");
-                serviceEmitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_FAILURE, 1));
+                serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_FAILURE, 1));
             }
         }
     }

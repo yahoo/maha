@@ -3,8 +3,6 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.fasterxml.jackson.jaxrs.smile.SmileMediaTypes;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
@@ -34,7 +32,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class MahaNamespacesCacheResource
 {
     private static final Logger log = new Logger(MahaNamespacesCacheResource.class);
-    private static final ObjectMapper objectMapper = JsonMapper.builder().addModule(new JodaModule()).build();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     private final MahaNamespaceExtractionCacheManager mahaNamespaceExtractionCacheManager;
     private final ServiceEmitter serviceEmitter;
 
@@ -108,12 +106,12 @@ public class MahaNamespacesCacheResource
                             .getCacheSize(extractionNamespace.get(),
                                     mahaNamespaceExtractionCacheManager.getCacheMap(namespace)).getBytes();
                 }
-                serviceEmitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_SUCCESS, Integer.valueOf(1)));
+                serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_SUCCESS, 1));
                 return Response.ok().entity(response).build();
             }
         } catch (Exception ex) {
             log.error(ex, "Can not get cache value for namespace and key");
-            serviceEmitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, Integer.valueOf(1)));
+            serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
             return Response.serverError().entity(Strings.nullToEmpty(ex.getMessage())).build();
         }
     }

@@ -104,7 +104,8 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
                         try {
                             final long tasks = tasksStarted.get();
                             serviceEmitter.emit(
-                                ServiceMetricEvent.builder().setMetric("namespace/deltaTasksStarted", Long.valueOf(tasks - priorTasksStarted))
+                                    ServiceMetricEvent.builder()
+                                            .build("namespace/deltaTasksStarted", tasks - priorTasksStarted)
                             );
                             priorTasksStarted = tasks;
                             monitor(serviceEmitter);
@@ -251,7 +252,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
                             log.error(t, "Error in namespace [%s]", implDatum.name);
                         }
                     }
-                }, MoreExecutors.directExecutor()
+                }
         );
         future.cancel(true);
         try {

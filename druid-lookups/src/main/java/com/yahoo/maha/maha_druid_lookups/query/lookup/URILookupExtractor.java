@@ -27,7 +27,6 @@ import org.apache.druid.java.util.common.logger.Logger;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class URILookupExtractor<U extends List<String>> extends OnlineDatastoreLookupExtractor<U> {
     private static final Logger LOG = new Logger(MethodHandles.lookup().lookupClass());
@@ -42,13 +41,12 @@ public class URILookupExtractor<U extends List<String>> extends OnlineDatastoreL
     }
 
     @Override
-    public boolean supportsAsMap() {
-        return false;
+    public boolean canIterate() {
+        return true;
     }
 
     @Override
-    public Map<String, String> asMap() {
-        return super.asMap();
+    public Iterable<Map.Entry<String, String>> iterable() {
+        return super.iterable();
     }
-
 }
