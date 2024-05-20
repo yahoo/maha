@@ -18,12 +18,15 @@ import org.rocksdb.RocksIterator;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
     private static final Logger LOG = new Logger(RocksDBLookupExtractor.class);
     private CacheActionRunner cacheActionRunner;
     private ProtobufSchemaFactory schemaFactory;
+
+    private static final  Map<String, String> tempMap = new java.util.HashMap<>();
 
     public RocksDBLookupExtractor(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
                                   LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
@@ -41,43 +44,21 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
     @Override
     public boolean canIterate() {
-        return true;
+        return false;
+    }
+
+    @Override
+    public boolean canGetKeySet() {
+        return false;
     }
 
     @Override
     public Iterable<Map.Entry<String, String>> iterable() {
-        Map<String, String> tempMap = new java.util.HashMap<>();
-
-        try {
-            final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
-            Parser<Message> parser = schemaFactory.getProtobufParser(extractionNamespace.getNamespace());
-
-            int numEntriesIterated = 0;
-            RocksIterator it = db.newIterator();
-            it.seekToFirst();
-            while (it.isValid() && numEntriesIterated < extractionNamespace.getNumEntriesIterator()) {
-                byte[] cacheByteValue = db.get(it.key());
-                if (cacheByteValue == null) {
-                    continue;
-                }
-                Message message = parser.parseFrom(cacheByteValue);
-                Map<Descriptors.FieldDescriptor, Object> tempMap2 = message.getAllFields();
-                StringBuilder sb = new StringBuilder();
-                for (Map.Entry<Descriptors.FieldDescriptor, Object> kevVal: tempMap2.entrySet()) {
-                    sb.append(kevVal.getKey().getJsonName()).append(ITER_KEY_VAL_SEPARATOR).append(kevVal.getValue().toString()).append(ITER_VALUE_COL_SEPARATOR);
-                }
-                if (sb.length() > 0) {
-                    sb.setLength(sb.length() - 1);
-                }
-                String key = sb.substring(0, sb.indexOf(ITER_VALUE_COL_SEPARATOR));
-                tempMap.put(key, sb.toString());
-                it.next();
-                numEntriesIterated++;
-            }
-        } catch (Exception e) {
-            LOG.error(e, "Caught exception. Returning iterable to empty map.");
-        }
-
         return tempMap.entrySet();
+    }
+
+    @Override
+    public Set<String> keySet() {
+        return null;
     }
 }

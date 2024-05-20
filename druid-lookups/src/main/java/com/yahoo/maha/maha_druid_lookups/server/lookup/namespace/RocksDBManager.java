@@ -175,13 +175,17 @@ public class RocksDBManager {
                 extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
 
         if (!isFilePresentOnHdfs(successMarkerPath, targetedFileSystem)) {
-            if(lastUpdate == 0) {
+            if(lastUpdate == 0 || (partitionGrain != null && partitionGrain.toStandardDuration().getStandardHours() == 1)) {
                 for(int i = 2; i <= lookBackWindowSize; i++) {
                     LOG.warn(String.format("RocksDB instance not present for namespace [%s] loadTime [%s], will check for previous loadTime", extractionNamespace.getNamespace(), loadTime));
                     loadTime = LocalDateTime.now().minus(i, unit).format(formatter);
                     successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
                             extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
                     if(isFilePresentOnHdfs(successMarkerPath, targetedFileSystem)) {
+                        if(Long.parseLong(loadTime) == lastUpdate) {
+                            LOG.info(String.format("[%s] Lookback window reached the timestamp of the lastUpdate, will not look beyond", extractionNamespace.getNamespace()));
+                            return String.valueOf(lastUpdate);
+                        }
                         break;
                     } else {
                         LOG.warn(String.format("RocksDB instance not present for previous loadTime [%s] too for namespace [%s]", loadTime, extractionNamespace.getNamespace()));

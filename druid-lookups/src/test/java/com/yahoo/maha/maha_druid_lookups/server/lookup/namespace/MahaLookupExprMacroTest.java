@@ -27,9 +27,7 @@ import com.google.common.collect.Lists;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.JDBCLookupExtractor;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import org.apache.druid.common.config.NullHandling;
-import org.apache.druid.math.expr.Expr;
-import org.apache.druid.math.expr.ExprMacroTable;
-import org.apache.druid.math.expr.Parser;
+import org.apache.druid.math.expr.*;
 import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.druid.query.lookup.*;
 import org.easymock.EasyMock;
@@ -46,7 +44,7 @@ import java.util.*;
 public class MahaLookupExprMacroTest {
 
 
-    private static final Expr.ObjectBinding BINDINGS = Parser.withMap(
+    private static final Expr.ObjectBinding BINDINGS = InputBindings.withMap(
             ImmutableMap.<String, Object>builder()
                     .put("id1", "dim_key1")
                     .build()
@@ -64,7 +62,9 @@ public class MahaLookupExprMacroTest {
     @BeforeClass
     public static void setUpClass()
     {
+        ExpressionProcessing.initializeForTests(false);
         NullHandling.initializeForTests();
+        ExpressionProcessing.initializeForStrictBooleansTests(false);
 
         //Construct LookupExtractor
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
