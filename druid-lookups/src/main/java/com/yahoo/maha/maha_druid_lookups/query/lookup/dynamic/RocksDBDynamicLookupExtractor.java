@@ -17,10 +17,8 @@ import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksIterator;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 public class RocksDBDynamicLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
@@ -29,9 +27,9 @@ public class RocksDBDynamicLookupExtractor<U> extends BaseRocksDBLookupExtractor
     private DynamicLookupSchemaManager schemaManager;
 
     public RocksDBDynamicLookupExtractor(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
-                                         LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
-                                         DynamicLookupSchemaManager schemaManager, ServiceEmitter serviceEmitter,
-                                         DynamicCacheActionRunner cacheActionRunner) {
+                                  LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
+                                  DynamicLookupSchemaManager schemaManager, ServiceEmitter serviceEmitter,
+                                  DynamicCacheActionRunner cacheActionRunner) {
         super(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, serviceEmitter);
         this.dynamicCacheActionRunner = cacheActionRunner;
         this.schemaManager = schemaManager;
@@ -43,12 +41,12 @@ public class RocksDBDynamicLookupExtractor<U> extends BaseRocksDBLookupExtractor
     }
 
     @Override
-    public boolean supportsAsMap() {
-        return false;
+    public boolean canIterate() {
+        return true;
     }
 
     @Override
-    public Map<String, String> asMap() {
+    public Iterable<Map.Entry<String, String>> iterable() {
         Map<String, String> tempMap = new java.util.HashMap<>();
 
         try {
@@ -56,7 +54,7 @@ public class RocksDBDynamicLookupExtractor<U> extends BaseRocksDBLookupExtractor
 
             Optional<DynamicLookupSchema> dynamicLookupSchemaOption = schemaManager.getSchema(extractionNamespace);
             if(!dynamicLookupSchemaOption.isPresent()) {
-                return tempMap;
+                return tempMap.entrySet();
             }
             DynamicLookupSchema dynamicLookupSchema = dynamicLookupSchemaOption.get();
             DynamicLookupCoreSchema dynamicLookupCoreSchema = dynamicLookupSchema.getCoreSchema();
@@ -86,14 +84,13 @@ public class RocksDBDynamicLookupExtractor<U> extends BaseRocksDBLookupExtractor
                     numEntriesIterated++;
                 }
                 else if (dynamicLookupCoreSchema instanceof DynamicLookupFlatbufferSchemaSerDe) {
-                    return tempMap;
+                    return tempMap.entrySet();
                 }
             }
         } catch (Exception e) {
             LOG.error(e, "Caught exception. Returning iterable to empty map.");
         }
 
-        return tempMap;
+        return tempMap.entrySet();
     }
-
 }

@@ -21,7 +21,6 @@ import org.apache.druid.query.lookup.LookupIntrospectHandler;
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.Map;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -144,16 +143,6 @@ public class MahaLookupExtractorFactory implements LookupExtractorFactory
     public LookupIntrospectHandler getIntrospectHandler()
     {
         return lookupIntrospectHandler;
-    }
-
-    @Override
-    public void awaitInitialization() throws InterruptedException, TimeoutException {
-        return;
-    }
-
-    @Override
-    public boolean isInitialized() {
-        return false;
     }
 
     @JsonProperty

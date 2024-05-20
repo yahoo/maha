@@ -4,8 +4,6 @@ import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.google.common.base.Strings;
 import org.apache.druid.query.lookup.LookupExtractor;
 import org.apache.druid.java.util.common.logger.Logger;
@@ -15,7 +13,7 @@ import java.util.Map;
 abstract public class MahaLookupExtractor extends LookupExtractor {
     private static final Logger LOG = new Logger(MahaLookupExtractor.class);
 
-    private static final ObjectMapper objectMapper = JsonMapper.builder().addModule(new JodaModule()).build();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     protected static final Map<String, String> staticMap = new java.util.HashMap<>();
 

@@ -16,10 +16,8 @@ import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksIterator;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
@@ -38,16 +36,16 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
     @Override
     public byte[] getCacheByteValue(String key, String valueColumn, Optional<DecodeConfig> decodeConfigOptional, RocksDB db) {
-        return cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, schemaFactory, lookupService, serviceEmitter, extractionNamespace);
+       return cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, schemaFactory, lookupService, serviceEmitter, extractionNamespace);
     }
 
     @Override
-    public boolean supportsAsMap() {
-        return false;
+    public boolean canIterate() {
+        return true;
     }
 
     @Override
-    public Map<String, String> asMap() {
+    public Iterable<Map.Entry<String, String>> iterable() {
         Map<String, String> tempMap = new java.util.HashMap<>();
 
         try {
@@ -80,7 +78,6 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
             LOG.error(e, "Caught exception. Returning iterable to empty map.");
         }
 
-        return tempMap;
+        return tempMap.entrySet();
     }
-
 }
