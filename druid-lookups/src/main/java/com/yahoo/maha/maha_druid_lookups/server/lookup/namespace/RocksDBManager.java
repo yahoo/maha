@@ -189,7 +189,7 @@ public class RocksDBManager {
                         break;
                     } else {
                         LOG.warn(String.format("RocksDB instance not present for previous loadTime [%s] too for namespace [%s]", loadTime, extractionNamespace.getNamespace()));
-                        serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_INSTANCE_NOT_PRESENT, 1));
+                        serviceEmitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_INSTANCE_NOT_PRESENT, Integer.valueOf(1)));
                         if (i == lookBackWindowSize) {
                             LOG.warn(String.format("Reached look back limit, not looking further for namespace [%s]", extractionNamespace.getNamespace()));
                             return String.valueOf(lastUpdate);
@@ -207,7 +207,7 @@ public class RocksDBManager {
         LOG.debug(String.format("hdfsPath [%s]", hdfsPath));
 
         if(!isRocksDBInstanceCreated(hdfsPath, targetedFileSystem)) {
-            serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_INSTANCE_NOT_PRESENT, 1));
+            serviceEmitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_INSTANCE_NOT_PRESENT, Integer.valueOf(1)));
             return String.valueOf(lastUpdate);
         }
 
@@ -374,7 +374,8 @@ public class RocksDBManager {
 
         DBOptions dbOptions = new DBOptions();
         List<ColumnFamilyDescriptor> columnFamilyDescriptors = new ArrayList<>();
-        OptionsUtil.loadOptionsFromFile(localPath + "/" + optionsFileName, Env.getDefault(), dbOptions, columnFamilyDescriptors);
+
+        OptionsUtil.loadOptionsFromFile(new ConfigOptions(),localPath + "/" + optionsFileName, dbOptions, columnFamilyDescriptors);
 
         Preconditions.checkArgument(columnFamilyDescriptors.size() > 0);
         columnFamilyDescriptors.get(0).getOptions().optimizeForPointLookup(blockCacheSizeInMb).setMemTableConfig(new HashSkipListMemTableConfig());
@@ -503,7 +504,7 @@ public class RocksDBManager {
                     cleanup(String.format("%s/%s/%s", localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace()));
 
                     LOG.info("Uploaded lookup for auditing");
-                    serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPLOAD_LOOKUP_FOR_AUDITING_SUCCESS, 1));
+                    serviceEmitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_UPLOAD_LOOKUP_FOR_AUDITING_SUCCESS, Integer.valueOf(1)));
                 }
 
             } catch (Exception e) {
@@ -523,7 +524,7 @@ public class RocksDBManager {
             }
         } else {
             LOG.error(String.format("Giving up upload after [%s] retries", retryCount));
-            serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPLOAD_LOOKUP_FOR_AUDITING_FAILURE, 1));
+            serviceEmitter.emit(ServiceMetricEvent.builder().setMetric(MonitoringConstants.MAHA_LOOKUP_UPLOAD_LOOKUP_FOR_AUDITING_FAILURE, Integer.valueOf(1)));
         }
     }
 

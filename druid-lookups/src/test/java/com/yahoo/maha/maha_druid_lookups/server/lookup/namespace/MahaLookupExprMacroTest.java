@@ -27,7 +27,10 @@ import com.google.common.collect.Lists;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.JDBCLookupExtractor;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import org.apache.druid.common.config.NullHandling;
-import org.apache.druid.math.expr.*;
+import org.apache.druid.math.expr.Expr;
+import org.apache.druid.math.expr.ExprMacroTable;
+import org.apache.druid.math.expr.InputBindings;
+import org.apache.druid.math.expr.Parser;
 import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.druid.query.lookup.*;
 import org.easymock.EasyMock;
@@ -40,11 +43,12 @@ import org.junit.rules.ExpectedException;
 import javax.annotation.Nullable;
 import org.joda.time.Period;
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 public class MahaLookupExprMacroTest {
 
 
-    private static final Expr.ObjectBinding BINDINGS = InputBindings.withMap(
+    private static final Expr.ObjectBinding BINDINGS = InputBindings.forMap(
             ImmutableMap.<String, Object>builder()
                     .put("id1", "dim_key1")
                     .build()
@@ -62,9 +66,7 @@ public class MahaLookupExprMacroTest {
     @BeforeClass
     public static void setUpClass()
     {
-        ExpressionProcessing.initializeForTests(false);
         NullHandling.initializeForTests();
-        ExpressionProcessing.initializeForStrictBooleansTests(false);
 
         //Construct LookupExtractor
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
@@ -101,6 +103,16 @@ public class MahaLookupExprMacroTest {
             public LookupIntrospectHandler getIntrospectHandler()
             {
                 return null;
+            }
+
+            @Override
+            public void awaitInitialization() throws InterruptedException, TimeoutException {
+                return;
+            }
+
+            @Override
+            public boolean isInitialized() {
+                return false;
             }
 
             @Override

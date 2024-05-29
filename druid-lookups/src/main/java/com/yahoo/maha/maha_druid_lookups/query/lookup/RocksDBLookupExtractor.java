@@ -16,6 +16,7 @@ import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksIterator;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -25,8 +26,6 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
     private static final Logger LOG = new Logger(RocksDBLookupExtractor.class);
     private CacheActionRunner cacheActionRunner;
     private ProtobufSchemaFactory schemaFactory;
-
-    private static final  Map<String, String> tempMap = new java.util.HashMap<>();
 
     public RocksDBLookupExtractor(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
                                   LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
@@ -39,26 +38,49 @@ public class RocksDBLookupExtractor<U> extends BaseRocksDBLookupExtractor<U> {
 
     @Override
     public byte[] getCacheByteValue(String key, String valueColumn, Optional<DecodeConfig> decodeConfigOptional, RocksDB db) {
-       return cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, schemaFactory, lookupService, serviceEmitter, extractionNamespace);
+        return cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, schemaFactory, lookupService, serviceEmitter, extractionNamespace);
     }
 
     @Override
-    public boolean canIterate() {
+    public boolean supportsAsMap() {
         return false;
     }
 
     @Override
-    public boolean canGetKeySet() {
-        return false;
+    public Map<String, String> asMap() {
+        Map<String, String> tempMap = new java.util.HashMap<>();
+
+        try {
+            final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
+            Parser<Message> parser = schemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+
+            int numEntriesIterated = 0;
+            RocksIterator it = db.newIterator();
+            it.seekToFirst();
+            while (it.isValid() && numEntriesIterated < extractionNamespace.getNumEntriesIterator()) {
+                byte[] cacheByteValue = db.get(it.key());
+                if (cacheByteValue == null) {
+                    continue;
+                }
+                Message message = parser.parseFrom(cacheByteValue);
+                Map<Descriptors.FieldDescriptor, Object> tempMap2 = message.getAllFields();
+                StringBuilder sb = new StringBuilder();
+                for (Map.Entry<Descriptors.FieldDescriptor, Object> kevVal: tempMap2.entrySet()) {
+                    sb.append(kevVal.getKey().getJsonName()).append(ITER_KEY_VAL_SEPARATOR).append(kevVal.getValue().toString()).append(ITER_VALUE_COL_SEPARATOR);
+                }
+                if (sb.length() > 0) {
+                    sb.setLength(sb.length() - 1);
+                }
+                String key = sb.substring(0, sb.indexOf(ITER_VALUE_COL_SEPARATOR));
+                tempMap.put(key, sb.toString());
+                it.next();
+                numEntriesIterated++;
+            }
+        } catch (Exception e) {
+            LOG.error(e, "Caught exception. Returning iterable to empty map.");
+        }
+
+        return tempMap;
     }
 
-    @Override
-    public Iterable<Map.Entry<String, String>> iterable() {
-        return tempMap.entrySet();
-    }
-
-    @Override
-    public Set<String> keySet() {
-        return null;
-    }
 }

@@ -106,7 +106,7 @@ public class OnHeapMahaNamespaceExtractionCacheManager<U> extends MahaNamespaceE
                 size += key.length();
             }
         }
-        serviceEmitter.emit(ServiceMetricEvent.builder().build("namespace/cache/numEntries", numEntries));
-        serviceEmitter.emit(ServiceMetricEvent.builder().build("namespace/cache/heapSizeInBytes", size * Chars.BYTES));
+        serviceEmitter.emit(ServiceMetricEvent.builder().setMetric("namespace/cache/numEntries", Long.valueOf(numEntries)));
+        serviceEmitter.emit(ServiceMetricEvent.builder().setMetric("namespace/cache/heapSizeInBytes", Long.valueOf(size * Chars.BYTES)));
     }
 }

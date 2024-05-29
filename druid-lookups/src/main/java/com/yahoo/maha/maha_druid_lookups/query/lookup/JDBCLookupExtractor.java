@@ -7,6 +7,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNa
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 
 import java.lang.invoke.MethodHandles;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,22 +25,13 @@ public class JDBCLookupExtractor<U extends List<String>> extends OnlineDatastore
     }
 
     @Override
-    public boolean canIterate() {
+    public boolean supportsAsMap() {
         return false;
     }
 
     @Override
-    public boolean canGetKeySet() {
-        return false;
+    public Map<String, String> asMap() {
+        return super.asMap();
     }
 
-    @Override
-    public Iterable<Map.Entry<String, String>> iterable() {
-        return super.iterable();
-    }
-
-    @Override
-    public Set<String> keySet() {
-        return null;
-    }
 }

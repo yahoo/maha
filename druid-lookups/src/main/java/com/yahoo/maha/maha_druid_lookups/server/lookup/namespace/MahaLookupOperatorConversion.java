@@ -87,8 +87,9 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
                 StringUtils.toLowerCase(calciteOperator().getName()),
                 inputExpressions -> {
                     final DruidExpression arg = inputExpressions.get(0);
-                    final Expr lookupName = inputExpressions.get(1).parse(plannerContext.getExprMacroTable());
-                    final Expr columnName = inputExpressions.get(2).parse(plannerContext.getExprMacroTable());
+
+                    final Expr lookupName = plannerContext.parseExpression(inputExpressions.get(1).getExpression());
+                    final Expr columnName = plannerContext.parseExpression(inputExpressions.get(2).getExpression());
 
                     LookupReferencesManager lrm = (LookupReferencesManager) lookupReferencesManager;
                     String missingValue = getMissingValue(inputExpressions, plannerContext, 3, MISSING_VALUE);
@@ -156,7 +157,7 @@ public class MahaLookupOperatorConversion implements SqlOperatorConversion {
         if (list.size() >= index+1) {
             DruidExpression expression = list.get(index);
             if (expression != null) {
-                return (String) expression.parse(plannerContext.getExprMacroTable()).getLiteralValue();
+                return (String) plannerContext.parseExpression(expression.getExpression()).getLiteralValue();
             }
         }
         return valueIfMissing;

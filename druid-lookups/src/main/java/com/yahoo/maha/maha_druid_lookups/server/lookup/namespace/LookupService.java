@@ -3,6 +3,8 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -58,7 +60,7 @@ public class LookupService {
     private String serviceScheme = "http";
     private String servicePort = "4080";
     private final AuthHeaderFactory authHeaderFactory;
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = JsonMapper.builder().addModule(new JodaModule()).build();
     private static String localHostName;
 
     @Inject
@@ -96,7 +98,7 @@ public class LookupService {
                         new NoopHostnameVerifier());
 
                 connMgr = new PoolingHttpClientConnectionManager(RegistryBuilder.<ConnectionSocketFactory>create()
-                                .register(serviceScheme, sslsf).build());
+                        .register(serviceScheme, sslsf).build());
 
                 connMgr.setMaxTotal((int)lookupServiceProperties.getOrDefault("max_connections", MAX_CONNECTIONS));
                 connMgr.setDefaultMaxPerRoute((int)lookupServiceProperties.getOrDefault("max_connections", MAX_CONNECTIONS));
@@ -175,7 +177,7 @@ public class LookupService {
         } else {
             uriBuilder = new URIBuilder().setScheme(serviceScheme).setHost(getHost()).setPort(Integer.valueOf(servicePort));
         }
-            uriBuilder.setPath("/druid/v1/namespaces/" + lookupData.extractionNamespace.getLookupName())
+        uriBuilder.setPath("/druid/v1/namespaces/" + lookupData.extractionNamespace.getLookupName())
                 .addParameter("namespaceclass", lookupData.extractionNamespace.getClass().getName())
                 .addParameter("key", lookupData.key)
                 .addParameter("valueColumn", lookupData.valueColumn);

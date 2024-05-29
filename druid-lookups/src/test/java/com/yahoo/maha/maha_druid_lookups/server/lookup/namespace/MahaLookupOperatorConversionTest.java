@@ -28,8 +28,10 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.druid.common.config.NullHandling;
+import org.apache.druid.math.expr.Expr;
 import org.apache.druid.math.expr.ExprMacroTable;
 import org.apache.druid.math.expr.ExpressionProcessing;
+import org.apache.druid.math.expr.Parser;
 import org.apache.druid.query.lookup.*;
 import org.apache.druid.segment.column.RowSignature;
 import org.apache.druid.segment.column.ColumnType;
@@ -37,17 +39,19 @@ import org.apache.druid.sql.calcite.expression.DruidExpression;
 import org.apache.druid.sql.calcite.planner.PlannerContext;
 
 import org.easymock.EasyMock;
+import org.easymock.IAnswer;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
+
+import static org.easymock.EasyMock.anyString;
 
 public class MahaLookupOperatorConversionTest {
 
     @BeforeTest
     public void setUp(){
         NullHandling.initializeForTests();
-        ExpressionProcessing.initializeForTests(false);
-        ExpressionProcessing.initializeForStrictBooleansTests(false);
+        ExpressionProcessing.initializeForTests();
     }
 
     @AfterTest
@@ -73,7 +77,14 @@ public class MahaLookupOperatorConversionTest {
         ExprMacroTable exprMacroTable = TestExprMacroTable.INSTANCE;
 
         PlannerContext plannerContext = EasyMock.createStrictMock(PlannerContext.class);
-        EasyMock.expect(plannerContext.getExprMacroTable()).andReturn(exprMacroTable).anyTimes();
+        EasyMock.expect(plannerContext.parseExpression(anyString())).andAnswer(
+                new IAnswer<Expr>() {
+                    @Override
+                    public Expr answer() {
+                        return Parser.parse(EasyMock.getCurrentArguments()[0].toString(), exprMacroTable);
+                    }
+                }
+        ).anyTimes();
         EasyMock.replay(plannerContext);
         MahaLookupTestUtil.MAHA_LOOKUP mahaLookup = new MahaLookupTestUtil.MAHA_LOOKUP(
                 util.makeInputRef("student_id", ROW_SIGNATURE, rexBuilder)
@@ -112,7 +123,14 @@ public class MahaLookupOperatorConversionTest {
         ExprMacroTable exprMacroTable = TestExprMacroTable.INSTANCE;
 
         PlannerContext plannerContext = EasyMock.createStrictMock(PlannerContext.class);
-        EasyMock.expect(plannerContext.getExprMacroTable()).andReturn(exprMacroTable).anyTimes();
+        EasyMock.expect(plannerContext.parseExpression(anyString())).andAnswer(
+                new IAnswer<Expr>() {
+                    @Override
+                    public Expr answer() {
+                        return Parser.parse(EasyMock.getCurrentArguments()[0].toString(), exprMacroTable);
+                    }
+                }
+        ).anyTimes();
         EasyMock.replay(plannerContext);
         MahaLookupTestUtil.MAHA_LOOKUP mahaLookup = new MahaLookupTestUtil.MAHA_LOOKUP(
                 util.makeInputRef("student_id", ROW_SIGNATURE, rexBuilder)
@@ -167,7 +185,7 @@ public class MahaLookupOperatorConversionTest {
                     , rexBuilder
             );
         } catch(IndexOutOfBoundsException ex) {
-            assert ex.getMessage().contains("index (-1) must not be negative");
+            assert ex.getMessage().contains("-1");
         }
     }
 
@@ -190,7 +208,14 @@ public class MahaLookupOperatorConversionTest {
         ExprMacroTable exprMacroTable = TestExprMacroTable.INSTANCE;
 
         PlannerContext plannerContext = EasyMock.createStrictMock(PlannerContext.class);
-        EasyMock.expect(plannerContext.getExprMacroTable()).andReturn(exprMacroTable).anyTimes();
+        EasyMock.expect(plannerContext.parseExpression(anyString())).andAnswer(
+                new IAnswer<Expr>() {
+                    @Override
+                    public Expr answer() {
+                        return Parser.parse(EasyMock.getCurrentArguments()[0].toString(), exprMacroTable);
+                    }
+                }
+        ).anyTimes();
         EasyMock.replay(plannerContext);
         MahaLookupTestUtil.MAHA_LOOKUP mahaLookup = new MahaLookupTestUtil.MAHA_LOOKUP(
                 util.makeInputRef("student_id", ROW_SIGNATURE, rexBuilder)
@@ -212,7 +237,7 @@ public class MahaLookupOperatorConversionTest {
         assert json.contains("\"extractionFn\":{\"type\":\"mahaRegisteredLookup\",\"lookup\":\"student_lookup\"");
         assert json.contains("\"replaceMissingValueWith\":\"A+\",\"injective\":false,\"optimize\":false,\"valueColumn\":\"grade_fake\"");
         assert json.contains("\"dimensionOverrideMap\":{\"a\":\"A\",\"b\":\"B\"},\"secondaryColOverrideMap\":{\"a\":\"A\",\"b\":\"B\"},\"useQueryLevelCache\":false");
-        
+
 
     }
 
@@ -234,7 +259,14 @@ public class MahaLookupOperatorConversionTest {
         ExprMacroTable exprMacroTable = TestExprMacroTable.INSTANCE;
 
         PlannerContext plannerContext = EasyMock.createStrictMock(PlannerContext.class);
-        EasyMock.expect(plannerContext.getExprMacroTable()).andReturn(exprMacroTable).anyTimes();
+        EasyMock.expect(plannerContext.parseExpression(anyString())).andAnswer(
+                new IAnswer<Expr>() {
+                    @Override
+                    public Expr answer() {
+                        return Parser.parse(EasyMock.getCurrentArguments()[0].toString(), exprMacroTable);
+                    }
+                }
+        ).anyTimes();
         EasyMock.replay(plannerContext);
         MahaLookupTestUtil.MAHA_LOOKUP mahaLookup = new MahaLookupTestUtil.MAHA_LOOKUP(
                 util.makeInputRef("student_id", ROW_SIGNATURE, rexBuilder)
