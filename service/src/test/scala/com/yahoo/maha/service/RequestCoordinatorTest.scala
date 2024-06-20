@@ -2,20 +2,28 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service
 
+import com.yahoo.maha.core.{Column, DimColumnInfo, RequestModel}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
-import com.yahoo.maha.core.query.OracleQuery
+import com.yahoo.maha.core.dimension.DimCol
+import com.yahoo.maha.core.query.{CompleteRowList, DimOnlyQuery, DimQueryContext, InMemRowList, OracleQuery, QueryContext, QueryPipelineResult, Row}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
-import com.yahoo.maha.parrequest2.future.ParRequest
+import com.yahoo.maha.parrequest2.future.{ParRequest, ParRequestListEither}
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.error.MahaServiceExecutionException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.output.{JsonOutputFormat, StringStream}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
+import org.apache.derby.impl.sql.execute.ColumnInfo
+import org.h2.result.RowList
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import org.mockito.Mockito.{mock, when}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers._
+
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
@@ -2392,12 +2400,73 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val stringStream =  new StringStream()
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
-//
+    println(result)
 
     val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99\]\],"curators":\{"rowcount":\{"result":\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"TOTALROWS","fieldType":"FACT"\}\],"maxRows":1\},"rows":\[\[.*\]\]\}\}\}\}"""
 
     result should fullyMatch regex expectedJson
 
   }
+  test("Test RowCountCurator for wrong rowCount response") {
+
+    val setDefaultRespLength = 3
+    val defaultRespLength = createMockDefaultResponse(setDefaultRespLength)
+    assert(defaultRespLength == setDefaultRespLength)
+
+    // case 1 : Total RowCount lesser than number of rows returned by DefaultCurator
+    val setTotalRowCount1 = 2
+    val rowCountRespLength1 = createMockRowCountResult(setTotalRowCount1, setDefaultRespLength)
+    assert(rowCountRespLength1 == defaultRespLength)
+
+    // case 2 : Total RowCount more than number of rows returned by DefaultCurator
+    val setTotalRowCount2 = 4
+    val rowCountRespLength2 = createMockRowCountResult(setTotalRowCount2, setDefaultRespLength)
+    assert(rowCountRespLength2 != defaultRespLength)
+  }
+  def createMockDefaultResponse(setResponseLength: Int): Int = {
+    //mocking defaultCurator result to test 'checkCuratorResponse' method
+    val defaultRowList = mock(classOf[CompleteRowList])
+    when(defaultRowList.length).thenReturn(setResponseLength)
+    val defaultQueryPipeline = QueryPipelineResult(null,null,defaultRowList,null,null)
+    val defaultRequestResult = RequestResult(defaultQueryPipeline)
+    val mockDefaultCurator = mahaService.getMahaServiceConfig.curatorMap("default")
+    val respLength = mockDefaultCurator.checkCuratorResponse(0,defaultRequestResult)
+    respLength
+  }
+
+  def createMockRowCountResult(setTotalRowCount : Int, setDefaultRespLength : Int): Int = {
+
+    //Creating test requestModel
+    val reqModel = mock(classOf[RequestModel])
+    val colInfo = IndexedSeq(DimColumnInfo(alias = "col1"))
+    when(reqModel.maxRows).thenReturn(100)
+    when(reqModel.requestCols).thenReturn(colInfo)
+
+    //Creating test query
+    val indexaliasOp = Option("col1")
+    val queryContext = DimQueryContext(null, reqModel, indexaliasOp, null, null)
+    val addCols = IndexedSeq("col1")
+    val column = mock(classOf[Column])
+    val colAliasMap = Map("TOTALROWS" -> column)
+    val query = OracleQuery(queryContext, null, null, colAliasMap, addCols, null)
+
+
+    //Creating a test row instance
+    val aliasMap = Map("TOTALROWS" -> 0)
+    val anyValue : Any = setTotalRowCount
+    val cols = mutable.ArrayBuffer(anyValue)
+    val row = Row(aliasMap, cols)
+
+    //mocking rowCountCurator result to test 'checkCuratorResponse' method
+    val rowCountRowList = CompleteRowList(query)
+    rowCountRowList.addRow(row)
+    val rowCountQueryPipeline = QueryPipelineResult(null,null,rowCountRowList,null,null)
+    val rowCountRequestResult = RequestResult(rowCountQueryPipeline)
+
+    val mockRowCountCurator = mahaService.getMahaServiceConfig.curatorMap("rowcount")
+    val respLength = mockRowCountCurator.checkCuratorResponse(setDefaultRespLength, rowCountRequestResult)
+    rowCountRequestResult.queryPipelineResult.rowList.getTotalRowCount
+  }
+
 }
 
