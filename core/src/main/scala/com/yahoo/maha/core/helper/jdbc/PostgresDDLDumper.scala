@@ -6,6 +6,8 @@ import com.yahoo.maha.jdbc.{JdbcConnection, List}
 import grizzled.slf4j.Logging
 import org.apache.commons.lang3.StringUtils
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
  * Inspired by stack overflow answers and other sources
  * https://stackoverflow.com/questions/2593803/how-to-generate-the-create-table-sql-statement-for-an-existing-table-in-postgr
@@ -134,6 +136,105 @@ object PostgresDDLDumper extends Logging {
       |DROP FUNCTION generate_create_table_statement(p_table_name varchar);
     """.stripMargin
 
+  val createFunctionArgs: String =
+    """
+      |CREATE OR REPLACE FUNCTION public.function_args(
+      |  IN funcname CHARACTER varying,
+      |  IN schema CHARACTER varying,
+      |  OUT pos integer,
+      |  OUT direction character,
+      |  OUT argname CHARACTER varying,
+      |  OUT datatype CHARACTER varying)
+      |RETURNS SETOF RECORD AS $$DECLARE
+      |  rettype CHARACTER varying;
+      |  argtypes oidvector;
+      |  allargtypes oid[];
+      |  argmodes "char"[];
+      |  argnames text[];
+      |  mini integer;
+      |  maxi integer;
+      |BEGIN
+      |  /* get object ID of function */
+      |  SELECT INTO rettype, argtypes, allargtypes, argmodes, argnames
+      |         CASE
+      |         WHEN pg_proc.proretset
+      |         THEN 'setof ' || pg_catalog.format_type(pg_proc.prorettype, NULL)
+      |         ELSE pg_catalog.format_type(pg_proc.prorettype, NULL) END,
+      |         pg_proc.proargtypes,
+      |         pg_proc.proallargtypes,
+      |         pg_proc.proargmodes,
+      |         pg_proc.proargnames
+      |    FROM pg_catalog.pg_proc
+      |         JOIN pg_catalog.pg_namespace
+      |         ON (pg_proc.pronamespace = pg_namespace.oid)
+      |   WHERE pg_proc.prorettype <> 'pg_catalog.cstring'::pg_catalog.regtype
+      |     AND (pg_proc.proargtypes[0] IS NULL
+      |      OR pg_proc.proargtypes[0] <> 'pg_catalog.cstring'::pg_catalog.regtype)
+      |     AND pg_proc.prokind <> 'a'
+      |     AND pg_proc.proname = funcname
+      |     AND pg_namespace.nspname = schema
+      |     AND pg_catalog.pg_function_is_visible(pg_proc.oid);
+      |
+      |  /* bail out if not found */
+      |  IF NOT FOUND THEN
+      |    RETURN;
+      |  END IF;
+      |
+      |  /* return a row for the return value */
+      |  pos = 0;
+      |  direction = 'o'::char;
+      |  argname = 'RETURN VALUE';
+      |  datatype = rettype;
+      |  RETURN NEXT;
+      |
+      |  /* unfortunately allargtypes is NULL if there are no OUT parameters */
+      |  IF allargtypes IS NULL THEN
+      |    mini = array_lower(argtypes, 1); maxi = array_upper(argtypes, 1);
+      |  ELSE
+      |    mini = array_lower(allargtypes, 1); maxi = array_upper(allargtypes, 1);
+      |  END IF;
+      |  IF maxi < mini THEN RETURN; END IF;
+      |
+      |  /* loop all the arguments */
+      |  FOR i IN mini .. maxi LOOP
+      |    pos = i - mini + 1;
+      |    IF argnames IS NULL THEN
+      |      argname = NULL;
+      |    ELSE
+      |      argname = argnames[pos];
+      |    END IF;
+      |    IF allargtypes IS NULL THEN
+      |      direction = 'i'::char;
+      |      datatype = pg_catalog.format_type(argtypes[i], NULL);
+      |    ELSE
+      |      direction = argmodes[i];
+      |      datatype = pg_catalog.format_type(allargtypes[i], NULL);
+      |    END IF;
+      |    RETURN NEXT;
+      |  END LOOP;
+      |
+      |  RETURN;
+      |END;$$ LANGUAGE plpgsql STABLE STRICT SECURITY INVOKER;
+      |COMMENT ON FUNCTION public.function_args(CHARACTER varying, CHARACTER
+      |varying)
+      |IS $$FOR a FUNCTION name AND schema, this PROCEDURE selects FOR EACH
+      |argument the following data:
+      |- POSITION IN the argument list (0 FOR the RETURN value)
+      |- direction 'i', 'o', OR 'b'
+      |- name (NULL if NOT defined)
+      |- data type$$;
+      |""".stripMargin
+
+  val dropFunctionArgs: String =
+    """
+      |DROP FUNCTION public.function_args(
+      |  IN funcname CHARACTER varying,
+      |  IN schema CHARACTER varying,
+      |  OUT pos integer,
+      |  OUT direction character,
+      |  OUT argname CHARACTER varying,
+      |  OUT datatype CHARACTER varying);""".stripMargin
+
   def dump(jdbcConnection: JdbcConnection, schemaDump: SchemaDump, writer: Writer, config: DDLDumpConfig): Unit = {
     val tryCreateProc = jdbcConnection.execute(createProc)
     require(tryCreateProc.isSuccess, "Failed to create generate function : " + tryCreateProc.failed.get.getMessage)
@@ -161,12 +262,18 @@ object PostgresDDLDumper extends Logging {
     val tryDropProc = jdbcConnection.execute(dropProc)
     require(tryDropProc.isSuccess, "Failed to drop generate procedure : " + tryDropProc.failed.get.getMessage)
 
+    val tryCreateFunctionArgs = jdbcConnection.execute(createFunctionArgs)
+    require(tryCreateFunctionArgs.isSuccess, "Failed to create function args : " + tryCreateFunctionArgs.failed.get.getMessage)
     config.procsLike.foreach {
       case LikeCriteria(schemaLike, procLike) =>
         val procSql =
           s"""SELECT
              |    routine_name,
-             |    routine_definition
+             |    routine_type,
+             |    data_type,
+             |    routine_body,
+             |    routine_definition,
+             |    external_language
              |FROM
              |    information_schema.routines
              |WHERE
@@ -180,17 +287,54 @@ object PostgresDDLDumper extends Logging {
                 info(rs.getMetaData.extractResultSetMetaData)
               }
               val name = rs.getString("routine_name")
+              val rtype = rs.getString("routine_type")
+              val dtype = rs.getString("data_type")
+              val rbody = rs.getString("routine_body")
+              val rlang = rs.getString("external_language")
               val sql = rs.getString("routine_definition")
+              val functionQuery = s"SELECT pos, direction, argname, datatype FROM function_args('$name','public');"
+              val argsTry = jdbcConnection.queryForObject(functionQuery) {
+                irs =>
+                  val list = new ArrayBuffer[(Int, String, String, String)]
+                  while (irs.next()) {
+                    val pos = irs.getInt("pos")
+                    val direction = irs.getString("direction")
+                    val argname = irs.getString("argname")
+                    val datatype = irs.getString("datatype")
+                    list.append((pos, direction, argname, datatype))
+                  }
+                  list.toIndexedSeq
+              }
+              if (argsTry.isFailure) {
+                argsTry.failed.get.printStackTrace()
+              }
+              require(argsTry.isSuccess, argsTry)
+              val args = argsTry.toOption.get.drop(1).filter(_._2 != "o").map {
+                case (_, _, argname, datatype) => s"$argname $datatype"
+              }.mkString("(", ",", ")")
               if (StringUtils.isNoneBlank(sql)) {
-                val ddl =
-                  s"""\nCREATE OR REPLACE FUNCTION ${name}() RETURNS TRIGGER AS $$BODY$$$sql$$BODY$$ LANGUAGE plpgsql;"""
-                writer.write(ddl)
-                info(ddl)
+                rbody match {
+                  case "SQL" =>
+                    //unsupported in embedded
+                    val ddl =
+                      s"""CREATE OR REPLACE $rtype ${name}${args} LANGUAGE SQL AS $$BODY$$ $sql $$BODY$$;""".stripMargin
+                    writer.write(ddl)
+                    info(ddl)
+                  case "EXTERNAL" if rlang == "PLPGSQL" =>
+                    val ddl =
+                      s"""\nCREATE OR REPLACE $rtype ${name}${args} RETURNS $dtype AS $$BODY$$ $sql $$BODY$$ LANGUAGE plpgsql;"""
+                    writer.write(ddl)
+                    info(ddl)
+                  case _ =>
+                    info(s"Unsupported rbody=$rbody")
+                }
               }
               count += 1
             }
         }
     }
+    val tryDropFunctionArgs = jdbcConnection.execute(dropFunctionArgs)
+    require(tryDropFunctionArgs.isSuccess, "Failed to drop function args : " + tryDropFunctionArgs.failed.get.getMessage)
 
     config.viewsLike.foreach {
       case LikeCriteria(schemaLike, viewLike) =>
@@ -309,8 +453,7 @@ object PostgresDDLDumper extends Logging {
                      |    FOR EACH $actionOrientation $actionStatement;
                      |""".stripMargin
                 writer.write(ddl)
-                info(
-                  ddl)
+                info(ddl)
               }
               count += 1
             }
