@@ -37,7 +37,7 @@
         <druid.version>0.21.1</druid.version>
         <scala.arm.version>2.0</scala.arm.version>
         <opencsv.version>4.6</opencsv.version>
-        <esapi.version>2.2.1.1</esapi.version>
+        <esapi.version>2.3.0.0</esapi.version>
         <grizzled.slf4j.version>1.3.4</grizzled.slf4j.version>
         <slf4j.version>1.7.30</slf4j.version>
         <logback.version>1.2.3</logback.version>
