@@ -39,7 +39,7 @@
         <httpclient.version>4.5.12</httpclient.version>
         <guava.version>33.0.0-jre</guava.version>
         <jodatime.version>2.12.6</jodatime.version>
-        <druid.version>28.0.0</druid.version>
+        <druid.version>29.0.0</druid.version>
         <scala.arm.version>2.0</scala.arm.version>
         <opencsv.version>4.6</opencsv.version>
         <esapi.version>2.5.3.1</esapi.version>
