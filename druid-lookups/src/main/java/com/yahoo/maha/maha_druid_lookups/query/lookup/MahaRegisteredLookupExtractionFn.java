@@ -43,6 +43,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
     volatile Cache<String, String> cache = null;
     private final Object cacheLock = new Object();
 
+    @Inject
     @JsonCreator
     public MahaRegisteredLookupExtractionFn(
             @JacksonInject LookupReferencesManager manager,
