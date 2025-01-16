@@ -10,6 +10,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import org.apache.druid.java.util.common.ISE;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.query.extraction.ExtractionFn;
 import org.apache.druid.query.lookup.*;
@@ -29,7 +30,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
     // Protected for moving to not-null by `delegateLock`
     private volatile MahaLookupExtractionFn delegate = null;
     private final Object delegateLock = new Object();
-    private final LookupReferencesManager manager;
+    private final LookupExtractorFactoryContainerProvider manager;
     private final String lookup;
     private final boolean retainMissingValue;
     private final String replaceMissingValueWith;
@@ -45,7 +46,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
 
     @JsonCreator
     public MahaRegisteredLookupExtractionFn(
-            @JacksonInject LookupReferencesManager manager,
+            @JacksonInject LookupExtractorFactoryContainerProvider manager,
             @JsonProperty("lookup") String lookup,
             @JsonProperty("retainMissingValue") final boolean retainMissingValue,
             @Nullable @JsonProperty("replaceMissingValueWith") final String replaceMissingValueWith,
@@ -233,13 +234,14 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
             // http://www.javamex.com/tutorials/double_checked_locking.shtml
             synchronized (delegateLock) {
                 if (null == delegate) {
-                    Optional<LookupExtractorFactoryContainer> lookupExtractorFactoryContainerOptional =  manager.get(getLookup());
+                    final LookupExtractor lookupExtractor =
+                            manager.get(getLookup())
+                                    .orElseThrow(() -> new ISE("Lookup [%s] not found", getLookup()))
+                                    .getLookupExtractorFactory()
+                                    .get();
 
-                    if (!lookupExtractorFactoryContainerOptional.isPresent()) {
-                       throw new IllegalStateException(String.format("Lookup [%s] not found", getLookup()));
-                    }
                     delegate = new MahaLookupExtractionFn(
-                            lookupExtractorFactoryContainerOptional.get().getLookupExtractorFactory().get()
+                            lookupExtractor
                             , isRetainMissingValue()
                             , getReplaceMissingValueWith()
                             , isInjective()

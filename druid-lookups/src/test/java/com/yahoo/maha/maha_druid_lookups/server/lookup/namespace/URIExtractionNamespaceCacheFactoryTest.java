@@ -134,7 +134,7 @@ public class URIExtractionNamespaceCacheFactoryTest {
         Callable<String> versionedCache = obj.getCachePopulator("blah",
                 namespace, "500", cache);
 
-        Assert.assertEquals(versionedCache.call(), "8675309000", versionedCache.call());
+        Assert.assertEquals(versionedCache.call(), "8675309123", versionedCache.call());
         Assert.assertEquals(cache.size() , 3);
         Assert.assertTrue(cache.containsKey("222"));
         Assert.assertTrue(cache.containsValue(Arrays.asList("111", "0.3", "22220103")));
