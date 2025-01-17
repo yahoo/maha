@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>6.158-SNAPSHOT</version>
+    <version>6.159-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
