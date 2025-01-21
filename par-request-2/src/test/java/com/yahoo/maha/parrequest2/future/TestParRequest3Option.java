@@ -23,13 +23,6 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
 public class TestParRequest3Option {
-    @BeforeSuite(alwaysRun = true)
-    public void beforeSuite(ITestContext context) {
-        for (ITestNGMethod method : context.getAllTestMethods()) {
-            method.setRetryAnalyzer(new RetryAnalyzerImpl());
-        }
-    }
-
     private ParallelServiceExecutor executor;
 
     private ParFunction<Tuple3<Option<String>, Option<Long>, Option<Integer>>, Integer> stringLongIntAssert =
@@ -102,7 +95,10 @@ public class TestParRequest3Option {
 
 
     @BeforeClass
-    public void setUp() throws Exception {
+    public void beforeSuite(ITestContext context) throws Exception {
+        for (ITestNGMethod method : context.getAllTestMethods()) {
+            method.setRetryAnalyzerClass(RetryAnalyzerImpl.class);
+        }
         executor = new ParallelServiceExecutor();
         executor.setDefaultTimeoutMillis(20000);
         executor.setPoolName("test-par-request3");

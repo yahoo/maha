@@ -1,6 +1,8 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yahoo.maha.jdbc.JdbcConnection;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import com.yahoo.maha.jdbc.JdbcConnection;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
@@ -20,7 +22,6 @@ import org.joda.time.DateTime;
 import org.joda.time.Period;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.internal.util.reflection.Whitebox;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -28,6 +29,7 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.net.ServerSocket;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -36,7 +38,7 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.doCallRealMethod;
 
@@ -117,7 +119,7 @@ public class JdbcH2QueryTest {
      */
     private void buildJdbcTablesToQuery() {
         scala.util.Try createResult = jdbcConnection.execute(
-                "CREATE TABLE ad (name VARCHAR2(255), id BIGINT, gpa DECIMAL, date TIMESTAMP, last_updated TIMESTAMP, title VARCHAR2(255), status VARCHAR2(255));");
+                "CREATE TABLE ad (name VARCHAR2(255), id BIGINT, gpa DECIMAL(9,2), date TIMESTAMP, last_updated TIMESTAMP, title VARCHAR2(255), status VARCHAR2(255));");
         Assert.assertTrue(createResult.isSuccess(),"Should not fail to create a table in H2.");
     }
 
@@ -240,7 +242,7 @@ public class JdbcH2QueryTest {
     private JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower createMockCacheFactory(
             MockConsumer<String, byte[]> mockConsumer,
             MockProducer<String, byte[]> mockProducer
-    ) {
+    ) throws Exception {
         JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower myJdbcEncFactory = mock(
                 JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower.class);
 
@@ -260,7 +262,8 @@ public class JdbcH2QueryTest {
         doCallRealMethod().when(myJdbcEncFactory).getMaxValFromColumn(any(), any(), any(), any(), any(), any());
         doCallRealMethod().when(myJdbcEncFactory).getMaxValFromColumn(any(), any(), any(), any(), any());
 
-        Whitebox.setInternalState(myJdbcEncFactory, "dbiCache", new ConcurrentHashMap<>());
+        setStaticFieldValue(JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower.class, myJdbcEncFactory
+                , "dbiCache", new ConcurrentHashMap<>());
 
         myJdbcEncFactory.emitter = serviceEmitter;
         myJdbcEncFactory.lookupService = lookupService;
@@ -543,5 +546,15 @@ public class JdbcH2QueryTest {
             String recordedValueAsString = allColumnsMap.toString();
             Assert.assertTrue(recordedValueAsString.contains("1234") || recordedValueAsString.contains(("4444")));
         }
+    }
+
+    public static void setStaticFieldValue(
+            final Class<?> clz,
+            final Object obj,
+            final String fieldName,
+            final Object value) throws Exception {
+        final Field f = FieldUtils.getField(clz, fieldName, true);
+        FieldUtils.removeFinalModifier(f);
+        f.set(obj, value);
     }
 }

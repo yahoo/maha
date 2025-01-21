@@ -2,8 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.api.jersey
 
-import javax.ws.rs.core.{MediaType, Response}
-import javax.ws.rs.ext.{ExceptionMapper, Provider}
+import jakarta.ws.rs.core.{MediaType, Response}
+import jakarta.ws.rs.ext.{ExceptionMapper, Provider}
 
 import com.yahoo.maha.service.error.{MahaServiceExecutionException, MahaServiceBadRequestException}
 import grizzled.slf4j.Logging

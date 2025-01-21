@@ -12,7 +12,7 @@ class FailingCuratorFactory extends CuratorFactory {
 
   import scalaz.syntax.validation._
   override def fromJson(configJson: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Curator] = {
-    new FailingCurator().successNel
+    new FailingCurator().asInstanceOf[Curator].successNel
   }
 
   override def supportedProperties: List[(String, Boolean)] = List.empty

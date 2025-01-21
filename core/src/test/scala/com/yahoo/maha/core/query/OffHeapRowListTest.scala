@@ -2,7 +2,6 @@ package com.yahoo.maha.core.query
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import com.yahoo.maha.core.RequestModel
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest2.future.ParFunction
 

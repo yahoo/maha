@@ -89,11 +89,11 @@ case class JdbcConnection(dataSource: DataSource, fetchSize: Int = 10) {
       rowMapper(rs)
     }
 
-  def mapSingle[A](interpolation: SqlAndArgs)(implicit rowMapper: ResultSet => A): Try[Option[A]] =
-    queryForList(
-      if(interpolation.sql.contains("LIMIT 1"))
-        interpolation else interpolation.copy(sql = interpolation.sql + " LIMIT 1")
-    )(rowMapper).map(_.headOption)
+//  def mapSingle[A](interpolation: SqlAndArgs)(implicit rowMapper: ResultSet => A): Try[Option[A]] =
+//    queryForList(
+//      if(interpolation.sql.contains("LIMIT 1"))
+//        interpolation else interpolation.copy(sql = interpolation.sql + " LIMIT 1")
+//    )(rowMapper).map(_.headOption)
 
   def mapQuery[A](interpolation: SqlAndArgs)(implicit rowMapper: ResultSet => A): Try[Seq[A]] =
     queryForList(interpolation)

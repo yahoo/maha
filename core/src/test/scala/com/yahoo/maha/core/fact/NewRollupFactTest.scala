@@ -141,7 +141,7 @@ class NewRollupFactTest extends BaseFactTest {
   }
 
   test("newRollup should fail if dim column context is not the same as source") {
-    import org.mockito.Matchers._
+    import org.mockito.ArgumentMatchers._
     import org.mockito.Mockito._
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext { implicit cc =>
@@ -168,7 +168,7 @@ class NewRollupFactTest extends BaseFactTest {
   }
 
   test("newRollup should fail if fact column context is not the same as source") {
-    import org.mockito.Matchers._
+    import org.mockito.ArgumentMatchers._
     import org.mockito.Mockito._
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext { implicit cc =>

@@ -1,5 +1,5 @@
-FROM jetty:9.4.18-jre8-alpine
+FROM jetty:12-jdk21
 
-ADD target/maha-api-example-*.war /var/lib/jetty/webapps/mahademo.war
-EXPOSE 8080
-ENTRYPOINT java -jar $JETTY_HOME/start.jar
+COPY --chown=jetty:jetty target/maha-api-example-*.war /var/lib/jetty/webapps/ROOT.war
+COPY jetty-logging.properties /var/lib/jetty/resources/
+RUN java -jar /usr/local/jetty/start.jar --add-modules=server,http,ee10-deploy

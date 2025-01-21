@@ -44,13 +44,13 @@ import Scalaz._
 
 
 class TestFactCostEstimatoryFactory extends FactCostEstimatorFactory {
-  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[FactCostEstimator] = new TestFactEstimator().successNel
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[FactCostEstimator] = new TestFactEstimator().asInstanceOf[FactCostEstimator].successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
 
 class TestDimCostEstimatoryFactory extends DimCostEstimatorFactory {
-  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[DimCostEstimator] = new TestDimEstimator().successNel
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[DimCostEstimator] = new TestDimEstimator().asInstanceOf[DimCostEstimator].successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }

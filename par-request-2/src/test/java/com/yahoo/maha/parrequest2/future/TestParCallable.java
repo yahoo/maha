@@ -6,16 +6,10 @@ import com.yahoo.maha.parrequest2.GeneralError;
 import com.yahoo.maha.parrequest2.ParCallable;
 
 import com.yahoo.maha.parrequest2.RetryAnalyzerImpl;
-import com.yahoo.maha.parrequest2.future.ParFunction;
-import com.yahoo.maha.parrequest2.future.ParRequest;
-import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor;
 import org.slf4j.MDC;
 import org.testng.ITestContext;
 import org.testng.ITestNGMethod;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeSuite;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 import scala.Function1;
 import scala.runtime.AbstractFunction1;
 import scala.util.Either;
@@ -29,12 +23,7 @@ import static org.testng.Assert.assertTrue;
  * Created by hiral on 6/12/14.
  */
 public class TestParCallable {
-    @BeforeSuite(alwaysRun = true)
-    public void beforeSuite(ITestContext context) {
-        for (ITestNGMethod method : context.getAllTestMethods()) {
-            method.setRetryAnalyzer(new RetryAnalyzerImpl());
-        }
-    }
+
 
     <T,U> Function1<T, U> fn1(Function<T, U> fn) {
         return new AbstractFunction1<T, U>() {
@@ -45,24 +34,24 @@ public class TestParCallable {
         };
     }
 
-    static {
+    private ParallelServiceExecutor executor;
+
+    @BeforeClass(alwaysRun = true)
+    public void beforeSuite(ITestContext context) throws Exception {
+        for (ITestNGMethod method : context.getAllTestMethods()) {
+            method.setRetryAnalyzerClass(RetryAnalyzerImpl.class);
+        }
         ParCallable.setEnableMDCInject(true);
         ParFunction.setEnableMDCInject(true);
         ParCallable.setRequestIdMDCKey("request-id");
         ParCallable.setUserInfoMDCKey("user-info");
         ParFunction.setRequestIdMDCKey("request-id");
         ParFunction.setUserInfoMDCKey("user-info");
-    }
-
-    private ParallelServiceExecutor executor;
-
-    @BeforeClass
-    public void setUp() throws Exception {
         executor = new ParallelServiceExecutor();
         executor.setDefaultTimeoutMillis(20000);
         executor.setPoolName("test-par-callable");
         executor.setQueueSize(20);
-        executor.setThreadPoolSize(3);
+        executor.setThreadPoolSize(2);
         executor.init();
     }
 

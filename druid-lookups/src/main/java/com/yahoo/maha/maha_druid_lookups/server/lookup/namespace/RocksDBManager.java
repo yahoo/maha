@@ -374,8 +374,10 @@ public class RocksDBManager {
 
         DBOptions dbOptions = new DBOptions();
         List<ColumnFamilyDescriptor> columnFamilyDescriptors = new ArrayList<>();
-
-        OptionsUtil.loadOptionsFromFile(new ConfigOptions(),localPath + "/" + optionsFileName, dbOptions, columnFamilyDescriptors);
+        //TODO: fix me, need to check what config options should be set here
+        ConfigOptions configOptions = new ConfigOptions();
+        configOptions.setEnv(Env.getDefault());
+        OptionsUtil.loadOptionsFromFile(configOptions, localPath + "/" + optionsFileName, dbOptions, columnFamilyDescriptors);
 
         Preconditions.checkArgument(columnFamilyDescriptors.size() > 0);
         columnFamilyDescriptors.get(0).getOptions().optimizeForPointLookup(blockCacheSizeInMb).setMemTableConfig(new HashSkipListMemTableConfig());

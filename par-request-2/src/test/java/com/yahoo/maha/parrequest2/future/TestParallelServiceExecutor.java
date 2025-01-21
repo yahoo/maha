@@ -28,17 +28,14 @@ import static org.testng.Assert.assertTrue;
  * Created by hiral on 6/17/14.
  */
 public class TestParallelServiceExecutor {
-    @BeforeSuite(alwaysRun = true)
-    public void beforeSuite(ITestContext context) {
-        for (ITestNGMethod method : context.getAllTestMethods()) {
-            method.setRetryAnalyzer(new RetryAnalyzerImpl());
-        }
-    }
 
     private ParallelServiceExecutor executor;
 
     @BeforeClass
-    public void setUp() throws Exception {
+    public void beforeSuite(ITestContext context) throws Exception {
+        for (ITestNGMethod method : context.getAllTestMethods()) {
+            method.setRetryAnalyzerClass(RetryAnalyzerImpl.class);
+        }
         executor = new ParallelServiceExecutor();
         executor.setDefaultTimeoutMillis(2000);
         executor.setPoolName("test-pse");

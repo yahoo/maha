@@ -22,7 +22,7 @@ import java.util.Optional;
 import java.util.*;
 
 import static java.nio.charset.StandardCharsets.*;
-import static org.mockito.Matchers.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 public class RocksDBExtractionNamespaceCacheFactoryDynamicLookupTest {

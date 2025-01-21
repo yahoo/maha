@@ -22,14 +22,6 @@ import static org.testng.Assert.assertTrue;
  * Created by jians on 4/1/15.
  */
 public class TestParRequestListEither {
-
-    @BeforeSuite(alwaysRun = true)
-    public void beforeSuite(ITestContext context) {
-        for (ITestNGMethod method : context.getAllTestMethods()) {
-            method.setRetryAnalyzer(new RetryAnalyzerImpl());
-        }
-    }
-
     private String printError(Either<GeneralError, Integer> result) {
         return result.left().get().message +
                "\nThrowable stacktrace:\n" +
@@ -59,7 +51,10 @@ public class TestParRequestListEither {
             });
 
     @BeforeClass
-    public void setUp() throws Exception {
+    public void beforeSuite(ITestContext context) throws Exception {
+        for (ITestNGMethod method : context.getAllTestMethods()) {
+            method.setRetryAnalyzerClass(RetryAnalyzerImpl.class);
+        }
         executor = new ParallelServiceExecutor();
         executor.setDefaultTimeoutMillis(20000);
         executor.setPoolName("test-par-request-list");

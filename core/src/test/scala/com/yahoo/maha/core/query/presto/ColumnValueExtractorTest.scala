@@ -5,8 +5,8 @@ package com.yahoo.maha.core.query
 import java.math.BigDecimal
 import java.sql.{Date, ResultSet, Timestamp}
 import java.time.Instant
-
 import com.yahoo.maha.core.{Column, ColumnAnnotation, ColumnContext, DataType, DateType, DecType, FilterOperation, IntType, StrType, TimestampType}
+import com.yahoo.maha.utils.MockitoHelper
 import org.joda.time.DateTime
 import org.mockito.Mockito._
 import org.scalatest.funsuite.AnyFunSuite
@@ -14,7 +14,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.BeforeAndAfterAll
 
 
-class ColumnValueExtractorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll {
+class ColumnValueExtractorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with MockitoHelper {
 
   val columnValueExtractor = new ColumnValueExtractor
   test("test getBigDecimalSafely") {

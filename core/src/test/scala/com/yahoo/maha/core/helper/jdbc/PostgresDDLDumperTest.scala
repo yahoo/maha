@@ -20,7 +20,7 @@ class PostgresDDLDumperTest extends AnyFunSuite with Matchers with BeforeAndAfte
   if (StringUtils.isNotBlank(userDir)) {
     System.setProperty("java.io.tmpdir", userDir+"/target")
   }
-  private val pg = Try(EmbeddedPostgres.builder().setPort(5433).start())
+  private val pg = Try(EmbeddedPostgres.builder().start())
   val ddlFile = new File("src/test/resources/pg-ddl-dumper.sql")
   val ddlString = Source.fromFile(ddlFile).getLines.mkString
 
@@ -28,7 +28,7 @@ class PostgresDDLDumperTest extends AnyFunSuite with Matchers with BeforeAndAfte
     super.beforeAll()
     try {
       val config = new HikariConfig()
-      val jdbcUrl = pg.get.getJdbcUrl("postgres", "postgres")
+      val jdbcUrl = pg.get.getJdbcUrl("postgres")
       config.setJdbcUrl(jdbcUrl)
       config.setUsername("postgres")
       config.setPassword("")

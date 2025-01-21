@@ -5,7 +5,6 @@ package com.yahoo.maha.log
 import java.net.{ServerSocket, SocketTimeoutException}
 import java.util
 import java.util.Properties
-
 import com.google.protobuf.{ByteString, UninitializedMessageException}
 import com.yahoo.maha.proto.MahaRequestLog
 import grizzled.slf4j.Logging
@@ -15,15 +14,19 @@ import kafka.zk.KafkaZkClient
 import org.apache.curator.test.TestingServer
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.common.network.ListenerName
 import org.apache.kafka.common.security.auth.SecurityProtocol
 import org.apache.kafka.common.utils.Time
+import org.apache.zookeeper.client.ZKClientConfig
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.BeforeAndAfterAll
 
 import scala.collection.JavaConverters._
 import org.mockito.Mockito._
-import org.mockito.Matchers._
+import org.mockito.ArgumentMatchers._
+import org.mockito.Mockito
+import org.mockito.stubbing.Stubber
 
 import scala.concurrent.ExecutionException
 
@@ -75,10 +78,11 @@ class KafkaMahaRequestLogWriterTest extends AnyFunSuite with Matchers with Befor
     //kafkaServer = new KafkaServerStartable(kafkaConfig)
     kafkaServer.startup()
 
-    val zkClient = KafkaZkClient(zkConnect, false, 10000, 10000, 100, Time.SYSTEM)
+    val zkClient = KafkaZkClient(zkConnect, false, 10000, 10000, 100, Time.SYSTEM, this.getClass.getSimpleName, new ZKClientConfig())
     TestUtils.createTopic(zkClient, TOPIC ,1,1,Seq(kafkaServer))
 
-    kafkaBroker = TestUtils.getBrokerListStrFromServers(Seq(kafkaServer),SecurityProtocol.PLAINTEXT)
+    //kafkaBroker = TestUtils.getBrokerListStrFromServers(Seq(kafkaServer),SecurityProtocol.PLAINTEXT)
+    kafkaBroker = TestUtils.bootstrapServers(Seq(kafkaServer), ListenerName.forSecurityProtocol(SecurityProtocol.PLAINTEXT))
     info(s"Started kafka server at $kafkaBroker")
 
     val jsonKafkaRequestLoggingConfig = new KafkaRequestLoggingConfig(
@@ -124,10 +128,10 @@ class KafkaMahaRequestLogWriterTest extends AnyFunSuite with Matchers with Befor
   }
 
   test("Create blank, invalid requestLog") {
-    val thrown = intercept[UninitializedMessageException] {
+    val thrown = intercept[IllegalArgumentException] {
       mahaRequestLogWriter.validate(MahaRequestLog.MahaRequestProto.newBuilder().build())
     }
-    assert(thrown.getMessage.contains("Message missing required fields: requestId, json"))
+    assert(thrown.getMessage.contains("Message is missing the required fields requestId, json"))
     mahaRequestLogWriter.validate(MahaRequestLog.MahaRequestProto.newBuilder().setRequestId("test")
       .setJson(ByteString.copyFrom("[]".getBytes)).build())
   }
@@ -187,7 +191,7 @@ class KafkaMahaRequestLogWriterTest extends AnyFunSuite with Matchers with Befor
       "999999",
       "1000"
     )
-    val writer : KafkaMahaRequestLogWriter = spy(new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, true))
+    val writer : KafkaMahaRequestLogWriter = spy[KafkaMahaRequestLogWriter](new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, true))
 
     val mockProducer: KafkaProducer[Array[Byte], Array[Byte]] = mock(classOf[KafkaProducer[Array[Byte], Array[Byte]]])
 
@@ -262,5 +266,9 @@ class KafkaMahaRequestLogWriterTest extends AnyFunSuite with Matchers with Befor
     info(s"Free port: $freePort")
     s.close()
     freePort
+  }
+
+  def doReturn(toBeReturned: Any): Stubber = {
+    Mockito.doReturn(toBeReturned, Nil: _*)
   }
 }

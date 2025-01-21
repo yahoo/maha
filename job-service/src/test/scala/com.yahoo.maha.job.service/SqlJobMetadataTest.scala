@@ -5,6 +5,8 @@ package com.yahoo.maha.job.service
 
 import com.yahoo.maha.core.OracleEngine
 import org.joda.time.DateTime
+
+import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -16,7 +18,8 @@ class SqlJobMetadataTest extends BaseJobServiceTest {
 
   val jobMetadataDao:JobMetadata = new SqlJobMetadata(jdbcConnection.get, "maha_worker_job")
 
-  val jobOracle = AsyncJob(jobId = 12345
+  val atomicInteger: AtomicInteger = new AtomicInteger(12345)
+  val jobOracle = AsyncJob(jobId = atomicInteger.getAndIncrement()
     , jobType = AsyncOracle
     , jobStatus = JobStatus.SUBMITTED
     , jobResponse = "{}"
@@ -28,9 +31,9 @@ class SqlJobMetadataTest extends BaseJobServiceTest {
     , jobRequest = "{}"
     , hostname = "localhost"
     , cubeName = "student_performance")
-  val hiveJob= jobOracle.copy(jobType = AsyncHive)
-  val druidJob= jobOracle.copy(jobType = AsyncDruid)
-  val prestoJob= jobOracle.copy(jobType = AsyncPresto)
+  val hiveJob= jobOracle.copy(jobType = AsyncHive, jobId = atomicInteger.getAndIncrement())
+  val druidJob= jobOracle.copy(jobType = AsyncDruid, jobId = atomicInteger.getAndIncrement())
+  val prestoJob= jobOracle.copy(jobType = AsyncPresto, jobId = atomicInteger.getAndIncrement())
 
   test("Test Job Creation") {
 
@@ -103,28 +106,28 @@ class SqlJobMetadataTest extends BaseJobServiceTest {
 
     val testDaoWithNoTable = new SqlJobMetadata(jdbcConnection.get, "test")
 
-  intercept[org.h2.jdbc.JdbcSQLException] {
+  intercept[org.h2.jdbc.JdbcSQLSyntaxErrorException] {
     val insertFuture = testDaoWithNoTable.insertJob(jobOracle.copy(cubeName = s""" " """))
     Await.result(insertFuture, 500 millis)
     assert(insertFuture.isCompleted)
   }
-    intercept[org.h2.jdbc.JdbcSQLException] {
+    intercept[org.h2.jdbc.JdbcSQLSyntaxErrorException] {
       val insertFuture = testDaoWithNoTable.findById(123456)
       Await.result(insertFuture, 500 millis)
       assert(insertFuture.isCompleted)
     }
 
-    intercept[org.h2.jdbc.JdbcSQLException] {
+    intercept[org.h2.jdbc.JdbcSQLSyntaxErrorException] {
       val insertFuture = testDaoWithNoTable.updateJobStatus(123456, JobStatus.FAILED)
       Await.result(insertFuture, 500 millis)
       assert(insertFuture.isCompleted)
     }
-    intercept[org.h2.jdbc.JdbcSQLException] {
+    intercept[org.h2.jdbc.JdbcSQLSyntaxErrorException] {
       val insertFuture = testDaoWithNoTable.updateJobEnded(123456, JobStatus.FAILED, "error")
       Await.result(insertFuture, 500 millis)
       assert(insertFuture.isCompleted)
     }
-    intercept[org.h2.jdbc.JdbcSQLException] {
+    intercept[org.h2.jdbc.JdbcSQLSyntaxErrorException] {
       val insertFuture = testDaoWithNoTable.countJobsByTypeAndStatus(JobType.getJobType(OracleEngine).get, JobStatus.FAILED, now)
       Await.result(insertFuture, 500 millis)
       assert(insertFuture.isCompleted)

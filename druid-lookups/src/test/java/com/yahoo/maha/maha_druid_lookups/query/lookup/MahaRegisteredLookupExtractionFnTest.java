@@ -20,7 +20,7 @@ import org.testng.annotations.Test;
 
 import java.util.*;
 
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 public class MahaRegisteredLookupExtractionFnTest {

@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.Optional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 public class RocksDBExtractionNamespaceCacheFactoryTest {

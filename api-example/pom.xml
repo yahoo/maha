@@ -19,8 +19,6 @@
     <url>http://maven.apache.org</url>
 
     <properties>
-        <jersey.version>2.27</jersey.version>
-        <jetty.version>9.4.48.v20220622</jetty.version>
     </properties>
 
     <dependencies>
@@ -106,11 +104,6 @@
             <artifactId>log4j-over-slf4j</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-to-slf4j</artifactId>
         </dependency>
@@ -162,7 +155,7 @@
         <!-- Spring dependencies.. -->
         <dependency>
             <groupId>org.glassfish.jersey.ext</groupId>
-            <artifactId>jersey-spring4</artifactId>
+            <artifactId>jersey-spring6</artifactId>
             <version>${jersey.version}</version>
             <exclusions>
                 <exclusion>
@@ -222,37 +215,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-server</artifactId>
-            <version>${jetty.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-webapp</artifactId>
-            <version>${jetty.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlet</artifactId>
-            <version>${jetty.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-util</artifactId>
-            <version>${jetty.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlets</artifactId>
-            <version>${jetty.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-http</artifactId>
-            <version>${jetty.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
@@ -290,33 +252,33 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-maven-plugin</artifactId>
-                <version>${jetty.version}</version>
-                <configuration>
-                    <scanIntervalSeconds>1</scanIntervalSeconds>
-                    <webApp>
-                        <contextPath>/mahademo</contextPath>
-                    </webApp>
-                    <systemProperties>
-                        <systemProperty>
-                            <name>org.slf4j.simpleLogger.defaultLogLevel</name>
-                            <value>debug</value>
-                        </systemProperty>
-                    </systemProperties>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.h2database</groupId>
-                        <artifactId>h2</artifactId>
-                        <version>1.4.191</version>
-                    </dependency>
-                </dependencies>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.eclipse.jetty</groupId>-->
+<!--                <artifactId>jetty-maven-plugin</artifactId>-->
+<!--                <version>${jetty.version}</version>-->
+<!--                <configuration>-->
+<!--                    <scanIntervalSeconds>1</scanIntervalSeconds>-->
+<!--                    <webApp>-->
+<!--                        <contextPath>/mahademo</contextPath>-->
+<!--                    </webApp>-->
+<!--                    <systemProperties>-->
+<!--                        <systemProperty>-->
+<!--                            <name>org.slf4j.simpleLogger.defaultLogLevel</name>-->
+<!--                            <value>debug</value>-->
+<!--                        </systemProperty>-->
+<!--                    </systemProperties>-->
+<!--                </configuration>-->
+<!--                <dependencies>-->
+<!--                    <dependency>-->
+<!--                        <groupId>com.h2database</groupId>-->
+<!--                        <artifactId>h2</artifactId>-->
+<!--                        <version>${h2.version}</version>-->
+<!--                    </dependency>-->
+<!--                </dependencies>-->
+<!--            </plugin>-->
             <plugin>
                 <artifactId>maven-war-plugin</artifactId>
-                <version>3.2.3</version>
+                <version>3.4.0</version>
                 <configuration>
                     <attachClasses>true</attachClasses>
                 </configuration>

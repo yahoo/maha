@@ -4,9 +4,8 @@ package com.yahoo.maha.log
 
 import java.util.Properties
 import java.util.concurrent.Future
-
 import com.google.common.util.concurrent.Futures
-import com.google.protobuf.GeneratedMessage
+import com.google.protobuf.GeneratedMessageV3
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import grizzled.slf4j.Logging
 import org.apache.kafka.clients.producer.{Callback, ProducerRecord, RecordMetadata}
@@ -65,7 +64,7 @@ class KafkaMahaRequestLogWriter(kafkaRequestLoggingConfig: KafkaRequestLoggingCo
     new org.apache.kafka.clients.producer.KafkaProducer[Array[Byte], Array[Byte]](props)
   }
 
-  private[log] def writeMessage(proto: GeneratedMessage): Future[RecordMetadata] = {
+  private[log] def writeMessage(proto: GeneratedMessageV3): Future[RecordMetadata] = {
     if(loggingEnabled) {
       try {
         val producerRecord: ProducerRecord[Array[Byte], Array[Byte]] =
@@ -97,9 +96,9 @@ class KafkaMahaRequestLogWriter(kafkaRequestLoggingConfig: KafkaRequestLoggingCo
   }
 
   def validate(reqLogBuilder: MahaRequestProto): Unit = {
-    if(!reqLogBuilder.hasJson || !reqLogBuilder.hasRequestId || !reqLogBuilder.hasRequestEndTime) {
-      warn(s"Message is missing the required fields requestId, json, endtime = $reqLogBuilder")
-    }
+    require(reqLogBuilder.hasJson && reqLogBuilder.hasRequestId,
+      s"Message is missing the required fields requestId, json = $reqLogBuilder"
+    )
   }
 
   class CheckErrorCallback extends Callback {

@@ -106,14 +106,9 @@ class DrilldownCurator(override val requestModelValidator: CuratorRequestModelVa
   override val isSingleton: Boolean = false
   override val requiresDefaultCurator: Boolean = true
 
-  override def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+  override def parseConfig(config: CuratorJsonConfig): JsonScalaz.Result[CuratorConfig] = {
     val drilldownConfigTry: JsonScalaz.Result[DrilldownConfig] = DrilldownConfig.parse(config)
-    Validation
-      .fromTryCatchNonFatal {
-        require(drilldownConfigTry.isSuccess, "Must succeed in creating a drilldownConfig " + drilldownConfigTry)
-        drilldownConfigTry.toOption.get
-      }
-      .leftMap[JsonScalaz.Error](t => JsonScalaz.UncategorizedError("parseDrillDownConfigValidation", t.getMessage, List.empty)).toValidationNel
+    drilldownConfigTry.map(_.asInstanceOf[CuratorConfig])
   }
 
   /**

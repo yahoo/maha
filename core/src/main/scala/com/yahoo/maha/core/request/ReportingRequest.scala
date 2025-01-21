@@ -101,26 +101,44 @@ case class ReportingRequest(cube: String
 trait BaseRequest {
   import syntax.validation._
 
-  val EMPTY_FILTER : JsonScalaz.Result[List[Filter]] = List.empty.successNel
-  val EMPTY_SORTBY: JsonScalaz.Result[List[SortBy]] = List.empty.successNel
+  val EMPTY_FILTER : JsonScalaz.Result[List[Filter]] = List.empty[Filter].successNel
+  val EMPTY_SORTBY: JsonScalaz.Result[List[SortBy]] = List.empty[SortBy].successNel
   val EMPTY_ADDITIONAL_PARAMETERS: JsonScalaz.Result[Map[Parameter, ParameterValue[_]]] = Map.empty[Parameter, ParameterValue[_]].successNel
   val DEFAULT_SI: JsonScalaz.Result[Int] = 0.successNel
   val DEFAULT_MR: JsonScalaz.Result[Int] = 200.successNel
   val DEFAULT_FORCE_DIM_DRIVEN: JsonScalaz.Result[Boolean] = false.successNel
   val DEFAULT_FORCE_FACT_DRIVEN: JsonScalaz.Result[Boolean] = false.successNel
   val DEFAULT_INCLUDE_ROW_COUNT: JsonScalaz.Result[Boolean] = false.successNel
-  val SYNC_REQUEST: JsonScalaz.Result[RequestType] = SyncRequest.successNel
-  val ASYNC_REQUEST: JsonScalaz.Result[RequestType] = AsyncRequest.successNel
+  val SYNC_REQUEST: JsonScalaz.Result[RequestType] = {
+    val requestType: RequestType = SyncRequest
+    requestType.successNel
+  }
+  val ASYNC_REQUEST: JsonScalaz.Result[RequestType] = {
+    val requestType: RequestType = AsyncRequest
+    requestType.successNel
+  }
   val DEFAULT_DAY_FILTER : Filter = EqualityFilter("Day", "2000-01-01")
   val NOOP_DAY_FILTER : JsonScalaz.Result[Filter] = DEFAULT_DAY_FILTER.successNel
-  val NOOP_HOUR_FILTER : JsonScalaz.Result[Option[Filter]] = Option(EqualityFilter("Hour", "00")).successNel
-  val NOOP_MINUTE_FILTER : JsonScalaz.Result[Option[Filter]] = Option(EqualityFilter("Minute", "00")).successNel
+  val NOOP_HOUR_FILTER : JsonScalaz.Result[Option[Filter]] = {
+    val filter: Option[Filter] = Option(EqualityFilter("Hour", "00"))
+    filter.successNel
+  }
+  val NOOP_MINUTE_FILTER : JsonScalaz.Result[Option[Filter]] = {
+    val filter: Option[Filter] = Option(EqualityFilter("Minute", "00"))
+    filter.successNel
+  }
   val NOOP_NUM_DAYS : JsonScalaz.Result[Int] = 1.successNel
-  val DEFAULT_DISPLAY_NAME : JsonScalaz.Result[Option[String]] = None.successNel
+  val DEFAULT_DISPLAY_NAME : JsonScalaz.Result[Option[String]] = Option.empty[String].successNel
   val DEFAULT_CURATOR_JSON_CONFIG_MAP: JsonScalaz.Result[Map[String, CuratorJsonConfig]] = Map("default" -> CuratorJsonConfig(parse("""{}"""))).successNel
   val DEFAULT_PAGINATION_CONFIG: JsonScalaz.Result[PaginationConfig] = PaginationConfig(Map.empty).successNel
-  val GROUPBY_QUERY: JsonScalaz.Result[QueryType] = GroupByQuery.successNel
-  val SCAN_QUERY: JsonScalaz.Result[QueryType] = ScanQuery.successNel
+  val GROUPBY_QUERY: JsonScalaz.Result[QueryType] = {
+    val queryType: QueryType = GroupByQuery
+    queryType.successNel
+  }
+  val SCAN_QUERY: JsonScalaz.Result[QueryType] = {
+    val queryType: QueryType = ScanQuery
+    queryType.successNel
+  }
 
   protected[this] val factBiasOption : Option[Bias] = Option(FactBias)
 
@@ -200,7 +218,7 @@ trait BaseRequest {
 
 
       //carry forward any errors otherwise use new list without day or hour filters
-      val newFiltersResult = filtersResult.map { _ => attributeAndMetricFilters.toIndexedSeq }
+      val newFiltersResult: JsonScalaz.Result[IndexedSeq[Filter]] = filtersResult.map { _ => attributeAndMetricFilters.toIndexedSeq }
       (newFiltersResult, dayFilterResult, hourFilterResult, minuteFilterResult, numDays.successNel)
     } else {
       (filtersResult.map(_.toIndexedSeq), NOOP_DAY_FILTER, NOOP_HOUR_FILTER, NOOP_MINUTE_FILTER, NOOP_NUM_DAYS)
@@ -368,7 +386,7 @@ object ReportingRequest extends BaseRequest {
         Try(parse(new String(ba, StandardCharsets.UTF_8))) match {
         case t if t.isSuccess => t.get
         case t if t.isFailure => {
-          return Failure(JsonScalaz.UncategorizedError("invalidInputJson", t.failed.get.getMessage, List.empty)).toValidationNel
+          return Validation.failureNel[JsonScalaz.Error, ReportingRequest](JsonScalaz.UncategorizedError("invalidInputJson", t.failed.get.getMessage, List.empty))
         }
       }
     }

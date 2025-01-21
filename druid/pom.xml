@@ -17,7 +17,7 @@
     <url>http://maven.apache.org</url>
 
     <properties>
-        <asynchttpclient.version>2.10.1</asynchttpclient.version>
+        <asynchttpclient.version>2.12.3</asynchttpclient.version>
     </properties>
 
     <dependencies>

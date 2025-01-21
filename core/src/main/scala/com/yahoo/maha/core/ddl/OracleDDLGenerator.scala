@@ -27,12 +27,25 @@ class OracleDDLGenerator {
     def renderType(dataType: DataType) : String = {
       dataType match {
         case IntType(length, _, _, _, _) =>
-          s"""NUMBER($length)"""
+          if(length > 0) {
+            s"""NUMBER($length)"""
+          } else {
+            "NUMBER"
+          }
+
         case DecType(length, scale, _, _, _, _) =>
-          s"""NUMBER($length, $scale)"""
+          if(length > 0) {
+            s"""NUMBER($length, $scale)"""
+          } else {
+            "NUMBER"
+          }
         case StrType(length, _, _, isBinary) =>
           require(!isBinary, "Oracle Generator is not yet compatible with Binary/RAW data types yet!")
-          s"""VARCHAR2($length CHAR)"""
+          if(length > 0) {
+            s"""VARCHAR2($length CHAR)"""
+          } else {
+            "VARCHAR2(200 CHAR)"
+          }
         case _ =>
           s"""${dataType.jsonDataType.toUpperCase}"""
       }

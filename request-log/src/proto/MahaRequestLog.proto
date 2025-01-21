@@ -1,11 +1,12 @@
+syntax = "proto3";
 package com.yahoo.maha.proto;
 
 option java_outer_classname = "MahaRequestLog";
 
 message MahaRequestProto{
 
-  required string requestId = 1;
-  required bytes json = 2;
+  optional string requestId = 1;
+  optional bytes json = 2;
   optional string userId = 3;
   optional string cube = 4;
   optional string schema = 5;
@@ -51,6 +52,7 @@ message MahaRequestProto{
     Druid = 1;
     Hive = 2;
     Presto = 3;
+    Postgres = 4;
   }
   message FactCost{
   optional string name = 1;

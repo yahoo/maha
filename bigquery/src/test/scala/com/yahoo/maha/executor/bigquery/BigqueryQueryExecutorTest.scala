@@ -18,13 +18,14 @@ import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.bigquery.{BigqueryPartitionColumnRenderer, BigqueryQueryGenerator}
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request._
-import org.mockito.Matchers._
+import com.yahoo.maha.utils.MockitoHelper
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito
-import org.mockito.Mockito._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.BeforeAndAfterEach
+
 import scala.util.Try
 
 class BigqueryQueryExecutorTest
@@ -32,7 +33,8 @@ class BigqueryQueryExecutorTest
     with Matchers
     with BeforeAndAfterAll
     with BeforeAndAfterEach
-    with BaseQueryGeneratorTest {
+    with BaseQueryGeneratorTest
+    with MockitoHelper {
 
   private var bigqueryQueryExecutor: Option[BigqueryQueryExecutor] = None
   private val queryExecutorContext: QueryExecutorContext = new QueryExecutorContext

@@ -3,7 +3,7 @@
 package com.yahoo.maha.api.jersey
 
 import com.yahoo.maha.service.MahaRequestContext
-import javax.ws.rs.container.ContainerRequestContext
+import jakarta.ws.rs.container.ContainerRequestContext
 
 trait RequestValidator {
   def validate(mahaRequestContext: MahaRequestContext, containerRequestContext: ContainerRequestContext): Unit

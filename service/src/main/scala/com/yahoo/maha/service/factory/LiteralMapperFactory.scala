@@ -36,7 +36,7 @@ class DefaultPostgresLiteralMapperFactory extends PostgresLiteralMapperFactory {
 }
 class DefaultPostgresLiteralMapperUsingDriverFactory extends PostgresLiteralMapperFactory {
   override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[PostgresLiteralMapper] = {
-    new PostgresLiteralMapperUsingDriver().successNel
+    new PostgresLiteralMapperUsingDriver().asInstanceOf[PostgresLiteralMapper].successNel
   }
 
   override def supportedProperties: List[(String, Boolean)] = List.empty

@@ -3,8 +3,6 @@ package com.yahoo.maha.core.auth
 import play.api.Configuration
 import play.api.mvc.{RequestHeader, Result, Results}
 
-import scala.collection.immutable.Map
-
 case class ValidationResult(success: Boolean, user: Option[String])
 
 trait AuthValidator {

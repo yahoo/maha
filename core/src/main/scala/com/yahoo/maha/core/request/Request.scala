@@ -99,8 +99,12 @@ object SortBy {
     override def read(json: JValue): JsonScalaz.Result[SortBy] = {
       val orderResult: JsonScalaz.Result[Order] = fieldExtended[String]("order")(json).flatMap { order =>
         order.toLowerCase match {
-          case "asc" => ASC.successNel
-          case "desc" => DESC.successNel
+          case "asc" =>
+            val order: Order = ASC
+            order.successNel
+          case "desc" =>
+            val order: Order = DESC
+            order.successNel
           case unknown => Fail.apply("order", s"order must be asc|desc not $unknown")
         }
       }
@@ -186,7 +190,7 @@ object Parameter extends Enum[Parameter] with Logging {
         warn(s"Found unrecognized param $name")
         None
       case Some(p) =>
-        val result = p match {
+        val result: JsonScalaz.Result[(Parameter, ParameterValue[_])] = p match {
           case ReportFormat => fieldExtended[String](name)(json).map(ct => p -> ReportFormatValue(ReportFormatType.withNameInsensitive(ct)))
           case DryRun => fieldExtended[Boolean](name)(json).map(ct => p -> DryRunValue(ct))
           case GeneratedQuery => fieldExtended[String](name)(json).map(ct => p -> GeneratedQueryValue(ct))
@@ -194,7 +198,11 @@ object Parameter extends Enum[Parameter] with Logging {
             engine =>
               Engine.from(engine).fold(
                 JsonScalaz.UncategorizedError(name, s"Unknown engine : $engine", List.empty).asInstanceOf[JsonScalaz.Error].failureNel[(Parameter, ParameterValue[_])])(
-                e => (p, QueryEngineValue(e)).successNel
+                e => {
+                  val pv: QueryEngineValue = QueryEngineValue(e)
+                  val pair: (Parameter, ParameterValue[_]) = (p, pv)
+                  pair.successNel
+                }
               )
           }
           case Debug => fieldExtended[Boolean](name)(json).map(d => p -> DebugValue(d))

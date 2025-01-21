@@ -36,7 +36,7 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
     requestModel.orFilterMeta.isEmpty
   }
 
-  private[this] def generateQuery(queryContext: CombinedQueryContext) : Query = {
+  protected[hive] def generateQuery(queryContext: CombinedQueryContext) : Query = {
 
     //init vars
     val queryBuilderContext = new QueryBuilderContext

@@ -4,7 +4,6 @@ package com.yahoo.maha.executor.postgres
 
 import java.sql.{Date, ResultSet, Timestamp}
 import java.util.UUID
-
 import com.opentable.db.postgres.embedded.EmbeddedPostgres
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
@@ -19,17 +18,18 @@ import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.MockDruidQueryExecutor
 import com.yahoo.maha.jdbc._
+import com.yahoo.maha.utils.MockitoHelper
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.commons.lang3.StringUtils
 import org.apache.druid.common.config.NullHandling
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{BeforeAndAfterAll}
+import org.scalatest.BeforeAndAfterAll
 
 /**
  * Created by hiral on 1/25/16.
  */
-class PostgresQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
+class PostgresQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with MockitoHelper {
 
   override protected def defaultFactEngine: Engine = PostgresEngine
 
@@ -49,7 +49,7 @@ class PostgresQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAnd
 
   override protected def beforeAll(): Unit = {
     val config = new HikariConfig()
-    val jdbcUrl = pg.getJdbcUrl("postgres", "postgres")
+    val jdbcUrl = pg.getJdbcUrl("postgres")
     config.setJdbcUrl(jdbcUrl)
 //    config.setJdbcUrl("jdbc:h2:mem:" + UUID.randomUUID().toString.replace("-",
 //      "") + ";MODE=PostgreSQL;DB_CLOSE_DELAY=-1")
@@ -1090,19 +1090,19 @@ class PostgresQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAnd
   }
 
   test("test null result") {
-    import org.mockito.Matchers._
+    import org.mockito.ArgumentMatchers._
     import org.mockito.Mockito
     var resultSet: ResultSet = null
-    var executor : PostgresQueryExecutor = Mockito.spy(postgresQueryExecutor.get)
+    var executor : PostgresQueryExecutor = Mockito.spy[PostgresQueryExecutor](postgresQueryExecutor.get)
     val today = new Date(1515794890000L)
     jdbcConnection.get.queryForList("select * from ad_stats_postgres where ad_id=1000 limit 1") {
       rs => {
-        resultSet = Mockito.spy(rs)
+        resultSet = Mockito.spy[ResultSet](rs)
         Mockito.doNothing().when(resultSet).close()
-        Mockito.doReturn(null).when(resultSet).getBigDecimal(anyInt())
-        Mockito.doReturn(null).when(resultSet).getDate(1)
-        Mockito.doReturn(today).when(resultSet).getDate(2)
-        Mockito.doReturn(null).when(resultSet).getTimestamp(anyInt())
+        doReturn(null).when(resultSet).getBigDecimal(anyInt())
+        doReturn(null).when(resultSet).getDate(1)
+        doReturn(today).when(resultSet).getDate(2)
+        doReturn(null).when(resultSet).getTimestamp(anyInt())
       }
     }
 

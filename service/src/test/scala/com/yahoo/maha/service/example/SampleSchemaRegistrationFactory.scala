@@ -45,11 +45,11 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("group_id", IntType(), annotations = Set(ForeignKey("grp")))
             , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
-            , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
-            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
-            , DimCol("date", DateType())
-            , DimCol("hour", IntType(2))
-            , DimCol("month", DateType())
+            , DimCol("myyear", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
+            , DimCol("mycomment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("mydate", DateType())
+            , DimCol("myhour", IntType(2))
+            , DimCol("mymonth", DateType())
             , DimCol("top_student_id", IntType())
             ),
           Set(
@@ -73,11 +73,11 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
             PubCol("group_id", "Group ID", InEquality),
             PubCol("section_id", "Section ID", InEquality),
-            PubCol("date", "Day", Equality),
-            PubCol("hour", "Hour", Equality),
-            PubCol("month", "Month", InEquality),
-            PubCol("year", "Year", Equality),
-            PubCol("comment", "Remarks", InEqualityLike),
+            PubCol("mydate", "Day", Equality),
+            PubCol("myhour", "Hour", Equality),
+            PubCol("mymonth", "Month", InEquality),
+            PubCol("myyear", "Year", Equality),
+            PubCol("mycomment", "Remarks", InEqualityLike),
             PubCol("top_student_id", "Top Student ID", FieldEquality)
           ),
           Set(
@@ -104,11 +104,11 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             DimCol("class_id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("section_id", IntType(3))
-            , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
-            , DimCol("comment", StrType(), annotations = Set(EscapingRequired, ForeignKey("remarks")))
-            , DimCol("comment2", StrType(), annotations = Set(EscapingRequired))
-            , DimCol("date", DateType())
-            , DimCol("month", DateType())
+            , DimCol("myyear", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
+            , DimCol("mycomment", StrType(), annotations = Set(EscapingRequired, ForeignKey("remarks")))
+            , DimCol("mycomment2", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("mydate", DateType())
+            , DimCol("mymonth", DateType())
             , DimCol("top_student_id", IntType())
           ),
           Set(
@@ -123,11 +123,11 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("class_id", "Class ID", InEquality),
             PubCol("student_id", "Student ID", InEqualityFieldEquality),
             PubCol("section_id", "Section ID", InEquality),
-            PubCol("date", "Day", Equality),
-            PubCol("month", "Month", InEquality),
-            PubCol("year", "Year", Equality),
-            PubCol("comment", "Remarks", InEqualityLike),
-            PubCol("comment2", "Remarks2", InEqualityLike),
+            PubCol("mydate", "Day", Equality),
+            PubCol("mymonth", "Month", InEquality),
+            PubCol("myyear", "Year", Equality),
+            PubCol("mycomment", "Remarks", InEqualityLike),
+            PubCol("mycomment2", "Remarks2", InEqualityLike),
             PubCol("top_student_id", "Top Student ID", FieldEquality)
           ),
           Set(
@@ -152,10 +152,10 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("group_id", IntType(3), annotations = Set(ForeignKey("grp"))) 
             , DimCol("section_id", IntType(3), annotations = Set(ForeignKey("section")))
-            , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
-            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
-            , DimCol("date", DateType())
-            , DimCol("month", DateType())
+            , DimCol("myyear", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
+            , DimCol("mycomment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("mydate", DateType())
+            , DimCol("mymonth", DateType())
             , DimCol("top_student_id", IntType())
           ),
           Set(
@@ -172,9 +172,9 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("student_id", "Student ID", InEqualityFieldEquality),
             PubCol("group_id", "Group ID", InNotInEquality),
             PubCol("section_id", "Section ID", InNotInEquality),
-            PubCol("date", "Day", Equality),
-            PubCol("month", "Month", InEquality),
-            PubCol("year", "Year", Equality),
+            PubCol("mydate", "Day", Equality),
+            PubCol("mymonth", "Month", InEquality),
+            PubCol("myyear", "Year", Equality),
             PubCol("top_student_id", "Top Student ID", FieldEquality)
           ),
           Set(
@@ -204,10 +204,10 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
             , DimCol("group_id", IntType(), annotations = Set(ForeignKey("grp")))
             , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
-            , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
-            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
-            , DimCol("date", DateType())
-            , DimCol("month", DateType())
+            , DimCol("myyear", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
+            , DimCol("mycomment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("mydate", DateType())
+            , DimCol("mymonth", DateType())
             , DimCol("top_student_id", IntType())
           ),
           Set(
@@ -245,10 +245,10 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           PubCol("lab_id", "Lab ID", InBetweenEqualityFieldEquality),
           PubCol("section_id", "Section ID", InEquality),
           PubCol("group_id", "Group ID", InEquality),
-          PubCol("date", "Day", Equality),
-          PubCol("month", "Month", InEquality),
-          PubCol("year", "Year", Equality),
-          PubCol("comment", "Remarks", InEqualityLike),
+          PubCol("mydate", "Day", Equality),
+          PubCol("mymonth", "Month", InEquality),
+          PubCol("myyear", "Year", Equality),
+          PubCol("mycomment", "Remarks", InEqualityLike),
           PubCol("top_student_id", "Top Student ID", FieldEquality)
         ),
         Set(
@@ -279,10 +279,10 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("lab_id", IntType(), annotations = Set(ForeignKey("labs")))
             , DimCol("group_id", IntType(), annotations = Set(ForeignKey("researcher_druid")))
             , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
-            , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
-            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
-            , DimCol("date", DateType())
-            , DimCol("month", DateType())
+            , DimCol("myyear", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
+            , DimCol("mycomment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("mydate", DateType())
+            , DimCol("mymonth", DateType())
             , DimCol("top_student_id", IntType())
           ),
           Set(
@@ -304,10 +304,10 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           PubCol("lab_id", "Lab ID", InBetweenEqualityFieldEquality),
           PubCol("section_id", "Section ID", InEquality),
           PubCol("group_id", "Group ID", InEquality),
-          PubCol("date", "Day", Equality),
-          PubCol("month", "Month", InEquality),
-          PubCol("year", "Year", Equality),
-          PubCol("comment", "Remarks", InEqualityLike),
+          PubCol("mydate", "Day", Equality),
+          PubCol("mymonth", "Month", InEquality),
+          PubCol("myyear", "Year", Equality),
+          PubCol("mycomment", "Remarks", InEqualityLike),
           PubCol("top_student_id", "Top Student ID", FieldEquality)
         ),
         Set(

@@ -4,7 +4,7 @@ package com.yahoo.maha.api.jersey
 
 import java.io.OutputStream
 
-import javax.ws.rs.core.StreamingOutput
+import jakarta.ws.rs.core.StreamingOutput
 import com.yahoo.maha.core._
 import com.yahoo.maha.service.RequestCoordinatorResult
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater

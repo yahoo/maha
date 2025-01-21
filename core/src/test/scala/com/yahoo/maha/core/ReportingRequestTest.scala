@@ -20,7 +20,7 @@ class ReportingRequestTest extends AnyFlatSpec {
 
   implicit class IListExists(ilist: IList[JsonScalaz.Error]) {
     def exists(f : scala.Function1[JsonScalaz.Error, scala.Boolean]): Boolean  = {
-      ilist.find(f).isDefined
+      ilist.find(f).isJust
     }
   }
 

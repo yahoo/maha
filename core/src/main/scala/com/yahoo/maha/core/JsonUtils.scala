@@ -34,21 +34,22 @@ object JsonUtils {
   import Scalaz._
   def stringListField(name: String)(json: JValue): Result[List[String]] = json match {
     case JObject(fs) =>
-      fs.find(_._1 == name)
+      val result = fs.find(_._1 == name)
         .map {
         case (_, JArray(s)) =>
           s.collect {
             case jvalue if jvalue != JNull => string(jvalue)
           }.sequence[Result, String]
-        case (_, x) => UnexpectedJSONError(x, classOf[JArray]).asInstanceOf[JsonScalaz.Error].failureNel
-      }.getOrElse(NoSuchFieldError(name, json).asInstanceOf[JsonScalaz.Error].failureNel)
+        case (_, x) => UnexpectedJSONError(x, classOf[JArray]).asInstanceOf[JsonScalaz.Error].failureNel[List[String]]
+      }
+      result.getOrElse(NoSuchFieldError(name, json).asInstanceOf[JsonScalaz.Error].failureNel)
     case x => UnexpectedJSONError(x, classOf[JObject]).asInstanceOf[JsonScalaz.Error].failureNel
   }
 
   def booleanFalse(json: JValue): Result[Boolean] = false.successNel
 
-  def optionNone[T](json: JValue): Result[Option[T]] = None.successNel
-  def noneDateTimeZone(json: JValue): Result[Option[DateTimeZone]] = None.successNel
+  def optionNone[T](json: JValue): Result[Option[T]] = Option.empty[T].successNel
+  def noneDateTimeZone(json: JValue): Result[Option[DateTimeZone]] = Option.empty[DateTimeZone].successNel
   /**
    * Implicits used for JSON converters, IE Set, Map, Annotations, etc.
    */
@@ -57,7 +58,9 @@ object JsonUtils {
   }*/
 
   implicit def mapJSONW: JSONW[Map[String, Set[String]]] = new JSONW[Map[String, Set[String]]] {
-    def write(values: Map[String, Set[String]]) = makeObj(values.map(kv => kv._1 -> toJSON(kv._2.toList)).toList)
+    def write(values: Map[String, Set[String]]) = makeObj(values.toIndexedSeq.sortBy(_._1)
+      .map(kv => kv._1 -> toJSON(kv._2.toList.sorted)).toList
+    )
   }
 
   implicit def bdJSONW: JSONW[BigDecimal] = new JSONW[BigDecimal] {
@@ -75,8 +78,11 @@ object JsonUtils {
     }
   }
 
-  implicit def setJSONW[A]: JSONW[Set[A]] = new JSONW[Set[A]] {
-    def write(values: Set[A]) = JArray(values.map(x => toJSON(x)).toList)
+//  implicit def setJSONW[A]: JSONW[Set[A]] = new JSONW[Set[A]] {
+//    def write(values: Set[A]) = JArray(values.toIndexedSeq.map(x => toJSON(x)).toList)
+//  }
+  implicit def setJSONW: JSONW[Set[String]] = new JSONW[Set[String]] {
+    def write(values: Set[String]) = JArray(values.toIndexedSeq.sorted.map(x => toJSON(x)).toList)
   }
 
   implicit def listJSONW[A: JSONW]: JSONW[List[A]] = new JSONW[List[A]] {

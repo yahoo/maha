@@ -315,4 +315,22 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
                 ", useQueryLevelCache=" + useQueryLevelCache +
                 '}';
     }
+
+    public static MahaRegisteredLookupExtractionFn constructForExtractionDimensionSpec(
+            String lookup,
+            final boolean retainMissingValue,
+            final String replaceMissingValueWith,
+            final boolean injective,
+            Boolean optimize,
+            String valueColumn,
+            DecodeConfig decodeConfig,
+            Map<String, String> dimensionOverrideMap,
+            Map<String, String> secondaryColOverrideMap,
+            Boolean useQueryLevelCache
+    ) {
+        return new MahaRegisteredLookupExtractionFn(null, lookup, retainMissingValue, replaceMissingValueWith
+                , injective, optimize, valueColumn, decodeConfig, dimensionOverrideMap, secondaryColOverrideMap
+                , useQueryLevelCache);
+    }
+
 }
